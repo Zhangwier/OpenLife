@@ -1,0 +1,14 @@
+{
+  "name": "@openlife/module-career",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/module-modern-world": "*",
+    "@openlife/module-education": "*"
+  }
+}

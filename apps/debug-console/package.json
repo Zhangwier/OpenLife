@@ -1,0 +1,15 @@
+{
+  "name": "@openlife/debug-console",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/module-career": "*",
+    "@openlife/module-education": "*",
+    "@openlife/module-family": "*",
+    "@openlife/module-magic-test-world": "*",
+    "@openlife/module-modern-world": "*",
+    "@openlife/simulation": "*"
+  }
+}

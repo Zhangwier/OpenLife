@@ -1,0 +1,15 @@
+{
+  "name": "@openlife/module-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/kernel": "*",
+    "@openlife/rule-engine": "*",
+    "@openlife/world-model": "*"
+  }
+}

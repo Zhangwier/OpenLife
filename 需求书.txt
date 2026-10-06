@@ -1,0 +1,2739 @@
+# OpenLife  开放人生  
+## 模块化人生模拟平台完整需求任务书 v0.1
+
+文档状态：Architecture Freeze Candidate  
+版本：v0.1  
+目标读者：产品设计、系统架构、游戏开发、AI 辅助开发、Module 创作者  
+项目性质：长期演进型人生模拟引擎与内容平台
+
+---
+
+# 1. 项目定义
+
+## 1.1 一句话定位
+
+OpenLife 是一个具有持续世界历史、人物认知、家族传承、可学习决策行为、模块化规则和多时间线能力的人生模拟平台。
+
+玩家不是在完成一套固定人生流程，而是在一个会持续存在、可以被理解、改变、继承和留下痕迹的世界中生活。
+
+---
+
+# 2. 核心愿景
+
+OpenLife 不以“刷最高属性”“找到唯一最优路线”“完成固定剧情”作为主要目标。
+
+项目最终希望提供四种核心体验：
+
+1. 活一个人的人生
+2. 见证一个家族延续
+3. 影响一个长期存在的世界
+4. 让自己的选择成为历史的一部分
+
+玩家第一代死亡后：
+
+- 家族继续存在；
+- 公司可能继续经营；
+- 学校可能成为百年机构；
+- 著作、发明、建筑、组织可能留下；
+- NPC 会继续生活；
+- 后代可以面对祖先留下的问题和机会；
+- 其他玩家甚至可能在未来进入这个历史。
+
+核心体验不是：
+
+ “这一局我拿了多少分。”
+
+而是：
+
+ “我这一生留下了什么？”
+
+---
+
+# 3. 核心设计原则
+
+## 3.1 Core 不定义具体世界观
+
+Core 不得直接包含以下具体概念：
+
+- 电力；
+- 原子；
+- 魔法；
+- 灵魂；
+- 经脉；
+- DNA；
+- 医生；
+- 学校；
+- 公司；
+- 国家；
+- 婚姻；
+- 工资；
+- 税收；
+- 战争；
+- 宗教；
+- 现代科技。
+
+Core 只提供通用抽象。
+
+例如：
+
+```text
+Entity
+Component
+Relation
+
+State
+Fact
+
+Command
+Effect
+Event
+Transaction
+
+Resource
+Flow
+Network
+Process
+
+Observation
+Knowledge
+Belief
+Memory
+
+Decision
+Preference
+Autonomy
+
+Timeline
+History
+Lineage
+
+Capability
+ExtensionPoint
+```
+
+具体含义全部由 World Pack、System Pack 和 Content Pack 提供。
+
+---
+
+# 4. 架构最高原则
+
+OpenLife 必须遵守以下不变量。
+
+## INV-001 世界状态只能通过事务修改
+
+任何系统不得直接：
+
+```text
+player.money += 1000
+```
+
+必须：
+
+```text
+Command
+↓
+Validation
+↓
+Rule Resolution
+↓
+Effects
+↓
+Transaction
+↓
+State Mutation
+↓
+Events
+```
+
+---
+
+## INV-002 外部输入全部转换为 Command
+
+包括：
+
+- 玩家输入；
+- UI；
+- AI；
+- AutoSim；
+- 网络；
+- 世界服；
+- Module；
+- 外部现实数据。
+
+全部不能直接修改 State。
+
+---
+
+## INV-003 AI 不拥有世界状态
+
+AI 可以：
+
+- 解析意图；
+- 生成叙事；
+- 推荐行动；
+- 控制授权范围内的角色；
+- 生成内容草案。
+
+AI 不允许：
+
+- 自行修改存档；
+- 自行修改属性；
+- 自行决定已经发生的事实。
+
+---
+
+## INV-004 相同输入必须可复现
+
+在以下条件一致时：
+
+```text
+State
+Command
+World Seed
+Rules
+Module Versions
+```
+
+必须得到相同结果。
+
+系统随机数必须来自统一 Deterministic RNG。
+
+---
+
+## INV-005 世界真相和人物认知分离
+
+必须始终满足：
+
+```text
+Fact
+≠
+Observation
+≠
+Knowledge
+≠
+Memory
+≠
+Belief
+```
+
+角色不知道的事情，不得因为系统知道而自动获知。
+
+---
+
+## INV-006 历史实体可以消失，历史记录不能消失
+
+公司可以倒闭。
+
+人物可以死亡。
+
+建筑可以拆除。
+
+但重要 Historical Record 不得因为实体失效而删除。
+
+---
+
+## INV-007 Module 不能成为第二套引擎
+
+Module 不允许：
+
+- 绕过 Transaction；
+- Monkey Patch Core；
+- 直接修改其他 Module 私有数据；
+- 自己维护另一套世界真相；
+- 自己维护另一套全局随机数；
+- 绕过 Capability 权限。
+
+---
+
+## INV-008 玩家人生时间不得直接控制公共世界时间
+
+玩家的：
+
+```text
+Life Clock
+```
+
+与：
+
+```text
+World Clock
+```
+
+必须逻辑分离。
+
+个人快进不得强制其他玩家推进时间。
+
+---
+
+# 5. 总体架构
+
+```text
+┌───────────────────────────────────────┐
+│            Presentation               │
+│ UI  Narrative  History  Timeline   │
+└───────────────────┬───────────────────┘
+                    │ Projection
+                    ▼
+┌───────────────────────────────────────┐
+│        Query  Perception Layer       │
+│ 玩家视野  NPC视野  AI上下文          │
+└───────────────────┬───────────────────┘
+                    │
+                    ▼
+┌───────────────────────────────────────┐
+│          Autonomy Runtime             │
+│ Human  AutoSim  AI  Player Style   │
+└───────────────────┬───────────────────┘
+                    │ Command
+                    ▼
+╔═══════════════════════════════════════╗
+║               KERNEL                  ║
+║ Command  Transaction  Clock  RNG   ║
+║ State Mutation                        ║
+╚══════════════════╤════════════════════╝
+                   │
+       ┌───────────┴───────────┐
+       ▼                       ▼
+ Simulation Services       World Model
+       │                       │
+ Rule Engine               Entity
+ Effect Resolver           Component
+ Modifier                  Relation
+ Scheduler                 Resource
+ Event Runtime             Network
+ Observation               Process
+ Narrative Director        Fact
+ Behavior Model
+       │
+       └──────────┬────────────┘
+                  ▼
+             Runtime Domains
+                  │
+      ┌───────────┼───────────┐
+      ▼           ▼           ▼
+     Mind      Knowledge    History
+      │           │           │
+ Memory      Discovery     Timeline
+ Belief      Theory        Lineage
+ Knowledge   Capability    Causal Graph
+              │
+              ▼
+          Persistence
+ Snapshot + Journal + Migration
+```
+
+外围：
+
+```text
+Module Runtime
+AI Runtime
+World History Service
+Reality Adapter
+Networking
+```
+
+---
+
+# 6. 核心对象层级
+
+必须明确区分四个概念：
+
+```text
+Human User
+↓
+Player Profile
+↓
+Life  Lineage
+↓
+Character
+```
+
+## Player Profile
+
+属于用户，而不是某个角色。
+
+保存：
+
+- Player Style；
+- AutoSim 偏好；
+- AI 使用偏好；
+- UI 设置；
+- 隐私设置。
+
+---
+
+## Lineage
+
+代表一条玩家家族连续线。
+
+保存：
+
+- 家族身份；
+- 祖先；
+- 后代；
+- 家族遗产；
+- 家族重大历史；
+- 长期家族资产；
+- 家族声誉；
+- 家族秘密。
+
+---
+
+## Character
+
+代表具体人物。
+
+拥有：
+
+- Entity；
+- Components；
+- Relationships；
+- Memory；
+- Knowledge；
+- Belief；
+- Personality；
+- Goals；
+- Life History。
+
+死亡后转为 Historical Entity。
+
+---
+
+# 7. World Model
+
+禁止使用不断膨胀的超级 Player 类。
+
+采用：
+
+```text
+Entity
++
+Component
++
+Relation
+```
+
+思想。
+
+例如：
+
+```text
+character1001
+
+components
+  core.identity
+  core.health
+  modern.wealth
+  career.current
+  magic.mana
+```
+
+Module 可以注册自己的 Component。
+
+---
+
+# 8. Relation Graph
+
+关系不得分散存储。
+
+例如：
+
+```text
+A -- parent_of -- B
+A -- married_to -- C
+A -- employed_by -- Company
+A -- owns -- Property
+A -- member_of -- University
+```
+
+Relation 可以拥有 Component。
+
+例如：
+
+```text
+friendship
+closeness
+trust
+history
+```
+
+---
+
+# 9. Organization  Institution
+
+组织必须是一等 Entity。
+
+用于表达：
+
+- 公司；
+- 学校；
+- 医院；
+- 政府；
+- 政党；
+- 社团；
+- 教会；
+- 黑帮；
+- 研究机构；
+- 魔法学院。
+
+组织可以比人物活得更久。
+
+这是长期历史系统的重要基础。
+
+---
+
+# 10. Family
+
+Family 建议作为一等 Entity。
+
+它可以拥有：
+
+```text
+Members
+Assets
+Reputation
+Debt
+Property
+Businesses
+Culture
+Traditions
+Secrets
+Historical Records
+```
+
+代际系统不得简化为：
+
+```text
+上一代财富 × 20% → 下一代
+```
+
+核心应该是：
+
+ 世界状态继承。
+
+---
+
+# 11. 世界状态与派生状态
+
+所有状态必须区分：
+
+## Primitive State
+
+权威原始数据。
+
+例如：
+
+```text
+birth_date
+relationship
+property_owner
+```
+
+---
+
+## Derived State
+
+通过 Query 计算。
+
+例如：
+
+```text
+age
+is_married
+current_employer
+family_net_worth
+```
+
+Derived State 原则上不得重复持久化。
+
+---
+
+# 12. Simulation Kernel
+
+Kernel 必须尽量小。
+
+v0.1 Stable Kernel 仅负责：
+
+```text
+Command
+Validation Boundary
+Transaction
+Clock
+Deterministic RNG
+State Mutation
+```
+
+Kernel 不知道：
+
+- 历史；
+- 魔法；
+- 婚姻；
+- AI；
+- 科技；
+- 公司。
+
+---
+
+# 13. Command  Effect  Event
+
+严格区分。
+
+## Command
+
+“想做什么。”
+
+例如：
+
+```text
+ApplyForJob
+StartBusiness
+MoveCity
+ConfessLove
+```
+
+---
+
+## Effect
+
+世界状态需要发生的具体修改。
+
+标准 Effect 建议包含：
+
+```text
+SetComponent
+ModifyValue
+AddRelation
+RemoveRelation
+SpawnEntity
+ArchiveEntity
+AddFact
+AddMemory
+ScheduleTask
+```
+
+---
+
+## Event
+
+已经发生了什么。
+
+例如：
+
+```text
+CompanyFounded
+RelationshipStarted
+CharacterMoved
+JobAccepted
+```
+
+---
+
+# 14. Rule Engine
+
+规则分三类。
+
+## Constraint Rule
+
+判断能否执行。
+
+---
+
+## Resolution Rule
+
+判断执行后结果如何。
+
+---
+
+## Reaction Rule
+
+某件事发生后其他系统如何响应。
+
+执行链：
+
+```text
+Command
+↓
+Constraint
+↓
+Resolution
+↓
+Effects
+↓
+Transaction
+↓
+Event
+↓
+Reaction
+```
+
+---
+
+# 15. Modifier System
+
+所有复杂数值计算应尽量通过统一 Modifier Pipeline。
+
+例如：
+
+```text
+Job Success
+
+Base
++ Education
++ Experience
++ Reputation
++ Referral
+- Economic Recession
+- Criminal Record
+```
+
+Modifier 必须记录：
+
+```text
+source
+scope
+reason
+priority
+duration
+```
+
+系统必须能够生成 Decision Trace。
+
+---
+
+# 16. Explainability
+
+复杂模拟必须可解释。
+
+例如：
+
+```text
+Divorce triggered
+
+Primary causes
+- trust very low
+- financial stress
+- affair discovered
+```
+
+Debug 层必须能够回答：
+
+ 为什么发生？
+
+这是防止玩家把复杂模拟理解成“随机整人”的关键。
+
+---
+
+# 17. Scheduler
+
+禁止所有 Module 全量执行：
+
+```text
+onTick()
+```
+
+统一使用 Scheduler。
+
+例如：
+
+```text
+Salary → monthly
+Birthday → yearly
+Economic update → quarterly
+Weather → daily
+```
+
+AutoSim 快进时直接跳到下一重要事件。
+
+---
+
+# 18. Simulation LOD
+
+世界不能完整精细模拟所有 NPC。
+
+建议：
+
+```text
+L0
+玩家本人  核心人物
+完整模拟
+
+L1
+家人  好友  同事
+高精度
+
+L2
+普通社会 NPC
+低精度
+
+L3
+背景人口
+统计模拟
+```
+
+---
+
+# 19. Entity Materialization
+
+普通背景人口不必全部拥有完整 Entity。
+
+例如：
+
+```text
+城市中有8000名医生
+```
+
+可以首先存在于 Population Model。
+
+玩家与某医生真正发生关系时：
+
+```text
+Materialize NPC
+```
+
+一旦形成长期关系或重要历史，该 NPC 永久化。
+
+---
+
+# 20. Mind Runtime
+
+人物必须拥有自己的认知世界。
+
+核心结构：
+
+```text
+Fact
+↓
+Observation
+↓
+Knowledge
+↓
+Memory
+↓
+Belief
+```
+
+并可增加：
+
+```text
+Mental Model of Others
+```
+
+人物可以错误理解别人。
+
+---
+
+# 21. Perception  Fog
+
+OpenLife 应支持三种认知遮罩。
+
+## Spatial Fog
+
+不知道远处发生什么。
+
+## Social Fog
+
+不知道：
+
+- 秘密；
+- 他人真实意图；
+- 私人关系。
+
+## Epistemic Fog
+
+不知道：
+
+ 世界本身如何运行。
+
+这是知识、科技、魔法发现的重要基础。
+
+---
+
+# 22. Fact  Knowledge  Memory  Belief
+
+必须严格区分。
+
+例：
+
+```text
+Fact
+父亲因入狱离开家庭
+
+Memory
+小时候父亲突然消失
+
+Belief
+父亲主动抛弃了我
+```
+
+三者可以不同。
+
+---
+
+# 23. Knowledge  Discovery Runtime
+
+Core 不规定：
+
+- 原子；
+- 电力；
+- 魔法；
+- 经脉；
+- 灵魂。
+
+但提供：
+
+```text
+Phenomenon
+Observation
+Theory
+Evidence
+Knowledge
+Discovery
+Capability
+```
+
+系统逻辑：
+
+```text
+Reality
+↓
+Observation
+↓
+Theory
+↓
+Evidence
+↓
+Knowledge
+↓
+Engineering
+↓
+Capability
+```
+
+---
+
+# 24. World Law 与 Knowledge 分离
+
+例如：
+
+```text
+Reality
+物质确实由原子构成
+```
+
+不等于：
+
+```text
+Civilization Knowledge
+已知道原子结构
+```
+
+文明必须通过发现逐渐理解世界。
+
+---
+
+# 25. World Pack
+
+World Pack 定义：
+
+```text
+Law Model
+Ontology
+Phenomena
+Environment
+Initial Knowledge
+Discovery Rules
+Civilization Defaults
+```
+
+例如现实世界：
+
+```text
+matter
+energy
+biology
+electromagnetism
+```
+
+魔法世界：
+
+```text
+matter
+mana
+soul
+magic law
+```
+
+---
+
+# 26. Ontological Truth
+
+世界创建时必须固定基础规律。
+
+例如：
+
+```text
+是否存在灵魂
+是否存在魔力
+死亡是否可逆
+时间是否线性
+```
+
+这些不能在运行几十年以后临时决定。
+
+---
+
+# 27. Latent Truth
+
+世界可以存在尚未展开、但已由 Seed 确定的真相。
+
+例如：
+
+```text
+地下是否存在矿藏
+遥远星球有什么
+```
+
+角色不知道，不代表世界没有。
+
+---
+
+# 28. Technology
+
+Technology 不进入 Core。
+
+它是以下抽象的组合：
+
+```text
+Knowledge
++
+Capability
++
+Process
++
+Dependency
+```
+
+避免固定科技树。
+
+建议采用 Knowledge Graph。
+
+---
+
+# 29. 通用 Resource  Flow  Network
+
+Core 只知道：
+
+```text
+Resource
+Flow
+Network
+Process
+```
+
+现实世界：
+
+```text
+electricity
+power_grid
+```
+
+魔法世界：
+
+```text
+mana
+ley_line
+```
+
+修仙：
+
+```text
+qi
+meridian
+```
+
+都使用同一套底层。
+
+---
+
+# 30. Capability Dependency
+
+Module 不应强依赖具体实现。
+
+例如住宅模块：
+
+```text
+requires
+energy.distribution
+```
+
+现实世界由：
+
+```text
+electric.grid
+```
+
+提供。
+
+魔法世界由：
+
+```text
+mana.grid
+```
+
+提供。
+
+---
+
+# 31. History Runtime
+
+历史是 OpenLife 的核心系统之一。
+
+必须区分：
+
+```text
+Event
+Fact
+Historical Record
+Lineage Chronicle
+```
+
+不是所有事件都进入公共历史。
+
+---
+
+# 32. Historical Significance
+
+事件可具有：
+
+```text
+historical_significance
+```
+
+例如：
+
+```text
+早餐        0.001
+结婚        0.2
+建立医院     0.6
+创建全国企业  0.85
+改变世界科技  0.99
+```
+
+用于决定：
+
+- 是否进入历史；
+- 是否被社会记录；
+- 是否进入后代认知；
+- 是否进入公共 Timeline。
+
+---
+
+# 33. Legacy Entity
+
+人物死亡不意味着创造物消失。
+
+Legacy Entity 包括：
+
+```text
+Property
+Company
+School
+Book
+Artwork
+Patent
+Foundation
+Institution
+Monument
+```
+
+后代可以继续接触。
+
+---
+
+# 34. Causal Graph
+
+重要 Event 必须支持：
+
+```text
+caused_by
+```
+
+形成：
+
+```text
+Economic Crisis
+↓
+Company Loss
+↓
+Layoff
+↓
+Unemployment
+↓
+Family Stress
+↓
+Divorce
+```
+
+未来可以用于：
+
+- Debug；
+- AI 传记；
+- 历史解释；
+- 人生回顾。
+
+---
+
+# 35. 世界  Timeline  LifeSave
+
+必须严格区分。
+
+## World
+
+```text
+World Laws
+World Seed
+Modules
+Timeline Graph
+Shared Definitions
+```
+
+## Timeline
+
+```text
+Parent Timeline
+Fork Point
+Snapshots
+Historical Events
+Branch Metadata
+```
+
+## LifeSave
+
+```text
+world_id
+timeline_id
+lineage_id
+character_id
+world_cursor
+personal_state
+module_state
+```
+
+---
+
+# 36. 多时间线
+
+世界服允许存在多个 Timeline。
+
+采用：
+
+```text
+Shared Main Timeline
++
+Branches
+```
+
+但不得：
+
+ 每个普通选择都创建分支。
+
+只有发生无法兼容的因果冲突时才 Fork。
+
+---
+
+# 37. 历史补录优先于 Fork
+
+过去玩家上传行为时：
+
+```text
+Historical Upload
+↓
+Conflict Analysis
+```
+
+优先：
+
+```text
+Add
+Extend
+Catch-up
+```
+
+无法保持因果一致时：
+
+```text
+Fork
+```
+
+原则：
+
+ 能补录，不分叉。
+
+---
+
+# 38. Timeline 分支类型
+
+建议：
+
+```text
+Personal Branch
+Shared Branch
+Public Branch
+```
+
+无人使用时：
+
+```text
+ACTIVE
+↓
+DORMANT
+↓
+ARCHIVED
+```
+
+仅保存 Snapshot + Delta。
+
+---
+
+# 39. Family Lineage Continuity
+
+无论公共历史如何变化，玩家家族重大历史不得丢失。
+
+例如：
+
+```text
+第一代创建A公司
+```
+
+即使：
+
+```text
+A公司50年后倒闭
+```
+
+后代仍可看到：
+
+ 该公司由祖先创建。
+
+---
+
+# 40. Autonomy Runtime
+
+必须支持统一：
+
+```text
+DecisionProvider
+```
+
+实现：
+
+```text
+HumanDecisionProvider
+RuleDecisionProvider
+PlayerStyleDecisionProvider
+CharacterDecisionProvider
+AIDecisionProvider
+RandomDecisionProvider
+```
+
+最终都只输出 Command。
+
+---
+
+# 41. AutoSim
+
+AutoSim 不是简单加速时间。
+
+支持：
+
+```text
+模拟到下一年
+模拟到毕业
+模拟到找到工作
+模拟到30岁
+模拟到重大事件
+模拟到角色死亡
+```
+
+---
+
+# 42. Autonomy Policy
+
+AutoSim 必须允许玩家配置授权。
+
+例如：
+
+```text
+日常消费      自动
+普通社交      自动
+换工作        询问
+结婚          永远询问
+生育          永远询问
+创业          询问
+犯罪          永远询问
+```
+
+---
+
+# 43. Player Style Model
+
+这是平台级 Simulation Service。
+
+不是 Kernel，也不是普通 Mod。
+
+底层提供：
+
+```text
+BehaviorEvidence
+PreferenceModel
+DecisionPolicy
+```
+
+具体倾向维度允许 Module 扩展。
+
+---
+
+# 44. Player  Roleplay  Character 三种倾向
+
+必须分离：
+
+```text
+Player Style
+玩家长期玩法习惯
+
+Roleplay Style
+当前这一局希望怎么玩
+
+Character Personality
+角色世界内真实性格
+```
+
+AutoSim 可选择参考哪一种。
+
+---
+
+# 45. Behavior Evidence
+
+只能从已经 Commit 的行为形成。
+
+不能因为：
+
+ 玩家浏览过按钮
+
+就判断倾向。
+
+流程：
+
+```text
+Player Choice
+↓
+Command
+↓
+Transaction Commit
+↓
+Decision Event
+↓
+Behavior Evidence
+↓
+Preference Model
+```
+
+---
+
+# 46. Player Style 隐私
+
+Player Style 默认：
+
+- 本地保存；
+- 可关闭；
+- 可重置；
+- 可查看摘要；
+- 不应自动上传世界服务器。
+
+它描述的是：
+
+ 游戏决策习惯。
+
+不得宣称为现实人格诊断。
+
+---
+
+# 47. NPC Mental Model
+
+NPC 可以根据自己观察到的行为形成：
+
+```text
+Belief About Character
+```
+
+例如：
+
+```text
+trustworthy
+risk-taking
+family-oriented
+```
+
+这不是角色真实属性，而是 NPC 的理解。
+
+允许：
+
+ 误判。
+
+---
+
+# 48. AI Runtime
+
+AI 是 Adapter，不是 Core。
+
+建议能力接口：
+
+```text
+IntentProvider
+NarrativeProvider
+DialogueProvider
+PlanningProvider
+ContentGenerationProvider
+MemorySummaryProvider
+```
+
+---
+
+# 49. AI 长期记忆
+
+AI 本身应视为无状态计算器。
+
+真正长期记忆保存在 OpenLife：
+
+```text
+World Facts
+Personal Memory
+Belief
+Knowledge
+Summary
+Semantic Index
+```
+
+AI 每次只获得 Context Projection。
+
+---
+
+# 50. AI NPC
+
+AI NPC 可以根据：
+
+- Personality；
+- Memory；
+- Belief；
+- Goals；
+- Relationships；
+- Current Situation；
+
+提出行动或对话。
+
+但最终仍需：
+
+```text
+AI
+↓
+Command
+↓
+Rules
+↓
+Kernel
+```
+
+---
+
+# 51. Goals  Needs
+
+完整人物应支持：
+
+```text
+Needs
+Goals
+Plans
+```
+
+避免 NPC 仅仅“会聊天但不会生活”。
+
+例如：
+
+```text
+Need
+security
+
+Goal
+buy_house
+
+Plan
+save_money
+find_better_job
+```
+
+---
+
+# 52. Narrative Director
+
+Narrative Director 不决定世界真相。
+
+原则：
+
+ Rule 决定什么可以发生。
+
+ Director 决定什么值得现在发生。
+
+它可以调整：
+
+- 事件关注度；
+- 事件节奏；
+- 重复度；
+- 人生阶段主题。
+
+不得无视因果制造强行剧情。
+
+---
+
+# 53. Module 类型
+
+建议包括：
+
+```text
+World Pack
+System Pack
+Content Pack
+Narrative Pack
+Presentation Pack
+Compatibility Pack
+```
+
+Behavior  Policy 可以作为 Extension Point，而非初期单独面向玩家分类。
+
+---
+
+# 54. Module 内部结构
+
+一个标准 Module：
+
+```text
+manifest
+definitions
+rules
+content
+scripts
+assets
+migrations
+```
+
+---
+
+# 55. Module Manifest
+
+至少包含：
+
+```text
+id
+version
+engine_range
+type
+
+requires
+optional
+incompatible
+
+provides
+expects
+
+capabilities
+permissions
+
+exports
+```
+
+所有 ID 强制 Namespace。
+
+---
+
+# 56. Module Dependency
+
+优先使用 Capability-based Dependency。
+
+例如：
+
+```text
+requires
+education.provider
+```
+
+而不是：
+
+```text
+requires
+modern-school-v3
+```
+
+---
+
+# 57. Module 生命周期
+
+不建议统一：
+
+```text
+onTick()
+```
+
+建议：
+
+```text
+register()
+activate()
+deactivate()
+```
+
+并通过 Registry 注册：
+
+```text
+Definitions
+Commands
+Rules
+Events
+Schedules
+Queries
+Narratives
+Migrations
+```
+
+---
+
+# 58. Extension Point
+
+v0.1 建议只开放：
+
+```text
+component.register
+relation.register
+
+command.register
+
+rule.constraint.register
+rule.resolution.register
+rule.reaction.register
+
+effect.register
+
+event.subscribe
+
+resource.register
+process.register
+
+knowledge.register
+
+behavior.dimension.register
+
+projection.register
+
+narrative.register
+
+migration.register
+```
+
+---
+
+# 59. Module Sandbox
+
+Module 不应拥有：
+
+- 任意文件系统权限；
+- 任意网络权限；
+- 任意系统调用；
+- 任意 Core Patch。
+
+未来高级脚本考虑：
+
+```text
+Lua Sandbox
+或
+WebAssembly Sandbox
+```
+
+---
+
+# 60. Save System
+
+建议：
+
+```text
+Save Package
+├─ manifest
+├─ snapshot
+├─ module_state
+├─ event_journal
+├─ history
+└─ metadata
+```
+
+---
+
+# 61. Module Migration
+
+每个 Module 自己负责自己的版本迁移。
+
+例如：
+
+```text
+1.0 → 1.1
+1.1 → 1.2
+1.2 → 2.0
+```
+
+Core 不理解模块具体数据。
+
+---
+
+# 62. Module 卸载
+
+Module 删除后：
+
+```text
+ACTIVE
+↓
+DORMANT
+↓
+ORPHANED
+```
+
+历史数据不得直接删除。
+
+---
+
+# 63. Query  Projection
+
+UI、AI、网络客户端不得直接读取完整 World State。
+
+统一：
+
+```text
+World State
+↓
+Query
+↓
+Projection
+```
+
+例如：
+
+```text
+PlayerProjection
+NPCPerceptionProjection
+AIContextProjection
+HistoryProjection
+NetworkProjection
+```
+
+---
+
+# 64. World History Service
+
+世界服不是 OpenLife 必需组件。
+
+OpenLife 必须支持：
+
+```text
+Local World
+Official World History Service
+Community Server
+Private Server
+Imported Historical World
+```
+
+---
+
+# 65. 世界服定位
+
+世界服不是：
+
+ 强迫所有玩家处在同一个现在。
+
+它主要维护：
+
+```text
+World History
+Timeline Graph
+Public Entities
+Historical Records
+Public Branches
+```
+
+玩家可以按自己的时间进度读取。
+
+---
+
+# 66. 玩家时间
+
+至少区分四种时间：
+
+```text
+Real Clock
+World Clock
+Life Clock
+Simulation Clock
+```
+
+不得混淆。
+
+---
+
+# 67. 世界历史读取
+
+玩家到达某个时间时：
+
+```text
+WorldCursor
+↓
+读取该时间前可见历史
+```
+
+例如：
+
+世界服已有：
+
+```text
+2020 A公司成立
+```
+
+玩家一个月后才玩到2020：
+
+ 到达该时间后才读取到 A 公司。
+
+---
+
+# 68. 世界历史上传
+
+旧时间玩家上传历史：
+
+```text
+Upload
+↓
+Causal Validation
+```
+
+如果兼容：
+
+```text
+Add  Extend  Catch-up
+```
+
+如果不兼容：
+
+```text
+Fork Timeline
+```
+
+禁止简单“最新上传覆盖旧历史”。
+
+---
+
+# 69. Background Catch-up
+
+如果旧玩家创建了一个实体：
+
+```text
+210 创建A公司
+```
+
+世界头已经：
+
+```text
+300
+```
+
+且不冲突：
+
+可后台模拟：
+
+```text
+210 → 300
+```
+
+判断：
+
+- 已消失 → 成为历史；
+- 仍存在 → Materialize 至当前世界。
+
+---
+
+# 70. 世界历史视图
+
+未来 UI 至少提供：
+
+```text
+Life View
+Family View
+World History View
+Timeline View
+```
+
+玩家既可以：
+
+ 活人生。
+
+也可以：
+
+ 看历史。
+
+---
+
+# 71. 历史可发现性
+
+世界事实不等于已知历史。
+
+支持：
+
+```text
+Hidden Historical Fact
+Evidence
+Archive
+Rumor
+Discovery
+```
+
+玩家可以重新发现旧历史。
+
+---
+
+# 72. 现实数据 Adapter
+
+现实数据必须可选。
+
+建议只作为：
+
+```text
+World Signal Source
+```
+
+例如：
+
+```text
+Weather API
+↓
+Normalized Signal
+↓
+World Command
+```
+
+避免新闻直接转为生硬剧情。
+
+---
+
+# 73. Non-goals
+
+v0.1 明确不是：
+
+- MMO；
+- 实时多人动作游戏；
+- 现实物理模拟器；
+- 纯 LLM 游戏；
+- 固定 BitLife 剧本；
+- 所有 NPC 都由大模型控制；
+- 所有世界状态都逐 Tick 精细模拟；
+- 必须联网；
+- 必须连接官方服务器；
+- 为支持 Mod 而牺牲确定性；
+- 玩家属性排行榜游戏；
+- 唯一最优路线游戏。
+
+---
+
+# 74. Semantic Simulation 原则
+
+OpenLife 模拟：
+
+ 会产生有意义人生后果的语义层级。
+
+而不是模拟现实全部细节。
+
+例如：
+
+```text
+人体
+→ 器官与功能层
+而不是分子动力学
+
+经济
+→ 家庭  企业  行业
+而不是每一枚硬币
+
+科研
+→ 理论  证据  技术
+而不是求解真实物理方程
+```
+
+---
+
+# 75. MVP 目标
+
+第一阶段禁止追求内容量。
+
+MVP 只证明架构。
+
+建议：
+
+```text
+1 个现实 World Pack
+
+人生阶段：
+儿童
+学生
+工作
+家庭
+死亡
+
+系统：
+人物
+时间
+关系
+教育
+职业
+财富
+健康
+家庭
+历史
+
+内容：
+2座城市
+2~3职业
+30~50事件链
+少量NPC
+1套婚姻
+1套生育
+1套家族传承
+```
+
+---
+
+# 76. MVP 测试 Module
+
+至少开发：
+
+```text
+modern-world
+school-system
+career-system
+family-system
+magic-world-test
+magic-school-test
+```
+
+魔法模块不是为了第一版游戏内容。
+
+而是：
+
+ 测试 Core 是否真的不依赖现实世界观。
+
+---
+
+# 77. Validation Worlds
+
+正式加入自动架构压力测试。
+
+至少：
+
+```text
+现实世界
+魔法世界
+修仙世界
+机器人世界
+无货币社会
+灵魂真实存在世界
+```
+
+未来可增加：
+
+```text
+时间旅行实验世界
+```
+
+如果新增 World Pack 必须修改 Kernel 才能运行：
+
+ 需要架构审查。
+
+---
+
+# 78. MVP 架构毕业标准
+
+以下全部通过，才能宣布：
+
+```text
+OpenLife Core Contract v0.1 Validated
+```
+
+要求：
+
+1. 一个角色可出生并完整活到死亡；
+2. 第二代可继承第一代留下的历史；
+3. 第一代创建的组织可以跨代存在；
+4. NPC 拥有独立 Memory  Belief；
+5. NPC 不读取全知 World State；
+6. AutoSim 可以正常运行；
+7. Player Style 可以影响自动选择；
+8. 相同 Seed + Command 可重现；
+9. Save → Load 完全一致；
+10. Module 卸载不删除历史；
+11. 魔法世界无需修改 Kernel；
+12. 新增系统 Module 不修改其他 Module 私有代码；
+13. 历史因果链可以解释；
+14. Query  Projection 正常隔离不同观察者。
+
+---
+
+# 79. API 稳定级别
+
+## Stable Core
+
+计划优先冻结：
+
+```text
+Entity
+Component
+Relation
+
+Command
+Effect
+Event
+Transaction
+
+Clock
+RNG
+
+Module
+Capability
+ExtensionPoint
+
+Query
+Projection
+```
+
+---
+
+## Candidate
+
+允许 v0.x 调整：
+
+```text
+Memory
+Belief
+Knowledge
+History
+Lineage
+Autonomy
+Behavior Model
+```
+
+---
+
+## Experimental
+
+必须保持可替换：
+
+```text
+Timeline Branch Algorithm
+History Merge
+World Server
+Player Style Algorithm
+AI Agent
+Narrative Director
+Scientific Discovery Simulation
+```
+
+---
+
+# 80. Core 升格规则
+
+任何新 Primitive 想进入 Core，必须同时满足：
+
+1. 至少三种完全不同世界观都需要；
+2. 无法使用现有 Primitive 自然组合；
+3. 不增加会导致大量 Module 重复实现；
+4. 不携带具体世界观假设；
+5. 长期来看属于稳定概念。
+
+否则：
+
+ 留在 Module。
+
+---
+
+# 81. Core Contract Freeze 原则
+
+冻结：
+
+```text
+Semantics
+Ownership
+Interface
+Invariants
+Dependency Direction
+```
+
+不冻结：
+
+```text
+Programming Language
+Database
+Algorithm
+Class Structure
+Implementation Detail
+```
+
+即：
+
+ Freeze Contract, not Implementation.
+
+---
+
+# 82. Architecture Decision Record
+
+所有重大架构决定必须建立 ADR。
+
+示例：
+
+```text
+ADR-001
+World State can only mutate through Transaction
+
+ADR-002
+AI has no direct state mutation permission
+
+ADR-003
+Electricity is not Core Primitive
+
+ADR-004
+World and Life clocks are separated
+
+ADR-005
+Modules depend on Capabilities, not concrete providers
+```
+
+防止未来不同 AI 或开发人员反复推翻旧决定。
+
+---
+
+# 83. Core Change RFC
+
+任何修改 Stable Core 的请求必须回答：
+
+```text
+Problem
+现有抽象为什么解决不了？
+
+Affected Worlds
+至少三个不同世界观示例。
+
+Alternative
+能否通过 Module 或 Extension Point 实现？
+
+Compatibility
+影响哪些旧模块？
+
+Save
+会不会破坏存档？
+
+Determinism
+是否影响确定性？
+
+Networking
+是否影响世界服？
+
+Reason
+为什么必须进入 Core？
+```
+
+---
+
+# 84. 推荐技术方向
+
+初期建议：
+
+```text
+TypeScript
+```
+
+采用 Monorepo。
+
+逻辑结构示例：
+
+```text
+packages
+
+kernel
+world-model
+rule-engine
+module-runtime
+query
+mind-runtime
+knowledge-runtime
+history-runtime
+autonomy-runtime
+save-system
+module-sdk
+ai-adapter
+
+apps
+
+game
+debug-console
+module-editor
+server
+
+modules
+
+modern-world
+education
+career
+relationship
+family
+magic-test-world
+```
+
+MVP 优先 Web  Desktop 轻量客户端。
+
+不要求一开始使用传统大型游戏引擎。
+
+---
+
+# 85. 第一阶段必须无 UI 原型
+
+先制作 CLI Kernel Prototype。
+
+支持：
+
+```text
+create_character
+
+advance_time
+
+enroll_school
+
+get_job
+
+make_friend
+
+marry
+
+have_child
+
+start_business
+
+die
+
+switch_generation
+```
+
+主要用于测试：
+
+ Core Contract。
+
+---
+
+# 86. Debug Tool
+
+第一阶段就必须存在。
+
+至少可查看：
+
+```text
+World State
+Entity
+Relations
+Events
+Command Trace
+Decision Trace
+Causal Graph
+Module Ownership
+RNG Seed
+Scheduled Events
+Knowledge
+Memory
+Beliefs
+```
+
+复杂模拟没有 Debug 可解释性将不可维护。
+
+---
+
+# 87. 自动测试
+
+Module 安装或版本升级应尽量支持：
+
+```text
+Schema Validation
+Dependency Validation
+Conflict Validation
+Determinism Test
+Migration Test
+Simulation Test
+Performance Budget
+Capability Check
+```
+
+未来可以批量：
+
+```text
+模拟10,000个人生
+```
+
+自动寻找：
+
+- 无限财富；
+- 必胜路线；
+- 无法触发内容；
+- 死循环；
+- 异常人口；
+- 规则冲突；
+- Event 风暴。
+
+---
+
+# 88. Event Safety
+
+Event Runtime 必须支持：
+
+```text
+maxDepth
+maxEventsPerTransaction
+deduplicationKey
+causalChain
+cycleDetection
+```
+
+避免：
+
+```text
+A → B → C → A
+```
+
+无限循环。
+
+---
+
+# 89. 性能目标思想
+
+性能主要通过：
+
+```text
+Scheduler
+Simulation LOD
+Entity Materialization
+Projection
+Snapshot
+Background Simulation
+```
+
+解决。
+
+不是通过：
+
+ 砍掉系统深度。
+
+---
+
+# 90. 最终核心公式
+
+整个 OpenLife 可以概括为：
+
+```text
+State(t)
++
+Command
++
+Rules
++
+World Laws
++
+Deterministic RNG
+
+↓
+
+State(t+1)
++
+Events
++
+History
++
+Knowledge Changes
+```
+
+---
+
+# 91. 最终系统哲学
+
+OpenLife 的核心不是：
+
+ 给玩家提供最多的按钮。
+
+而是建立一个足够稳定的世界，使：
+
+- 玩家；
+- NPC；
+- Module；
+- AI；
+- 历史；
+- 后代；
+
+能够在同一套规则中持续产生新的因果关系。
+
+---
+
+# 92. OpenLife 四大连续性
+
+## 世界连续性
+
+玩家出生之前世界已经存在。
+
+玩家死亡以后世界继续。
+
+## 家族连续性
+
+祖先留下的世界状态影响后代。
+
+## 人物连续性
+
+NPC 拥有记忆、关系、知识和人生。
+
+## 玩家连续性
+
+系统可以逐渐理解玩家的游戏选择习惯，并在授权的 AutoSim 中模仿。
+
+---
+
+# 93. 项目最终差异化
+
+OpenLife 不应定位为：
+
+ “更复杂的 BitLife。”
+
+而应该定位为：
+
+ 一个允许玩家、模拟系统、Module 和 AI 共同创造人物、家族、组织与世界历史，并让这些历史跨世代持续存在的模块化人生世界平台。
+
+---
+
+# 94. 最终主题
+
+OpenLife 最核心的资产不是：
+
+```text
+Character Stats
+```
+
+而是：
+
+```text
+Persistent History
+```
+
+玩家最终应该能够感觉到：
+
+ 我第一代真的活过。
+
+ 我认识的人后来继续生活。
+
+ 我建立的东西可能比我活得更久。
+
+ 我的后代生活在我的选择留下的世界里。
+
+ 一个陌生玩家甚至可能在几十年或几百年后遇见我留下的痕迹。
+
+OpenLife 的核心不是：
+
+ 玩完一局人生。
+
+而是：
+
+ 创造一段可以继续被生活下去的历史。
+
+---
+
+# 95. 下一阶段执行顺序
+
+正式开发建议严格遵循：
+
+```text
+阶段 1
+冻结 Core Contract v0.1
+
+↓
+
+阶段 2
+实现无 UI Kernel Prototype
+
+↓
+
+阶段 3
+建立现代世界最小测试包
+
+↓
+
+阶段 4
+建立魔法机器人等压力测试 World Pack
+
+↓
+
+阶段 5
+修订 Core Contract
+
+↓
+
+阶段 6
+冻结 v1 前核心 API
+
+↓
+
+阶段 7
+开始正式现代人生内容生产
+
+↓
+
+阶段 8
+AutoSim  Behavior  History
+
+↓
+
+阶段 9
+AI Adapter
+
+↓
+
+阶段 10
+World History Service  多时间线实验
+
+↓
+
+阶段 11
+Module Editor  社区生态
+```
+
+---
+
+# 96. 当前结论
+
+OpenLife 当前已经完成：
+
+- 项目愿景定义；
+- 核心架构思想；
+- 抽象边界设计；
+- 世界模型；
+- 历史模型；
+- 人物认知模型；
+- AI 边界；
+- AutoSim 边界；
+- Module 扩展原则；
+- 世界服方向；
+- 多时间线方向；
+- Core 冻结原则。
+
+当前最重要的下一步已经不再是继续添加新架构概念，而是：
+
+ 用代码和极端 World Pack 验证这套架构到底能不能成立。
+
+如果现实世界、魔法世界、机器人世界和代际人生都能够在“不修改 Kernel”的情况下运行，则 OpenLife 的基础架构可以认为真正成立。

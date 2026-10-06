@@ -1,0 +1,21 @@
+{
+  "name": "openlife",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "OpenLife - modular life simulation platform (Kernel Prototype)",
+  "workspaces": [
+    "packages/*",
+    "modules/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "test": "node --test",
+    "cli": "node apps/debug-console/main.ts",
+    "demo": "node apps/debug-console/main.ts demo modern-world",
+    "demo:magic": "node apps/debug-console/main.ts demo magic-test-world"
+  }
+}
