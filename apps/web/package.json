@@ -8,11 +8,12 @@
     "@openlife/autonomy-runtime": "*",
     "@openlife/simulation": "*",
     "@openlife/module-modern-world": "*",
-    "@openlife/module-education": "*",
-    "@openlife/module-career": "*",
     "@openlife/module-family": "*",
-    "@openlife/module-economy": "*",
     "@openlife/module-modern-science": "*",
-    "@openlife/module-basic-autonomy": "*"
+    "@openlife/module-early-civilization": "*",
+    "@openlife/module-historical-memory": "*",
+    "@openlife/module-intellectual-history": "*",
+    "@openlife/module-historical-era": "*",
+    "@openlife/module-historical-anchors": "*"
   }
 }

@@ -252,10 +252,14 @@ export class ModuleRuntime {
       hasComponent: (id) => definitions.components.has(id),
       hasCommand: (type) => definitions.commands.has(type),
       hasKnowledge: (id) => definitions.knowledge.has(id),
+      hasResource: (id) => definitions.resources.has(id),
+      hasProcess: (id) => definitions.processes.has(id),
       hasCapability: (id) => this.hasCapability(id),
       listComponents: () => definitions.components.keys(),
       listCommands: () => definitions.commands.keys(),
       listKnowledge: () => definitions.knowledge.keys(),
+      listResources: () => definitions.resources.keys(),
+      listProcesses: () => definitions.processes.keys(),
       listCapabilities: () => [...this.#capabilities.keys()],
     };
     return {
@@ -276,6 +280,10 @@ export class ModuleRuntime {
         definitions.tasks.register(definition.type, { ...definition, owner }, owner),
       registerKnowledge: (definition) =>
         definitions.knowledge.register(definition.id, { ...definition, owner }, owner),
+      registerResource: (definition) =>
+        definitions.resources.register(definition.id, { ...definition, owner }, owner),
+      registerProcess: (definition) =>
+        definitions.processes.register(definition.id, { ...definition, owner }, owner),
       registerProjection: (definition) =>
         definitions.projections.register(definition.id, { ...definition, owner }, owner),
       registerMigration: (migration) => {
@@ -352,6 +360,8 @@ export class ModuleRuntime {
       commands: ownerEntries(this.#options.definitions.commands.all(), id),
       tasks: ownerEntries(this.#options.definitions.tasks.all(), id),
       knowledge: ownerEntries(this.#options.definitions.knowledge.all(), id),
+      resources: ownerEntries(this.#options.definitions.resources.all(), id),
+      processes: ownerEntries(this.#options.definitions.processes.all(), id),
       projections: ownerEntries(this.#options.definitions.projections.all(), id),
       constraints: ownerEntries(this.#options.definitions.constraints.all(), id),
       resolutions: ownerEntries(this.#options.definitions.resolutions.all(), id),

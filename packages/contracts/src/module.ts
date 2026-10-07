@@ -144,6 +144,12 @@ export interface ModuleRegistrationContext {
   registerKnowledge(
     definition: Omit<import("./knowledge.ts").KnowledgeDefinition, "owner">,
   ): void;
+  registerResource(
+    definition: Omit<import("./resource.ts").ResourceDefinition, "owner">,
+  ): void;
+  registerProcess(
+    definition: Omit<import("./resource.ts").ProcessDefinition, "owner">,
+  ): void;
   registerProjection(definition: ProjectionDefinition): void;
   registerMigration(migration: ModuleMigration): void;
   provideCapability(id: CapabilityId, implementation?: unknown): void;
@@ -155,10 +161,14 @@ export interface ModuleRegistryView {
   hasComponent(id: string): boolean;
   hasCommand(type: string): boolean;
   hasKnowledge(id: string): boolean;
+  hasResource(id: string): boolean;
+  hasProcess(id: string): boolean;
   hasCapability(id: CapabilityId): boolean;
   listComponents(): string[];
   listCommands(): string[];
   listKnowledge(): string[];
+  listResources(): string[];
+  listProcesses(): string[];
   listCapabilities(): CapabilityId[];
 }
 

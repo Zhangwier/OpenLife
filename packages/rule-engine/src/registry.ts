@@ -19,6 +19,8 @@ import type {
   ResolutionRule,
   TaskDefinition,
   KnowledgeDefinition,
+  ResourceDefinition,
+  ProcessDefinition,
 } from "@openlife/contracts";
 import {
   ErrorCode,
@@ -117,6 +119,8 @@ export class DefinitionRegistry<T extends { id?: string; type?: string }> {
 export type CommandRegistry = DefinitionRegistry<CommandDefinition>;
 export type TaskRegistry = DefinitionRegistry<TaskDefinition>;
 export type KnowledgeRegistry = DefinitionRegistry<KnowledgeDefinition>;
+export type ResourceRegistry = DefinitionRegistry<ResourceDefinition>;
+export type ProcessRegistry = DefinitionRegistry<ProcessDefinition>;
 export type ProjectionRegistry = DefinitionRegistry<ProjectionDefinition>;
 export type QueryRegistry = DefinitionRegistry<QueryDefinition>;
 export type ComponentRegistry = DefinitionRegistry<ComponentDefinition>;
@@ -138,6 +142,8 @@ export class DefinitionSet {
   readonly commands = new DefinitionRegistry<CommandDefinition>("command");
   readonly tasks = new DefinitionRegistry<TaskDefinition>("task");
   readonly knowledge = new DefinitionRegistry<KnowledgeDefinition>("knowledge");
+  readonly resources = new DefinitionRegistry<ResourceDefinition>("resource");
+  readonly processes = new DefinitionRegistry<ProcessDefinition>("process");
   readonly projections = new DefinitionRegistry<ProjectionDefinition>("projection");
   readonly queries = new DefinitionRegistry<QueryDefinition>("query");
   readonly constraints = new DefinitionRegistry<ConstraintRule>("constraint rule");
@@ -152,6 +158,8 @@ export class DefinitionSet {
       this.commands,
       this.tasks,
       this.knowledge,
+      this.resources,
+      this.processes,
       this.projections,
       this.queries,
       this.constraints,

@@ -39,6 +39,16 @@ const simpleModule: OpenLifeModule = {
       kind: "phenomenon",
       description: "A generic observable phenomenon.",
     });
+    ctx.registerResource({
+      id: "demo.energy",
+      unit: "unit",
+      description: "A generic module-owned resource.",
+    });
+    ctx.registerProcess({
+      id: "demo.transform",
+      consumes: { "demo.energy": 1 },
+      description: "A generic resource transformation.",
+    });
     ctx.registerConstraintRule({
       id: "demo.do.allowed",
       kind: "constraint",
@@ -61,22 +71,29 @@ test("a module registers definitions without touching the kernel", () => {
   assert.deepEqual(info.definitions.components, ["demo.thing"]);
   assert.deepEqual(info.definitions.commands, ["demo.do"]);
   assert.deepEqual(info.definitions.knowledge, ["demo.observable"]);
+  assert.deepEqual(info.definitions.resources, ["demo.energy"]);
+  assert.deepEqual(info.definitions.processes, ["demo.transform"]);
   assert.ok(runtime.hasCapability("demo.capability"));
 });
 
-test("knowledge registrations follow module lifecycle like every other extension point", () => {
+test("declarative extension registrations follow module lifecycle", () => {
   const definitions = new DefinitionSet();
   const runtime = runtimeFor(definitions);
   runtime.install(simpleModule);
 
   assert.equal(definitions.knowledge.get("demo.observable")?.enabled, true);
+  assert.equal(definitions.resources.get("demo.energy")?.enabled, true);
+  assert.equal(definitions.processes.get("demo.transform")?.enabled, true);
+
   runtime.unload("demo");
-  assert.equal(definitions.knowledge.get("demo.observable")?.enabled, false);
   assert.deepEqual(definitions.knowledge.active(), []);
+  assert.deepEqual(definitions.resources.active(), []);
+  assert.deepEqual(definitions.processes.active(), []);
 
   runtime.activate("demo");
-  assert.equal(definitions.knowledge.get("demo.observable")?.enabled, true);
   assert.deepEqual(definitions.knowledge.active().map((item) => item.id), ["demo.observable"]);
+  assert.deepEqual(definitions.resources.active().map((item) => item.id), ["demo.energy"]);
+  assert.deepEqual(definitions.processes.active().map((item) => item.id), ["demo.transform"]);
 });
 
 test("capabilities disappear while their provider is unloaded and return on activation", () => {

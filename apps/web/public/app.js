@@ -39,9 +39,10 @@ function render(s, animate = false) {
     $("characterMeta").textContent = `${c.age} 岁 · ${c.city}`;
     $("portraitInitial").textContent = c.name.slice(0, 1);
     $("healthWord").textContent = c.healthWord;
-    $("educationWord").textContent = educationLabel(c.education);
-    $("occupationWord").textContent = c.occupation;
+    $("educationWord").textContent = c.learning;
+    $("occupationWord").textContent = c.role;
     $("familyWord").textContent = c.family;
+    $("footprintWord").textContent = footprintLabel(c.historicalFootprint);
     $("lifeProgress").style.width = `${Math.min(100, Math.max(2, (c.age / 90) * 100))}%`;
     $("stageTitle").textContent = stageTitle(c);
     $("sceneKicker").textContent = `${c.city} · ${seasonForMonth(s.month)}`;
@@ -118,16 +119,103 @@ function renderLineage(lineage, c) {
 }
 function renderWorld(world) {
   $("worldPeople").textContent = String(world.people);
-  $("worldOrganizations").textContent = String(world.organizations);
+  $("worldCommunities").textContent = String(world.communities);
   $("worldRecords").textContent = String(world.records);
-  $("worldEconomy").textContent = world.economy?.label || "市场平稳";
-  $("worldEconomyNote").textContent = world.economy?.note || "世界仍在自己的节奏里运行。";
+  $("worldPulse").textContent = world.pulse?.label || "聚落缓慢生长";
+  $("worldPulseNote").textContent = world.pulse?.note || "亲族与技艺维系着共同体的日常。";
+  const eraContext = world.eraContext ?? {};
+  $("worldEraLabel").textContent = eraContext.label || world.pulse?.eraLabel || "夏";
+  const eraItems = [
+    ...(Array.isArray(eraContext.tools) ? eraContext.tools.slice(0, 3) : []),
+    ...(Array.isArray(eraContext.media) ? eraContext.media.slice(0, 1) : []),
+    ...(Array.isArray(eraContext.institutions) ? eraContext.institutions.slice(0, 1) : []),
+  ];
+  $("worldEraChips").innerHTML = eraItems.length
+    ? eraItems.map((item) => `<span class="era-chip">${escapeHtml(item)}</span>`).join("")
+    : '<span class="subtle">时代特征仍在形成</span>';
+  const daily = Array.isArray(eraContext.dailyLife) ? eraContext.dailyLife.slice(0, 2) : [];
+  $("worldEraNote").textContent = daily.length
+    ? `常见生活：${daily.join("、")}。这是时代背景，不代表每个人都掌握全部技艺。`
+    : "这是此时常见的生活背景，不代表每个人都掌握全部技艺。";
+
+  const anchoredPeople = Array.isArray(world.historicalAnchors?.people)
+    ? world.historicalAnchors.people
+    : [];
+  $("worldHistoricalPeople").innerHTML = anchoredPeople.length
+    ? anchoredPeople.slice(-3).reverse().map((person) => {
+        const precision = person.datePrecision === "approximate" ? "约 " : "";
+        const life = person.alive ? "仍在世" : "已经离世";
+        return `<div class="historical-person">
+          <strong>${escapeHtml(person.name || "无名人物")}</strong>
+          <span>${escapeHtml(person.region || "")} · ${precision}${escapeHtml(person.birth || "")} · ${life}</span>
+        </div>`;
+      }).join("")
+    : '<span class="subtle">这个时代还没有进入世界的历史人物锚点</span>';
+  $("worldHistoricalPeopleNote").textContent = anchoredPeople.length
+    ? "这里只说明人物进入了世界；是否被后世记住，仍由作品、证据与传播决定。"
+    : "人物出现不等于被后世记住；名望仍取决于作品、证据与传播。";
   const established = Array.isArray(world.science?.established) ? world.science.established : [];
+  const frontierCount = Number(world.science?.frontierCount ?? 0);
   $("worldKnowledge").innerHTML = established.length
-    ? established.slice(0, 5).map((item) =>
+    ? established.slice(-5).map((item) =>
         `<span class="knowledge-chip">${escapeHtml(item.label)}</span>`,
       ).join("")
     : '<span class="subtle">文明仍在理解这个世界</span>';
+  $("worldKnowledgeNote").textContent = frontierCount > 0
+    ? `还有 ${frontierCount} 条问题正在积累观察与证据。世界的真相仍比已知更大。`
+    : "这些知识已经形成体系，但世界仍不等于文明所知道的一切。";
+
+  const intellectual = world.intellectual ?? {};
+  const traditions = Array.isArray(intellectual.traditions) ? intellectual.traditions : [];
+  $("worldTraditions").innerHTML = traditions.length
+    ? traditions.slice(0, 3).map((idea) => {
+        const reach = [];
+        if (Number(idea.adherentCount ?? 0) > 0) reach.push(`${idea.adherentCount} 人认同`);
+        if (Number(idea.schoolCount ?? 0) > 0) reach.push(`${idea.schoolCount} 个学派`);
+        if (Number(idea.influenceCount ?? 0) > 0) reach.push(`影响 ${idea.influenceCount} 处共同体`);
+        if (Number(idea.branchCount ?? 0) > 0) reach.push(`${idea.branchCount} 个分支`);
+        return `<div class="tradition-item">
+          <strong>${escapeHtml(idea.title || "无名思想")}</strong>
+          <span>${escapeHtml(reach.join(" · ") || "刚刚被提出")}</span>
+        </div>`;
+      }).join("")
+    : '<span class="subtle">这个时代还没有形成可辨认的思想传统</span>';
+  $("worldTraditionNote").textContent = traditions.length
+    ? `已有 ${traditions.length} 种思想留下传播痕迹，形成 ${Number(intellectual.schoolCount ?? 0)} 个学派。`
+    : "有些想法会随着人离开，有些会被别人继续讲下去。";
+
+  const memory = world.historicalMemory ?? {};
+  const works = Array.isArray(memory.works) ? memory.works : [];
+  $("worldHistoryWorks").innerHTML = works.length
+    ? works.slice(0, 3).map((work) => {
+        const title = escapeHtml(work.title || "无名作品");
+        const state = historyWorkState(work);
+        return `<div class="memory-trace"><strong>${title}</strong><span>${escapeHtml(state)}</span></div>`;
+      }).join("")
+    : '<span class="subtle">还没有足以穿过时间的作品或证据</span>';
+  $("worldHistoryNote").textContent = memory.visibleWorkCount
+    ? `仍可辨认 ${memory.visibleWorkCount} 项；残缺 ${memory.fragmentaryWorkCount || 0} 项，归属争议 ${memory.contestedWorkCount || 0} 项。`
+    : "没有证据留下时，过去也会变得安静。";
+
+  const notablePeople = Array.isArray(world.notablePeople) ? world.notablePeople : [];
+  $("worldNotablePeople").innerHTML = notablePeople.length
+    ? notablePeople.map((person) =>
+        `<span class="notable-person"><strong>${escapeHtml(person.name)}</strong> · ${escapeHtml(footprintLabel(person.state))}</span>`,
+      ).join("")
+    : '<span class="subtle">暂时还没有谁真正穿过时间被后世记住</span>';
+}
+
+function historyWorkState(work) {
+  const content = {
+    complete: "内容较完整",
+    substantial: "大部仍存",
+    fragmentary: "只剩残篇",
+    lost: "内容失传",
+  }[work.contentState] || "保存状态不明";
+  if (work.memoryState === "contested" || work.contested) return `${content} · 归属有争议`;
+  if (work.memoryState === "attributed_evidence") return `${content} · 留有署名证据`;
+  if (work.memoryState === "anonymous_trace") return `${content} · 作者不明`;
+  return content;
 }
 
 function readMemory(slot) {
@@ -223,17 +311,27 @@ function stageTitle(c) {
 }
 
 function sceneText(c, s) {
-  if (!c.alive) return "你离开了，但关系、事业和记忆没有一起消失。";
+  if (!c.alive) return "你离开了，但关系、技艺和记忆没有一起消失。";
   if (c.children?.length) return `你已经不再只为自己生活。下一代正在${s.era ?? `${s.year} 年`}的世界里长大。`;
-  if (c.family !== "尚未建立家庭") return "有人开始与你共享每天的琐碎、安静和未来。";
-  if (c.occupation !== "尚未选择职业") return "日子有了重复的节奏，也开始留下属于你的痕迹。";
+  if (c.thought?.stage === "established") return `“${c.thought.title}”已经不只属于你，它开始改变别人理解共同体的方式。`;
+  if (c.thought?.schoolCount > 0) return `围绕“${c.thought.title}”已经有人聚在一起，它正在变成一条真正的思想传统。`;
+  if (c.thought?.adherentCount > 1) return `“${c.thought.title}”已经被别人听见。想法一旦进入别人的生活，就会开始变化。`;
+  if (c.thought?.title) return `你开始整理“${c.thought.title}”。它现在还只是你对生活的一种理解。`;
+  if (c.family !== "尚未建立家庭") return "有人开始与你共享劳作、季节和未来。";
+  if (c.legacy) return "一些手艺和经验开始比日子活得更久。";
+  if (c.role !== "尚未承担聚落角色") return "你开始承担共同体的一部分重量，也留下自己的痕迹。";
+  if (c.learning !== "尚未开始系统学习") return "你从长辈、季节与反复的劳作里理解这个世界。";
   if (c.age < 6) return "世界比你先存在，也会在你之后继续。";
   return "一些选择看起来很小，但会被未来重新理解。";
+}function footprintLabel(state) {
+  return {
+    remembered: "证据仍让后人记得你",
+    influential: "你的痕迹已经影响了后世",
+    trace: "还留有一些可追寻的线索",
+    forgotten: "尚未留下可辨认的痕迹",
+  }[state] || "尚未留下可辨认的痕迹";
 }
 
-function educationLabel(value) {
-  return { none: "尚未入学", primary: "基础教育", secondary: "中等教育", higher: "完成高等教育" }[value] || value;
-}
 function relationLabel(type) {
   return { "family.friend_of": "朋友", "family.married_to": "伴侣", "family.parent_of": "孩子" }[type] || "关系";
 }
@@ -249,16 +347,16 @@ function numberGeneration(n) {
 function actionMessage(action) {
   return {
     "advance-year":"又一年过去了",
-    school:"你走进了新的学习阶段",
+    learn:"你开始从长辈、生活与技艺中学习",
     friend:"一个陌生人变成了认识的人",
-    job:"你开始拥有自己的职业生活",
+    role:"你开始承担聚落里的一份角色",
     marry:"从今天起，人生里多了另一个人",
     child:"家族迎来了新的生命",
-    business:"世界里多了一件可能比你活得更久的事",
+    legacy:"一门手艺与经验开始被记住",
+    thought:"一种想法开始离开你的脑海，进入这个世界",
     "next-generation":"故事交到了下一代手里",
   }[action] || "世界发生了一点变化";
 }
-
 let toastTimer;
 function showToast(message) {
   const el = $("toast");

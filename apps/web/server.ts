@@ -7,25 +7,25 @@ import { Simulation } from "@openlife/simulation";
 import { runAutoSim, untilActorArchived, untilTick, type AutoSimContext } from "@openlife/autonomy-runtime";
 import { modernWorldModule, TICKS_PER_YEAR } from "@openlife/module-modern-world";
 import { formatYear, yearOfTick } from "@openlife/life-contracts";
-import { educationModule } from "@openlife/module-education";
-import { careerModule } from "@openlife/module-career";
 import { familyModule } from "@openlife/module-family";
-import { economyModule } from "@openlife/module-economy";
 import { modernScienceModule } from "@openlife/module-modern-science";
-import { basicAutonomyModule } from "@openlife/module-basic-autonomy";
-
+import { earlyCivilizationModule } from "@openlife/module-early-civilization";
+import { historicalMemoryModule } from "@openlife/module-historical-memory";
+import { intellectualHistoryModule } from "@openlife/module-intellectual-history";
+import { historicalEraModule } from "@openlife/module-historical-era";
+import { historicalAnchorsModule } from "@openlife/module-historical-anchors";
 const PORT = Number(process.env.PORT ?? 4173);
 const PUBLIC_DIR = fileURLToPath(new URL("./public/", import.meta.url));
 const modules = [
   modernWorldModule,
-  educationModule,
-  careerModule,
   familyModule,
-  economyModule,
   modernScienceModule,
-  basicAutonomyModule,
+  earlyCivilizationModule,
+  historicalMemoryModule,
+  intellectualHistoryModule,
+  historicalEraModule,
+  historicalAnchorsModule,
 ];
-
 let simulation = createGame();
 
 interface NewLifeOptions {
@@ -37,8 +37,8 @@ interface NewLifeOptions {
 
 function createGame(options: NewLifeOptions = {}): Simulation {
   const seed = Number.isFinite(options.seed) ? Number(options.seed) >>> 0 : 104;
-  const givenName = cleanName(options.givenName, "Avery");
-  const familyName = cleanName(options.familyName, "Lin");
+  const givenName = cleanName(options.givenName, "启");
+  const familyName = cleanName(options.familyName, "禾");
   const cityId = options.cityId === "modern:city:south"
     ? "modern:city:south"
     : "modern:city:north";
@@ -51,7 +51,7 @@ function createGame(options: NewLifeOptions = {}): Simulation {
       givenName,
       familyName,
       cityId,
-      startingCash: 18000,
+      startingCash: 0,
       lifespan: 84,
       lineageId: "family:lineage:1",
     },
@@ -104,15 +104,43 @@ function gameState() {
   const characterId = character?.id ?? "";
   const identity = character?.components["modern.identity"] ?? {};
   const vitals = character?.components["modern.vitals"] ?? {};
-  const wealth = character?.components["modern.wealth"] ?? {};
-  const education = character?.components["education.level"] ?? {};
-  const student = character?.components["education.student_status"] ?? {};
-  const employment = character?.components["career.employment"] ?? {};
+  const learning = character?.components["early-civilization.learning"] ?? {};
+  const role = character?.components["early-civilization.role"] ?? {};
+  const legacy = character?.components["early-civilization.legacy"] ?? {};
   const age = ageOf(character);
   const lineageId = String(identity.lineageId ?? "family:lineage:1");
   const lineageProjection = simulation.project({ id: "family.lineage", params: { lineageId } });
-  const economyProjection = simulation.project({ id: "economy.overview", params: {} });
+  const eraProjection = simulation.project({ id: "early-civilization.overview", params: {} });
   const scienceProjection = simulation.project({ id: "modern-science.civilization", params: {} });
+  const footprintProjection = characterId
+    ? simulation.project({ id: "historical-memory.subject_footprint", params: { subjectId: characterId } })
+    : { ok: false, data: undefined };
+  const memoryOverviewProjection = simulation.project({
+    id: "historical-memory.public_overview",
+    params: {},
+  });
+  const notableSubjectsProjection = simulation.project({
+    id: "historical-memory.notable_subjects",
+    params: {},
+  });
+  const intellectualOverviewProjection = simulation.project({
+    id: "intellectual-history.overview",
+    params: {},
+  });
+  const historicalEraProjection = simulation.project({
+    id: "historical-era.current",
+    params: {},
+  });
+  const historicalAnchorsProjection = simulation.project({
+    id: "historical-anchors.public",
+    params: {},
+  });
+  const proposedIdeaId = characterId
+    ? world.listRelations({ type: "intellectual-history.proposed_by", to: characterId })[0]?.from ?? ""
+    : "";
+  const activeIdeaProjection = proposedIdeaId
+    ? simulation.project({ id: "intellectual-history.idea", params: { ideaId: proposedIdeaId } })
+    : { ok: false, data: undefined };
   const eventById = new Map(simulation.history.view().listEvents().map((event) => [event.id, event]));
   const history = simulation.history.listRecords().slice(-18).reverse();
 
@@ -130,6 +158,39 @@ function gameState() {
 
   const spouse = relations.find((relation) => relation.type === "family.married_to");
   const children = relations.filter((relation) => relation.type === "family.parent_of");
+  const friends = relations.filter((relation) => relation.type === "family.friend_of");
+  const uninitiatedFriend = proposedIdeaId
+    ? friends.find((friend) =>
+        world.listRelations({
+          type: "intellectual-history.embraces",
+          from: friend.targetId,
+          to: proposedIdeaId,
+        }).length === 0
+      )
+    : undefined;
+  const schoolId = proposedIdeaId
+    ? world.listRelations({ type: "intellectual-history.centers_on", to: proposedIdeaId })[0]?.from ?? ""
+    : "";
+  const residenceId = String(character?.components["modern.residence"]?.cityId ?? "modern:city:north");
+  const ideaInfluencesResidence = proposedIdeaId
+    ? world.listRelations({
+        type: "intellectual-history.influences",
+        from: proposedIdeaId,
+        to: residenceId,
+      }).length > 0
+    : false;
+  const adherentCount = Number(activeIdeaProjection.data?.adherentCount ?? 0);
+  const thoughtStage = !proposedIdeaId
+    ? "form"
+    : uninitiatedFriend
+      ? "share"
+      : adherentCount >= 2 && !schoolId
+        ? "school"
+        : schoolId && !ideaInfluencesResidence
+          ? "influence"
+          : adherentCount < 2
+            ? "need-friend"
+            : "established";
   const alive = character?.archivedAt === undefined && vitals.alive !== false;
 
   return {
@@ -143,13 +204,27 @@ function gameState() {
       name: [identity.givenName, identity.familyName].filter(Boolean).join(" ") || character.id,
       age,
       alive,
-      healthWord: vitals.health === 0 ? "生命已结束" : age < 18 ? "正在成长" : age < 60 ? "状态平稳" : "步入晚年",
+      healthWord: vitals.health === 0 ? "生命已结束" : age < 18 ? "正在成长" : age < 60 ? "身体尚稳" : "步入晚年",
       city: entityName(String(character.components["modern.residence"]?.cityId ?? "modern:city:north")),
-      education: String(education.level ?? (student.enrolled ? "在读" : "尚未入学")),
-      occupation: employment.title ? occupationLabel(String(employment.title)) : "尚未选择职业",
+      learning: learning.path ? String(learning.path) : "尚未开始系统学习",
+      role: role.title ? String(role.title) : "尚未承担聚落角色",
       family: spouse ? `与 ${spouse.targetName} 相伴` : "尚未建立家庭",
       children: children.map((child) => ({ id: child.targetId, name: child.targetName })),
-      cash: Number(wealth.cash ?? 0),
+      legacy: legacy.title ? String(legacy.title) : null,
+      historicalFootprint: footprintProjection.ok
+        ? String(footprintProjection.data?.state ?? "forgotten")
+        : "forgotten",
+      thought: activeIdeaProjection.ok
+        ? {
+            id: proposedIdeaId,
+            title: String(activeIdeaProjection.data?.title ?? "无名思想"),
+            thesis: String(activeIdeaProjection.data?.thesis ?? ""),
+            adherentCount,
+            schoolCount: Number(activeIdeaProjection.data?.schoolCount ?? 0),
+            influenceCount: Number(activeIdeaProjection.data?.influenceCount ?? 0),
+            stage: thoughtStage,
+          }
+        : null,
     } : null,
     relations,
     lineage: lineageProjection.ok ? lineageProjection.data : { lineageId, members: [], chronicle: [] },
@@ -165,42 +240,82 @@ function gameState() {
     })),
     world: {
       people: world.countEntities("modern.character"),
-      organizations: world.listEntities({ kind: "modern.organization" }).length,
+      communities: world.listEntities({ kind: "modern.city" }).length,
       records: simulation.history.records.length,
-      economy: economyProjection.ok
-        ? economyProjection.data
-        : { phase: "steady", label: "市场平稳", note: "世界仍在自己的节奏里运行。" },
+      pulse: historicalEraProjection.ok
+        ? {
+            label: `${String(historicalEraProjection.data?.label ?? "夏")} · 世界仍在变化`,
+            note: String(
+              historicalEraProjection.data?.summary
+              ?? eraProjection.data?.pulseNote
+              ?? "亲族与技艺维系着共同体。",
+            ),
+            eraLabel: String(historicalEraProjection.data?.label ?? "夏"),
+          }
+        : eraProjection.ok
+          ? {
+              label: String(eraProjection.data?.pulseLabel ?? "聚落缓慢生长"),
+              note: String(eraProjection.data?.pulseNote ?? "亲族与技艺维系着共同体。"),
+              eraLabel: String(eraProjection.data?.eraLabel ?? "夏初"),
+            }
+          : { label: "聚落缓慢生长", note: "亲族与技艺维系着共同体。", eraLabel: "夏初" },
+      eraContext: historicalEraProjection.ok
+        ? historicalEraProjection.data
+        : null,
+      historicalAnchors: historicalAnchorsProjection.ok
+        ? historicalAnchorsProjection.data
+        : { people: [] },
       science: scienceProjection.ok
         ? scienceProjection.data
-        : { knownCount: 0, established: [] },
+        : { knownCount: 0, established: [], frontierCount: 0 },
+      historicalMemory: memoryOverviewProjection.ok
+        ? memoryOverviewProjection.data
+        : {
+            visibleWorkCount: 0,
+            fragmentaryWorkCount: 0,
+            contestedWorkCount: 0,
+            anonymousWorkCount: 0,
+            works: [],
+          },
+      notablePeople: notableSubjectsProjection.ok && Array.isArray(notableSubjectsProjection.data?.subjects)
+        ? notableSubjectsProjection.data.subjects.slice(0, 3).map((subject: Record<string, unknown>) => ({
+            id: String(subject.subjectId ?? ""),
+            name: entityName(String(subject.subjectId ?? "")),
+            state: String(subject.state ?? "remembered"),
+            score: Number(subject.score ?? 0),
+          }))
+        : [],
+      intellectual: intellectualOverviewProjection.ok
+        ? intellectualOverviewProjection.data
+        : { traditions: [], schoolCount: 0 },
     },
-    actions: buildActions({ age, alive, student, education, employment, wealth, spouse }),
+    actions: buildActions({ age, alive, learning, role, legacy, spouse, thoughtStage }),
   };
 }
 
 function buildActions(input: {
   age: number;
   alive: boolean;
-  student: Record<string, unknown>;
-  education: Record<string, unknown>;
-  employment: Record<string, unknown>;
-  wealth: Record<string, unknown>;
+  learning: Record<string, unknown>;
+  role: Record<string, unknown>;
+  legacy: Record<string, unknown>;
   spouse: { targetName: string } | undefined;
+  thoughtStage: string;
 }) {
-  return [
+  const actions = [
     { id: "advance-year", label: "让一年流逝", tone: "quiet", enabled: input.alive },
     {
-      id: "school",
-      label: input.student.enrolled ? "继续学习" : "走进学校",
+      id: "learn",
+      label: input.learning.path ? "继续从生活中学习" : "跟着长辈与生活学习",
       tone: "warm",
-      enabled: input.alive && input.age >= 6 && !input.student.enrolled && input.education.level !== "higher",
+      enabled: input.alive && input.age >= 6 && !input.learning.path,
     },
     { id: "friend", label: "认识一个人", tone: "soft", enabled: input.alive && input.age >= 5 },
     {
-      id: "job",
-      label: input.employment.occupation ? "工作中的一天" : "寻找工作",
+      id: "role",
+      label: input.role.title ? "承担今天的役事" : "承担聚落里的角色",
       tone: "blue",
-      enabled: input.alive && input.age >= 16 && !input.employment.occupation,
+      enabled: input.alive && input.age >= 14 && !input.role.title,
     },
     {
       id: "marry",
@@ -215,28 +330,100 @@ function buildActions(input: {
       enabled: input.alive && input.age >= 18 && Boolean(input.spouse),
     },
     {
-      id: "business",
-      label: "留下自己的事业",
+      id: "legacy",
+      label: "留下一门手艺与经验",
       tone: "ink",
-      enabled: input.alive && Number(input.wealth.cash ?? 0) >= 5000,
+      enabled: input.alive && Boolean(input.role.title) && !input.legacy.title,
     },
     { id: "next-generation", label: "继续下一代的人生", tone: "gold", enabled: !input.alive },
   ];
-}
 
+  if (input.alive && input.age >= 16 && Boolean(input.role.title)) {
+    const thoughtCopy = {
+      form: ["整理一种对生活的看法", true],
+      share: ["把这套想法讲给朋友", true],
+      school: ["让追随者形成一个学派", true],
+      influence: ["让这套思想影响聚落", true],
+      "need-friend": ["先认识愿意听你说话的人", false],
+      established: ["这套思想正在继续流传", false],
+    }[input.thoughtStage] ?? ["整理一种对生活的看法", true];
+    actions.splice(actions.length - 2, 0, {
+      id: "thought",
+      label: String(thoughtCopy[0]),
+      tone: "soft",
+      enabled: Boolean(thoughtCopy[1]),
+    });
+  }
+
+  return actions;
+}
 function humanizeEvent(type: string, data: Record<string, unknown> = {}): string {
-  if (type === "economy.phase_changed") {
-    return `时代从“${economyPhaseLabel(String(data.from ?? "steady"))}”走向“${economyPhaseLabel(String(data.to ?? "steady"))}”`;
+  if (type === "historical-anchors.person_entered") {
+    const precision = data.datePrecision === "approximate" ? "约" : "";
+    return `${String(data.displayName ?? "一位历史人物")}在${String(data.regionLabel ?? "这个世界")}${precision ? "大约" : ""}来到世间`;
+  }
+  if (type === "historical-era.entered") {
+    return `世界进入“${String(data.label ?? "一个时代")}”的历史阶段`;
+  }
+  if (type === "historical-era.changed") {
+    const signals = Array.isArray(data.changeSignals)
+      ? data.changeSignals.slice(0, 2).join("、")
+      : "";
+    return `时代从“${String(data.fromLabel ?? "过去")}”走向“${String(data.toLabel ?? "新的时代")}”${signals ? `：${signals}` : ""}`;
+  }
+  if (type === "modern-science.discovery_made") {
+    return `文明建立了新的理解：${String(data.label ?? data.id ?? "未知知识")}`;
+  }
+  if (type === "early-civilization.role_assumed") {
+    return `开始承担“${String(data.title ?? "聚落役事")}”`;
+  }
+  if (type === "early-civilization.legacy_left") {
+    return `留下了关于“${String(data.title ?? "一门手艺")}”的经验`;
+  }
+  if (type === "historical-memory.work_created") {
+    return `一段经验被物化保存下来：“${String(data.title ?? "无名作品")}”`;
+  }
+  if (type === "historical-memory.artifact_copied") {
+    return "一份承载经验的副本被制作出来";
+  }
+  if (type === "historical-memory.artifact_fragmented") {
+    return "一件承载记忆的证据变得残缺";
+  }
+  if (type === "historical-memory.artifact_rediscovered") {
+    return "一件失去踪迹的旧证据重新被发现";
+  }
+  if (type === "historical-memory.claim_formed") {
+    return "后人形成了一种关于作品归属的说法";
+  }
+  if (type === "historical-memory.claim_supported") {
+    return "新的证据让一种历史说法更加可信";
+  }
+  if (type === "historical-memory.artifact_lost") {
+    return "一件承载记忆的证据失去了踪迹";
+  }
+  if (type === "historical-memory.claim_revised") {
+    return "新的证据改变了后人对一段往事的理解";
+  }
+  if (type === "intellectual-history.idea_proposed") {
+    return `提出了一种新的看法：“${String(data.title ?? "无名思想")}”`;
+  }
+  if (type === "intellectual-history.idea_transmitted") {
+    return `“${String(data.title ?? "一种想法")}”被讲给了另一个人`;
+  }
+  if (type === "intellectual-history.school_founded") {
+    return `围绕一种共同看法形成了“${String(data.name ?? "一个学派")}”`;
+  }
+  if (type === "intellectual-history.idea_branched") {
+    return `旧思想出现了新的解释：“${String(data.title ?? "一个新分支")}”`;
+  }
+  if (type === "intellectual-history.idea_institutionalized") {
+    return `“${String(data.title ?? "一种思想")}”开始影响共同体的做法`;
   }
   const labels: Record<string, string> = {
     "modern.character_created": "一个新生命来到世界",
     "modern.world_initialized": "世界开始运转",
-    "education.school_founded": "一所学校在城市里扎根",
-    "education.enrolled": "开始了一段求学经历",
-    "education.graduated": "完成学业，站在新的路口",
-    "career.job_accepted": "第一次拥有自己的职业身份",
-    "career.business_founded": "创办了一份能够留下来的事业",
-    "career.company_founded": "一家公司在城市里成立",
+    "early-civilization.era_begun": "夏初的聚落开始延续",
+    "early-civilization.learning_begun": "开始跟随生活学习",
     "family.married": "两个人决定共同生活",
     "family.child_born": "家族迎来了新的成员",
     "modern.character_died": "这一生走到了终点",
@@ -245,59 +432,155 @@ function humanizeEvent(type: string, data: Record<string, unknown> = {}): string
   return labels[type] ?? type.replaceAll(".", " · ").replaceAll("_", " ");
 }
 
-function occupationLabel(title: string): string {
-  return {
-    Engineer: "工程师",
-    Teacher: "教师",
-    Trader: "商贸从业者",
-  }[title] ?? title;
-}
-
-function economyPhaseLabel(phase: string): string {
-  return {
-    steady: "平稳",
-    expansion: "扩张",
-    slowdown: "放缓",
-    recovery: "回暖",
-  }[phase] ?? phase;
-}
-
 function runAction(action: string) {
   const id = activeCharacterId();
-  const character = activeCharacter();
-  const age = ageOf(character);
   switch (action) {
     case "advance-year":
       simulation.advanceBy(TICKS_PER_YEAR);
       return { ok: true, errors: [] };
-    case "school":
-      return simulation.dispatch({ type: "education.enroll_school", actorId: id });
+    case "learn":
+      return simulation.dispatch({ type: "early-civilization.begin_learning", actorId: id });
     case "friend":
-      return simulation.dispatch({ type: "family.make_friend", actorId: id, payload: { targetName: "Mira" } });
-    case "job":
-      return simulation.dispatch({
-        type: "career.get_job",
-        actorId: id,
-        payload: { occupation: age >= 22 ? "engineer" : "trader", companyName: "Northport Works" },
-      });
+      return simulation.dispatch({ type: "family.make_friend", actorId: id, payload: { targetName: "禾" } });
+    case "role":
+      return simulation.dispatch({ type: "early-civilization.take_role", actorId: id });
     case "marry":
-      return simulation.dispatch({ type: "family.marry", actorId: id, payload: { spouseName: "Rowan" } });
+      return simulation.dispatch({ type: "family.marry", actorId: id, payload: { spouseName: "予" } });
     case "child":
       return simulation.dispatch({
         type: "family.have_child",
         actorId: id,
-        payload: { givenName: ["Noa", "Iris", "Theo"][simulation.tick % 3] },
+        payload: { givenName: ["兰", "禾", "启"][simulation.tick % 3] },
       });
-    case "business":
-      return simulation.dispatch({
-        type: "career.start_business",
-        actorId: id,
-        payload: { name: "Lin & Co.", capital: 5000 },
-      });
+    case "legacy":
+      return simulation.dispatch({ type: "early-civilization.leave_legacy", actorId: id });
+    case "thought":
+      return runThoughtAction(id);
     case "next-generation":
       return simulation.dispatch({ type: "modern.switch_generation" });
     default:
       return { ok: false, errors: [{ code: "E_UNKNOWN_UI_ACTION", message: `unknown action: ${action}` }] };
+  }
+}
+function runThoughtAction(actorId: string) {
+  const world = simulation.worldView();
+  const proposedIdeaId = world.listRelations({
+    type: "intellectual-history.proposed_by",
+    to: actorId,
+  })[0]?.from ?? "";
+
+  if (!proposedIdeaId) {
+    const role = world.getComponent(actorId, "early-civilization.role") ?? {};
+    const template = thoughtTemplate(String(role.roleId ?? ""));
+    return simulation.dispatch({
+      type: "intellectual-history.propose_idea",
+      actorId,
+      payload: {
+        ...template,
+        medium: "oral",
+        preservationIntervalTicks: 40 * TICKS_PER_YEAR,
+      },
+    });
+  }
+
+  const friends = world
+    .listRelations({ type: "family.friend_of", from: actorId })
+    .map((relation) => relation.to);
+  const uninitiatedFriend = friends.find((friendId) =>
+    world.listRelations({
+      type: "intellectual-history.embraces",
+      from: friendId,
+      to: proposedIdeaId,
+    }).length === 0
+  );
+  if (uninitiatedFriend) {
+    return simulation.dispatch({
+      type: "intellectual-history.teach_idea",
+      actorId,
+      targetId: uninitiatedFriend,
+      payload: {
+        ideaId: proposedIdeaId,
+        medium: "oral",
+        preservationIntervalTicks: 40 * TICKS_PER_YEAR,
+      },
+    });
+  }
+
+  const adherentCount = world.listRelations({
+    type: "intellectual-history.embraces",
+    to: proposedIdeaId,
+  }).length;
+  const schoolId = world.listRelations({
+    type: "intellectual-history.centers_on",
+    to: proposedIdeaId,
+  })[0]?.from ?? "";
+
+  if (adherentCount >= 2 && !schoolId) {
+    const idea = world.getComponent(proposedIdeaId, "intellectual-history.idea") ?? {};
+    return simulation.dispatch({
+      type: "intellectual-history.form_school",
+      actorId,
+      payload: {
+        ideaId: proposedIdeaId,
+        name: `${String(idea.title ?? "共同之道")}之学`,
+      },
+    });
+  }
+
+  const residenceId = String(
+    world.getComponent(actorId, "modern.residence")?.cityId ?? "modern:city:north",
+  );
+  const alreadyInfluences = world.listRelations({
+    type: "intellectual-history.influences",
+    from: proposedIdeaId,
+    to: residenceId,
+  }).length > 0;
+  if (schoolId && !alreadyInfluences) {
+    return simulation.dispatch({
+      type: "intellectual-history.apply_idea",
+      actorId,
+      targetId: residenceId,
+      payload: { ideaId: proposedIdeaId, strength: 0.65 },
+    });
+  }
+
+  return {
+    ok: false,
+    errors: [{
+      code: "E_THOUGHT_WAITING",
+      message: adherentCount < 2
+        ? "先认识一个愿意听你讲述的人"
+        : "这套思想已经在共同体里继续流传",
+    }],
+  };
+}
+
+function thoughtTemplate(roleId: string) {
+  switch (roleId) {
+    case "craftsperson":
+      return {
+        title: "传艺之道",
+        thesis: "技艺若只停在一个人手里，便会随生命一起消失。",
+        principles: ["手艺应当传给后来者", "经验需要反复验证", "留下方法比留下名声更重要"],
+      };
+    case "cultivator":
+      return {
+        title: "共耕之约",
+        thesis: "共同承担季节与收获，能让聚落比单独劳作更稳。",
+        principles: ["共同承担风险", "收获需要顾及来年", "有余力时帮助同伴"],
+      };
+    case "forager":
+      return {
+        title: "取用有度",
+        thesis: "今天从自然中取得的东西，也应给明天留下余地。",
+        principles: ["不过度索取", "记住季节变化", "把路径与经验告诉后来者"],
+      };
+    default:
+      return {
+        title: "共议之道",
+        thesis: "共同体的事情，应让承担后果的人有机会说出自己的看法。",
+        principles: ["先听不同意见", "共同决定共同承担", "约定可以根据现实修正"],
+      };
   }
 }
 
@@ -352,17 +635,23 @@ function hasPlayerMilestone(
   const identity = character.components["modern.identity"] ?? {};
   const bornAt = Number(identity.bornAt ?? character.createdAt);
   const age = Math.max(0, Math.floor((world.tick - bornAt) / TICKS_PER_YEAR));
-  const student = character.components["education.student_status"] ?? {};
-  const education = character.components["education.level"] ?? {};
-  const employment = character.components["career.employment"] ?? {};
+
+  const learning = character.components["early-civilization.learning"] ?? {};
+  const role = character.components["early-civilization.role"] ?? {};
   const hasSpouse = world.listRelations({ type: "family.married_to", from: actorId }).length > 0;
+  const hasProposedIdea = world.listRelations({
+    type: "intellectual-history.proposed_by",
+    to: actorId,
+  }).length > 0;
 
   return (
-    (age >= 6 && !student.enrolled && education.level !== "higher")
-    || (age >= 16 && !employment.occupation)
+    (age >= 6 && !learning.path)
+    || (age >= 14 && !role.title)
+    || (age >= 16 && Boolean(role.title) && !hasProposedIdea)
     || (age >= 18 && !hasSpouse)
   );
 }
+
 function saveSummary() {
   const state = gameState();
   return {

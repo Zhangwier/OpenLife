@@ -29,16 +29,17 @@
       <aside class="life-rail panel">
         <div class="eyebrow">这一生</div>
         <div class="portrait"><span id="portraitInitial">A</span></div>
-        <div class="identity"><h1 id="characterName">Avery Lin</h1><p id="characterMeta">0 岁 · Northport</p></div>
+        <div class="identity"><h1 id="characterName">启 禾</h1><p id="characterMeta">0 岁 · 北岸聚落</p></div>
         <div class="life-line">
           <div class="life-line-track"><div class="life-line-progress" id="lifeProgress"></div></div>
           <div class="life-line-labels"><span>出生</span><span>此刻</span><span>未知</span></div>
         </div>
         <div class="soft-stats">
           <div><span>身体</span><strong id="healthWord">正在成长</strong></div>
-          <div><span>学业</span><strong id="educationWord">尚未入学</strong></div>
-          <div><span>职业</span><strong id="occupationWord">尚未选择职业</strong></div>
+          <div><span>所学</span><strong id="educationWord">尚未开始系统学习</strong></div>
+          <div><span>生活角色</span><strong id="occupationWord">尚未承担聚落角色</strong></div>
           <div><span>家庭</span><strong id="familyWord">尚未建立家庭</strong></div>
+          <div><span>历史痕迹</span><strong id="footprintWord">尚未留下可辨认的痕迹</strong></div>
         </div>
       </aside>
 
@@ -50,7 +51,7 @@
         <div class="memory-scene">
           <div class="sun-orbit"></div>
           <div class="scene-copy">
-            <span class="scene-kicker" id="sceneKicker">Northport · 春</span>
+            <span class="scene-kicker" id="sceneKicker">北岸聚落 · 春</span>
             <p id="sceneText">世界比你先存在，也会在你之后继续。</p>
           </div>
           <div class="scene-people" id="scenePeople"></div>
@@ -83,19 +84,43 @@
         <div class="panel-title-row"><div><div class="eyebrow">世界</div><h3>你之外的生活</h3></div><span class="world-pulse">● 世界仍在运行</span></div>
         <div class="world-metrics">
           <div><strong id="worldPeople">0</strong><span>仍在生活的人</span></div>
-          <div><strong id="worldOrganizations">0</strong><span>持续存在的组织</span></div>
+          <div><strong id="worldCommunities">0</strong><span>持续存在的聚落</span></div>
           <div><strong id="worldRecords">0</strong><span>进入历史的事件</span></div>
         </div>
         <p class="world-note">你的视野只是世界的一小部分。并不是所有事情，你都会知道。</p>
         <div class="world-mood">
           <span>时代脉搏</span>
-          <strong id="worldEconomy">市场平稳</strong>
-          <small id="worldEconomyNote">工作与生活保持着相对稳定的节奏。</small>
+          <strong id="worldPulse">聚落缓慢生长</strong>
+          <small id="worldPulseNote">亲族与技艺维系着共同体的日常。</small>
+        </div>
+        <div class="world-era-context">
+          <span>时代环境 · <b id="worldEraLabel">夏</b></span>
+          <div class="era-chips" id="worldEraChips"></div>
+          <small id="worldEraNote">这是此时常见的生活背景，不代表每个人都掌握全部技艺。</small>
+        </div>
+        <div class="world-historical-people">
+          <span>时代人物</span>
+          <div class="historical-people" id="worldHistoricalPeople"></div>
+          <small id="worldHistoricalPeopleNote">人物出现不等于被后世记住；名望仍取决于作品、证据与传播。</small>
         </div>
         <div class="world-knowledge">
           <span>文明认知</span>
           <div class="knowledge-chips" id="worldKnowledge"></div>
-          <small>这是文明已经理解的世界，不等于世界全部的真相。</small>
+          <small id="worldKnowledgeNote">这是文明已经理解的世界，不等于世界全部的真相。</small>
+        </div>
+        <div class="world-intellectual">
+          <span>思想与学派</span>
+          <div class="tradition-list" id="worldTraditions"></div>
+          <small id="worldTraditionNote">有些想法会随着人离开，有些会被别人继续讲下去。</small>
+        </div>
+        <div class="world-history-memory">
+          <span>流传中的历史</span>
+          <div class="memory-traces" id="worldHistoryWorks"></div>
+          <small id="worldHistoryNote">没有证据留下时，过去也会变得安静。</small>
+        </div>
+        <div class="world-notables">
+          <span>后世仍记得的人</span>
+          <div class="notable-people" id="worldNotablePeople"></div>
         </div>
       </section>
     </section>
@@ -161,18 +186,18 @@
         <div class="field-row">
           <label>
             <span>名字</span>
-            <input id="newGivenName" name="givenName" maxlength="24" value="Avery" autocomplete="off" />
+            <input id="newGivenName" name="givenName" maxlength="24" value="启" autocomplete="off" />
           </label>
           <label>
             <span>姓氏</span>
-            <input id="newFamilyName" name="familyName" maxlength="24" value="Lin" autocomplete="off" />
+            <input id="newFamilyName" name="familyName" maxlength="24" value="禾" autocomplete="off" />
           </label>
         </div>
         <label>
-          <span>出生城市</span>
+          <span>出生聚落</span>
           <select id="newCity" name="cityId">
-            <option value="modern:city:north">Northport</option>
-            <option value="modern:city:south">Southgate</option>
+            <option value="modern:city:north">北岸聚落</option>
+            <option value="modern:city:south">南丘聚落</option>
           </select>
         </label>
         <label>

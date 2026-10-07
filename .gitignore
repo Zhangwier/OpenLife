@@ -8,6 +8,7 @@ out/
 .tmp/
 .edge-test-profile/
 .chrome-test-profile/
+.edge-*-final/
 *.idsig
 
 # Ad-hoc diagnostic scratch files
