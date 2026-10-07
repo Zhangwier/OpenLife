@@ -12,6 +12,7 @@
     "@openlife/module-career": "*",
     "@openlife/module-family": "*",
     "@openlife/module-economy": "*",
+    "@openlife/module-modern-science": "*",
     "@openlife/module-basic-autonomy": "*"
   }
 }

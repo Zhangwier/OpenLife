@@ -2715,7 +2715,76 @@ Module Editor  社区生态
 
 ---
 
-# 96. 当前结论
+# 96. 时间与纪元模型（方向修订 · 2026-10-07 记录）
+
+> 本节由项目所有者口述，作为方向性修订记录。
+> 状态：**Adopted（起点已实施 2026-10-07）** —— 起点锚点与纪元渲染已落地，
+> 上古→现代的 World Pack 内容填充仍待办。
+
+## 96.1 修订动机
+
+当前实现把世界起点硬编码在现代（`apps/web/server.ts` 用 `2000 + tick/12` 换算年份），
+等于让世界在 2000 年凭空开始。这与"持续存在的世界历史"这一核心愿景冲突。
+
+## 96.2 起点锚点
+
+**起点 = 公元前 2070 年（夏朝建立）**。
+
+```text
+tick 0  =  公元前 2070 年
+```
+
+选择理由：有史可考、上限清晰（到当代约 4096 年），且以后填充夏商周内容时
+年份可直接对齐真实史料，无需反向换算。
+
+契约层：
+
+```ts
+export const ERA_START_YEAR = -2069;   // 天文纪年；formatYear(-2069) = "公元前 2070 年"
+export function formatYear(year: number): string   // "公元前 2070 年" / "公元 2026 年"
+export function yearOfTick(tick: number, eraStartYear = ERA_START_YEAR): number
+export function tickOfYear(year: number, eraStartYear = ERA_START_YEAR): number
+export function formatTick(tick: number, eraStartYear = ERA_START_YEAR): string
+```
+
+注：内部用天文纪年（负数 = 公元前，且存在 0 年 = 公元前 1 年），
+对外渲染统一走 `formatYear`，不暴露天文纪年的负数细节。
+
+## 96.3 修订后的时间观
+
+世界时间锚定在**真实历史时间轴**上：
+
+```text
+上古 → 夏 → 商 → 周 → 春秋战国 → 秦 → 汉 → ... → 唐宋元明清 → 近现代 → 当代
+```
+
+要求：
+
+1. 纪元使用真实纪年，包含 **公元前（BC / BCE）** 与 **公元后（AD / CE）** 两段；
+2. 时间原点不是 2000 年，而是夏朝建立的公元前 2070 年；
+3. 世界从最早的时代开始，**由玩家与内容生产逐步向后填充**到现代，
+   而不是从现代倒推或直接开局于现代；
+4. 填充过程本身即世界历史的一部分——早期时代留下的记录必须能被后世看见。
+
+## 96.4 已实施（2026-10-07）
+
+- [x] `life-contracts` 引入 `ERA_START_YEAR` 纪元锚点；
+- [x] `formatTick` 的 `startYear` 从"声明未用"改为真实生效的 `eraStartYear` 参数；
+- [x] 支持公元前年份的格式化（`formatYear`）与界面渲染；
+- [x] 移除 `apps/web/server.ts` 中的 `2000` 硬编码，改为从契约取；
+- [x] 新增 `tests/unit/era-calendar.test.ts` 锁定纪元语义（83/83 通过）。
+
+## 96.5 待办
+
+- [ ] 定义 `Era`（纪元）Core Primitive 是否成立，走 §80 Core 升格规则评估；
+- [ ] 规划从上古到现代的 World Pack 内容填充顺序；
+- [ ] 评估早期时代的内容密度：一年一年模拟夏朝，玩家可能要按数万次"让一年流逝"，
+      是否需要"时间跳跃"作为一等概念（注意：内核惰性，不 advance 不产生 tick，
+      故性能不是问题，体验才是）。
+
+---
+
+# 97. 当前结论
 
 OpenLife 当前已经完成：
 

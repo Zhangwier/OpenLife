@@ -18,6 +18,7 @@ import type {
   RelationDefinition,
   ResolutionRule,
   TaskDefinition,
+  KnowledgeDefinition,
 } from "@openlife/contracts";
 import {
   ErrorCode,
@@ -115,6 +116,7 @@ export class DefinitionRegistry<T extends { id?: string; type?: string }> {
 
 export type CommandRegistry = DefinitionRegistry<CommandDefinition>;
 export type TaskRegistry = DefinitionRegistry<TaskDefinition>;
+export type KnowledgeRegistry = DefinitionRegistry<KnowledgeDefinition>;
 export type ProjectionRegistry = DefinitionRegistry<ProjectionDefinition>;
 export type QueryRegistry = DefinitionRegistry<QueryDefinition>;
 export type ComponentRegistry = DefinitionRegistry<ComponentDefinition>;
@@ -135,6 +137,7 @@ export class DefinitionSet {
   readonly relations = new DefinitionRegistry<RelationDefinition>("relation");
   readonly commands = new DefinitionRegistry<CommandDefinition>("command");
   readonly tasks = new DefinitionRegistry<TaskDefinition>("task");
+  readonly knowledge = new DefinitionRegistry<KnowledgeDefinition>("knowledge");
   readonly projections = new DefinitionRegistry<ProjectionDefinition>("projection");
   readonly queries = new DefinitionRegistry<QueryDefinition>("query");
   readonly constraints = new DefinitionRegistry<ConstraintRule>("constraint rule");
@@ -148,6 +151,7 @@ export class DefinitionSet {
       this.relations,
       this.commands,
       this.tasks,
+      this.knowledge,
       this.projections,
       this.queries,
       this.constraints,

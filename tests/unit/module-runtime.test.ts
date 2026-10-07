@@ -34,6 +34,11 @@ const simpleModule: OpenLifeModule = {
   register(ctx) {
     ctx.registerComponent({ id: "demo.thing", persist: true });
     ctx.registerCommand({ type: "demo.do", description: "does a thing" });
+    ctx.registerKnowledge({
+      id: "demo.observable",
+      kind: "phenomenon",
+      description: "A generic observable phenomenon.",
+    });
     ctx.registerConstraintRule({
       id: "demo.do.allowed",
       kind: "constraint",
@@ -55,7 +60,23 @@ test("a module registers definitions without touching the kernel", () => {
   assert.equal(info.state, "active");
   assert.deepEqual(info.definitions.components, ["demo.thing"]);
   assert.deepEqual(info.definitions.commands, ["demo.do"]);
+  assert.deepEqual(info.definitions.knowledge, ["demo.observable"]);
   assert.ok(runtime.hasCapability("demo.capability"));
+});
+
+test("knowledge registrations follow module lifecycle like every other extension point", () => {
+  const definitions = new DefinitionSet();
+  const runtime = runtimeFor(definitions);
+  runtime.install(simpleModule);
+
+  assert.equal(definitions.knowledge.get("demo.observable")?.enabled, true);
+  runtime.unload("demo");
+  assert.equal(definitions.knowledge.get("demo.observable")?.enabled, false);
+  assert.deepEqual(definitions.knowledge.active(), []);
+
+  runtime.activate("demo");
+  assert.equal(definitions.knowledge.get("demo.observable")?.enabled, true);
+  assert.deepEqual(definitions.knowledge.active().map((item) => item.id), ["demo.observable"]);
 });
 
 test("capabilities disappear while their provider is unloaded and return on activation", () => {

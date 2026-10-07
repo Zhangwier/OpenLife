@@ -6,10 +6,12 @@ import { fileURLToPath } from "node:url";
 import { Simulation } from "@openlife/simulation";
 import { runAutoSim, untilActorArchived, untilTick, type AutoSimContext } from "@openlife/autonomy-runtime";
 import { modernWorldModule, TICKS_PER_YEAR } from "@openlife/module-modern-world";
+import { formatYear, yearOfTick } from "@openlife/life-contracts";
 import { educationModule } from "@openlife/module-education";
 import { careerModule } from "@openlife/module-career";
 import { familyModule } from "@openlife/module-family";
 import { economyModule } from "@openlife/module-economy";
+import { modernScienceModule } from "@openlife/module-modern-science";
 import { basicAutonomyModule } from "@openlife/module-basic-autonomy";
 
 const PORT = Number(process.env.PORT ?? 4173);
@@ -20,20 +22,35 @@ const modules = [
   careerModule,
   familyModule,
   economyModule,
+  modernScienceModule,
   basicAutonomyModule,
 ];
 
 let simulation = createGame();
 
-function createGame(seed = 104): Simulation {
+interface NewLifeOptions {
+  seed?: number;
+  givenName?: string;
+  familyName?: string;
+  cityId?: string;
+}
+
+function createGame(options: NewLifeOptions = {}): Simulation {
+  const seed = Number.isFinite(options.seed) ? Number(options.seed) >>> 0 : 104;
+  const givenName = cleanName(options.givenName, "Avery");
+  const familyName = cleanName(options.familyName, "Lin");
+  const cityId = options.cityId === "modern:city:south"
+    ? "modern:city:south"
+    : "modern:city:north";
+
   const sim = new Simulation({ worldSeed: seed, modules });
   requireOk(sim.dispatch({ type: "modern.initialize_world", source: "system" }));
   requireOk(sim.dispatch({
     type: "modern.create_character",
     payload: {
-      givenName: "Avery",
-      familyName: "Lin",
-      cityId: "modern:city:north",
+      givenName,
+      familyName,
+      cityId,
       startingCash: 18000,
       lifespan: 84,
       lineageId: "family:lineage:1",
@@ -43,6 +60,11 @@ function createGame(seed = 104): Simulation {
   return sim;
 }
 
+function cleanName(value: string | undefined, fallback: string): string {
+  if (typeof value !== "string") return fallback;
+  const cleaned = value.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 24);
+  return cleaned || fallback;
+}
 function requireOk(result: { ok: boolean; errors: { message: string }[] }): void {
   if (!result.ok) throw new Error(result.errors[0]?.message ?? "command failed");
 }
@@ -90,6 +112,7 @@ function gameState() {
   const lineageId = String(identity.lineageId ?? "family:lineage:1");
   const lineageProjection = simulation.project({ id: "family.lineage", params: { lineageId } });
   const economyProjection = simulation.project({ id: "economy.overview", params: {} });
+  const scienceProjection = simulation.project({ id: "modern-science.civilization", params: {} });
   const eventById = new Map(simulation.history.view().listEvents().map((event) => [event.id, event]));
   const history = simulation.history.listRecords().slice(-18).reverse();
 
@@ -111,8 +134,9 @@ function gameState() {
 
   return {
     tick: simulation.tick,
-    year: 2000 + Math.floor(simulation.tick / TICKS_PER_YEAR),
+    year: yearOfTick(simulation.tick),
     month: (simulation.tick % TICKS_PER_YEAR) + 1,
+    era: formatYear(yearOfTick(simulation.tick)),
     generation: Number(world.getComponent("modern:world", "modern.world_state")?.generation ?? 1),
     character: character ? {
       id: character.id,
@@ -133,7 +157,8 @@ function gameState() {
       id: record.id,
       type: record.type,
       at: record.at,
-      year: 2000 + Math.floor(record.at / TICKS_PER_YEAR),
+      year: yearOfTick(record.at),
+      era: formatYear(yearOfTick(record.at)),
       summary: humanizeEvent(record.type, eventById.get(record.eventId)?.data),
       significance: record.significance,
       archived: Boolean(record.subjectArchived),
@@ -145,6 +170,9 @@ function gameState() {
       economy: economyProjection.ok
         ? economyProjection.data
         : { phase: "steady", label: "市场平稳", note: "世界仍在自己的节奏里运行。" },
+      science: scienceProjection.ok
+        ? scienceProjection.data
+        : { knownCount: 0, established: [] },
     },
     actions: buildActions({ age, alive, student, education, employment, wealth, spouse }),
   };
@@ -404,7 +432,12 @@ const server = createServer(async (req, res) => {
       }
       if (req.method === "POST" && url.pathname === "/api/reset") {
         const body = await readJson(req);
-        simulation = createGame(Number(body.seed ?? 104));
+        simulation = createGame({
+          seed: Number(body.seed ?? 104),
+          givenName: typeof body.givenName === "string" ? body.givenName : undefined,
+          familyName: typeof body.familyName === "string" ? body.familyName : undefined,
+          cityId: typeof body.cityId === "string" ? body.cityId : undefined,
+        });
         res.end(JSON.stringify({ state: gameState() }));
         return;
       }

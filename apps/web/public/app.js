@@ -29,7 +29,7 @@ function render(s, animate = false) {
     setTimeout(() => document.body.classList.remove("is-transitioning"), 750);
   }
   const c = s.character;
-  $("timeRibbon").querySelector(".time-year").textContent = String(s.year);
+  $("timeRibbon").querySelector(".time-year").textContent = s.era ?? String(s.year);
   $("timeRibbon").querySelector(".time-copy").textContent = `${s.month} 月 · 时间正在流逝`;
   $("generationPill").textContent = numberGeneration(s.generation);
   $("lineageLabel").textContent = numberGeneration(s.generation);
@@ -64,26 +64,45 @@ function renderActions(actions) {
   });
 }
 
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
+  })[char]);
+}
+
 function renderHistory(history) {
   $("historyStream").innerHTML = history.length === 0
     ? '<div class="subtle">历史还很安静。第一件值得记住的事，很快会发生。</div>'
     : history.map((item) => `<article class="history-item">
-        <div class="history-year">${item.year}</div>
-        <div class="history-copy">${item.summary}<small>${item.archived ? "人物已离开，但这件事仍被记得" : "仍留在这个世界里"}</small></div>
+        <div class="history-year">${escapeHtml(item.era ?? item.year)}</div>
+        <div class="history-copy">${escapeHtml(item.summary)}<small>${item.archived ? "人物已离开，但这件事仍被记得" : "仍留在这个世界里"}</small></div>
       </article>`).join("");
 }
 
 function renderRelations(relations, c) {
   $("relationCount").textContent = `${relations.length} 条关系`;
+  const currentInitial = escapeHtml(c?.name?.slice(0, 1) ?? "?");
   $("relationshipOrbit").innerHTML = [
-    `<div class="relation-chip"><div class="relation-avatar">${c?.name?.slice(0, 1) ?? "?"}</div><strong>你</strong><span>此刻的人生</span></div>`,
-    ...relations.map((relation) => `<div class="relation-chip">
-      <div class="relation-avatar">${relation.targetName.slice(0, 1)}</div>
-      <strong>${relation.targetName}</strong><span>${relationLabel(relation.type)}</span>
-    </div>`),
+    `<div class="relation-chip"><div class="relation-avatar">${currentInitial}</div><strong>你</strong><span>此刻的人生</span></div>`,
+    ...relations.map((relation) => {
+      const name = escapeHtml(relation.targetName);
+      const initial = escapeHtml(relation.targetName.slice(0, 1));
+      return `<div class="relation-chip">
+        <div class="relation-avatar">${initial}</div>
+        <strong>${name}</strong><span>${escapeHtml(relationLabel(relation.type))}</span>
+      </div>`;
+    }),
   ].join("");
   $("scenePeople").innerHTML = relations.slice(0, 4)
-    .map((relation) => `<span class="person-dot" title="${relation.targetName}">${relation.targetName.slice(0, 1)}</span>`).join("");
+    .map((relation) => {
+      const name = escapeHtml(relation.targetName);
+      const initial = escapeHtml(relation.targetName.slice(0, 1));
+      return `<span class="person-dot" title="${name}">${initial}</span>`;
+    }).join("");
 }
 
 function renderLineage(lineage, c) {
@@ -92,18 +111,23 @@ function renderLineage(lineage, c) {
     ? '<div class="subtle">家族的第一条线，正在形成。</div>'
     : members.sort((a, b) => Number(a.generation) - Number(b.generation)).map((member) =>
       `<div class="family-node ${member.id === c?.id ? "current" : ""}">
-        <strong>${member.name || member.id}</strong>
-        <span>第 ${member.generation} 代 · ${member.alive ? "仍在生活" : "已进入家族史"}</span>
+        <strong>${escapeHtml(member.name || member.id)}</strong>
+        <span>第 ${escapeHtml(member.generation)} 代 · ${member.alive ? "仍在生活" : "已进入家族史"}</span>
       </div>`,
     ).join("");
 }
-
 function renderWorld(world) {
   $("worldPeople").textContent = String(world.people);
   $("worldOrganizations").textContent = String(world.organizations);
   $("worldRecords").textContent = String(world.records);
   $("worldEconomy").textContent = world.economy?.label || "市场平稳";
   $("worldEconomyNote").textContent = world.economy?.note || "世界仍在自己的节奏里运行。";
+  const established = Array.isArray(world.science?.established) ? world.science.established : [];
+  $("worldKnowledge").innerHTML = established.length
+    ? established.slice(0, 5).map((item) =>
+        `<span class="knowledge-chip">${escapeHtml(item.label)}</span>`,
+      ).join("")
+    : '<span class="subtle">文明仍在理解这个世界</span>';
 }
 
 function readMemory(slot) {
@@ -123,7 +147,7 @@ function memorySummary(entry) {
   if (!entry?.summary) return "这里还是空的";
   const c = entry.summary.character;
   const person = c ? `${c.name} · ${c.age} 岁` : "没有正在经历人生的人";
-  return `${entry.summary.year} 年 · ${numberGeneration(entry.summary.generation)} · ${person}`;
+  return `${entry.summary.era ?? `${entry.summary.year} 年`} · ${numberGeneration(entry.summary.generation)} · ${person}`;
 }
 
 function renderMemorySlots() {
@@ -200,7 +224,7 @@ function stageTitle(c) {
 
 function sceneText(c, s) {
   if (!c.alive) return "你离开了，但关系、事业和记忆没有一起消失。";
-  if (c.children?.length) return `你已经不再只为自己生活。下一代正在 ${s.year} 年的世界里长大。`;
+  if (c.children?.length) return `你已经不再只为自己生活。下一代正在${s.era ?? `${s.year} 年`}的世界里长大。`;
   if (c.family !== "尚未建立家庭") return "有人开始与你共享每天的琐碎、安静和未来。";
   if (c.occupation !== "尚未选择职业") return "日子有了重复的节奏，也开始留下属于你的痕迹。";
   if (c.age < 6) return "世界比你先存在，也会在你之后继续。";
@@ -291,12 +315,35 @@ document.querySelectorAll("[data-load-slot]").forEach((button) => {
   });
 });
 
-$("resetButton").addEventListener("click", async () => {
-  const data = await api("/api/reset", { method: "POST", body: JSON.stringify({ seed: 104 }) });
-  state = data.state;
-  render(state, true);
-  showToast("一段新的人生重新开始");
+$("resetButton").addEventListener("click", () => {
+  $("newLifeModal").hidden = false;
+  $("newGivenName").focus();
 });
-
+$("closeNewLife").addEventListener("click", () => $("newLifeModal").hidden = true);
+$("newLifeForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const submit = event.currentTarget.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  try {
+    const data = await api("/api/reset", {
+      method: "POST",
+      body: JSON.stringify({
+        seed: Number($("newSeed").value || 104),
+        givenName: $("newGivenName").value,
+        familyName: $("newFamilyName").value,
+        cityId: $("newCity").value,
+      }),
+    });
+    state = data.state;
+    $("newLifeModal").hidden = true;
+    render(state, true);
+    showToast("一段新的人生开始了");
+    await autoRemember();
+  } catch (error) {
+    showToast(error.message);
+  } finally {
+    submit.disabled = false;
+  }
+});
 renderMemorySlots();
 loadState();

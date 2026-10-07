@@ -141,6 +141,9 @@ export interface ModuleRegistrationContext {
   registerResolutionRule(rule: Omit<import("./rule.ts").ResolutionRule, "owner" | "kind">): void;
   registerReactionRule(rule: Omit<import("./rule.ts").ReactionRule, "owner" | "kind">): void;
   registerTask(definition: Omit<TaskDefinition, "owner">): void;
+  registerKnowledge(
+    definition: Omit<import("./knowledge.ts").KnowledgeDefinition, "owner">,
+  ): void;
   registerProjection(definition: ProjectionDefinition): void;
   registerMigration(migration: ModuleMigration): void;
   provideCapability(id: CapabilityId, implementation?: unknown): void;
@@ -151,9 +154,11 @@ export interface ModuleRegistrationContext {
 export interface ModuleRegistryView {
   hasComponent(id: string): boolean;
   hasCommand(type: string): boolean;
+  hasKnowledge(id: string): boolean;
   hasCapability(id: CapabilityId): boolean;
   listComponents(): string[];
   listCommands(): string[];
+  listKnowledge(): string[];
   listCapabilities(): CapabilityId[];
 }
 

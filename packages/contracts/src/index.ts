@@ -10,4 +10,5 @@ export * from "./rule.ts";
 export * from "./module.ts";
 export * from "./save.ts";
 export * from "./history.ts";
+export * from "./knowledge.ts";
 export * from "./projection.ts";

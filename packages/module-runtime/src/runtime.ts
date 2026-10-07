@@ -251,9 +251,11 @@ export class ModuleRuntime {
     const registryView: ModuleRegistryView = {
       hasComponent: (id) => definitions.components.has(id),
       hasCommand: (type) => definitions.commands.has(type),
+      hasKnowledge: (id) => definitions.knowledge.has(id),
       hasCapability: (id) => this.hasCapability(id),
       listComponents: () => definitions.components.keys(),
       listCommands: () => definitions.commands.keys(),
+      listKnowledge: () => definitions.knowledge.keys(),
       listCapabilities: () => [...this.#capabilities.keys()],
     };
     return {
@@ -272,6 +274,8 @@ export class ModuleRuntime {
         definitions.reactions.register(rule.id, { ...rule, kind: "reaction", owner }, owner),
       registerTask: (definition) =>
         definitions.tasks.register(definition.type, { ...definition, owner }, owner),
+      registerKnowledge: (definition) =>
+        definitions.knowledge.register(definition.id, { ...definition, owner }, owner),
       registerProjection: (definition) =>
         definitions.projections.register(definition.id, { ...definition, owner }, owner),
       registerMigration: (migration) => {
@@ -347,6 +351,7 @@ export class ModuleRuntime {
       relations: ownerEntries(this.#options.definitions.relations.all(), id),
       commands: ownerEntries(this.#options.definitions.commands.all(), id),
       tasks: ownerEntries(this.#options.definitions.tasks.all(), id),
+      knowledge: ownerEntries(this.#options.definitions.knowledge.all(), id),
       projections: ownerEntries(this.#options.definitions.projections.all(), id),
       constraints: ownerEntries(this.#options.definitions.constraints.all(), id),
       resolutions: ownerEntries(this.#options.definitions.resolutions.all(), id),
