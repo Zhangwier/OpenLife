@@ -1,0 +1,14 @@
+{
+  "name": "@openlife/module-knowledge-transmission",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/module-epistemic-state": "*",
+    "@openlife/module-practice-runtime": "*"
+  }
+}
