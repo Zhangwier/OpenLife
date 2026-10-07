@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>OpenLife · 开放人生</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="grain"></div>
+  <main class="game-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">O</div>
+        <div><strong>OpenLife</strong><span>开放人生</span></div>
+      </div>
+      <div class="time-ribbon" id="timeRibbon">
+        <span class="time-year">2000</span><span class="time-dot"></span>
+        <span class="time-copy">时间正在流逝</span>
+      </div>
+      <div class="top-actions">
+        <button class="ghost-button memory-button" id="memoryButton">记忆</button>
+        <button class="icon-button" id="resetButton" aria-label="重新开始">↺</button>
+        <button class="ghost-button" id="autoButton">AutoSim</button>
+      </div>
+    </header>
+
+    <section class="hero-grid">
+      <aside class="life-rail panel">
+        <div class="eyebrow">这一生</div>
+        <div class="portrait"><span id="portraitInitial">A</span></div>
+        <div class="identity"><h1 id="characterName">Avery Lin</h1><p id="characterMeta">0 岁 · Northport</p></div>
+        <div class="life-line">
+          <div class="life-line-track"><div class="life-line-progress" id="lifeProgress"></div></div>
+          <div class="life-line-labels"><span>出生</span><span>此刻</span><span>未知</span></div>
+        </div>
+        <div class="soft-stats">
+          <div><span>身体</span><strong id="healthWord">正在成长</strong></div>
+          <div><span>学业</span><strong id="educationWord">尚未入学</strong></div>
+          <div><span>职业</span><strong id="occupationWord">尚未选择职业</strong></div>
+          <div><span>家庭</span><strong id="familyWord">尚未建立家庭</strong></div>
+        </div>
+      </aside>
+
+      <section class="life-stage panel">
+        <div class="stage-header">
+          <div><div class="eyebrow">此刻</div><h2 id="stageTitle">生命刚刚开始</h2></div>
+          <div class="generation-pill" id="generationPill">第一代</div>
+        </div>
+        <div class="memory-scene">
+          <div class="sun-orbit"></div>
+          <div class="scene-copy">
+            <span class="scene-kicker" id="sceneKicker">Northport · 春</span>
+            <p id="sceneText">世界比你先存在，也会在你之后继续。</p>
+          </div>
+          <div class="scene-people" id="scenePeople"></div>
+        </div>
+        <div class="decision-area">
+          <div class="decision-copy"><span class="eyebrow">你想怎么生活？</span><p>没有唯一正确的人生。选择会改变关系，也会留下痕迹。</p></div>
+          <div class="action-grid" id="actionGrid"></div>
+        </div>
+      </section>
+
+      <aside class="history-panel panel">
+        <div class="panel-title-row">
+          <div><div class="eyebrow">记忆与历史</div><h3>留下来的事</h3></div>
+          <span class="subtle">最近</span>
+        </div>
+        <div class="history-stream" id="historyStream"></div>
+      </aside>
+    </section>
+
+    <section class="lower-grid">
+      <section class="relationship-card panel">
+        <div class="panel-title-row"><div><div class="eyebrow">人与人</div><h3>关系</h3></div><span class="subtle" id="relationCount">0 条关系</span></div>
+        <div class="relationship-orbit" id="relationshipOrbit"></div>
+      </section>
+      <section class="lineage-card panel">
+        <div class="panel-title-row"><div><div class="eyebrow">家族</div><h3>时间不会从你开始</h3></div><span class="subtle" id="lineageLabel">第一代</span></div>
+        <div class="family-tree" id="familyTree"></div>
+      </section>
+      <section class="world-card panel">
+        <div class="panel-title-row"><div><div class="eyebrow">世界</div><h3>你之外的生活</h3></div><span class="world-pulse">● 世界仍在运行</span></div>
+        <div class="world-metrics">
+          <div><strong id="worldPeople">0</strong><span>仍在生活的人</span></div>
+          <div><strong id="worldOrganizations">0</strong><span>持续存在的组织</span></div>
+          <div><strong id="worldRecords">0</strong><span>进入历史的事件</span></div>
+        </div>
+        <p class="world-note">你的视野只是世界的一小部分。并不是所有事情，你都会知道。</p>
+        <div class="world-mood">
+          <span>时代脉搏</span>
+          <strong id="worldEconomy">市场平稳</strong>
+          <small id="worldEconomyNote">工作与生活保持着相对稳定的节奏。</small>
+        </div>
+      </section>
+    </section>
+  </main>
+  <div class="toast" id="toast"></div>
+  <div class="modal-backdrop" id="autoModal" hidden>
+    <section class="modal">
+      <div class="eyebrow">AutoSim</div>
+      <h2>把一小段人生交给时间</h2>
+      <p>AutoSim 不替你决定重大人生选择。它只推进日常时间，直到出现值得你亲自面对的节点。</p>
+      <div class="modal-actions">
+        <button class="action-button quiet" data-auto="year">流逝一年</button>
+        <button class="action-button gold" data-auto="milestone">直到下一个人生节点</button>
+        <button class="ghost-button" id="closeAuto">取消</button>
+      </div>
+    </section>
+  </div>
+  <div class="modal-backdrop" id="memoryModal" hidden>
+    <section class="modal memory-modal">
+      <div class="eyebrow">人生记忆</div>
+      <h2>把这一刻留下来</h2>
+      <p>保存的是完整世界、关系与历史。以后回来时，时间会从同一个地方继续。</p>
+      <div class="memory-slots">
+        <article class="memory-slot auto-slot" data-memory-slot="auto">
+          <div>
+            <strong>最近的记忆</strong>
+            <span class="memory-slot-copy">每次选择后自动留下</span>
+            <small class="memory-slot-meta" data-slot-meta="auto">还没有自动记忆</small>
+          </div>
+          <button class="ghost-button compact" data-load-slot="auto" disabled>回到这里</button>
+        </article>
+        <article class="memory-slot" data-memory-slot="manual-1">
+          <div><strong>记忆一</strong><small class="memory-slot-meta" data-slot-meta="manual-1">这里还是空的</small></div>
+          <div class="slot-actions">
+            <button class="ghost-button compact" data-save-slot="manual-1">留住此刻</button>
+            <button class="ghost-button compact" data-load-slot="manual-1" disabled>回到这里</button>
+          </div>
+        </article>
+        <article class="memory-slot" data-memory-slot="manual-2">
+          <div><strong>记忆二</strong><small class="memory-slot-meta" data-slot-meta="manual-2">这里还是空的</small></div>
+          <div class="slot-actions">
+            <button class="ghost-button compact" data-save-slot="manual-2">留住此刻</button>
+            <button class="ghost-button compact" data-load-slot="manual-2" disabled>回到这里</button>
+          </div>
+        </article>
+        <article class="memory-slot" data-memory-slot="manual-3">
+          <div><strong>记忆三</strong><small class="memory-slot-meta" data-slot-meta="manual-3">这里还是空的</small></div>
+          <div class="slot-actions">
+            <button class="ghost-button compact" data-save-slot="manual-3">留住此刻</button>
+            <button class="ghost-button compact" data-load-slot="manual-3" disabled>回到这里</button>
+          </div>
+        </article>
+      </div>
+      <button class="ghost-button memory-close" id="closeMemory">回到此刻</button>
+    </section>
+  </div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

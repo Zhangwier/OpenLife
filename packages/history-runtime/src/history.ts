@@ -23,6 +23,7 @@ import type {
   LineageView,
   WorldEvent,
 } from "@openlife/contracts";
+import { HistorySemanticEvents } from "@openlife/contracts";
 import type { EventLog } from "@openlife/kernel";
 import type { WorldStore } from "@openlife/world-model";
 
@@ -66,6 +67,7 @@ export class HistoryRuntime {
     const created: HistoricalRecord[] = [];
     for (const event of this.#eventLog.since(this.#foldedThroughSeq)) {
       this.#foldedThroughSeq = event.seq;
+      this.#foldLineageEvent(event);
       if (event.historicalSignificance < this.#threshold) continue;
       const record = this.#toRecord(event);
       this.#records.push(record);
@@ -120,6 +122,20 @@ export class HistoryRuntime {
         const cause = this.#eventLog.get(causeId);
         if (cause) causes.push(this.#explain(cause, depth - 1, seen));
       }
+      // A root event can be produced directly by a command and therefore have
+      // no event-to-event cause edge. Expose the command itself as the causal
+      // root so "why did this happen?" never loses the initiating action.
+      if (causes.length === 0 && event.commandId) {
+        causes.push({
+          kind: "command",
+          type: "command",
+          at: event.at,
+          summary: `command ${event.commandId}`,
+          commandId: event.commandId,
+          causes: [],
+          consequences: [{ eventId: event.id, type: event.type, at: event.at, summary: summarize(event) }],
+        });
+      }
     }
     const consequences = this.#eventLog
       .all()
@@ -131,6 +147,7 @@ export class HistoryRuntime {
         summary: summarize(candidate),
       }));
     return {
+      kind: "event",
       eventId: event.id,
       type: event.type,
       at: event.at,
@@ -253,6 +270,32 @@ export class HistoryRuntime {
       .all()
       .reduce((max, event) => Math.max(max, event.seq), 0);
     return runtime;
+  }
+
+  #foldLineageEvent(event: WorldEvent): void {
+    if (event.type !== HistorySemanticEvents.LineageMemberAdded) return;
+    const lineageId = String(event.data.lineageId ?? "");
+    const characterId = String(event.data.characterId ?? event.actorId ?? "");
+    if (!lineageId || !characterId) return;
+    const generation = Number(event.data.generation ?? 1);
+    const bornAt = Number(event.data.bornAt ?? event.at);
+
+    let lineage = this.#lineages.get(lineageId);
+    if (!lineage) {
+      lineage = {
+        id: lineageId,
+        founderId: characterId,
+        members: [],
+        records: [],
+        createdAt: event.at,
+      };
+      this.#lineages.set(lineageId, lineage);
+      this.#lineageSeq += 1;
+    }
+    if (!lineage.members.some((member) => member.characterId === characterId)) {
+      lineage.members.push({ characterId, generation, bornAt });
+    }
+    this.syncLineageRecords(lineageId);
   }
 
   #toRecord(event: WorldEvent): HistoricalRecord {

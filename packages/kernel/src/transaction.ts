@@ -81,14 +81,30 @@ export class TransactionEngine {
    * Returns every event emitted, in commit order.
    */
   applyEffects(effects: TaggedEffect[], ctx: TransactionContext): WorldEvent[] {
+    const checkpoint = {
+      store: this.#deps.store.serialize(),
+      eventLog: this.#deps.eventLog.serialize(),
+      scheduler: this.#deps.scheduler.serialize(),
+      facts: this.#deps.facts.serialize(),
+    };
     const state: TxnState = {
       localIds: new Map(),
       signatures: new Map(),
       eventBudget: this.#config.maxEventsPerTransaction,
     };
-    const emitted = this.#applyBatch(effects, ctx, state);
-    this.#cascade(emitted, ctx, state);
-    return emitted;
+    try {
+      const emitted = this.#applyBatch(effects, ctx, state);
+      this.#cascade(emitted, ctx, state);
+      return emitted;
+    } catch (error) {
+      // A transaction is all-or-nothing. Reactions may fail after earlier
+      // effects have already touched the store, journal, scheduler or facts.
+      this.#deps.store.restore(checkpoint.store);
+      this.#deps.eventLog.restore(checkpoint.eventLog);
+      this.#deps.scheduler.restore(checkpoint.scheduler);
+      this.#deps.facts.restore(checkpoint.facts);
+      throw error;
+    }
   }
 
   /** Applies effects without running reactions (used by the cascade). */

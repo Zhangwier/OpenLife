@@ -1,0 +1,17 @@
+{
+  "name": "@openlife/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/autonomy-runtime": "*",
+    "@openlife/simulation": "*",
+    "@openlife/module-modern-world": "*",
+    "@openlife/module-education": "*",
+    "@openlife/module-career": "*",
+    "@openlife/module-family": "*",
+    "@openlife/module-economy": "*",
+    "@openlife/module-basic-autonomy": "*"
+  }
+}

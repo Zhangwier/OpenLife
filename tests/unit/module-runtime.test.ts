@@ -58,6 +58,16 @@ test("a module registers definitions without touching the kernel", () => {
   assert.ok(runtime.hasCapability("demo.capability"));
 });
 
+test("capabilities disappear while their provider is unloaded and return on activation", () => {
+  const runtime = runtimeFor();
+  runtime.install(simpleModule);
+  assert.equal(runtime.hasCapability("demo.capability"), true);
+  runtime.unload("demo");
+  assert.equal(runtime.hasCapability("demo.capability"), false);
+  runtime.activate("demo");
+  assert.equal(runtime.hasCapability("demo.capability"), true);
+});
+
 test("module ids and definition namespaces are enforced", () => {
   const runtime = runtimeFor();
   assert.throws(

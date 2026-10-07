@@ -7,6 +7,22 @@
 
 import type { EntityId, EventId, LineageId } from "./ids.ts";
 
+/**
+ * Standard semantic events consumed by the History runtime.
+ * Domain modules may emit these through the ordinary event effect; History
+ * understands only this neutral contract, never the module that produced it.
+ */
+export const HistorySemanticEvents = {
+  LineageMemberAdded: "history.lineage.member_added",
+} as const;
+
+export interface LineageMemberAddedData {
+  lineageId: LineageId;
+  characterId?: EntityId;
+  generation: number;
+  bornAt: number;
+}
+
 export interface Fact {
   id: string;
   factType: string;

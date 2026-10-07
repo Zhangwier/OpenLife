@@ -3,3 +3,13 @@ node_modules/
 .DS_Store
 tmp/
 out/
+
+# Browser automation scratch (Edge/Chrome CDP profile, screenshots)
+.tmp/
+.edge-test-profile/
+.chrome-test-profile/
+*.idsig
+
+# Ad-hoc diagnostic scratch files
+tmp-*.ts
+tmp-*.js

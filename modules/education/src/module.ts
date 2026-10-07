@@ -9,29 +9,26 @@
  */
 
 import type { Effect, OpenLifeModule } from "@openlife/contracts";
-import { ageInYears, TICKS_PER_YEAR } from "@openlife/module-modern-world";
-import { C as MW, K as MWK } from "@openlife/module-modern-world";
+import {
+  ageInYears,
+  TICKS_PER_YEAR,
+  ModernComponents as MW,
+  ModernKinds as MWK,
+} from "@openlife/life-contracts/modern";
+import {
+  EducationComponents as EC,
+  EducationRelations as ER,
+  EducationKinds as EK,
+  educationLevelOf,
+  type EducationLevel,
+} from "@openlife/life-contracts/education";
+
+export { EC, ER, EK, educationLevelOf };
+export type { EducationLevel };
 
 const OWNER = "education";
-
-export const EC = {
-  student: "education.student_status",
-  level: "education.level",
-} as const;
-
-export const ER = {
-  enrolledAt: "education.enrolled_at",
-} as const;
-
-export const EK = {
-  school: "education.school",
-} as const;
-
 const SCHOOL_ID = "education:school:academy";
 const PROGRAM_TICKS = TICKS_PER_YEAR * 4;
-
-const LEVELS = ["none", "primary", "secondary", "higher"] as const;
-export type EducationLevel = (typeof LEVELS)[number];
 
 export const educationModule: OpenLifeModule = {
   manifest: {
@@ -280,11 +277,3 @@ export const educationModule: OpenLifeModule = {
     });
   },
 };
-
-export function educationLevelOf(
-  components: Record<string, Record<string, unknown>>,
-): EducationLevel {
-  const level = components[EC.level] as { level?: string } | undefined;
-  const value = level?.level;
-  return (LEVELS as readonly string[]).includes(value ?? "") ? (value as EducationLevel) : "none";
-}

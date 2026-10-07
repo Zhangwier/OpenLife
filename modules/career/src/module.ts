@@ -9,10 +9,19 @@
  *   - a business is an organisation entity, so it can outlive its founder (§33).
  */
 
-import type { Effect, OpenLifeModule } from "@openlife/contracts";
-import { ageInYears, TICKS_PER_YEAR } from "@openlife/module-modern-world";
-import { C as MW, K as MWK, R as MWR } from "@openlife/module-modern-world";
-import { educationLevelOf, EC } from "@openlife/module-education";
+import type { Effect, OpenLifeModule, WorldView } from "@openlife/contracts";
+import {
+  ageInYears,
+  TICKS_PER_YEAR,
+  ModernComponents as MW,
+  ModernKinds as MWK,
+  WORLD_ENTITY_ID,
+} from "@openlife/life-contracts/modern";
+import { educationLevelOf } from "@openlife/life-contracts/education";
+import {
+  EconomyComponents as EC,
+  type EconomyPhase,
+} from "@openlife/life-contracts/economy";
 
 const OWNER = "career";
 
@@ -43,7 +52,7 @@ export const careerModule: OpenLifeModule = {
     name: "Career",
     description: "Employment, salary and business founding.",
     requires: ["time.calendar"],
-    optional: ["education.provider"],
+    optional: ["education.provider", "economy.cycle"],
     provides: ["career.provider"],
     expects: ["life.population"],
     capabilities: [
@@ -333,7 +342,9 @@ export const careerModule: OpenLifeModule = {
         const wealth = c.world.getComponent(actorId, MW.wealth) as
           | { cash?: number; debt?: number }
           | undefined;
-        const salary = Number(employment?.salary ?? 0);
+        const baseSalary = Number(employment?.salary ?? 0);
+        const phase = currentEconomyPhase(c.world);
+        const salary = Math.round(baseSalary * salaryMultiplier(phase));
         return [
           {
             kind: "modifyComponent",
@@ -346,7 +357,7 @@ export const careerModule: OpenLifeModule = {
             kind: "emitEvent",
             eventType: "career.salary_paid",
             actorId,
-            data: { amount: salary },
+            data: { amount: salary, baseAmount: baseSalary, economyPhase: phase },
             historicalSignificance: 0.01,
           },
         ];
@@ -507,7 +518,9 @@ export const careerModule: OpenLifeModule = {
         const wealth = c.world.getComponent(actorId, MW.wealth) as
           | { cash?: number; debt?: number }
           | undefined;
-        const profit = Number(business?.monthlyProfit ?? 0);
+        const baseProfit = Number(business?.monthlyProfit ?? 0);
+        const phase = currentEconomyPhase(c.world);
+        const profit = Math.round(baseProfit * profitMultiplier(phase));
         return [
           {
             kind: "modifyComponent",
@@ -521,7 +534,7 @@ export const careerModule: OpenLifeModule = {
             eventType: "career.profit_collected",
             actorId,
             targetId: businessId,
-            data: { amount: profit },
+            data: { amount: profit, baseAmount: baseProfit, economyPhase: phase },
             historicalSignificance: 0.01,
           },
         ];
@@ -529,6 +542,31 @@ export const careerModule: OpenLifeModule = {
     });
   },
 };
+
+function currentEconomyPhase(world: WorldView): EconomyPhase {
+  const value = world.getComponent(WORLD_ENTITY_ID, EC.worldCycle)?.phase;
+  return value === "expansion" || value === "slowdown" || value === "recovery"
+    ? value
+    : "steady";
+}
+
+function salaryMultiplier(phase: EconomyPhase): number {
+  return {
+    steady: 1,
+    expansion: 1.08,
+    slowdown: 0.9,
+    recovery: 1.03,
+  }[phase];
+}
+
+function profitMultiplier(phase: EconomyPhase): number {
+  return {
+    steady: 1,
+    expansion: 1.25,
+    slowdown: 0.65,
+    recovery: 1.1,
+  }[phase];
+}
 
 function resolveOccupation(value: unknown): (typeof OCCUPATIONS)[number] | undefined {
   if (typeof value !== "string") return undefined;

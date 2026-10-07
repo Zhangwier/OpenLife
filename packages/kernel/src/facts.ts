@@ -68,6 +68,12 @@ export class FactStore {
     return { facts: this.#facts.map((fact) => ({ ...fact, data: { ...fact.data } })), seq: this.#seq };
   }
 
+  /** Restores fact state in place for transaction rollback. */
+  restore(state: { facts: FactRecord[]; seq: number }): void {
+    this.#facts = state.facts.map((fact) => ({ ...fact, data: { ...fact.data } }));
+    this.#seq = state.seq;
+  }
+
   static deserialize(state: { facts: FactRecord[]; seq: number }): FactStore {
     const store = new FactStore();
     store.#facts = state.facts.map((fact) => ({ ...fact, data: { ...fact.data } }));

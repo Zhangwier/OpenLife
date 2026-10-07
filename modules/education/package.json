@@ -8,6 +8,6 @@
   },
   "dependencies": {
     "@openlife/contracts": "*",
-    "@openlife/module-modern-world": "*"
+    "@openlife/life-contracts": "*"
   }
 }

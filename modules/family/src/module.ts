@@ -9,9 +9,13 @@
  * command, an effect or a reaction.
  */
 
-import type { Effect, OpenLifeModule } from "@openlife/contracts";
-import { ageInYears, TICKS_PER_YEAR } from "@openlife/module-modern-world";
-import { C as MW, K as MWK, R as MWR } from "@openlife/module-modern-world";
+import { HistorySemanticEvents, type Effect, type OpenLifeModule } from "@openlife/contracts";
+import {
+  ageInYears,
+  TICKS_PER_YEAR,
+  ModernComponents as MW,
+  ModernKinds as MWK,
+} from "@openlife/life-contracts/modern";
 
 const OWNER = "family";
 
@@ -132,6 +136,14 @@ export const familyModule: OpenLifeModule = {
             to: lineageId,
             components: { [FC.lineage]: { generation, joinedAt: c.world.tick } },
             announce: false,
+          },
+          {
+            kind: "emitEvent",
+            eventType: HistorySemanticEvents.LineageMemberAdded,
+            actorId,
+            data: { lineageId, characterId: actorId, generation, bornAt: c.world.tick },
+            historicalSignificance: 0.2,
+            visibility: "public",
           },
         );
         return effects;
@@ -424,6 +436,14 @@ export const familyModule: OpenLifeModule = {
             data: { givenName, generation, lineageId },
             historicalSignificance: 0.6,
           },
+          {
+            kind: "emitEvent",
+            eventType: HistorySemanticEvents.LineageMemberAdded,
+            actorId: "@child",
+            data: { lineageId, generation, bornAt: c.world.tick },
+            historicalSignificance: 0.2,
+            visibility: "public",
+          },
         ];
       },
     });
@@ -519,5 +539,3 @@ function characterAge(world: import("@openlife/contracts").WorldView, actorId: s
   const bornAt = Number(entity.components[MW.identity]?.bornAt ?? entity.createdAt);
   return ageInYears(bornAt, world.tick);
 }
-
-export { MWR };

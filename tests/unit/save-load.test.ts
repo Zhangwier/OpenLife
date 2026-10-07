@@ -5,6 +5,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import type { OpenLifeModule } from "@openlife/contracts";
 import { Simulation } from "@openlife/simulation";
 import { verifySave } from "@openlife/save-system";
 import {
@@ -98,4 +99,34 @@ test("module state survives save and load", () => {
   const loaded = Simulation.loadFromJson(simulation.saveToJson(), MODERN_MODULES).simulation;
   assert.ok(loaded);
   assert.deepEqual(loaded.modules.getState("modern-world"), { marker: "kept" });
+});
+
+test("module migrations transform restored persisted state rather than fresh defaults", () => {
+  const v1: OpenLifeModule = {
+    manifest: { id: "migrate", version: "1.0.0", engineRange: "*", type: "system-pack" },
+    register: () => undefined,
+  };
+  const original = new Simulation({ worldSeed: 10, modules: [v1] });
+  original.modules.setState("migrate", { marker: "old", count: 2 });
+  const pkg = original.save();
+
+  const v2: OpenLifeModule = {
+    manifest: { id: "migrate", version: "2.0.0", engineRange: "*", type: "system-pack" },
+    register: () => undefined,
+    migrations: [
+      {
+        from: "1.0.0",
+        to: "2.0.0",
+        migrate: (state) => ({ ...state, marker: "migrated", count: Number(state.count ?? 0) + 1 }),
+      },
+    ],
+  };
+
+  const loaded = Simulation.load(pkg, [v2]);
+  assert.equal(loaded.result.ok, true);
+  assert.deepEqual(loaded.result.migrationsApplied, [
+    { module: "migrate", from: "1.0.0", to: "2.0.0" },
+  ]);
+  assert.ok(loaded.simulation);
+  assert.deepEqual(loaded.simulation.modules.getState("migrate"), { marker: "migrated", count: 3 });
 });

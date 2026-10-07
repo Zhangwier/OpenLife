@@ -16,6 +16,7 @@
     "test": "node --test",
     "cli": "node apps/debug-console/main.ts",
     "demo": "node apps/debug-console/main.ts demo modern-world",
-    "demo:magic": "node apps/debug-console/main.ts demo magic-test-world"
+    "demo:magic": "node apps/debug-console/main.ts demo magic-test-world",
+    "web": "node apps/web/server.ts"
   }
 }

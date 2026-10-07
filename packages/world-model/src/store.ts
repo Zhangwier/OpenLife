@@ -218,6 +218,21 @@ export class WorldStore {
     };
   }
 
+  /** Restores this store in place. Used by the transaction engine for atomic rollback. */
+  restore(data: SerializedWorld): void {
+    const restored = WorldStore.deserialize(data);
+    this.#entities = restored.#entities;
+    this.#relations = restored.#relations;
+    this.#byKind = restored.#byKind;
+    this.#relationsByType = restored.#relationsByType;
+    this.#relationsByFrom = restored.#relationsByFrom;
+    this.#relationsByTo = restored.#relationsByTo;
+    this.#relationIndex = restored.#relationIndex;
+    this.#entitySeq = restored.#entitySeq;
+    this.#relationSeq = restored.#relationSeq;
+    this.#entityIdPrefix = restored.#entityIdPrefix;
+  }
+
   static deserialize(data: SerializedWorld): WorldStore {
     const store = new WorldStore({
       startEntitySeq: data.entitySeq,

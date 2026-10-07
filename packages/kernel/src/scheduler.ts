@@ -129,6 +129,14 @@ export class Scheduler {
     return { tasks: this.#tasks.map((task) => ({ ...task, payload: { ...task.payload } })), seq: this.#seq };
   }
 
+  /** Restores scheduler state in place for transaction rollback. */
+  restore(state: SchedulerState): void {
+    const restored = Scheduler.deserialize(state);
+    this.#tasks = restored.#tasks;
+    this.#seq = restored.#seq;
+    this.#dedupe = restored.#dedupe;
+  }
+
   static deserialize(state: SchedulerState): Scheduler {
     const scheduler = new Scheduler();
     scheduler.#tasks = state.tasks.map((task) => ({ ...task, payload: { ...task.payload } }));

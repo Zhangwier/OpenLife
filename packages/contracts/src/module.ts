@@ -205,20 +205,36 @@ export interface HistoricalRecord {
   owner?: string;
 }
 
-export interface CausalExplanation {
+export interface CausalConsequence {
   eventId: string;
   type: string;
   at: number;
   summary: string;
-  /**
-   * The command that directly produced this event, when there was one. For a
-   * top-level event this is its root cause (§16, §34).
-   */
-  commandId?: string;
-  causes: CausalExplanation[];
-  consequences: { eventId: string; type: string; at: number; summary: string }[];
 }
 
+export interface CausalEventExplanation {
+  kind: "event";
+  eventId: string;
+  type: string;
+  at: number;
+  summary: string;
+  /** Command that directly produced this event, when there was one. */
+  commandId?: string;
+  causes: CausalExplanation[];
+  consequences: CausalConsequence[];
+}
+
+export interface CausalCommandExplanation {
+  kind: "command";
+  commandId: string;
+  type: "command";
+  at: number;
+  summary: string;
+  causes: CausalExplanation[];
+  consequences: CausalConsequence[];
+}
+
+export type CausalExplanation = CausalEventExplanation | CausalCommandExplanation;
 export interface LineageView {
   id: string;
   founderId?: string;

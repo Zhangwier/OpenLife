@@ -8,7 +8,6 @@
   },
   "dependencies": {
     "@openlife/contracts": "*",
-    "@openlife/module-modern-world": "*",
-    "@openlife/module-education": "*"
+    "@openlife/life-contracts": "*"
   }
 }

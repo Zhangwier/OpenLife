@@ -75,6 +75,12 @@ export class EventLog {
     return { events: this.#events.map((event) => ({ ...event, data: { ...event.data } })), seq: this.#seq };
   }
 
+  /** Restores journal state in place for transaction rollback. */
+  restore(state: EventLogState): void {
+    this.#events = state.events.map((event) => ({ ...event, data: { ...event.data } }));
+    this.#seq = state.seq;
+  }
+
   static deserialize(state: EventLogState): EventLog {
     const log = new EventLog();
     log.#events = state.events.map((event) => ({ ...event, data: { ...event.data } }));

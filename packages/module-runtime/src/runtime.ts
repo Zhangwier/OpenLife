@@ -79,16 +79,19 @@ export class ModuleRuntime {
   }
 
   hasCapability(id: CapabilityId): boolean {
-    if (this.#capabilities.has(id)) return true;
+    const provided = this.#capabilities.get(id);
+    if (provided) return this.#modules.get(provided.owner)?.state === "active";
     for (const installed of this.#modules.values()) {
-      if (installed.state === "failed") continue;
+      if (installed.state !== "active") continue;
       if ((installed.module.manifest.provides ?? []).includes(id)) return true;
     }
     return false;
   }
 
   capabilityImplementation<T = unknown>(id: CapabilityId): T | undefined {
-    return this.#capabilities.get(id)?.implementation as T | undefined;
+    const provided = this.#capabilities.get(id);
+    if (!provided || this.#modules.get(provided.owner)?.state !== "active") return undefined;
+    return provided.implementation as T | undefined;
   }
 
   /** Validates and installs a module, then activates it. */
@@ -133,6 +136,9 @@ export class ModuleRuntime {
     const record = this.#require(id);
     if (record.state === "active") return this.#describe(id);
     this.#options.definitions.enableOwner(id);
+    for (const capability of record.module.manifest.provides ?? []) {
+      if (!this.#capabilities.has(capability)) this.#capabilities.set(capability, { owner: id });
+    }
     this.#activate(record);
     return this.#describe(id);
   }

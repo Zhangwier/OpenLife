@@ -337,9 +337,10 @@ function printExplanation(
   depth: number,
 ): void {
   const indent = "  ".repeat(depth + 1);
-  console_.print(`${indent}t=${explanation.at} ${explanation.type} (${explanation.eventId})`);
-  if (explanation.commandId) {
-    console_.print(`${indent}  caused by command: ${explanation.commandId}`);
+  const id = explanation.kind === "command" ? explanation.commandId : explanation.eventId;
+  console_.print(`${indent}t=${explanation.at} ${explanation.type} (${id})`);
+  if (explanation.kind === "event" && explanation.commandId) {
+    console_.print(`${indent}  produced by command: ${explanation.commandId}`);
   }
   if (explanation.causes.length > 0) {
     console_.print(`${indent}  caused by:`);

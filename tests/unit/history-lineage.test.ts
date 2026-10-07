@@ -5,6 +5,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { HistorySemanticEvents } from "@openlife/contracts";
 import {
   TICKS_PER_YEAR,
   activeCharacterId,
@@ -15,6 +16,13 @@ import {
   isArchived,
   mustDispatch,
 } from "../helpers/modern.ts";
+
+test("lineage bookkeeping uses the neutral History semantic contract", () => {
+  const { simulation } = bootWorld({ seed: 100, lifespan: 70 });
+  const events = simulation.history.view().listEvents();
+  assert.ok(events.some((event) => event.type === HistorySemanticEvents.LineageMemberAdded));
+  assert.equal(events.some((event) => event.type === "core.lineage_member_added"), false);
+});
 
 test("history records survive the archival of their subject entity", () => {
   const { simulation, characterId } = bootWorld({ seed: 101, lifespan: 70 });
@@ -133,8 +141,14 @@ test("causal explanations link events back to their causes", () => {
   assert.ok(founding);
   const explanation = simulation.history.explain(founding.eventId);
   assert.ok(explanation);
+  assert.equal(explanation.kind, "event");
   assert.equal(explanation.type, "career.business_founded");
   assert.ok(explanation.causes.length > 0, "the causing command must be traceable");
+  const rootCause = explanation.causes[0];
+  assert.ok(rootCause);
+  assert.equal(rootCause.kind, "command");
+  assert.ok(rootCause.commandId, "the causal root must carry a command id");
+  assert.equal("eventId" in rootCause, false, "a command cause must not masquerade as an event");
 });
 
 test("a full life can be lived from birth to death", () => {

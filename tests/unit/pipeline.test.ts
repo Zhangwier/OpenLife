@@ -166,6 +166,62 @@ test("a reaction cycle is suppressed instead of looping forever", () => {
   assert.ok(tickCount <= 4, `cycle suppression should cap repeats, saw ${tickCount}`);
 });
 
+test("a failed reaction rolls back every earlier effect in the transaction", () => {
+  const definitions = new DefinitionSet();
+  definitions.components.register("demo.counter", { id: "demo.counter", persist: true }, "demo");
+  definitions.commands.register("demo.atomic", { type: "demo.atomic" }, "demo");
+  definitions.resolutions.register(
+    "demo.atomic.resolve",
+    {
+      id: "demo.atomic.resolve",
+      kind: "resolution",
+      commandType: "demo.atomic",
+      resolve: () => [
+        {
+          kind: "modifyComponent",
+          entityId: "demo:actor",
+          component: "demo.counter",
+          patch: { value: 99 },
+        },
+        { kind: "emitEvent", eventType: "demo.atomic_started", data: {} },
+      ],
+    },
+    "demo",
+  );
+  definitions.reactions.register(
+    "demo.atomic.fail_late",
+    {
+      id: "demo.atomic.fail_late",
+      kind: "reaction",
+      eventType: "demo.atomic_started",
+      react: () => [
+        {
+          kind: "modifyComponent",
+          entityId: "demo:missing",
+          component: "demo.counter",
+          patch: { value: 1 },
+        },
+      ],
+    },
+    "demo",
+  );
+  const kernel = new Kernel({ worldSeed: 9, definitions });
+  kernel.internals.store.createEntity({
+    id: "demo:actor",
+    kind: "demo.actor",
+    components: { "demo.counter": { value: 0 } },
+    createdAt: 0,
+  });
+
+  const before = kernel.internals.store.fingerprint();
+  const result = kernel.dispatch({ type: "demo.atomic" });
+
+  assert.equal(result.ok, false);
+  assert.equal(kernel.internals.store.fingerprint(), before);
+  assert.equal(kernel.internals.eventLog.length, 0);
+  assert.deepEqual(kernel.worldView().getComponent("demo:actor", "demo.counter"), { value: 0 });
+});
+
 test("unknown effects fail loudly instead of being ignored", () => {
   const definitions = new DefinitionSet();
   definitions.commands.register("demo.bad", { type: "demo.bad" }, "demo");

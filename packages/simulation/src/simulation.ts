@@ -247,8 +247,11 @@ export class Simulation {
     });
     for (const module of modules) simulation.install(module);
 
-    const migrationsApplied = simulation.modules.migrateFrom(pkg.manifest.modules);
+    // Restore the persisted old-version state first, then migrate that state.
+    // Migrating the fresh default state would discard the migration result when
+    // restoreState runs afterwards.
     simulation.modules.restoreState(pkg.moduleState);
+    const migrationsApplied = simulation.modules.migrateFrom(pkg.manifest.modules);
 
     const kernelState: KernelState = {
       worldId: pkg.manifest.worldId,
