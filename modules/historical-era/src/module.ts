@@ -20,6 +20,13 @@ export const HistoricalEraComponents = {
   state: "historical-era.state",
 } as const;
 
+export interface DevelopmentSignal {
+  id: string;
+  label: string;
+  /** 0..1: how strongly this era supports the condition; never an unlock flag. */
+  strength: number;
+}
+
 export interface EraDefinition {
   id: string;
   label: string;
@@ -34,6 +41,7 @@ export interface EraDefinition {
   thoughtClimate: string[];
   changeSignals: string[];
   notableContext: string[];
+  developmentSignals: DevelopmentSignal[];
 }
 
 /**
@@ -57,6 +65,13 @@ export const ANCIENT_CHINA_ERAS: readonly EraDefinition[] = [
     thoughtClimate: ["祖先与自然经验", "共同体秩序"],
     changeSignals: ["聚落规模扩大", "手工业分工增加"],
     notableContext: ["早期王权传统与治水叙事"],
+    developmentSignals: [
+      { id: "systematic-observation", label: "系统观察", strength: 0.18 },
+      { id: "durable-records", label: "持久记录", strength: 0.05 },
+      { id: "precision-craft", label: "精细工艺", strength: 0.16 },
+      { id: "knowledge-networks", label: "知识传播网络", strength: 0.08 },
+      { id: "institutional-coordination", label: "组织协作", strength: 0.12 },
+    ],
   },
   {
     id: "shang",
@@ -72,6 +87,13 @@ export const ANCIENT_CHINA_ERAS: readonly EraDefinition[] = [
     thoughtClimate: ["祖先祭祀", "占卜解释", "礼制秩序"],
     changeSignals: ["文字记录显著增加", "青铜工艺高度专业化"],
     notableContext: ["甲骨记录者", "青铜工匠与王室占卜体系"],
+    developmentSignals: [
+      { id: "systematic-observation", label: "系统观察", strength: 0.28 },
+      { id: "durable-records", label: "持久记录", strength: 0.30 },
+      { id: "precision-craft", label: "精细工艺", strength: 0.38 },
+      { id: "knowledge-networks", label: "知识传播网络", strength: 0.18 },
+      { id: "institutional-coordination", label: "组织协作", strength: 0.32 },
+    ],
   },
   {
     id: "western-zhou",
@@ -87,6 +109,13 @@ export const ANCIENT_CHINA_ERAS: readonly EraDefinition[] = [
     thoughtClimate: ["天命观", "礼", "宗族责任"],
     changeSignals: ["政治记忆更多进入铭文", "区域治理网络扩大"],
     notableContext: ["礼制传统", "青铜铭文与政治记述"],
+    developmentSignals: [
+      { id: "systematic-observation", label: "系统观察", strength: 0.34 },
+      { id: "durable-records", label: "持久记录", strength: 0.42 },
+      { id: "precision-craft", label: "精细工艺", strength: 0.42 },
+      { id: "knowledge-networks", label: "知识传播网络", strength: 0.28 },
+      { id: "institutional-coordination", label: "组织协作", strength: 0.45 },
+    ],
   },
   {
     id: "spring-autumn",
@@ -102,6 +131,13 @@ export const ANCIENT_CHINA_ERAS: readonly EraDefinition[] = [
     thoughtClimate: ["礼的重新解释", "政治伦理讨论", "私人讲学"],
     changeSignals: ["铁器使用扩大", "思想传播脱离单一宗族场域"],
     notableContext: ["孔丘等思想人物所处的历史环境"],
+    developmentSignals: [
+      { id: "systematic-observation", label: "系统观察", strength: 0.46 },
+      { id: "durable-records", label: "持久记录", strength: 0.54 },
+      { id: "precision-craft", label: "精细工艺", strength: 0.50 },
+      { id: "knowledge-networks", label: "知识传播网络", strength: 0.58 },
+      { id: "institutional-coordination", label: "组织协作", strength: 0.50 },
+    ],
   },
   {
     id: "warring-states",
@@ -117,6 +153,13 @@ export const ANCIENT_CHINA_ERAS: readonly EraDefinition[] = [
     thoughtClimate: ["百家争鸣", "政治制度论辩", "伦理与人性讨论"],
     changeSignals: ["学派分化与竞争", "制度改革密集", "知识跨地域传播"],
     notableContext: ["墨翟、孟轲、庄周等思想人物所处的历史环境"],
+    developmentSignals: [
+      { id: "systematic-observation", label: "系统观察", strength: 0.60 },
+      { id: "durable-records", label: "持久记录", strength: 0.68 },
+      { id: "precision-craft", label: "精细工艺", strength: 0.64 },
+      { id: "knowledge-networks", label: "知识传播网络", strength: 0.74 },
+      { id: "institutional-coordination", label: "组织协作", strength: 0.68 },
+    ],
   },
 ] as const;
 
@@ -276,6 +319,7 @@ function eraState(era: EraDefinition, enteredAt: number) {
     thoughtClimate: era.thoughtClimate,
     changeSignals: era.changeSignals,
     notableContext: era.notableContext,
+    developmentSignals: era.developmentSignals,
   };
 }
 

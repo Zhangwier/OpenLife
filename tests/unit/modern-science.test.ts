@@ -2,6 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { modernScienceModule, ScienceComponents } from "@openlife/module-modern-science";
 import { modernWorldModule } from "@openlife/module-modern-world";
+import { historicalEraModule } from "@openlife/module-historical-era";
+import { tickOfYear } from "@openlife/life-contracts";
 import { Simulation } from "@openlife/simulation";
 
 test("modern science separates fixed reality from civilization knowledge", () => {
@@ -98,6 +100,47 @@ test("civilization discovers knowledge through prerequisites rather than fixed c
   assert.ok(at("modern-science.electromagnetism") < at("modern-science.electric_power_engineering"));
   assert.ok(at("modern-science.optical_instruments") < at("modern-science.microscopic_evidence"));
   assert.ok(at("modern-science.microscopic_evidence") < at("modern-science.cell_theory"));
+});
+
+test("era conditions change research speed softly without becoming unlocks", () => {
+  const run = (withEra: boolean) => {
+    const simulation = new Simulation({
+      worldSeed: 9911,
+      modules: withEra
+        ? [modernWorldModule, historicalEraModule, modernScienceModule]
+        : [modernWorldModule, modernScienceModule],
+    });
+    assert.equal(simulation.dispatch({ type: "modern.initialize_world" }).ok, true);
+    simulation.advanceBy(300 * 12);
+    const state = simulation.worldView().getComponent(
+      "modern:world",
+      ScienceComponents.civilizationKnowledge,
+    ) ?? {};
+    const progress = state.progress as Record<string, number> | undefined;
+    const publicView = simulation.project({ id: "modern-science.civilization", params: {} });
+    return {
+      known: state.known as string[],
+      atomicTheoryProgress: Number(progress?.["modern-science.atomic_theory"] ?? 0),
+      supportMultiplier: Number(publicView.data?.researchEnvironment?.supportMultiplier ?? 1),
+      simulation,
+    };
+  };
+
+  const neutral = run(false);
+  const earlyEra = run(true);
+  assert.deepEqual(earlyEra.known, neutral.known, "era context must not directly unlock knowledge");
+  assert.ok(earlyEra.supportMultiplier < 1, "early conditions can slow complex research");
+  assert.ok(
+    earlyEra.atomicTheoryProgress < neutral.atomicTheoryProgress,
+    "soft era support should affect accumulated effort rather than eligibility",
+  );
+
+  earlyEra.simulation.advanceTo(tickOfYear(-474));
+  const later = earlyEra.simulation.project({ id: "modern-science.civilization", params: {} });
+  assert.ok(
+    Number(later.data?.researchEnvironment?.supportMultiplier ?? 0) > earlyEra.supportMultiplier,
+    "stronger records, craft and knowledge networks should improve later research conditions",
+  );
 });
 
 test("science discovery sequence is deterministic for the same world seed", () => {

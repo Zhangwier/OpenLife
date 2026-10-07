@@ -135,6 +135,30 @@ const DISCOVERY_DIFFICULTY: Record<string, number> = {
   "modern-science.cell_theory": 320,
 };
 
+/**
+ * Soft research-environment profiles. Dependencies still decide eligibility;
+ * these weights only change how quickly eligible work accumulates.
+ */
+const RESEARCH_SUPPORT: Record<string, Record<string, number>> = {
+  "modern-science.human_anatomy": { "systematic-observation": 0.65, "durable-records": 0.35 },
+  "modern-science.atomic_theory": { "durable-records": 0.35, "knowledge-networks": 0.45, "systematic-observation": 0.20 },
+  "modern-science.atomic_evidence": { "precision-craft": 0.55, "institutional-coordination": 0.45 },
+  "modern-science.atomic_structure": { "durable-records": 0.35, "knowledge-networks": 0.40, "precision-craft": 0.25 },
+  "modern-science.electromagnetic_theory": { "systematic-observation": 0.25, "durable-records": 0.30, "knowledge-networks": 0.45 },
+  "modern-science.electromagnetic_evidence": { "precision-craft": 0.60, "institutional-coordination": 0.40 },
+  "modern-science.electromagnetism": { "durable-records": 0.25, "knowledge-networks": 0.45, "institutional-coordination": 0.30 },
+  "modern-science.electric_power_engineering": { "precision-craft": 0.50, "knowledge-networks": 0.20, "institutional-coordination": 0.30 },
+  "modern-science.optical_instruments": { "precision-craft": 0.70, "durable-records": 0.15, "knowledge-networks": 0.15 },
+  "modern-science.microscopic_evidence": { "precision-craft": 0.55, "systematic-observation": 0.30, "durable-records": 0.15 },
+  "modern-science.cell_theory": { "durable-records": 0.30, "knowledge-networks": 0.45, "institutional-coordination": 0.25 },
+};
+
+interface DevelopmentSignal {
+  id: string;
+  label: string;
+  strength: number;
+}
+
 const PUBLIC_LABELS: Record<string, string> = {
   "modern-science.electromagnetic_phenomena": "雷电与磁石现象",
   "modern-science.material_change_observation": "物质变化经验",
@@ -152,6 +176,49 @@ const PUBLIC_LABELS: Record<string, string> = {
   "modern-science.cell_theory": "细胞理论",
 };
 
+function readDevelopmentSignals(world: import("@openlife/contracts").WorldView): DevelopmentSignal[] {
+  const era = world.getComponent(WORLD_ENTITY_ID, "historical-era.state") ?? {};
+  if (!Array.isArray(era.developmentSignals)) return [];
+  return era.developmentSignals.flatMap((value) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+    const signal = value as Record<string, unknown>;
+    const id = typeof signal.id === "string" ? signal.id : "";
+    if (!id) return [];
+    return [{
+      id,
+      label: typeof signal.label === "string" ? signal.label : id,
+      strength: Math.max(0, Math.min(1, Number(signal.strength) || 0)),
+    }];
+  });
+}
+
+function researchEnvironment(
+  world: import("@openlife/contracts").WorldView,
+  knowledgeId: string,
+): { multiplier: number; matched: string[] } {
+  const profile = RESEARCH_SUPPORT[knowledgeId];
+  if (!profile) return { multiplier: 1, matched: [] };
+  const signals = readDevelopmentSignals(world);
+  if (signals.length === 0) return { multiplier: 1, matched: [] };
+  const byId = new Map(signals.map((signal) => [signal.id, signal]));
+  const entries = Object.entries(profile);
+  const weightTotal = entries.reduce((sum, [, weight]) => sum + weight, 0) || 1;
+  let support = 0;
+  const matched: string[] = [];
+  for (const [signalId, weight] of entries) {
+    const signal = byId.get(signalId);
+    if (!signal) continue;
+    support += signal.strength * weight;
+    if (signal.strength >= 0.25) matched.push(signal.label);
+  }
+  const normalized = support / weightTotal;
+  return {
+    // Era context is a soft accelerator/brake, never an unlock. 0.55..2.0.
+    multiplier: 0.55 + normalized * 1.45,
+    matched,
+  };
+}
+
 export const modernScienceModule: OpenLifeModule = {
   manifest: {
     id: OWNER,
@@ -161,6 +228,7 @@ export const modernScienceModule: OpenLifeModule = {
     name: "Modern Science",
     description: "Scientific reality, observations and civilization knowledge discovery.",
     requires: ["life.population"],
+    optional: ["history.era-context"],
     provides: ["knowledge.modern-science"],
     capabilities: [
       "component.register",
@@ -245,7 +313,9 @@ export const modernScienceModule: OpenLifeModule = {
           if (!dependencies.every((dependency) => knownAtStart.has(dependency))) continue;
 
           const difficulty = DISCOVERY_DIFFICULTY[node.id] ?? 1000;
-          const effort = 0.8 + Math.min(2.2, knownAtStart.size * 0.12) + c.rng.nextFloat() * 0.4;
+          const environment = researchEnvironment(c.world, node.id);
+          const baseEffort = 0.8 + Math.min(2.2, knownAtStart.size * 0.12) + c.rng.nextFloat() * 0.4;
+          const effort = baseEffort * environment.multiplier;
           const next = (progress[node.id] ?? 0) + effort;
           progress[node.id] = next;
           if (next < difficulty) continue;
@@ -294,16 +364,27 @@ export const modernScienceModule: OpenLifeModule = {
           ? state.known.filter((id): id is string => typeof id === "string")
           : [];
         const knownSet = new Set(known);
-        const frontierCount = KNOWLEDGE
+        const frontier = KNOWLEDGE
           .filter((node) => !knownSet.has(node.id))
-          .filter((node) => (node.dependsOn ?? []).every((dependency) => knownSet.has(dependency)))
-          .length;
+          .filter((node) => (node.dependsOn ?? []).every((dependency) => knownSet.has(dependency)));
+        const frontierEnvironments = frontier.map((node) => researchEnvironment(world, node.id));
+        const averageSupport = frontierEnvironments.length > 0
+          ? frontierEnvironments.reduce((sum, item) => sum + item.multiplier, 0) / frontierEnvironments.length
+          : 1;
+        const signals = readDevelopmentSignals(world);
         return {
           knownCount: known.length,
           established: known
             .filter((id) => PUBLIC_LABELS[id])
             .map((id) => ({ id, label: PUBLIC_LABELS[id] })),
-          frontierCount,
+          frontierCount: frontier.length,
+          researchEnvironment: {
+            supportMultiplier: Number(averageSupport.toFixed(2)),
+            signals: signals
+              .filter((signal) => signal.strength >= 0.25)
+              .sort((a, b) => b.strength - a.strength)
+              .map((signal) => ({ id: signal.id, label: signal.label, strength: signal.strength })),
+          },
         };
       },
     });

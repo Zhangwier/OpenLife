@@ -26,6 +26,9 @@ test("Era remains a module-owned prototype rather than becoming Core vocabulary"
   assert.equal(era.data?.id, "xia");
   assert.equal(era.data?.label, "夏");
   assert.equal(era.data?.currentYear, "公元前 2070 年");
+  const signals = era.data?.developmentSignals as { id: string; strength: number }[];
+  assert.ok(signals.some((signal) => signal.id === "precision-craft"));
+  assert.ok(signals.every((signal) => signal.strength >= 0 && signal.strength <= 1));
 });
 
 test("era transitions are world history, while context lists are not forced technology unlocks", () => {
@@ -61,6 +64,11 @@ test("era transitions are world history, while context lists are not forced tech
   // Era context tells content authors what is characteristic; it does not
   // silently mutate the Knowledge Graph or invent a Core technology tree.
   assert.equal(sim.definitions.knowledge.keys().some((id) => id.startsWith("historical-era.")), false);
+  assert.equal(
+    (current.data?.developmentSignals as { id: string }[]).some((signal) => signal.id === "precision-craft"),
+    true,
+    "era publishes soft environmental context rather than technology ownership",
+  );
 });
 
 test("era context survives save/load and keeps its authored content", () => {

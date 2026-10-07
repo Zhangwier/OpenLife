@@ -161,9 +161,19 @@ function renderWorld(world) {
         `<span class="knowledge-chip">${escapeHtml(item.label)}</span>`,
       ).join("")
     : '<span class="subtle">文明仍在理解这个世界</span>';
+  const researchEnvironment = world.science?.researchEnvironment ?? {};
+  const supportMultiplier = Number(researchEnvironment.supportMultiplier ?? 1);
+  const supportSignals = Array.isArray(researchEnvironment.signals)
+    ? researchEnvironment.signals.slice(0, 3).map((signal) => signal.label).filter(Boolean)
+    : [];
+  const environmentNote = supportMultiplier >= 1.25
+    ? "记录、工艺与知识网络正在明显加快探索。"
+    : supportMultiplier >= 0.9
+      ? "当前文明环境能够稳定支持探索。"
+      : "当前的记录、工艺与知识网络仍限制着复杂研究。";
   $("worldKnowledgeNote").textContent = frontierCount > 0
-    ? `还有 ${frontierCount} 条问题正在积累观察与证据。世界的真相仍比已知更大。`
-    : "这些知识已经形成体系，但世界仍不等于文明所知道的一切。";
+    ? `还有 ${frontierCount} 条问题正在积累观察与证据。${environmentNote}${supportSignals.length ? ` 有利条件：${supportSignals.join("、")}。` : ""}`
+    : `这些知识已经形成体系，但世界仍不等于文明所知道的一切。${environmentNote}`;
 
   const intellectual = world.intellectual ?? {};
   const traditions = Array.isArray(intellectual.traditions) ? intellectual.traditions : [];
