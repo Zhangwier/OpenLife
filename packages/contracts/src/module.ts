@@ -164,6 +164,7 @@ export interface ModuleRegistryView {
   hasResource(id: string): boolean;
   hasProcess(id: string): boolean;
   hasCapability(id: CapabilityId): boolean;
+  capabilityImplementation(id: CapabilityId): unknown | undefined;
   listComponents(): string[];
   listCommands(): string[];
   listKnowledge(): string[];

@@ -32,6 +32,7 @@ const simpleModule: OpenLifeModule = {
     provides: ["demo.capability"],
   },
   register(ctx) {
+    ctx.provideCapability("demo.capability", { source: "demo" });
     ctx.registerComponent({ id: "demo.thing", persist: true });
     ctx.registerCommand({ type: "demo.do", description: "does a thing" });
     ctx.registerKnowledge({
@@ -104,6 +105,16 @@ test("capabilities disappear while their provider is unloaded and return on acti
   assert.equal(runtime.hasCapability("demo.capability"), false);
   runtime.activate("demo");
   assert.equal(runtime.hasCapability("demo.capability"), true);
+});
+
+test("capability implementations survive manifest registration and module lifecycle", () => {
+  const runtime = runtimeFor();
+  runtime.install(simpleModule);
+  assert.deepEqual(runtime.capabilityImplementation("demo.capability"), { source: "demo" });
+  runtime.unload("demo");
+  assert.equal(runtime.capabilityImplementation("demo.capability"), undefined);
+  runtime.activate("demo");
+  assert.deepEqual(runtime.capabilityImplementation("demo.capability"), { source: "demo" });
 });
 
 test("module ids and definition namespaces are enforced", () => {

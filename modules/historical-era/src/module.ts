@@ -7,7 +7,7 @@
  * magically unlock technology or rewrite civilization knowledge.
  */
 
-import type { Effect, OpenLifeModule } from "@openlife/contracts";
+import type { Effect, OpenLifeModule, WorldView } from "@openlife/contracts";
 import {
   WORLD_ENTITY_ID,
   formatYear,
@@ -181,6 +181,13 @@ export const historicalEraModule: OpenLifeModule = {
   },
 
   register(ctx) {
+    ctx.provideCapability("history.era-context", (world: WorldView) => {
+      const state = world.getComponent(WORLD_ENTITY_ID, HistoricalEraComponents.state) ?? {};
+      const definition = ANCIENT_CHINA_ERAS.find((era) => era.id === state.id)
+        ?? eraForYear(yearOfTick(world.tick));
+      return eraState(definition, Number(state.enteredAt ?? world.tick));
+    });
+
     ctx.registerComponent({
       id: HistoricalEraComponents.state,
       persist: true,

@@ -124,7 +124,9 @@ export class ModuleRuntime {
     }
 
     for (const capability of manifest.provides ?? []) {
-      this.#capabilities.set(capability, { owner: manifest.id });
+      if (!this.#capabilities.has(capability)) {
+        this.#capabilities.set(capability, { owner: manifest.id });
+      }
     }
 
     this.#activate(record);
@@ -255,6 +257,7 @@ export class ModuleRuntime {
       hasResource: (id) => definitions.resources.has(id),
       hasProcess: (id) => definitions.processes.has(id),
       hasCapability: (id) => this.hasCapability(id),
+      capabilityImplementation: (id) => this.capabilityImplementation(id),
       listComponents: () => definitions.components.keys(),
       listCommands: () => definitions.commands.keys(),
       listKnowledge: () => definitions.knowledge.keys(),
@@ -333,6 +336,15 @@ export class ModuleRuntime {
   }
 
   #checkDependencies(manifest: ModuleManifest): void {
+    for (const provided of manifest.provides ?? []) {
+      if (this.#capabilities.has(provided)) {
+        fail(ErrorCode.DuplicateRegistration, `capability already provided: ${provided}`, {
+          id: manifest.id,
+          capability: provided,
+          existingOwner: this.#capabilities.get(provided)?.owner,
+        });
+      }
+    }
     for (const required of manifest.requires ?? []) {
       if (!this.hasCapability(required)) {
         fail(ErrorCode.CapabilityMissing, `module ${manifest.id} requires capability ${required}`, {

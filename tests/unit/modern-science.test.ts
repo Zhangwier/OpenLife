@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import type { OpenLifeModule } from "@openlife/contracts";
 import { modernScienceModule, ScienceComponents } from "@openlife/module-modern-science";
 import { modernWorldModule } from "@openlife/module-modern-world";
 import { historicalEraModule } from "@openlife/module-historical-era";
@@ -140,6 +141,57 @@ test("era conditions change research speed softly without becoming unlocks", () 
   assert.ok(
     Number(later.data?.researchEnvironment?.supportMultiplier ?? 0) > earlyEra.supportMultiplier,
     "stronger records, craft and knowledge networks should improve later research conditions",
+  );
+});
+
+test("science consumes era context through capability rather than a historical-era component", () => {
+  const syntheticContext: OpenLifeModule = {
+    manifest: {
+      id: "research-context",
+      version: "0.1.0",
+      engineRange: "^0.1.0",
+      type: "system-pack",
+      provides: ["history.era-context"],
+    },
+    register(ctx) {
+      ctx.provideCapability("history.era-context", () => ({
+        developmentSignals: [
+          { id: "systematic-observation", label: "系统观察", strength: 1 },
+          { id: "durable-records", label: "持久记录", strength: 1 },
+          { id: "precision-craft", label: "精细工艺", strength: 1 },
+          { id: "knowledge-networks", label: "知识传播网络", strength: 1 },
+          { id: "institutional-coordination", label: "组织协作", strength: 1 },
+        ],
+      }));
+    },
+  };
+
+  const run = (withContext: boolean) => {
+    const simulation = new Simulation({
+      worldSeed: 9921,
+      modules: withContext
+        ? [modernWorldModule, modernScienceModule, syntheticContext]
+        : [modernWorldModule, modernScienceModule],
+    });
+    assert.equal(simulation.dispatch({ type: "modern.initialize_world" }).ok, true);
+    simulation.advanceBy(120 * 12);
+    const state = simulation.worldView().getComponent(
+      "modern:world",
+      ScienceComponents.civilizationKnowledge,
+    ) ?? {};
+    const progress = state.progress as Record<string, number> | undefined;
+    return {
+      simulation,
+      atomicTheoryProgress: Number(progress?.["modern-science.atomic_theory"] ?? 0),
+    };
+  };
+
+  const neutral = run(false);
+  const supported = run(true);
+  assert.equal(supported.simulation.definitions.components.has("historical-era.state"), false);
+  assert.ok(
+    supported.atomicTheoryProgress > neutral.atomicTheoryProgress,
+    "a capability provider should influence research without exposing a historical-era component",
   );
 });
 

@@ -7,7 +7,7 @@
  * exposes only civilization knowledge, never hidden world-law state.
  */
 
-import type { KnowledgeDefinition, OpenLifeModule } from "@openlife/contracts";
+import type { KnowledgeDefinition, OpenLifeModule, WorldView } from "@openlife/contracts";
 import { WORLD_ENTITY_ID } from "@openlife/life-contracts/modern";
 
 const OWNER = "modern-science";
@@ -176,8 +176,10 @@ const PUBLIC_LABELS: Record<string, string> = {
   "modern-science.cell_theory": "细胞理论",
 };
 
-function readDevelopmentSignals(world: import("@openlife/contracts").WorldView): DevelopmentSignal[] {
-  const era = world.getComponent(WORLD_ENTITY_ID, "historical-era.state") ?? {};
+type EraContextReader = (world: WorldView) => Record<string, unknown>;
+
+function readDevelopmentSignals(world: WorldView, readEraContext?: EraContextReader): DevelopmentSignal[] {
+  const era = readEraContext?.(world) ?? {};
   if (!Array.isArray(era.developmentSignals)) return [];
   return era.developmentSignals.flatMap((value) => {
     if (!value || typeof value !== "object" || Array.isArray(value)) return [];
@@ -193,12 +195,13 @@ function readDevelopmentSignals(world: import("@openlife/contracts").WorldView):
 }
 
 function researchEnvironment(
-  world: import("@openlife/contracts").WorldView,
+  world: WorldView,
   knowledgeId: string,
+  readEraContext?: EraContextReader,
 ): { multiplier: number; matched: string[] } {
   const profile = RESEARCH_SUPPORT[knowledgeId];
   if (!profile) return { multiplier: 1, matched: [] };
-  const signals = readDevelopmentSignals(world);
+  const signals = readDevelopmentSignals(world, readEraContext);
   if (signals.length === 0) return { multiplier: 1, matched: [] };
   const byId = new Map(signals.map((signal) => [signal.id, signal]));
   const entries = Object.entries(profile);
@@ -239,6 +242,8 @@ export const modernScienceModule: OpenLifeModule = {
   },
 
   register(ctx) {
+    const eraContext = () => ctx.registry.capabilityImplementation("history.era-context") as EraContextReader | undefined;
+
     ctx.registerComponent({
       id: ScienceComponents.worldLaws,
       persist: true,
@@ -313,7 +318,7 @@ export const modernScienceModule: OpenLifeModule = {
           if (!dependencies.every((dependency) => knownAtStart.has(dependency))) continue;
 
           const difficulty = DISCOVERY_DIFFICULTY[node.id] ?? 1000;
-          const environment = researchEnvironment(c.world, node.id);
+          const environment = researchEnvironment(c.world, node.id, eraContext());
           const baseEffort = 0.8 + Math.min(2.2, knownAtStart.size * 0.12) + c.rng.nextFloat() * 0.4;
           const effort = baseEffort * environment.multiplier;
           const next = (progress[node.id] ?? 0) + effort;
@@ -367,11 +372,11 @@ export const modernScienceModule: OpenLifeModule = {
         const frontier = KNOWLEDGE
           .filter((node) => !knownSet.has(node.id))
           .filter((node) => (node.dependsOn ?? []).every((dependency) => knownSet.has(dependency)));
-        const frontierEnvironments = frontier.map((node) => researchEnvironment(world, node.id));
+        const frontierEnvironments = frontier.map((node) => researchEnvironment(world, node.id, eraContext()));
         const averageSupport = frontierEnvironments.length > 0
           ? frontierEnvironments.reduce((sum, item) => sum + item.multiplier, 0) / frontierEnvironments.length
           : 1;
-        const signals = readDevelopmentSignals(world);
+        const signals = readDevelopmentSignals(world, eraContext());
         return {
           knownCount: known.length,
           established: known
