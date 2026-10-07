@@ -54,7 +54,7 @@ export const practiceAutonomyModule: OpenLifeModule = {
               if (!value || typeof value !== "object" || Array.isArray(value)) return [];
               const action = value as Record<string, unknown>;
               const id = typeof action.id === "string" ? action.id : "";
-              if (!id) return [];
+              if (!id || action.enabled === false) return [];
               const rawWeight = Number(action.autonomyWeight);
               return [{
                 id,

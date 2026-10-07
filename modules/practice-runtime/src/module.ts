@@ -39,6 +39,11 @@ export type PracticeStatus = "active" | "blocked" | "paused" | "abandoned" | "co
 export interface PracticeCandidateAction {
   id: string;
   label: string;
+  /** Player-facing tradeoff hint; domain wording, not hidden simulation math. */
+  hint?: string;
+  /** Disabled choices remain visible so players can understand what they are missing. */
+  enabled?: boolean;
+  disabledReason?: string;
   /** Optional neutral preference hint for simple autonomous resolvers. */
   autonomyWeight?: number;
 }
@@ -79,6 +84,22 @@ export interface PracticeAdvanceDecision {
   complete?: boolean;
 }
 
+export interface PracticeCheckpointResolutionContext {
+  world: WorldView;
+  practiceId: string;
+  practice: Readonly<Record<string, unknown>>;
+  checkpoint: Readonly<Record<string, unknown>>;
+  resolverId: string;
+  actionId: string;
+  rng: DeterministicRngLike;
+}
+
+export interface PracticeCheckpointResolutionDecision {
+  /** Domain-owned facts remembered by the Practice for later stages. */
+  contextPatch?: Record<string, JsonValue>;
+  nextStage?: string;
+}
+
 export interface PracticeDefinition {
   id: string;
   category: string;
@@ -86,6 +107,8 @@ export interface PracticeDefinition {
   description?: string;
   /** Domain-owned start validation; Practice Runtime still owns lifecycle mutation. */
   canStart?(ctx: PracticeStartContext): PracticeStartOutcome;
+  /** Domain interprets a choice; Runtime remains the only owner that mutates Practice lifecycle state. */
+  resolveCheckpoint?(ctx: PracticeCheckpointResolutionContext): PracticeCheckpointResolutionDecision;
   advance(ctx: PracticeAdvanceContext): PracticeAdvanceDecision;
 }
 
@@ -462,11 +485,19 @@ export const practiceRuntimeModule: OpenLifeModule = {
         }
         const actionId = String(c.command.payload.actionId ?? "");
         const actions = Array.isArray(state.candidateActions) ? state.candidateActions : [];
-        if (actions.length > 0 && !actions.some((value) => {
+        const selected = actions.find((value) => {
           if (!value || typeof value !== "object" || Array.isArray(value)) return false;
           return String((value as Record<string, unknown>).id ?? "") === actionId;
-        })) {
+        }) as Record<string, unknown> | undefined;
+        if (actions.length > 0 && !selected) {
           return { ok: false, code: "E_CHECKPOINT_ACTION", message: "checkpoint action is not available" };
+        }
+        if (selected?.enabled === false) {
+          return {
+            ok: false,
+            code: "E_CHECKPOINT_ACTION_DISABLED",
+            message: String(selected.disabledReason ?? "checkpoint action is currently unavailable"),
+          };
         }
         return { ok: true };
       },
@@ -484,6 +515,23 @@ export const practiceRuntimeModule: OpenLifeModule = {
         const practiceState = practice.components[PracticeComponents.practice] ?? {};
         const actionId = String(c.command.payload.actionId ?? "");
         const resolverId = c.command.actorId ?? "";
+        const definition = api.getDefinition(String(practiceState.definitionId ?? ""));
+        const domainDecision = definition?.resolveCheckpoint?.({
+          world: c.world,
+          practiceId,
+          practice: practiceState,
+          checkpoint: checkpointState,
+          resolverId,
+          actionId,
+          rng: c.rng,
+        });
+        const currentContext = objectValue(practiceState.context);
+        const nextContext = domainDecision?.contextPatch
+          ? { ...currentContext, ...domainDecision.contextPatch }
+          : currentContext;
+        const nextStage = domainDecision?.nextStage && definition?.stages.includes(domainDecision.nextStage)
+          ? domainDecision.nextStage
+          : String(practiceState.stage ?? definition?.stages[0] ?? "");
         return [
           {
             kind: "modifyComponent",
@@ -501,7 +549,13 @@ export const practiceRuntimeModule: OpenLifeModule = {
             kind: "modifyComponent",
             entityId: practiceId,
             component: PracticeComponents.practice,
-            patch: { status: "active", activeCheckpointId: "", lastAdvancedAt: c.world.tick },
+            patch: {
+              status: "active",
+              activeCheckpointId: "",
+              lastAdvancedAt: c.world.tick,
+              stage: nextStage,
+              context: nextContext,
+            },
             reason: "resolved checkpoint allows the practice to continue",
           },
           {
@@ -524,6 +578,52 @@ export const practiceRuntimeModule: OpenLifeModule = {
             },
           },
         ];
+      },
+    });
+
+    ctx.registerProjection({
+      id: "practice-runtime.interaction",
+      description: "Player-facing active Practice interaction and its available choices.",
+      build: ({ world, params }) => {
+        const practiceId = String(params.practiceId ?? "");
+        const participantId = String(params.participantId ?? "");
+        const practice = practiceId ? world.getEntity(practiceId) : undefined;
+        if (!practice || practice.kind !== PracticeKinds.practice) return { exists: false };
+        const practiceState = practice.components[PracticeComponents.practice] ?? {};
+        const checkpointId = String(practiceState.activeCheckpointId ?? "");
+        if (!checkpointId) {
+          return {
+            exists: true,
+            practiceId,
+            status: String(practiceState.status ?? ""),
+            stage: String(practiceState.stage ?? ""),
+            interaction: null,
+          };
+        }
+        const checkpoint = world.getEntity(checkpointId);
+        const checkpointState = checkpoint?.components[PracticeComponents.checkpoint] ?? {};
+        const participation = participantId
+          ? world.listRelations({ type: PracticeRelations.participatesIn, from: participantId, to: practiceId })[0]
+          : undefined;
+        const participantRole = String(participation?.components[PracticeComponents.participation]?.role ?? "");
+        const resolverRole = String(checkpointState.resolverRole ?? "");
+        const canResolve = Boolean(participation) && (!resolverRole || participantRole === resolverRole);
+        return {
+          exists: true,
+          practiceId,
+          status: String(practiceState.status ?? ""),
+          stage: String(practiceState.stage ?? ""),
+          interaction: {
+            checkpointId,
+            type: String(checkpointState.type ?? ""),
+            interactionMode: String(checkpointState.interactionMode ?? "choice"),
+            resolverRole,
+            participantRole,
+            canResolve,
+            context: checkpointState.context ?? {},
+            actions: Array.isArray(checkpointState.candidateActions) ? checkpointState.candidateActions : [],
+          },
+        };
       },
     });
 
