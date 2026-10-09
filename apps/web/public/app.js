@@ -1,5 +1,9 @@
+import { renderPlayer, renderActionButtons, installModalAccess, selectView } from "/player.js";
+import { installShell, renderShell, enterLife } from "/shell.js";
+import { renderSettlement, describeSettlementResult } from "/settlement.js";
 const $ = (id) => document.getElementById(id);
 let state;
+let busy = false;
 
 const SAVE_PREFIX = "openlife.save.";
 const SLOT_LABELS = {
@@ -30,7 +34,8 @@ function render(s, animate = false) {
   }
   const c = s.character;
   $("timeRibbon").querySelector(".time-year").textContent = s.era ?? String(s.year);
-  $("timeRibbon").querySelector(".time-copy").textContent = `${s.month} 月 · 时间正在流逝`;
+  $("timeRibbon").querySelector(".time-copy").textContent = continuousRunning
+    ? `${s.month} 月 · 自动时间推进中` : `${s.month} 月 · 已暂停，等待你的选择`;
   $("generationPill").textContent = numberGeneration(s.generation);
   $("lineageLabel").textContent = numberGeneration(s.generation);
 
@@ -54,15 +59,14 @@ function render(s, animate = false) {
   renderRelations(s.relations, c);
   renderLineage(s.lineage, c);
   renderWorld(s.world);
+  renderPlayer(s, performAction);
+  renderSettlement(s, performSettlementAction);
+  updatePlanStatus(s);
+  renderShell(s);
 }
 
 function renderActions(actions) {
-  $("actionGrid").innerHTML = actions.map((action) =>
-    `<button class="action-button ${action.tone}" data-action="${action.id}" ${action.enabled ? "" : "disabled"}>${action.label}</button>`,
-  ).join("");
-  document.querySelectorAll("[data-action]").forEach((button) => {
-    button.addEventListener("click", () => performAction(button.dataset.action, button));
-  });
+  renderActionButtons($("actionGrid"), actions, performAction);
 }
 
 function escapeHtml(value) {
@@ -294,24 +298,68 @@ async function autoRemember() {
   }
 }
 
-async function performAction(action, button) {
-  button.disabled = true;
+/**
+ * Runs one settlement action.
+ *
+ * Kept separate from `performAction` so the older pottery flow is untouched:
+ * the settlement scene is the M1 default, but a save from the earlier slice
+ * still drives its own buttons.
+ */
+async function performSettlementAction(action, payload) {
+  if (busy) return;
+  busy = true;
+  document.body.classList.add("is-busy");
   try {
-    const data = await api("/api/action", { method: "POST", body: JSON.stringify({ action }) });
+    const data = await api("/api/action", {
+      method: "POST",
+      body: JSON.stringify({
+        action,
+        payload: payload ?? {},
+        expectedTick: state.tick,
+        expectedActorId: state.character?.id,
+        expectedActivityUsed: state.settlement?.dailyActivity?.used,
+        expectedPlanRevision: state.settlement?.dailyPlan?.revision,
+      }),
+    });
     if (!data.result.ok) throw new Error(data.result.errors?.[0]?.message || "这件事现在还不能发生");
     state = data.state;
     render(state, true);
-    showToast(actionMessage(action));
+    showToast(describeSettlementResult(action, data.result));
     await autoRemember();
   } catch (error) {
     showToast(error.message);
+    await loadState().catch(() => {});
   } finally {
-    button.disabled = false;
+    busy = false;
+    document.body.classList.remove("is-busy");
   }
 }
 
-function stageTitle(c) {
-  if (!c.alive) return "这一生已经写完";
+async function performAction(action, button) {
+  if (busy) return;
+  busy = true;
+  document.body.classList.add("is-busy");
+  button.disabled = true;
+  try {
+    const actionId = typeof action === "string" ? action : action.id;
+    const data = await api("/api/action", { method: "POST", body: JSON.stringify({ action: actionId, payload: action.payload ?? {}, expectedTick: state.tick, expectedActorId: state.character?.id }) });
+    if (!data.result.ok) throw new Error(data.result.errors?.[0]?.message || "这件事现在还不能发生");
+    state = data.state;
+    render(state, true);
+    showToast(state.player?.entered ? "这一段生活已经留下变化" : actionMessage(actionId));
+    if (actionId === "pottery-choice" && !state.player?.practice) selectView("works");
+    if (actionId === "life-child" || actionId === "life-handoff") selectView("family");
+    await autoRemember();
+  } catch (error) {
+    showToast(error.message);
+    await loadState().catch(() => {});
+  } finally {
+    busy = false;
+    document.body.classList.remove("is-busy");
+  }
+}
+
+function stageTitle(c) {  if (!c.alive) return "这一生已经写完";
   if (c.age < 6) return "世界正在你面前慢慢展开";
   if (c.age < 16) return "你开始理解自己和别人";
   if (c.age < 25) return "人生第一次真正属于你";
@@ -376,19 +424,195 @@ function showToast(message) {
   toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
 }
 
-$("autoButton").addEventListener("click", () => $("autoModal").hidden = false);
+
+/**
+ * Continuous waiting runs only while this page explicitly requests bounded
+ * batches. Pause takes effect before the next batch; the server never loops in
+ * the background after the tab closes.
+ */
+let continuousRunning = false;
+let stopRequested = false;
+function updateContinuousControls(message = "") {
+  $("pauseAutoButton").hidden = !continuousRunning;
+  $("autoButton").textContent = continuousRunning ? "世界持续运行中…" : "让时间前行";
+  $("autoRunStatus").textContent = message || (continuousRunning ? "持续推进中，可随时暂停" : "当前已暂停");
+  $("timeRibbon").querySelector(".time-copy").textContent =
+    continuousRunning ? "自动时间推进中 · 可随时暂停" : "已暂停 · 等待你的选择";
+}
+function pauseContinuousLife() {
+  if (!continuousRunning) return;
+  stopRequested = true;
+  continuousRunning = false;
+  updateContinuousControls("正在完成当前短批次，然后暂停");
+}
+
+async function startContinuousLife() {
+  if (busy || continuousRunning) return;
+  if (!state?.character?.alive) return showToast("这一生已经结束，无法继续接管。");
+  if (state?.clock?.legacyScale) return showToast("旧月刻度人生请使用年度时间推进。");
+  $("autoModal").hidden = true;
+  continuousRunning = true;
+  stopRequested = false;
+  busy = true;
+  document.body.classList.add("is-busy");
+  updateContinuousControls();
+  const days = Number($("autoSpeed").value) || 3;
+  let batches = 0;
+  let endMessage = "已暂停，控制权交还给你。";
+  try {
+    while (!stopRequested && continuousRunning && !document.hidden) {
+      const data = await api("/api/autosim", {
+        method: "POST",
+        body: JSON.stringify({
+          mode: "continuous-batch",
+          days,
+          expectedTick: state.tick,
+          expectedActorId: state.character?.id,
+          expectedPlanRevision: state.settlement?.dailyPlan?.revision,
+        }),
+      });
+      if (data.result.ok === false) {
+        throw new Error(data.result.errors?.[0]?.message || "无法继续自动推进。");
+      }
+      state = data.state;
+      render(state);
+      batches += 1;
+      if (data.result.interrupted) {
+        endMessage = data.result.stopReason || "发生需要你处理的重要事情。";
+        continuousRunning = false;
+        break;
+      }
+      if (batches % 5 === 0) await autoRemember();
+      // Yield to the browser so Pause is always responsive between requests.
+      if (!stopRequested && continuousRunning) {
+        await new Promise((resolve) => setTimeout(resolve, 180));
+      }
+    }
+  } catch (error) {
+    endMessage = error.message;
+    await loadState().catch(() => {});
+  } finally {
+    continuousRunning = false;
+    stopRequested = false;
+    updateContinuousControls(endMessage);
+    busy = false;
+    document.body.classList.remove("is-busy");
+    if (batches > 0) await autoRemember();
+    showToast(endMessage);
+  }
+}
+$("startContinuousAuto").addEventListener("click", () => { void startContinuousLife(); });
+$("pauseAutoButton").addEventListener("click", pauseContinuousLife);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) pauseContinuousLife();
+});
+window.addEventListener("pagehide", pauseContinuousLife);
+
+/** The editor changes intentions; only the server's world commands change facts. */
+const PLAN_LABELS = { eat: "吃饭（随身熟食优先）", tend: "在当前位置劳动", rest: "休息", "go-hearth": "步行去公用灶台", "go-field": "步行去田地", "go-kiln": "步行去陶窑", "go-home": "步行回庭院", pottery: "在陶窑用真实材料开工（遇工艺抉择暂停）" };
+let draftPlan = [];
+function openPlanEditor() {
+  const saved = state?.settlement?.dailyPlan;
+  draftPlan = saved?.steps?.length ? [...saved.steps] : ["eat", "tend", "rest"];
+  $("planRepeat").checked = saved?.repeat !== false;
+  renderPlanEditor();
+  $("autoModal").hidden = false;
+}
+function renderPlanEditor() {
+  $("planSteps").innerHTML = draftPlan.map((step, index) => `
+    <div class="plan-step-row" data-plan-row="${index}">
+      <select aria-label="第 ${index + 1} 项安排" data-plan-choice="${index}">
+        ${Object.entries(PLAN_LABELS).map(([value, label]) =>
+          `<option value="${value}" ${value === step ? "selected" : ""}>${index + 1}. ${label}</option>`).join("")}
+      </select>
+      <button type="button" data-plan-up="${index}" ${index === 0 ? "disabled" : ""} aria-label="上移">↑</button>
+      <button type="button" data-plan-remove="${index}" aria-label="删除">×</button>
+    </div>`).join("");
+  $("addPlanStep").disabled = draftPlan.length >= 6;
+  $("planSteps").querySelectorAll("[data-plan-choice]").forEach((el) => {
+    el.addEventListener("change", () => { draftPlan[Number(el.dataset.planChoice)] = el.value; });
+  });
+  $("planSteps").querySelectorAll("[data-plan-remove]").forEach((el) => {
+    el.addEventListener("click", () => { draftPlan.splice(Number(el.dataset.planRemove), 1); renderPlanEditor(); });
+  });
+  $("planSteps").querySelectorAll("[data-plan-up]").forEach((el) => {
+    el.addEventListener("click", () => {
+      const i = Number(el.dataset.planUp);
+      if (i > 0) [draftPlan[i - 1], draftPlan[i]] = [draftPlan[i], draftPlan[i - 1]];
+      renderPlanEditor();
+    });
+  });
+  updatePlanStatus(state);
+}
+function updatePlanStatus(s) {
+  const saved = s?.settlement?.dailyPlan;
+  const status = $("dailyPlanStatus");
+  if (!status) return;
+  status.textContent = saved?.enabled
+    ? `日程已启用 · ${saved.steps.length} 项 · ${saved.repeat ? "每天重复" : "只执行一次"} · 已完成第 ${saved.progressIndex} 项`
+    : "日程未启用，时间将按原来的被动模式运行。";
+}
+async function saveRoutine(enabled) {
+  if (busy) return;
+  if (enabled && draftPlan.length === 0) return showToast("请至少安排一项活动。");
+  busy = true;
+  document.body.classList.add("is-busy");
+  try {
+    const data = await api("/api/action", {
+      method: "POST",
+      body: JSON.stringify({
+        action: "settlement-locations.plan.configure",
+        payload: {
+          steps: enabled ? draftPlan : state.settlement?.dailyPlan?.steps ?? [],
+          enabled, repeat: $("planRepeat").checked,
+        },
+        expectedTick: state.tick,
+        expectedActorId: state.character?.id,
+        expectedActivityUsed: state.settlement?.dailyActivity?.used,
+        expectedPlanRevision: state.settlement?.dailyPlan?.revision,
+      }),
+    });
+    if (!data.result.ok) throw new Error(data.result.errors?.[0]?.message || "日程无法保存");
+    state = data.state;
+    render(state);
+    showToast(enabled ? "日程已保存。点击开始可自动执行。" : "日程已暂停，可继续手动生活。");
+    await autoRemember();
+  } catch (error) {
+    showToast(error.message);
+    await loadState().catch(() => {});
+  } finally {
+    busy = false;
+    document.body.classList.remove("is-busy");
+  }
+}
+$("addPlanStep").addEventListener("click", () => {
+  if (draftPlan.length >= 6) return;
+  draftPlan.push("eat");
+  renderPlanEditor();
+});
+$("saveDailyPlan").addEventListener("click", () => { void saveRoutine(true); });
+$("disableDailyPlan").addEventListener("click", () => { void saveRoutine(false); });
+
+$("autoButton").addEventListener("click", openPlanEditor);
 $("closeAuto").addEventListener("click", () => $("autoModal").hidden = true);
 document.querySelectorAll("[data-auto]").forEach((button) => {
   button.addEventListener("click", async () => {
+    if (busy) return;
+    busy = true;
+    document.body.classList.add("is-busy");
     $("autoModal").hidden = true;
     try {
       const data = await api("/api/autosim", { method: "POST", body: JSON.stringify({ mode: button.dataset.auto }) });
+      if (data.result.ok === false) throw new Error(data.result.errors?.[0]?.message || "先完成当前选择");
       state = data.state;
       render(state, true);
       showToast(data.result.steps > 1 ? `时间向前走了 ${data.result.steps} 年` : "一年过去了");
       await autoRemember();
     } catch (error) {
       showToast(error.message);
+    } finally {
+      busy = false;
+      document.body.classList.remove("is-busy");
     }
   });
 });
@@ -411,14 +635,20 @@ document.querySelectorAll("[data-save-slot]").forEach((button) => {
 });
 document.querySelectorAll("[data-load-slot]").forEach((button) => {
   button.addEventListener("click", async () => {
+    if (busy) return;
+    busy = true;
+    document.body.classList.add("is-busy");
     button.disabled = true;
     try {
       await restoreMemory(button.dataset.loadSlot);
+      enterLife();
     } catch (error) {
       showToast(error.message);
       renderMemorySlots();
     } finally {
       button.disabled = false;
+      busy = false;
+      document.body.classList.remove("is-busy");
     }
   });
 });
@@ -430,6 +660,9 @@ $("resetButton").addEventListener("click", () => {
 $("closeNewLife").addEventListener("click", () => $("newLifeModal").hidden = true);
 $("newLifeForm").addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (busy) return;
+  busy = true;
+  document.body.classList.add("is-busy");
   const submit = event.currentTarget.querySelector('button[type="submit"]');
   submit.disabled = true;
   try {
@@ -447,11 +680,24 @@ $("newLifeForm").addEventListener("submit", async (event) => {
     render(state, true);
     showToast("一段新的人生开始了");
     await autoRemember();
+    enterLife();
   } catch (error) {
     showToast(error.message);
   } finally {
     submit.disabled = false;
+    busy = false;
+    document.body.classList.remove("is-busy");
   }
 });
+installShell({
+  hasSave: () => Boolean(readMemory("auto")?.save),
+  saveSummary: () => readMemory("auto")?.summary,
+  continueLife: async () => {
+    if (busy) throw new Error("正在处理上一项操作");
+    busy = true;
+    try { await restoreMemory("auto"); } finally { busy = false; }
+  },
+});
+installModalAccess();
 renderMemorySlots();
-loadState();
+loadState().catch(error => { showToast(error.message); $("homeStatus").textContent = "世界暂时无法读取，请检查本地服务后刷新。"; });

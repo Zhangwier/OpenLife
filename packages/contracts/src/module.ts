@@ -67,6 +67,12 @@ export const ExtensionPoints = {
   MigrationRegister: "migration.register",
   ScheduleRegister: "schedule.register",
   QueryRegister: "query.register",
+  /**
+   * Declare how this world pack interprets the kernel's abstract tick
+   * (TIME-RFC-001). Declarative only: it adds no kernel behaviour and no
+   * world-view concept beyond "how long is one unit".
+   */
+  ClockProfileRegister: "clock.profile.register",
 } as const;
 
 export type ExtensionPointName = (typeof ExtensionPoints)[keyof typeof ExtensionPoints];
@@ -109,6 +115,18 @@ export interface TaskOutcome {
     payload?: Record<string, unknown>;
     source?: import("./command.ts").CommandSource;
   };
+  /**
+   * Ordered command batch emitted by one scheduled task. Commands execute
+   * sequentially and stop at the first rejection. Useful for coarse-grained
+   * orchestration without registering one scheduler task per world entity.
+   */
+  commands?: Array<{
+    type: string;
+    actorId?: string;
+    targetId?: string;
+    payload?: Record<string, unknown>;
+    source?: import("./command.ts").CommandSource;
+  }>;
   /** Reschedule the task at a later tick instead of running a command. */
   rescheduleAt?: number;
 }
@@ -152,6 +170,12 @@ export interface ModuleRegistrationContext {
   ): void;
   registerProjection(definition: ProjectionDefinition): void;
   registerMigration(migration: ModuleMigration): void;
+  /**
+   * Declares this world pack's tick interpretation. Registration order decides
+   * precedence: the first module to claim the slot owns it, later claims fail
+   * loudly rather than silently shadowing a world's calendar.
+   */
+  registerClockProfile(profile: Omit<import("./time.ts").ClockProfile, "owner">): void;
   provideCapability(id: CapabilityId, implementation?: unknown): void;
   /** Read-only access to already-registered definitions. */
   readonly registry: ModuleRegistryView;
@@ -165,6 +189,8 @@ export interface ModuleRegistryView {
   hasProcess(id: string): boolean;
   hasCapability(id: CapabilityId): boolean;
   capabilityImplementation(id: CapabilityId): unknown | undefined;
+  /** The registered clock profile, when a world pack has already claimed it. */
+  clockProfile(): import("./time.ts").ClockProfile | undefined;
   listComponents(): string[];
   listCommands(): string[];
   listKnowledge(): string[];

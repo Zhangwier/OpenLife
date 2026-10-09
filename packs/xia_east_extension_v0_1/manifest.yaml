@@ -1,0 +1,6 @@
+id: xia_east_extension_v0_1
+name: Xia East Extension
+version: 0.1.0
+schema_version: "0.1"
+type: map_pack
+description: Minimal stitched-map fixture. Its only purpose is to prove that two independent packs can join at a boundary.

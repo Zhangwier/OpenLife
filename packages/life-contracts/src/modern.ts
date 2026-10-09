@@ -67,7 +67,15 @@ export const WORLD_ENTITY_ID = "modern:world";
 export const CITY_NORTH = "modern:city:north";
 export const CITY_SOUTH = "modern:city:south";
 
+/**
+ * Kernel ticks in one **year** at the historical month scale (TIME-RFC-001).
+ *
+ * `TICKS_PER_YEAR = 12` while the day scale advances 360 ticks per year: the
+ * year length is preserved by the day/month aggregation, so ageing, mortality
+ * and era anchors keep their old meaning. See `./calendar.ts`.
+ */
 export const TICKS_PER_YEAR = 12;
+/** Kernel ticks in one **month** at the historical scale. */
 export const TICKS_PER_MONTH = 1;
 
 /**

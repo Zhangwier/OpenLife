@@ -1,0 +1,17 @@
+{
+  "name": "@openlife/module-world-time",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/module-world-geography": "*",
+    "@openlife/module-world-hydrology": "*",
+    "@openlife/module-world-ecology": "*",
+    "@openlife/module-world-vegetation": "*",
+    "@openlife/module-world-species": "*"
+  }
+}

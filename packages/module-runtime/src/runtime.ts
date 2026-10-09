@@ -14,6 +14,7 @@
 
 import type {
   CapabilityId,
+  ClockProfile,
   JsonValue,
   ModuleId,
   ModuleLifecycleContext,
@@ -60,6 +61,8 @@ export class ModuleRuntime {
   readonly #options: ModuleRuntimeOptions;
   readonly #modules = new Map<ModuleId, InstalledModule>();
   readonly #capabilities = new Map<CapabilityId, { owner: ModuleId; implementation?: unknown }>();
+  /** One clock profile per world (TIME-RFC-001); first claimant owns it. */
+  #clockProfile: ClockProfile | undefined;
   #installOrder: ModuleId[] = [];
 
   constructor(options: ModuleRuntimeOptions) {
@@ -68,6 +71,14 @@ export class ModuleRuntime {
 
   get engineVersion(): string {
     return this.#options.engineVersion;
+  }
+
+  /**
+   * The world pack's declared time interpretation, or `undefined` when none is
+   * installed. Read-only: callers may interpret ticks, never redefine them.
+   */
+  get clockProfile(): ClockProfile | undefined {
+    return this.#clockProfile;
   }
 
   list(): InstalledModuleInfo[] {
@@ -258,6 +269,7 @@ export class ModuleRuntime {
       hasProcess: (id) => definitions.processes.has(id),
       hasCapability: (id) => this.hasCapability(id),
       capabilityImplementation: (id) => this.capabilityImplementation(id),
+      clockProfile: () => this.#clockProfile,
       listComponents: () => definitions.components.keys(),
       listCommands: () => definitions.commands.keys(),
       listKnowledge: () => definitions.knowledge.keys(),
@@ -295,6 +307,42 @@ export class ModuleRuntime {
           fail(ErrorCode.ModuleNotFound, `module not installed: ${owner}`, { owner });
         }
         record.module.migrations = [...(record.module.migrations ?? []), migration];
+      },
+      registerClockProfile: (profile) => {
+        if (this.#clockProfile) {
+          fail(
+            ErrorCode.DuplicateRegistration,
+            `clock profile already registered by ${this.#clockProfile.owner}: ${this.#clockProfile.id}`,
+            { id: profile.id, owner, existingOwner: this.#clockProfile.owner },
+          );
+        }
+        if (!isNamespacedId(profile.id)) {
+          fail(ErrorCode.NamespaceViolation, `clock profile id must be namespaced: ${profile.id}`, {
+            id: profile.id,
+          });
+        }
+        if (profile.units.length === 0) {
+          fail(ErrorCode.ValidationFailed, `clock profile needs at least one unit: ${profile.id}`, {
+            id: profile.id,
+          });
+        }
+        for (const unit of profile.units) {
+          if (!Number.isInteger(unit.ticks) || unit.ticks <= 0) {
+            fail(
+              ErrorCode.ValidationFailed,
+              `clock unit ${unit.id} needs a positive integer tick count, received ${unit.ticks}`,
+              { id: profile.id, unit: unit.id },
+            );
+          }
+        }
+        if (!profile.units.some((unit) => unit.id === profile.baseUnit)) {
+          fail(
+            ErrorCode.ValidationFailed,
+            `clock profile base unit ${profile.baseUnit} is not declared`,
+            { id: profile.id },
+          );
+        }
+        this.#clockProfile = { ...profile, owner };
       },
       provideCapability: (id, implementation) => {
         if (!isNamespacedId(id)) {

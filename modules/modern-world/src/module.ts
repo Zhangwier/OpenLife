@@ -21,6 +21,7 @@ import type {
   WorldView,
 } from "@openlife/contracts";
 import { ageInYears, TICKS_PER_YEAR } from "./calendar.ts";
+import { DAY_TICKS_PER_YEAR } from "@openlife/life-contracts";
 import {
   C,
   CITY_NORTH,
@@ -92,7 +93,14 @@ export const modernWorldModule: OpenLifeModule = {
     ctx.registerTask({
       type: "modern.annual_tick",
       description: "Yearly ageing and mortality pass.",
-      handler: () => ({ command: { type: "modern.tick_year", source: "system" } }),
+      // M1.2-B: the task re-arms itself from the **live** world instead of
+      // relying on the interval fixed when `modern.initialize_world` resolved.
+      // That resolve runs before `world-clock` creates its component, so the
+      // one-shot interval would stay pinned to the legacy twelve forever.
+      handler: (c) => ({
+        command: { type: "modern.tick_year", source: "system" },
+        rescheduleAt: c.at + ticksPerYear(c.world),
+      }),
     });
 
     registerInitializeWorld(ctx);
@@ -161,7 +169,7 @@ function registerInitializeWorld(ctx: Parameters<OpenLifeModule["register"]>[0])
     id: "modern.initialize_world.resolve",
     kind: "resolution",
     commandType: "modern.initialize_world",
-    resolve: () => [
+    resolve: (c) => [
       {
         kind: "spawnEntity",
         localId: "world",
@@ -198,12 +206,27 @@ function registerInitializeWorld(ctx: Parameters<OpenLifeModule["register"]>[0])
       {
         kind: "scheduleTask",
         taskType: "modern.annual_tick",
+        // M1.2-B: this resolve runs before `world-clock` has created its
+        // component, so it cannot know the world's scale yet. The first due
+        // tick is therefore the *legacy* year, and the task's own handler
+        // re-arms from the live world - which is the only place the declared
+        // scale is knowable. A day-scale world corrects itself on first fire.
         afterTicks: TICKS_PER_YEAR,
-        everyTicks: TICKS_PER_YEAR,
         dedupeKey: "annual",
       },
     ],
   });
+}
+
+/**
+ * Kernel ticks in one year for the world this rule is running in.
+ *
+ * The world clock publishes its scale; a world without one keeps the legacy
+ * month reading, so an old save still ages once per twelve ticks.
+ */
+export function ticksPerYear(world: WorldView): number {
+  const scale = world.getComponent(WORLD_ENTITY_ID, "world-clock.clock") ? "day" : "month";
+  return scale === "day" ? DAY_TICKS_PER_YEAR : TICKS_PER_YEAR;
 }
 
 // ---------------------------------------------------------------------------
@@ -472,7 +495,11 @@ function registerTickYear(ctx: Parameters<OpenLifeModule["register"]>[0]): void 
         if (!vitals || !identity) continue;
         if (vitals.alive === false) continue;
         const bornAt = Number(identity.bornAt ?? character.createdAt);
-        const age = ageInYears(bornAt, c.world.tick);
+        // The ageing pass now runs once per world year, so the age it writes
+        // must be read in the world's own scale or it would jump 30x at once.
+        // `modern.annual_tick` fires on the world's year boundary, so a simple
+        // increment keeps age exact and avoids a second scale lookup.
+        const age = Number(vitals.ageYears ?? 0) + 1;
         const lifespan = Number(vitals.lifespan ?? 80);
 
         effects.push({

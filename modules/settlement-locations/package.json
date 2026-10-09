@@ -1,0 +1,15 @@
+{
+  "name": "@openlife/module-settlement-locations",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/life-contracts": "*",
+    "@openlife/module-world-objects": "*",
+    "@openlife/module-world-space": "*"
+  }
+}

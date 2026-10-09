@@ -1,0 +1,34 @@
+# Ten test regions for the first authored world map.
+# Region keeps only identity for now: climate, population and resources are
+# later modules, and must not be smuggled in through a region record.
+regions:
+  - id: R01
+    name: Central River Plain
+    type: plain
+  - id: R02
+    name: Western Highlands
+    type: highland
+  - id: R03
+    name: Eastern Wetland
+    type: wetland
+  - id: R04
+    name: Northern Corridor
+    type: corridor
+  - id: R05
+    name: Southern Basin
+    type: basin
+  - id: R06
+    name: East River Delta
+    type: delta
+  - id: R07
+    name: Northwest Loess Terrace
+    type: terrace
+  - id: R08
+    name: Southeast Lake Shore
+    type: lakeshore
+  - id: R09
+    name: Southwest Dry Plain
+    type: dry_plain
+  - id: R10
+    name: Far North Frontier
+    type: frontier

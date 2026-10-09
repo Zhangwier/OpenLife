@@ -1,0 +1,6 @@
+id: xia_starter_v0_1
+name: Xia Starter World
+version: 0.1.0
+schema_version: "0.1"
+type: map_pack
+description: First authored world map. Pure geography; no climate, population, polity or history layers.

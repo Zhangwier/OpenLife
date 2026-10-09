@@ -14,6 +14,8 @@ import {
   type PracticeCheckpointResolutionDecision,
   type PracticeRuntimeApi,
 } from "@openlife/module-practice-runtime";
+import { ObjectComponents, ObjectKinds, ObjectRelations, ownerOf, holderOf, prototypeOf, readObject } from "@openlife/module-world-objects";
+import { occupiedPlaceId, occupiedSpaceId } from "@openlife/module-world-space";
 
 const OWNER = "craft-pottery";
 
@@ -102,6 +104,7 @@ export const craftPotteryModule: OpenLifeModule = {
     });
 
     registerMaterialPreparationCommand(ctx);
+    registerVillagePotteryMaterials(ctx);
 
     practice.registerDefinition({
       id: PotteryPracticeDefinitions.prepareClay,
@@ -165,7 +168,7 @@ export const craftPotteryModule: OpenLifeModule = {
         }
         if (type === "pottery-forming-choice") return resolveForming(context, actionId);
         if (type === "pottery-drying-choice") return resolveDrying(context, actionId);
-        if (type === "pottery-firing-choice") return resolveFiring(actionId);
+        if (type === "pottery-firing-choice") return resolveFiring(context, actionId);
         return {};
       },
     });
@@ -329,6 +332,71 @@ function registerMaterialPreparationCommand(ctx: Registration): void {
   });
 }
 
+/** Convert genuinely owned, carried material instances into legacy workshop stock.
+ * This bridge conserves resources; old craft saves remain readable.
+ */
+function registerVillagePotteryMaterials(ctx: Registration): void {
+  const type = "craft-pottery.load_village_materials";
+  ctx.registerCommand({ type, description: "Stage one real clay and two real fuel bundles for pottery." });
+  const inputs = (c: { world: WorldView; command: { actorId?: string; payload: Record<string, JsonValue> } }) => {
+    const clayId = String(c.command.payload.clayId ?? "");
+    const fuelIds = c.command.payload.fuelIds;
+    return { clayId, fuelIds: Array.isArray(fuelIds) ? fuelIds.map(String) : [] };
+  };
+  ctx.registerConstraintRule({
+    id: `${type}.allowed`, commandType: type,
+    evaluate: (c) => {
+      const actorId = c.command.actorId ?? "";
+      const { clayId, fuelIds } = inputs(c);
+      if (occupiedPlaceId(c.world, actorId) !== "place:kiln" ||
+          occupiedSpaceId(c.world, actorId) !== "space:kiln-mouth") {
+        return { ok: false, code: "E_POTTERY_WRONG_PLACE", message: "要站在陶窑的窑口，才能备好制陶材料。" };
+      }
+      if (!clayId || fuelIds.length !== 2 || new Set([clayId, ...fuelIds]).size !== 3) {
+        return { ok: false, code: "E_POTTERY_MATERIALS", message: "需要 1 份黏土和 2 捆独立的柴草。" };
+      }
+      for (const [id, resourceId] of [[clayId, "resource:clay"], ...fuelIds.map(id => [id, "resource:fuel"])] as [string, string][]) {
+        const entity = c.world.getEntity(id);
+        if (!entity || entity.archivedAt !== undefined || entity.kind !== ObjectKinds.item ||
+            ownerOf(c.world, id) !== actorId || holderOf(c.world, id) !== actorId ||
+            prototypeOf(c.world, id).resourceId !== resourceId ||
+            readObject(entity.components[ObjectComponents.object]).quantity !== 1) {
+          return { ok: false, code: "E_POTTERY_MATERIALS", message: "制陶必须使用自己确实携带的黏土和柴草。" };
+        }
+      }
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${type}.resolve`, commandType: type,
+    resolve: (c) => {
+      const actorId = c.command.actorId as string;
+      const { clayId, fuelIds } = inputs(c);
+      const stock = c.world.getComponent(actorId, PotteryComponents.inventory) ?? {};
+      const effects: Effect[] = [];
+      for (const itemId of [clayId, ...fuelIds]) {
+        effects.push({
+          kind: "removeRelation", type: ObjectRelations.heldBy,
+          from: itemId, to: actorId, reason: "transferred into pottery workshop", announce: false,
+        }, {
+          kind: "archiveEntity", entityId: itemId,
+          reason: "material allocated to pottery workshop", announce: false,
+        });
+      }
+      effects.push({
+        kind: "setComponent", entityId: actorId, component: PotteryComponents.inventory,
+        value: { clay: Number(stock.clay ?? 0) + 1, fuel: Number(stock.fuel ?? 0) + 2 },
+        reason: "actual village clay and fuel entered pottery stock",
+      }, {
+        kind: "emitEvent", eventType: "craft-pottery.village_materials_staged",
+        actorId, targetId: actorId, data: { clayId, fuelIds, clay: 1, fuel: 2 },
+        historicalSignificance: 0.01,
+      });
+      return effects;
+    },
+  });
+}
+
 function clayPreparationDecision(clay: ClayState) {
   return {
     work: 0.5,
@@ -396,6 +464,16 @@ function formingDecision(context: Record<string, JsonValue>) {
 
 function dryingDecision(context: Record<string, JsonValue>) {
   const forming = objectValue(context.forming);
+  const clay = clayState(context);
+  const wallThickness = clamp01(numberValue(forming.wallThickness, 0.5));
+  const weight = clamp01(numberValue(forming.weight, 0.5));
+  const initialResidualMoisture = clamp01(
+    0.18
+    + clay.moisture * 0.42
+    + wallThickness * 0.24
+    + weight * 0.08,
+  );
+  const kilnReady = initialResidualMoisture <= 0.48 && numberValue(forming.dryingRisk, 0) <= 0.5;
   return {
     work: 0.5,
     nextStage: "drying",
@@ -403,15 +481,28 @@ function dryingDecision(context: Record<string, JsonValue>) {
       type: "pottery-drying-choice",
       interactionMode: "choice",
       context: {
-        prompt: "湿坯已经成型。你准备怎样把它干到可以入窑？",
-        wallThickness: forming.wallThickness ?? 0.5,
+        prompt: "湿坯已经成型。现在不只是等时间过去：你要判断怎样把它干到适合入窑。",
+        wallThickness,
+        weight,
+        clayMoisture: clay.moisture,
+        initialResidualMoisture,
         currentRisk: forming.dryingRisk ?? 0,
+        kilnReadiness: kilnReady ? "ready-enough" : "too-wet-or-unstable",
       },
       candidateActions: [
-        { id: "slow-shade", label: "阴凉处慢慢干燥", hint: "最稳妥，能减少表里收缩差异，适合厚壁或复杂器形。", autonomyWeight: 4 },
-        { id: "turn-regularly", label: "通风阴干并定期翻转", hint: "效率和稳定性兼顾，需要持续照看。", autonomyWeight: 4 },
-        { id: "sun-fast", label: "直接晒干", hint: "速度快，但外层先收缩，尤其容易放大厚壁和高含水带来的裂纹。", autonomyWeight: 1 },
-        { id: "near-hearth", label: "靠近炉火加速干燥", hint: "比日晒可控一些，但局部受热仍可能造成翘曲和隐裂。", autonomyWeight: 1 },
+        { id: "slow-shade", label: "阴凉处慢慢干燥", hint: "耗时最长但最均匀，能明显降低内外湿差；尤其适合厚壁、加固底部和复杂器形。", autonomyWeight: 4 },
+        { id: "turn-regularly", label: "通风阴干并定期翻转", hint: "速度和稳定性比较均衡，能减少底部长期积湿，但需要持续照看。", autonomyWeight: 4 },
+        { id: "sun-fast", label: "直接日晒快速脱水", hint: "最快之一，但表层会先收缩，内外湿差和裂纹风险明显增加。", autonomyWeight: 1 },
+        { id: "near-hearth", label: "靠近炉火加速干燥", hint: "能较快降低水分，但局部受热会增加翘曲和暗裂风险。", autonomyWeight: 1 },
+        { id: "extended-rest", label: "延长阴干，等内部水分进一步迁移", hint: "比普通阴干更耗时间，残余水分更低；适合你愿意用时间换更稳定入窑条件的情况。", autonomyWeight: 3 },
+        {
+          id: "kiln-now",
+          label: "结束干燥，按当前状态准备入窑",
+          hint: "省去额外等待，但会把当前残余水分和结构风险原样带进烧制。",
+          enabled: kilnReady,
+          disabledReason: kilnReady ? undefined : "当前坯体仍偏湿或干燥风险过高，直接准备入窑很容易在升温时开裂甚至爆裂。",
+          autonomyWeight: kilnReady ? 1 : 0,
+        },
       ],
     },
   };
@@ -421,6 +512,15 @@ function firingDecision(world: WorldView, practiceId: string, context: Record<st
   const makerId = makerOf(world, practiceId);
   const stock = makerId ? world.getComponent(makerId, PotteryComponents.inventory) ?? {} : {};
   const fuel = Number(stock.fuel ?? 0);
+  const drying = objectValue(context.drying);
+  const residualMoisture = clamp01(numberValue(drying.residualMoisture, 0.2));
+  const moistureGradient = clamp01(numberValue(drying.moistureGradient, 0.12));
+  const warpingRisk = clamp01(numberValue(drying.warpingRisk, 0.1));
+  const bodyCondition = residualMoisture <= 0.12 && moistureGradient <= 0.14 && warpingRisk <= 0.16
+    ? "stable"
+    : residualMoisture <= 0.24 && moistureGradient <= 0.24
+      ? "caution"
+      : "fragile";
   return {
     work: 0.75,
     nextStage: "firing",
@@ -428,15 +528,54 @@ function firingDecision(world: WorldView, practiceId: string, context: Record<st
       type: "pottery-firing-choice",
       interactionMode: "choice",
       context: {
-        prompt: "陶坯已经干燥。你准备怎样控制这次烧制？",
+        prompt: "陶坯准备入窑。你要根据残余水分、内外湿差和坯体稳定性决定火候路线。",
         availableFuel: fuel,
-        drying: context.drying ?? {},
+        residualMoisture,
+        moistureGradient,
+        warpingRisk,
+        bodyCondition,
       },
       candidateActions: [
-        { id: "low-slow", label: "低温保守烧制", hint: "消耗 2 份燃料。热冲击小，但可能烧结不足、器体偏软。", enabled: fuel >= 2, disabledReason: "至少需要 2 份燃料。", autonomyWeight: 2 },
-        { id: "gradual-hot", label: "逐步升温到较高火候", hint: "消耗 3 份燃料。兼顾排湿、烧结和稳定性，是较稳妥的成熟方案。", enabled: fuel >= 3, disabledReason: "至少需要 3 份燃料。", autonomyWeight: 4 },
-        { id: "hot-fast", label: "快速推到高火", hint: "消耗 4 份燃料。可能得到更好的烧成表面，但任何残余水分和结构缺陷都会被放大。", enabled: fuel >= 4, disabledReason: "至少需要 4 份燃料。", autonomyWeight: 1 },
-        { id: "pulse-fire", label: "强火与短暂回落交替", hint: "消耗 3 份燃料。尝试用节奏修正不均匀坯体，但过程波动更大。", enabled: fuel >= 3, disabledReason: "至少需要 3 份燃料。", autonomyWeight: 1 },
+        {
+          id: "low-slow",
+          label: "低火慢烧",
+          hint: "消耗 2 份燃料。热冲击最小，对偏湿坯体最宽容，但烧结不足、器体偏软的概率较高。",
+          enabled: fuel >= 2,
+          disabledReason: fuel >= 2 ? undefined : "至少需要 2 份燃料。",
+          autonomyWeight: bodyCondition === "fragile" ? 4 : 2,
+        },
+        {
+          id: "staged-preheat",
+          label: "先低火预热，再逐步升温",
+          hint: "消耗 3 份燃料。先给残余水分排出的时间，再进入较高火候；更慢，但对湿差较大的坯体更安全。",
+          enabled: fuel >= 3,
+          disabledReason: fuel >= 3 ? undefined : "至少需要 3 份燃料。",
+          autonomyWeight: bodyCondition === "stable" ? 3 : 5,
+        },
+        {
+          id: "gradual-hot",
+          label: "平稳升温到较高火候",
+          hint: "消耗 3 份燃料。烧结、强度和稳定性较均衡；坯体越干燥均匀，收益越明显。",
+          enabled: fuel >= 3,
+          disabledReason: fuel >= 3 ? undefined : "至少需要 3 份燃料。",
+          autonomyWeight: bodyCondition === "stable" ? 5 : 3,
+        },
+        {
+          id: "hot-fast",
+          label: "快速推到高火",
+          hint: "消耗 4 份燃料。烧成潜力最高，但会显著放大残余水分、湿差和既有翘曲风险；这是高收益高风险路线。",
+          enabled: fuel >= 4,
+          disabledReason: fuel >= 4 ? undefined : "至少需要 4 份燃料。",
+          autonomyWeight: bodyCondition === "stable" ? 2 : 0.25,
+        },
+        {
+          id: "pulse-fire",
+          label: "强火与回落交替控制",
+          hint: "消耗 3 份燃料。尝试用火候回落缓解局部温差，但控制复杂、过程波动更大。",
+          enabled: fuel >= 3,
+          disabledReason: fuel >= 3 ? undefined : "至少需要 3 份燃料。",
+          autonomyWeight: 1,
+        },
       ],
     },
   };
@@ -482,35 +621,134 @@ function resolveForming(context: Record<string, JsonValue>, actionId: string): P
 
 function resolveDrying(context: Record<string, JsonValue>, actionId: string): PracticeCheckpointResolutionDecision {
   const forming = objectValue(context.forming);
-  const initial = numberValue(forming.dryingRisk, 0.2);
-  const values: Record<string, { adjustment: number; quality: number }> = {
-    "slow-shade": { adjustment: -0.22, quality: 0.2 },
-    "turn-regularly": { adjustment: -0.15, quality: 0.16 },
-    "sun-fast": { adjustment: 0.24, quality: -0.08 },
-    "near-hearth": { adjustment: 0.16, quality: 0.01 },
+  const clay = clayState(context);
+  const wallThickness = clamp01(numberValue(forming.wallThickness, 0.5));
+  const weight = clamp01(numberValue(forming.weight, 0.5));
+  const initialRisk = clamp01(numberValue(forming.dryingRisk, 0.2));
+  const initialResidualMoisture = clamp01(
+    0.18
+    + clay.moisture * 0.42
+    + wallThickness * 0.24
+    + weight * 0.08,
+  );
+  const values: Record<string, {
+    riskAdjustment: number;
+    quality: number;
+    moistureReduction: number;
+    moistureGradient: number;
+    warpingRisk: number;
+    dryingTime: number;
+  }> = {
+    "slow-shade": {
+      riskAdjustment: -0.22, quality: 0.2, moistureReduction: 0.4,
+      moistureGradient: 0.08, warpingRisk: 0.06, dryingTime: 3,
+    },
+    "turn-regularly": {
+      riskAdjustment: -0.15, quality: 0.16, moistureReduction: 0.35,
+      moistureGradient: 0.1, warpingRisk: 0.05, dryingTime: 2.2,
+    },
+    "sun-fast": {
+      riskAdjustment: 0.24, quality: -0.08, moistureReduction: 0.34,
+      moistureGradient: 0.38, warpingRisk: 0.2, dryingTime: 0.8,
+    },
+    "near-hearth": {
+      riskAdjustment: 0.16, quality: 0.01, moistureReduction: 0.36,
+      moistureGradient: 0.3, warpingRisk: 0.32, dryingTime: 0.7,
+    },
+    "extended-rest": {
+      riskAdjustment: -0.27, quality: 0.18, moistureReduction: 0.48,
+      moistureGradient: 0.05, warpingRisk: 0.04, dryingTime: 4.2,
+    },
+    "kiln-now": {
+      riskAdjustment: 0.18, quality: -0.04, moistureReduction: 0,
+      moistureGradient: 0.18, warpingRisk: 0.12, dryingTime: 0,
+    },
   };
-  const selected = values[actionId] ?? { adjustment: 0, quality: 0 };
+  const selected = values[actionId] ?? values["kiln-now"]!;
+  const residualMoisture = clamp01(initialResidualMoisture - selected.moistureReduction);
   return {
     nextStage: "firing",
     contextPatch: {
       drying: {
         actionId,
-        risk: clamp01(initial + selected.adjustment),
+        initialResidualMoisture,
+        residualMoisture,
+        moistureGradient: selected.moistureGradient,
+        warpingRisk: selected.warpingRisk,
+        dryingTime: selected.dryingTime,
+        risk: clamp01(initialRisk + selected.riskAdjustment + residualMoisture * 0.18),
         quality: selected.quality,
       },
     },
   };
 }
 
-function resolveFiring(actionId: string): PracticeCheckpointResolutionDecision {
-  const values: Record<string, Record<string, JsonValue>> = {
-    "low-slow": { fuelUsed: 2, quality: 0.02, firingRisk: 0.02, underfireRisk: 0.12 },
-    "gradual-hot": { fuelUsed: 3, quality: 0.18, firingRisk: 0.03, underfireRisk: 0 },
-    "hot-fast": { fuelUsed: 4, quality: 0.24, firingRisk: 0.22, underfireRisk: 0 },
-    "pulse-fire": { fuelUsed: 3, quality: 0.12, firingRisk: 0.1, underfireRisk: 0.03 },
+function resolveFiring(context: Record<string, JsonValue>, actionId: string): PracticeCheckpointResolutionDecision {
+  const drying = objectValue(context.drying);
+  const residualMoisture = clamp01(numberValue(drying.residualMoisture, 0.2));
+  const moistureGradient = clamp01(numberValue(drying.moistureGradient, 0.12));
+  const warpingRisk = clamp01(numberValue(drying.warpingRisk, 0.1));
+  const inheritedInstability = clamp01(
+    residualMoisture * 0.5
+    + moistureGradient * 0.32
+    + warpingRisk * 0.18,
+  );
+  const values: Record<string, {
+    fuelUsed: number;
+    quality: number;
+    thermalMultiplier: number;
+    intrinsicRisk: number;
+    underfireRisk: number;
+    firingTime: number;
+    heatPenetration: number;
+  }> = {
+    "low-slow": {
+      fuelUsed: 2, quality: 0.03, thermalMultiplier: 0.35,
+      intrinsicRisk: 0.01, underfireRisk: 0.14, firingTime: 3.2, heatPenetration: 0.55,
+    },
+    "staged-preheat": {
+      fuelUsed: 3, quality: 0.13, thermalMultiplier: 0.25,
+      intrinsicRisk: 0.02, underfireRisk: 0.03, firingTime: 3, heatPenetration: 0.78,
+    },
+    "gradual-hot": {
+      fuelUsed: 3, quality: 0.18, thermalMultiplier: 0.55,
+      intrinsicRisk: 0.03, underfireRisk: 0, firingTime: 2.3, heatPenetration: 0.86,
+    },
+    "hot-fast": {
+      fuelUsed: 4, quality: 0.27, thermalMultiplier: 1.55,
+      intrinsicRisk: 0.08, underfireRisk: 0, firingTime: 1, heatPenetration: 0.9,
+    },
+    "pulse-fire": {
+      fuelUsed: 3, quality: 0.14, thermalMultiplier: 0.82,
+      intrinsicRisk: 0.08, underfireRisk: 0.02, firingTime: 1.8, heatPenetration: 0.82,
+    },
   };
-  const selected = values[actionId] ?? { fuelUsed: 0, quality: 0, firingRisk: 0.3, underfireRisk: 0.2 };
-  return { nextStage: "inspect", contextPatch: { firing: { actionId, ...selected }, fuelUsed: selected.fuelUsed } };
+  const selected = values[actionId] ?? values["low-slow"]!;
+  const thermalShockLoad = clamp01(inheritedInstability * selected.thermalMultiplier + selected.intrinsicRisk);
+  const firingRisk = clamp01(
+    thermalShockLoad
+    + Math.max(0, moistureGradient - 0.18) * 0.25
+    + Math.max(0, warpingRisk - 0.18) * 0.2,
+  );
+  return {
+    nextStage: "inspect",
+    contextPatch: {
+      firing: {
+        actionId,
+        fuelUsed: selected.fuelUsed,
+        quality: selected.quality,
+        firingRisk,
+        thermalShockLoad,
+        underfireRisk: selected.underfireRisk,
+        firingTime: selected.firingTime,
+        heatPenetration: selected.heatPenetration,
+        inheritedResidualMoisture: residualMoisture,
+        inheritedMoistureGradient: moistureGradient,
+        inheritedWarpingRisk: warpingRisk,
+      },
+      fuelUsed: selected.fuelUsed,
+    },
+  };
 }
 
 function potteryQuality(context: Record<string, JsonValue>, random: number) {
@@ -529,7 +767,10 @@ function potteryQuality(context: Record<string, JsonValue>, random: number) {
     + numberValue(firing.quality, 0)
     - numberValue(risks.inclusionDefectRisk, 0) * 0.25
     - numberValue(forming.handlingRisk, 0)
-    - numberValue(drying.risk, 0) * 0.55
+    - numberValue(drying.risk, 0) * 0.38
+    - numberValue(drying.residualMoisture, 0) * 0.18
+    - numberValue(drying.moistureGradient, 0) * 0.12
+    - numberValue(drying.warpingRisk, 0) * 0.1
     - numberValue(firing.firingRisk, 0)
     - numberValue(firing.underfireRisk, 0)
     - random * 0.1,
@@ -538,6 +779,10 @@ function potteryQuality(context: Record<string, JsonValue>, random: number) {
   if (numberValue(drying.risk, 0) > 0.32) defects.push("drying-cracks");
   if (numberValue(forming.handlingRisk, 0) > 0.18) defects.push("deformation");
   if (numberValue(firing.firingRisk, 0) > 0.16) defects.push("thermal-shock");
+  if (numberValue(drying.residualMoisture, 0) > 0.2 && numberValue(firing.thermalShockLoad, 0) > 0.16) {
+    defects.push("steam-cracking");
+  }
+  if (numberValue(drying.warpingRisk, 0) > 0.22) defects.push("warping");
   if (numberValue(firing.underfireRisk, 0) > 0.1) defects.push("under-fired");
   if (numberValue(risks.inclusionDefectRisk, 0) > 0.25) defects.push("inclusions");
   return {

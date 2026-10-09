@@ -14,6 +14,14 @@
     "@openlife/module-historical-memory": "*",
     "@openlife/module-intellectual-history": "*",
     "@openlife/module-historical-era": "*",
-    "@openlife/module-historical-anchors": "*"
+    "@openlife/module-historical-anchors": "*",
+    "@openlife/module-practice-runtime": "*",
+    "@openlife/module-craft-pottery": "*",
+    "@openlife/module-settlement-life": "*",
+    "@openlife/module-map-pack": "*",
+    "@openlife/module-world-clock": "*",
+    "@openlife/module-world-space": "*",
+    "@openlife/module-world-objects": "*",
+    "@openlife/module-settlement-locations": "*"
   }
 }

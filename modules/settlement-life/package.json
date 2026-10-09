@@ -1,0 +1,13 @@
+{
+  "name": "@openlife/module-settlement-life",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/life-contracts": "*",
+    "@openlife/module-practice-runtime": "*",
+    "@openlife/module-craft-pottery": "*"
+  }
+}

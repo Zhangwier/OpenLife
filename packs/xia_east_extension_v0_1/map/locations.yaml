@@ -1,0 +1,37 @@
+# Eight locations, four per region.
+locations:
+  # E01 - the west-facing river mouth region that will meet Xia's delta.
+  - id: E0101
+    name: East Wet Mouth West Bank
+    region_id: E01
+    type: river_mouth
+  - id: E0102
+    name: East Wet Mouth Crossing
+    region_id: E01
+    type: river_crossing
+  - id: E0103
+    name: East Wet Mouth North Bank
+    region_id: E01
+    type: river_bank
+  - id: E0104
+    name: East Wet Mouth South Bank
+    region_id: E01
+    type: river_bank
+
+  # E02 - inland, reachable only through E01.
+  - id: E0201
+    name: Inland Rise West Slope
+    region_id: E02
+    type: slope
+  - id: E0202
+    name: Inland Rise Crest
+    region_id: E02
+    type: ridge
+  - id: E0203
+    name: Inland Rise East Slope
+    region_id: E02
+    type: slope
+  - id: E0204
+    name: Inland Rise Pass
+    region_id: E02
+    type: pass

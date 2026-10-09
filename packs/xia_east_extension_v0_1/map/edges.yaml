@@ -1,0 +1,43 @@
+# Nine undirected connections: five inside E01, three inside E02, one joining them.
+edges:
+  # E01 internal
+  - from: E0101
+    to: E0102
+    distance: 6.5
+    terrain_cost: 1.2
+  - from: E0102
+    to: E0103
+    distance: 5.1
+    terrain_cost: 1.1
+  - from: E0103
+    to: E0104
+    distance: 9.4
+    terrain_cost: 1.2
+  - from: E0101
+    to: E0103
+    distance: 7.8
+    terrain_cost: 1.3
+  - from: E0102
+    to: E0104
+    distance: 8.2
+    terrain_cost: 1.2
+
+  # E02 internal
+  - from: E0201
+    to: E0202
+    distance: 7.9
+    terrain_cost: 1.5
+  - from: E0202
+    to: E0203
+    distance: 8.3
+    terrain_cost: 1.5
+  - from: E0203
+    to: E0204
+    distance: 6.7
+    terrain_cost: 1.4
+
+  # E01 -> E02 seam inside this pack
+  - from: E0103
+    to: E0201
+    distance: 12.1
+    terrain_cost: 1.4

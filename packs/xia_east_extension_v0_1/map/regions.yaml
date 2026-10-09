@@ -1,0 +1,8 @@
+# Two regions. E01 faces the Xia map across its west edge; E02 is inland.
+regions:
+  - id: E01
+    name: Eastern River Mouth
+    type: river_mouth_plain
+  - id: E02
+    name: Eastern Inland Rise
+    type: inland_rise

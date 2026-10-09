@@ -153,8 +153,23 @@ export class WorldStore {
 
   addRelation(record: RelationRecord): RelationRecord {
     const key = relationKey(record.type, record.from, record.to);
-    if (this.#relationIndex.has(key)) {
-      throw new Error(`relation already exists: ${record.type} ${record.from} -> ${record.to}`);
+    const existingId = this.#relationIndex.get(key);
+    if (existingId !== undefined) {
+      const existing = this.#relations.get(existingId);
+      // A relation key identifies one *current* fact. Re-adding a key whose
+      // previous relation was archived is not a duplicate: it is the same fact
+      // being re-established (a jar taken again, a place re-entered). Keeping
+      // the archived record and adding a second live one would give the world
+      // two answers to "is A related to B", so the archived record is replaced.
+      if (existing && existing.archivedAt === undefined) {
+        throw new Error(`relation already exists: ${record.type} ${record.from} -> ${record.to}`);
+      }
+      if (existing) {
+        this.#relations.delete(existingId);
+        remove(this.#relationsByType, existing.type, existingId);
+        remove(this.#relationsByFrom, existing.from, existingId);
+        remove(this.#relationsByTo, existing.to, existingId);
+      }
     }
     this.#relations.set(record.id, record);
     this.#relationIndex.set(key, record.id);
@@ -257,6 +272,14 @@ function push<K, V>(map: Map<K, Set<V>>, key: K, value: V): void {
     map.set(key, bucket);
   }
   bucket.add(value);
+}
+
+/** Removes one id from an index bucket without leaving an empty set behind. */
+function remove<K, V>(map: Map<K, Set<V>>, key: K, value: V): void {
+  const bucket = map.get(key);
+  if (!bucket) return;
+  bucket.delete(value);
+  if (bucket.size === 0) map.delete(key);
 }
 
 function cloneEntity(entity: EntityRecord): EntityRecord {

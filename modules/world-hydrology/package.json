@@ -1,0 +1,15 @@
+{
+  "name": "@openlife/module-world-hydrology",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/module-world-geography": "*",
+    "@openlife/module-world-geosphere": "*",
+    "@openlife/module-world-weather": "*"
+  }
+}

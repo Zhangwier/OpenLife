@@ -1,0 +1,182 @@
+# Forty locations: four per region, laid out so the river runs west-to-east
+# through the central plain and both corridors terminate on the frontier.
+locations:
+  # R01 - Central River Plain
+  - id: L0101
+    name: Central River Bank
+    region_id: R01
+    type: river_bank
+  - id: L0102
+    name: Central Ford
+    region_id: R01
+    type: river_crossing
+  - id: L0103
+    name: Central Terrace
+    region_id: R01
+    type: terrace
+  - id: L0104
+    name: Central Upland Meadow
+    region_id: R01
+    type: meadow
+
+  # R02 - Western Highlands
+  - id: L0201
+    name: Western Ridge Crest
+    region_id: R02
+    type: ridge
+  - id: L0202
+    name: Western Mountain Gate
+    region_id: R02
+    type: pass
+  - id: L0203
+    name: Western Valley Floor
+    region_id: R02
+    type: valley
+  - id: L0204
+    name: Western Upper Spring
+    region_id: R02
+    type: spring
+
+  # R03 - Eastern Wetland
+  - id: L0301
+    name: Eastern Marsh Edge
+    region_id: R03
+    type: marsh
+  - id: L0302
+    name: Eastern Reed Flats
+    region_id: R03
+    type: reed_flat
+  - id: L0303
+    name: Eastern Shallow Lake
+    region_id: R03
+    type: shallow_lake
+  - id: L0304
+    name: Eastern Wetland Farm
+    region_id: R03
+    type: wet_farmland
+
+  # R04 - Northern Corridor
+  - id: L0401
+    name: Northern Corridor South End
+    region_id: R04
+    type: corridor
+  - id: L0402
+    name: Northern Corridor Midway Camp
+    region_id: R04
+    type: camp
+  - id: L0403
+    name: Northern Corridor Trading Post
+    region_id: R04
+    type: trading_post
+  - id: L0404
+    name: Northern Corridor North End
+    region_id: R04
+    type: corridor
+
+  # R05 - Southern Basin
+  - id: L0501
+    name: Southern Basin Rim
+    region_id: R05
+    type: basin_rim
+  - id: L0502
+    name: Southern Basin Floor
+    region_id: R05
+    type: basin_floor
+  - id: L0503
+    name: Southern Salt Flat
+    region_id: R05
+    type: salt_flat
+  - id: L0504
+    name: Southern Basin Crossing
+    region_id: R05
+    type: crossing
+
+  # R06 - East River Delta
+  - id: L0601
+    name: Delta West Branch
+    region_id: R06
+    type: river_branch
+  - id: L0602
+    name: Delta North Branch
+    region_id: R06
+    type: river_branch
+  - id: L0603
+    name: Delta Front
+    region_id: R06
+    type: river_mouth
+  - id: L0604
+    name: Delta South Branch
+    region_id: R06
+    type: river_branch
+
+  # R07 - Northwest Loess Terrace
+  - id: L0701
+    name: Northwest Lower Terrace
+    region_id: R07
+    type: terrace
+  - id: L0702
+    name: Northwest Middle Terrace
+    region_id: R07
+    type: terrace
+  - id: L0703
+    name: Northwest Upper Terrace
+    region_id: R07
+    type: terrace
+  - id: L0704
+    name: Northwest Gully
+    region_id: R07
+    type: gully
+
+  # R08 - Southeast Lake Shore
+  - id: L0801
+    name: Southeast Lake West Shore
+    region_id: R08
+    type: lakeshore
+  - id: L0802
+    name: Southeast Lake North Shore
+    region_id: R08
+    type: lakeshore
+  - id: L0803
+    name: Southeast Lake East Shore
+    region_id: R08
+    type: lakeshore
+  - id: L0804
+    name: Southeast Lake Inlet
+    region_id: R08
+    type: inlet
+
+  # R09 - Southwest Dry Plain
+  - id: L0901
+    name: Southwest Dry Western Edge
+    region_id: R09
+    type: dry_plain
+  - id: L0902
+    name: Southwest Dry Waterhole
+    region_id: R09
+    type: waterhole
+  - id: L0903
+    name: Southwest Dry Eastern Edge
+    region_id: R09
+    type: dry_plain
+  - id: L0904
+    name: Southwest Dry Southern Edge
+    region_id: R09
+    type: dry_plain
+
+  # R10 - Far North Frontier
+  - id: L1001
+    name: Frontier South Gate
+    region_id: R10
+    type: frontier_post
+  - id: L1002
+    name: Frontier Hunting Ground
+    region_id: R10
+    type: hunting_ground
+  - id: L1003
+    name: Frontier Northern Grass
+    region_id: R10
+    type: grassland
+  - id: L1004
+    name: Frontier Far Bank
+    region_id: R10
+    type: frontier_bank

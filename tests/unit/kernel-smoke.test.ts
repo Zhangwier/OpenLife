@@ -64,6 +64,19 @@ function buildKernel(seed = 1234): Kernel {
     },
     "demo",
   );
+  definitions.tasks.register(
+    "demo.batch_tick",
+    {
+      id: "demo.batch_tick",
+      handler: (ctx) => ({
+        commands: [
+          { type: "demo.ping", actorId: ctx.payload.actorId as string, source: "system" },
+          { type: "demo.ping", actorId: ctx.payload.actorId as string, source: "system" },
+        ],
+      }),
+    },
+    "demo",
+  );
 
   const kernel = new Kernel({ worldSeed: seed, definitions });
   const store = kernel.internals.store;
@@ -119,6 +132,21 @@ test("scheduler advances time and runs scheduled tasks", () => {
   assert.deepEqual(
     kernel.worldView().getComponent("demo:actor", "demo.counter"),
     { value: 1 },
+  );
+});
+
+test("one scheduled task can dispatch an ordered command batch", () => {
+  const kernel = buildKernel();
+  kernel.internals.scheduler.schedule({
+    type: "demo.batch_tick",
+    dueAt: 5,
+    payload: { actorId: "demo:actor" },
+    owner: "demo",
+  });
+  kernel.advanceTo(5);
+  assert.deepEqual(
+    kernel.worldView().getComponent("demo:actor", "demo.counter"),
+    { value: 2 },
   );
 });
 

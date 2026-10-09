@@ -1,0 +1,13 @@
+{
+  "name": "@openlife/module-world-geosphere",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/module-world-geography": "*"
+  }
+}

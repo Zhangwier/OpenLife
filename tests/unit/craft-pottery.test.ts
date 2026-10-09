@@ -248,6 +248,101 @@ test("forming choices persist different capacity, durability, weight and drying 
   assert.ok(storage.dryingRisk > reinforced.dryingRisk, "thick storage walls should impose the largest drying burden");
 });
 
+test("drying shows kiln readiness and keeps immediate kiln entry visible when the body is still too wet", () => {
+  const setup = setupVessel(15008, 4);
+  const clayStep = nextInteraction(setup.simulation, setup.actorId, setup.practiceId);
+  choose(setup.simulation, setup.actorId, clayStep, "knead-now");
+  const forming = nextInteraction(setup.simulation, setup.actorId, setup.practiceId);
+  choose(setup.simulation, setup.actorId, forming, "thick-storage");
+  const drying = nextInteraction(setup.simulation, setup.actorId, setup.practiceId);
+
+  assert.equal(drying.type, "pottery-drying-choice");
+  assert.equal(drying.actions.length, 6);
+  assert.ok(Number(drying.context.initialResidualMoisture) > 0.48);
+  assert.equal(drying.context.kilnReadiness, "too-wet-or-unstable");
+
+  const kilnNow = drying.actions.find((action: Record<string, unknown>) => action.id === "kiln-now");
+  assert.ok(kilnNow, "immediate kiln entry should remain visible as a possibility");
+  assert.equal(kilnNow.enabled, false);
+  assert.match(String(kilnNow.disabledReason), /偏湿|风险过高/);
+});
+
+test("drying strategies persist different residual moisture, gradients, warping risk and time costs", () => {
+  const run = (seed: number, dryingAction: string) => {
+    const setup = setupVessel(seed, 4);
+    const clayStep = nextInteraction(setup.simulation, setup.actorId, setup.practiceId);
+    choose(setup.simulation, setup.actorId, clayStep, "air-dry-first");
+    const forming = nextInteraction(setup.simulation, setup.actorId, setup.practiceId);
+    choose(setup.simulation, setup.actorId, forming, "coil-balanced");
+    const drying = nextInteraction(setup.simulation, setup.actorId, setup.practiceId);
+    choose(setup.simulation, setup.actorId, drying, dryingAction);
+    const state = setup.simulation.worldView().getComponent(setup.practiceId, PracticeComponents.practice) ?? {};
+    assert.equal(state.stage, "firing");
+    return (state.context as Record<string, any>).drying;
+  };
+
+  const slow = run(15009, "slow-shade");
+  const sun = run(15012, "sun-fast");
+  const hearth = run(15013, "near-hearth");
+  const extended = run(15014, "extended-rest");
+
+  assert.ok(extended.residualMoisture < slow.residualMoisture, "extended drying should remove the most remaining moisture");
+  assert.ok(slow.residualMoisture < sun.initialResidualMoisture, "slow drying should materially reduce residual moisture");
+  assert.ok(sun.moistureGradient > slow.moistureGradient, "sun drying should create a larger moisture gradient");
+  assert.ok(hearth.warpingRisk > sun.warpingRisk, "near-hearth drying should carry the highest local warping risk here");
+  assert.ok(extended.dryingTime > slow.dryingTime, "extra stability should cost more time");
+  assert.ok(sun.dryingTime < slow.dryingTime, "sun drying should be faster than slow shade drying");
+});
+
+test("firing exposes five heat-control routes and shows the inherited body condition before the player commits", () => {
+  const setup = setupVessel(15015, 3);
+  const clay = nextInteraction(setup.simulation, setup.actorId, setup.practiceId);
+  choose(setup.simulation, setup.actorId, clay, "screen-and-knead");
+  const forming = nextInteraction(setup.simulation, setup.actorId, setup.practiceId);
+  choose(setup.simulation, setup.actorId, forming, "coil-balanced");
+  const drying = nextInteraction(setup.simulation, setup.actorId, setup.practiceId);
+  choose(setup.simulation, setup.actorId, drying, "slow-shade");
+  const firing = nextInteraction(setup.simulation, setup.actorId, setup.practiceId);
+
+  assert.equal(firing.type, "pottery-firing-choice");
+  assert.equal(firing.actions.length, 5);
+  assert.ok(Number.isFinite(Number(firing.context.residualMoisture)));
+  assert.ok(Number.isFinite(Number(firing.context.moistureGradient)));
+  assert.ok(Number.isFinite(Number(firing.context.warpingRisk)));
+  assert.ok(["stable", "caution", "fragile"].includes(String(firing.context.bodyCondition)));
+  assert.ok(firing.actions.some((action: Record<string, unknown>) => action.id === "staged-preheat"));
+
+  const hotFast = firing.actions.find((action: Record<string, unknown>) => action.id === "hot-fast");
+  assert.equal(hotFast.enabled, false, "high-fire fast route stays visible when fuel is insufficient");
+  assert.match(String(hotFast.disabledReason), /4 份燃料/);
+});
+
+test("firing strategy amplifies or mitigates moisture and gradient inherited from drying", () => {
+  const run = (seed: number, dryingAction: string, firingAction: string) => {
+    const setup = setupVessel(seed, 4);
+    const clay = nextInteraction(setup.simulation, setup.actorId, setup.practiceId);
+    choose(setup.simulation, setup.actorId, clay, "screen-and-knead");
+    const forming = nextInteraction(setup.simulation, setup.actorId, setup.practiceId);
+    choose(setup.simulation, setup.actorId, forming, "coil-balanced");
+    const drying = nextInteraction(setup.simulation, setup.actorId, setup.practiceId);
+    choose(setup.simulation, setup.actorId, drying, dryingAction);
+    const firing = nextInteraction(setup.simulation, setup.actorId, setup.practiceId);
+    choose(setup.simulation, setup.actorId, firing, firingAction);
+    const state = setup.simulation.worldView().getComponent(setup.practiceId, PracticeComponents.practice) ?? {};
+    return (state.context as Record<string, any>).firing;
+  };
+
+  const wellDriedFast = run(15016, "slow-shade", "hot-fast");
+  const unevenFast = run(15017, "sun-fast", "hot-fast");
+  const unevenPreheated = run(15018, "sun-fast", "staged-preheat");
+
+  assert.ok(unevenFast.inheritedMoistureGradient > wellDriedFast.inheritedMoistureGradient);
+  assert.ok(unevenFast.firingRisk > wellDriedFast.firingRisk, "the same fast firing should punish uneven drying");
+  assert.ok(unevenPreheated.firingRisk < unevenFast.firingRisk, "staged preheating should mitigate inherited moisture instability");
+  assert.ok(unevenFast.quality > unevenPreheated.quality, "fast high heat keeps a higher upside while carrying more risk");
+  assert.ok(unevenFast.firingTime < unevenPreheated.firingTime, "the risky route should also be faster");
+});
+
 test("the full vessel Practice gives the player repeated meaningful choices instead of auto-playing the craft", () => {
   const { simulation, actorId, practiceId } = setupVessel(15010, 3);
 
@@ -267,13 +362,13 @@ test("the full vessel Practice gives the player repeated meaningful choices inst
 
   const drying = nextInteraction(simulation, actorId, practiceId);
   assert.equal(drying.type, "pottery-drying-choice");
-  assert.equal(drying.actions.length, 4);
+  assert.equal(drying.actions.length, 6);
   assert.ok(drying.actions.every((action: Record<string, unknown>) => String(action.hint ?? "").length > 0));
   choose(simulation, actorId, drying, "slow-shade");
 
   const firing = nextInteraction(simulation, actorId, practiceId);
   assert.equal(firing.type, "pottery-firing-choice");
-  assert.equal(firing.actions.length, 4);
+  assert.equal(firing.actions.length, 5);
   const hotFast = firing.actions.find((action: Record<string, unknown>) => action.id === "hot-fast");
   assert.equal(hotFast.enabled, false, "the expensive option should remain visible when fuel is insufficient");
   assert.match(String(hotFast.disabledReason), /4 份燃料/);

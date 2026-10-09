@@ -1,0 +1,60 @@
+# World-edge boundary anchors. v0.1 defines the minimal record only: where the
+# map meets the world boundary, which direction it faces, and what it is
+# compatible with.
+#
+# Named `boundary_anchors` to keep them distinct from `historical-anchors`,
+# which are authored historical *people*. The handshake that will join two
+# boundary anchors across packs is a later step; nothing here performs it.
+boundary_anchors:
+  - id: WEST_RIVER_IN
+    type: river_inlet
+    location_id: L0101
+    edge: west
+    compatibility_tags:
+      - river
+      - upstream
+      - freshwater
+
+  - id: EAST_RIVER_OUT
+    type: river_outlet
+    location_id: L0603
+    edge: east
+    compatibility_tags:
+      - river
+      - downstream
+
+  - id: NORTH_LAND_CORRIDOR
+    type: land_corridor
+    location_id: L0404
+    edge: north
+    compatibility_tags:
+      - land
+      - corridor
+      - overland
+
+  - id: SOUTH_LAND_CORRIDOR
+    type: land_corridor
+    location_id: L0504
+    edge: south
+    compatibility_tags:
+      - land
+      - corridor
+      - overland
+
+  - id: WEST_HIGHLAND_CONTINUITY
+    type: highland_continuity
+    location_id: L0201
+    edge: west
+    compatibility_tags:
+      - highland
+      - mountain
+      - continuity
+
+  - id: EAST_WETLAND_CONTINUITY
+    type: wetland_continuity
+    location_id: L0303
+    edge: east
+    compatibility_tags:
+      - wetland
+      - marsh
+      - continuity

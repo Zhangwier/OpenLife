@@ -386,6 +386,19 @@ export class Kernel {
       note: (message, data) => notes.push(data ? { message, data } : { message }),
     });
     if (!outcome) return;
+    if (outcome.commands && outcome.commands.length > 0) {
+      for (const next of outcome.commands) {
+        const result = this.dispatch({
+          type: next.type,
+          ...(next.actorId !== undefined ? { actorId: next.actorId } : {}),
+          ...(next.targetId !== undefined ? { targetId: next.targetId } : {}),
+          payload: (next.payload ?? {}) as unknown as Command["payload"],
+          source: next.source ?? "system",
+        });
+        if (!result.ok) break;
+      }
+      return;
+    }
     if (outcome.command) {
       this.dispatch({
         type: outcome.command.type,
@@ -394,6 +407,17 @@ export class Kernel {
         payload: (outcome.command.payload ?? {}) as unknown as Command["payload"],
         source: outcome.command.source ?? "system",
       });
+      // A repeating task may both run a command and ask to be due again. The
+      // reschedule must not be skipped just because a command was emitted, or
+      // a re-arming task fires exactly once (M1.2-B).
+      if (outcome.rescheduleAt !== undefined) {
+        this.#scheduler.schedule({
+          type: taskType,
+          dueAt: outcome.rescheduleAt,
+          payload: payload as unknown as Command["payload"],
+          ...(owner ? { owner } : {}),
+        });
+      }
       return;
     }
     if (outcome.rescheduleAt !== undefined) {
