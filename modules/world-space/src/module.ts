@@ -709,7 +709,10 @@ export function moveEffects(
     // Same place, different spot. Occupancy is keyed by (type, from, place), so
     // the space cannot be patched through that relation; the space the actor
     // stands in is therefore carried by a dedicated "in space" relation.
-    const currentSpace = String(alreadyHere.components[SpaceComponents.occupancy]?.spaceId ?? "");
+    // The dedicated standingIn relation owns the current room. The older
+    // occupancy component stores the entry room and may be stale after a
+    // moveWithin; using it here incorrectly treats a later return as a no-op.
+    const currentSpace = occupiedSpaceId(world, actorId);
     if (currentSpace === spaceId) return effects;
     for (const relation of world.listRelations({ type: SpaceRelations.standingIn, from: actorId })) {
       if (relation.to === spaceId) continue;

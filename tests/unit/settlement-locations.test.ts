@@ -17,6 +17,8 @@ import { worldSpaceModule, SpaceCommands, occupiedPlaceId, occupiedSpaceId, scen
 import {
   worldObjectsModule,
   ObjectCommands,
+  ObjectRelations,
+  ObjectKinds,
   holderOf,
   containerOf,
   contentsOf,
@@ -27,6 +29,7 @@ import {
 import {
   settlementLocationsModule,
   SettlementCommands,
+  SettlementComponents,
   SettlementContent,
   SettlementProjections,
   SettlementId,
@@ -219,6 +222,76 @@ test("drawing water into a carried jar conserves stock across the pair", () => {
   assert.equal(stockBefore - stockAfter, 3);
 });
 
+test("UX-P0: meeting a real resident takes conversations on separate days, not instant friendship", () => {
+  const { sim, actorId } = world(8101);
+  const yu = residentId("yu");
+  const initialCharacters = sim.worldView().listEntities({ kind: "modern.character" }).length;
+  const outOfPlace = sim.dispatch({ type: SettlementCommands.talk, actorId, payload: { targetId: yu } });
+  assert.equal(outOfPlace.ok, false, "an unseen person cannot be met remotely");
+  must(sim, { type: SpaceCommands.enter, actorId, payload: { placeId: "place:field" } });
+  const neighbor = () => homestead(sim.worldView(), actorId).neighbours.find((p) => p.id === yu);
+  assert.equal(neighbor()?.contact, "陌生");
+  must(sim, { type: SettlementCommands.talk, actorId, payload: { targetId: yu } });
+  assert.equal(neighbor()?.contact, "见过");
+  assert.equal(neighbor()?.conversations, 1);
+  assert.equal(sim.dispatch({ type: SettlementCommands.talk, actorId, payload: { targetId: yu } }).ok, false,
+    "a second click cannot farm friendship on the same day");
+  assert.equal(sim.worldView().listRelations({ type: "family.friend_of", from: actorId }).length, 0);
+  sim.advanceBy(1);
+  must(sim, { type: SettlementCommands.talk, actorId, payload: { targetId: yu } });
+  sim.advanceBy(1);
+  must(sim, { type: SettlementCommands.talk, actorId, payload: { targetId: yu } });
+  assert.equal(neighbor()?.contact, "相识", "three real conversations become acquaintance, not instant friend");
+  assert.equal(neighbor()?.conversations, 3);
+  assert.equal(sim.worldView().listEntities({ kind: "modern.character" }).length, initialCharacters);
+  assert.equal(sim.worldView().listRelations({ type: "family.friend_of", from: actorId }).length, 0);
+  const loaded = Simulation.load(sim.save(), modules);
+  assert.equal(loaded.result.ok, true);
+  assert.equal(homestead(loaded.simulation!.worldView(), actorId).neighbours.find((p) => p.id === yu)?.contact, "相识");
+  must(sim, { type: SpaceCommands.enter, actorId, payload: { placeId: "place:yard" } });
+  assert.equal(sim.dispatch({ type: SettlementCommands.talk, actorId, payload: { targetId: yu } }).ok, false,
+    "knowing someone still does not permit remote conversation");
+});
+
+test("UX-P0: finite portable load persists across days, fails atomically and frees space when dropped", () => {
+  const { sim, actorId } = world(8102);
+  must(sim, { type: SpaceCommands.enter, actorId, payload: { placeId: "place:reedbed" } });
+  const reed = () => worksites(sim.worldView()).places.find((p) => p.placeId === "place:reedbed")!.resources
+    .find((r) => r.resourceId === "resource:reed")!.stock;
+  const stockAtStart = reed();
+  const heldReeds = () => sim.worldView().listRelations({ type: ObjectRelations.heldBy, to: actorId })
+    .map((r) => r.from).filter((id) => prototypeOf(sim.worldView(), id).resourceId === "resource:reed");
+  for (let i = 0; i < 4; i++) {
+    if (dailyActivity(sim.worldView(), actorId).remaining < 2) sim.advanceBy(1);
+    must(sim, { type: SettlementCommands.draw, actorId,
+      payload: { placeId: "place:reedbed", resourceId: "resource:reed" } });
+  }
+  assert.equal(heldReeds().length, 4);
+  assert.equal(reed(), stockAtStart - 4);
+  sim.advanceBy(1);
+  const usedBefore = dailyActivity(sim.worldView(), actorId).used;
+  const denied = sim.dispatch({ type: SettlementCommands.draw, actorId,
+    payload: { placeId: "place:reedbed", resourceId: "resource:reed" } });
+  assert.equal(denied.ok, false);
+  assert.equal(denied.errors[0]?.code, "E_SETTLEMENT_NO_ROOM");
+  assert.equal(dailyActivity(sim.worldView(), actorId).used, usedBefore);
+  assert.equal(reed(), stockAtStart - 4, "refused draw cannot deduct stocks");
+  const droppedId = heldReeds()[0];
+  must(sim, { type: ObjectCommands.place, actorId,
+    payload: { objectId: droppedId, placeId: "place:reedbed" } });
+  assert.equal(heldReeds().length, 3);
+  must(sim, { type: SettlementCommands.draw, actorId,
+    payload: { placeId: "place:reedbed", resourceId: "resource:reed" } });
+  assert.equal(heldReeds().length, 4);
+  const blockedTake = sim.dispatch({ type: ObjectCommands.take, actorId, payload: { objectId: droppedId } });
+  assert.equal(blockedTake.ok, false);
+  assert.equal(blockedTake.errors[0]?.code, "E_OBJECT_OVERLOADED");
+  assert.equal(sim.worldView().listRelations({ type: ObjectRelations.heldBy, from: droppedId }).length, 0);
+  const saved = Simulation.load(sim.save(), modules);
+  assert.equal(saved.result.ok, true);
+  assert.equal(saved.simulation!.fingerprint(), sim.fingerprint(), "load cannot erase legitimate carried goods");
+});
+
 test("a place cannot be drained below zero however often it is drawn", () => {
   const { sim, actorId } = world();
   const point = "resource:clay";
@@ -237,6 +310,12 @@ test("a place cannot be drained below zero however often it is drawn", () => {
     if (!result.ok) {
       refusals += 1;
       assert.equal(result.errors[0]?.code, "E_SETTLEMENT_EXHAUSTED");
+    } else {
+      // Depleting the quarry requires unloading; one body cannot infinitely
+      // carry all the clay it has ever collected.
+      const clay = sim.worldView().listRelations({ type: ObjectRelations.heldBy, to: actorId })
+        .map((relation) => relation.from).find((id) => prototypeOf(sim.worldView(), id).resourceId === point)!;
+      must(sim, { type: ObjectCommands.place, actorId, payload: { objectId: clay, placeId: place } });
     }
   }
   assert.equal(refusals, 4, "exactly the draws past the stock are refused");
@@ -645,6 +724,285 @@ test("M2-UX2-C: ordered routine can walk to field, work and walk to kiln in one 
   assert.equal(homestead(sim.worldView(), actorId).placeId, "place:kiln");
   assert.equal(worksites(sim.worldView()).places.find((p) => p.placeId === "place:hearth-yard")!
     .resources.find((v) => v.resourceId === "resource:cooked")!.stock, initialStock - 1);
+});
+
+test("M2-B-A: two real reed bundles become one usable woven bag, with genuine contents", () => {
+  const { sim, actorId } = world(5881);
+  must(sim, { type: SettlementCommands.arrive, actorId, payload: { placeId: "place:reedbed" } });
+  const initial = worksites(sim.worldView()).places.find((p) => p.placeId === "place:reedbed")!
+    .resources.find((v) => v.resourceId === "resource:reed")!.stock;
+  const noReed = sim.dispatch({ type: SettlementCommands.weaveBag, actorId });
+  assert.equal(noReed.ok, false);
+  assert.equal(noReed.errors[0]?.code, "E_SETTLEMENT_EMPTY");
+  assert.equal(dailyActivity(sim.worldView(), actorId).used, 0);
+  for (let n = 0; n < 3; n++) {
+    must(sim, { type: SettlementCommands.draw, actorId,
+      payload: { placeId: "place:reedbed", resourceId: "resource:reed" } });
+  }
+  assert.equal(dailyActivity(sim.worldView(), actorId).used, 6);
+  const reeds = sim.worldView().listRelations({ type: "world-objects.held_by", to: actorId })
+    .map((r) => r.from).filter((id) => prototypeOf(sim.worldView(), id).resourceId === "resource:reed").sort();
+  assert.equal(reeds.length, 3);
+  const exposed = homestead(sim.worldView(), actorId).actions.find((a) => a.id === SettlementCommands.weaveBag);
+  assert.equal(exposed?.enabled, true);
+  must(sim, { type: SettlementCommands.weaveBag, actorId });
+  assert.equal(dailyActivity(sim.worldView(), actorId).used, 8);
+  assert.equal(carrying(sim.worldView(), actorId).find((x) => x.resourceId === "resource:reed")?.count, 1);
+  const bagId = sim.worldView().listRelations({ type: "world-objects.held_by", to: actorId })
+    .map((r) => r.from).find((id) => prototypeOf(sim.worldView(), id).prototypeId === "prototype:carrying-bag")!;
+  assert.ok(bagId);
+  assert.equal(prototypeOf(sim.worldView(), bagId).capacity, 3);
+  const bagObject = readObject(sim.worldView().getComponent(bagId, ObjectComponents.object));
+  assert.deepEqual(bagObject.provenance.reedIds, reeds.slice(0, 2));
+  for (const used of reeds.slice(0, 2)) assert.ok(sim.worldView().getEntity(used)?.archivedAt !== undefined);
+  const spare = reeds[2];
+  const pack = homestead(sim.worldView(), actorId).actions.find((a) =>
+    a.id === ObjectCommands.store && a.payload.objectId === spare && a.payload.containerId === bagId);
+  assert.equal(pack?.enabled, true, "the Web shows how to put the actual spare reed into this bag");
+  must(sim, { type: ObjectCommands.store, actorId, payload: { objectId: spare, containerId: bagId } });
+  assert.equal(holderOf(sim.worldView(), spare), "");
+  assert.equal(containerOf(sim.worldView(), spare), bagId);
+  assert.equal(carrying(sim.worldView(), actorId).find((x) => x.resourceId === "resource:reed")?.count, 1,
+    "the bagged reed still exists and travels with its owner");
+  must(sim, { type: SettlementCommands.arrive, actorId,
+    payload: { placeId: "place:field" } });
+  assert.equal(homestead(sim.worldView(), actorId).actions.some((a) =>
+    a.id === ObjectCommands.retrieve && a.payload.objectId === spare), true);
+  const reloaded = Simulation.load(sim.save(), modules);
+  assert.equal(reloaded.result.ok, true);
+  assert.equal(reloaded.simulation!.fingerprint(), sim.fingerprint());
+  must(reloaded.simulation!, { type: ObjectCommands.retrieve, actorId, payload: { objectId: spare } });
+  assert.equal(holderOf(reloaded.simulation!.worldView(), spare), actorId);
+  assert.equal(containerOf(reloaded.simulation!.worldView(), spare), "");
+  assert.equal(worksites(reloaded.simulation!.worldView()).places
+    .find((p) => p.placeId === "place:reedbed")!.resources
+    .find((v) => v.resourceId === "resource:reed")!.stock, initial - 3);
+  assert.equal(reloaded.simulation!.dispatch({ type: SettlementCommands.weaveBag, actorId }).ok, false);
+});
+
+test("M2-B-A: no remote packing, no duplicate bags, and identical input commands replay", () => {
+  const play = () => {
+    const { sim, actorId } = world(5882);
+    must(sim, { type: SettlementCommands.arrive, actorId, payload: { placeId: "place:reedbed" } });
+    for (let n = 0; n < 3; n++) must(sim, { type: SettlementCommands.draw, actorId,
+      payload: { placeId: "place:reedbed", resourceId: "resource:reed" } });
+    must(sim, { type: SettlementCommands.weaveBag, actorId });
+    const ids = sim.worldView().listRelations({ type: "world-objects.held_by", to: actorId }).map((r) => r.from);
+    const bag = ids.find((id) => prototypeOf(sim.worldView(), id).prototypeId === "prototype:carrying-bag")!;
+    const reed = ids.find((id) => prototypeOf(sim.worldView(), id).resourceId === "resource:reed")!;
+    must(sim, { type: ObjectCommands.place, actorId, payload: { objectId: bag, placeId: "place:reedbed" } });
+    must(sim, { type: SettlementCommands.arrive, actorId, payload: { placeId: "place:field" } });
+    const remote = sim.dispatch({ type: ObjectCommands.store, actorId,
+      payload: { objectId: reed, containerId: bag } });
+    assert.equal(remote.ok, false);
+    assert.equal(remote.errors[0]?.code, "E_OBJECT_WRONG_PLACE");
+    assert.equal(holderOf(sim.worldView(), reed), actorId);
+    assert.equal(containerOf(sim.worldView(), reed), "");
+    return sim.fingerprint();
+  };
+  assert.equal(play(), play());
+});
+
+test("M2-B-B: two genuine reed bundles make a mat; resting on it grants only tomorrow one extra unit", () => {
+  const { sim, actorId } = world(5991);
+  must(sim, { type: SettlementCommands.arrive, actorId, payload: { placeId: "place:reedbed" } });
+  const noMaterials = sim.dispatch({ type: SettlementCommands.weaveMat, actorId });
+  assert.equal(noMaterials.ok, false);
+  assert.equal(noMaterials.errors[0]?.code, "E_SETTLEMENT_EMPTY");
+  assert.equal(dailyActivity(sim.worldView(), actorId).used, 0);
+  const startStock = worksites(sim.worldView()).places.find((place) => place.placeId === "place:reedbed")!
+    .resources.find((resource) => resource.resourceId === "resource:reed")!.stock;
+  for (let n = 0; n < 2; n++) must(sim, { type: SettlementCommands.draw, actorId,
+    payload: { resourceId: "resource:reed", placeId: "place:reedbed" } });
+  const originals = sim.worldView().listRelations({ type: ObjectRelations.heldBy, to: actorId })
+    .map((r) => r.from).filter((id) => prototypeOf(sim.worldView(), id).resourceId === "resource:reed").sort();
+  assert.equal(originals.length, 2);
+  assert.equal(homestead(sim.worldView(), actorId).actions.find((a) => a.id === SettlementCommands.weaveMat)?.enabled, true);
+  must(sim, { type: SettlementCommands.weaveMat, actorId });
+  assert.equal(dailyActivity(sim.worldView(), actorId).used, 6);
+  const matId = sim.worldView().listRelations({ type: ObjectRelations.heldBy, to: actorId })
+    .map((r) => r.from).find((id) => prototypeOf(sim.worldView(), id).prototypeId === "prototype:mat")!;
+  assert.ok(matId);
+  assert.deepEqual(readObject(sim.worldView().getComponent(matId, ObjectComponents.object)).provenance.reedIds, originals);
+  assert.ok(originals.every((id) => sim.worldView().getEntity(id)?.archivedAt !== undefined));
+  assert.equal(carrying(sim.worldView(), actorId).find((r) => r.resourceId === "resource:reed"), undefined);
+  const repeat = sim.dispatch({ type: SettlementCommands.weaveMat, actorId });
+  assert.equal(repeat.ok, false, "one pair of reeds cannot be consumed twice");
+  assert.equal(dailyActivity(sim.worldView(), actorId).used, 6);
+
+  const remoteRest = sim.dispatch({ type: SettlementCommands.rest, actorId, payload: { matId } });
+  assert.equal(remoteRest.ok, false, "a mat outside a sleeping space provides no bonus");
+  assert.equal(dailyActivity(sim.worldView(), actorId).used, 6);
+  must(sim, { type: SettlementCommands.arrive, actorId, payload: { placeId: "place:yard" } });
+  assert.ok(homestead(sim.worldView(), actorId).actions.some((a) =>
+    a.id === SettlementCommands.rest && a.payload.matId === matId && a.enabled));
+  const restedAt = sim.tick;
+  must(sim, { type: SettlementCommands.rest, actorId, payload: { matId } });
+  assert.equal(dailyActivity(sim.worldView(), actorId).capacity, 8, "the extra unit is not available today");
+  const saved = Simulation.load(sim.save(), modules);
+  assert.equal(saved.result.ok, true);
+  assert.equal(saved.simulation!.fingerprint(), sim.fingerprint());
+  const restored = saved.simulation!;
+  restored.advanceBy(1);
+  assert.equal(dailyActivity(restored.worldView(), actorId).capacity, 9);
+  assert.equal(dailyActivity(restored.worldView(), actorId).remaining, 9);
+  must(restored, { type: SettlementCommands.rest, actorId, payload: { matId } });
+  must(restored, { type: SettlementCommands.rest, actorId, payload: { matId } });
+  assert.equal(dailyActivity(restored.worldView(), actorId).capacity, 9, "repeated rest cannot stack the capacity");
+  assert.equal(dailyActivity(restored.worldView(), actorId).used, 4);
+  assert.equal(restored.worldView().getComponent(actorId, SettlementComponents.holding)?.matRestedAt, restedAt + 1);
+  restored.advanceBy(1);
+  assert.equal(dailyActivity(restored.worldView(), actorId).capacity, 9);
+  restored.advanceBy(1);
+  assert.equal(dailyActivity(restored.worldView(), actorId).capacity, 8, "bonus lasts only one following day");
+  assert.equal(worksites(restored.worldView()).places.find((p) => p.placeId === "place:reedbed")!
+    .resources.find((r) => r.resourceId === "resource:reed")!.stock, startStock - 2);
+});
+
+test("M2-B-B: a mat laid at home remains usable, while a remote or stranger's mat does not", () => {
+  const { sim, actorId } = world(5992);
+  must(sim, { type: SettlementCommands.arrive, actorId, payload: { placeId: "place:reedbed" } });
+  for (let n = 0; n < 2; n++) must(sim, { type: SettlementCommands.draw, actorId,
+    payload: { resourceId: "resource:reed", placeId: "place:reedbed" } });
+  must(sim, { type: SettlementCommands.weaveMat, actorId });
+  const matId = sim.worldView().listRelations({ type: ObjectRelations.heldBy, to: actorId })
+    .map((r) => r.from).find((id) => prototypeOf(sim.worldView(), id).prototypeId === "prototype:mat")!;
+  must(sim, { type: SettlementCommands.arrive, actorId, payload: { placeId: "place:yard" } });
+  must(sim, { type: ObjectCommands.place, actorId, payload: { objectId: matId, placeId: "place:yard" } });
+  assert.equal(holderOf(sim.worldView(), matId), "");
+  assert.equal(containerOf(sim.worldView(), matId), "place:yard");
+  must(sim, { type: SettlementCommands.rest, actorId, payload: { matId } });
+  const before = dailyActivity(sim.worldView(), actorId).used;
+  must(sim, { type: SettlementCommands.arrive, actorId, payload: { placeId: "place:field" } });
+  const away = sim.dispatch({ type: SettlementCommands.rest, actorId, payload: { matId } });
+  assert.equal(away.ok, false);
+  assert.equal(dailyActivity(sim.worldView(), actorId).used, before);
+  must(sim, { type: SettlementCommands.arrive, actorId, payload: { placeId: "place:yard" } });
+  const mats = homestead(sim.worldView(), actorId).actions.filter((a) =>
+    a.id === SettlementCommands.rest && Boolean(a.payload.matId));
+  assert.equal(mats.length, 1);
+  const foreignMat = sim.worldView().listEntities({ kind: ObjectKinds.item })
+    .find((e) => e.archivedAt === undefined && e.id !== matId &&
+      prototypeOf(sim.worldView(), e.id).prototypeId === "prototype:sleep-mat")?.id;
+  if (foreignMat) {
+    const unauthorized = sim.dispatch({ type: SettlementCommands.rest, actorId, payload: { matId: foreignMat } });
+    assert.equal(unauthorized.ok, false);
+  }
+  const reloaded = Simulation.load(sim.save(), modules);
+  assert.equal(reloaded.result.ok, true);
+  assert.equal(reloaded.simulation!.fingerprint(), sim.fingerprint());
+});
+
+test("M2-B-C: reed fibers make one wearable wrap with real provenance and changed field labor", () => {
+  const { sim, actorId } = world(6001);
+  must(sim, { type: SettlementCommands.arrive, actorId, payload: { placeId: "place:reedbed" } });
+  const stock = () => worksites(sim.worldView()).places
+    .find((p) => p.placeId === "place:reedbed")!.resources
+    .find((r) => r.resourceId === "resource:reed")!.stock;
+  const firstStock = stock();
+  const refused = sim.dispatch({ type: SettlementCommands.prepareFiber, actorId });
+  assert.equal(refused.ok, false, "cannot invent fiber without gathered reeds");
+  assert.equal(dailyActivity(sim.worldView(), actorId).used, 0);
+  for (let i = 0; i < 2; i++) {
+    must(sim, { type: SettlementCommands.draw, actorId,
+      payload: { placeId: "place:reedbed", resourceId: "resource:reed" } });
+  }
+  const reeds = sim.worldView().listRelations({ type: ObjectRelations.heldBy, to: actorId })
+    .map((r) => r.from).filter((id) => prototypeOf(sim.worldView(), id).resourceId === "resource:reed").sort();
+  assert.equal(reeds.length, 2);
+  must(sim, { type: SettlementCommands.prepareFiber, actorId });
+  assert.equal(dailyActivity(sim.worldView(), actorId).used, 6);
+  assert.equal(stock(), firstStock - 2);
+  assert.ok(reeds.every((id) => sim.worldView().getEntity(id)?.archivedAt !== undefined));
+  const fibers = sim.worldView().listRelations({ type: ObjectRelations.heldBy, to: actorId })
+    .map((r) => r.from).filter((id) => prototypeOf(sim.worldView(), id).resourceId === "resource:fiber").sort();
+  assert.equal(fibers.length, 2);
+  assert.equal(sim.dispatch({ type: SettlementCommands.prepareFiber, actorId }).ok, false);
+  must(sim, { type: SettlementCommands.weaveWrap, actorId });
+  assert.equal(dailyActivity(sim.worldView(), actorId).used, 8);
+  assert.ok(fibers.every((id) => sim.worldView().getEntity(id)?.archivedAt !== undefined));
+  const wrapId = sim.worldView().listRelations({ type: ObjectRelations.heldBy, to: actorId })
+    .map((r) => r.from).find((id) => prototypeOf(sim.worldView(), id).prototypeId === "prototype:fiber-wrap")!;
+  assert.ok(wrapId);
+  assert.deepEqual(readObject(sim.worldView().getComponent(wrapId, ObjectComponents.object)).provenance.fromFiberIds, fibers);
+  assert.equal(sim.dispatch({ type: SettlementCommands.weaveWrap, actorId }).ok, false);
+  assert.equal(homestead(sim.worldView(), actorId).outfit, null);
+  assert.equal(homestead(sim.worldView(), actorId).actions.some((a) =>
+    a.id === ObjectCommands.wear && a.payload.objectId === wrapId), true);
+
+  must(sim, { type: ObjectCommands.wear, actorId, payload: { objectId: wrapId } });
+  assert.equal(homestead(sim.worldView(), actorId).outfit?.objectId, wrapId);
+  assert.equal(sim.worldView().listRelations({ type: ObjectRelations.wornBy, from: wrapId })[0]?.to, actorId);
+  assert.equal(sim.dispatch({ type: ObjectCommands.wear, actorId, payload: { objectId: wrapId } }).ok, false);
+  for (const type of [ObjectCommands.place, ObjectCommands.lend, ObjectCommands.store]) {
+    const outcome = sim.dispatch({ type, actorId,
+      payload: { objectId: wrapId, placeId: "place:reedbed", containerId: "instance:bogus",
+        borrowerId: "resident:lan", dueAt: sim.tick + 5 } });
+    assert.equal(outcome.ok, false, `cannot transfer worn garment using ${type}`);
+  }
+
+  must(sim, { type: SettlementCommands.arrive, actorId, payload: { placeId: "place:field" } });
+  // The preceding fiber preparation and weaving spent all 8 units;
+  // begin the next day before exercising actual field work.
+  sim.advanceBy(1);
+  const tick = sim.tick;
+  const fieldAction = () => homestead(sim.worldView(), actorId).actions
+    .find((a) => a.id === SettlementCommands.tend && a.payload.spaceId === "space:field-edge");
+  assert.equal(fieldAction()?.activityCost, 2);
+  must(sim, { type: SettlementCommands.tend, actorId, payload: { spaceId: "space:field-edge" } });
+  assert.equal(sim.tick, tick);
+  assert.equal(dailyActivity(sim.worldView(), actorId).used, 2);
+  const loaded = Simulation.load(sim.save(), modules);
+  assert.equal(loaded.result.ok, true);
+  assert.equal(loaded.simulation!.fingerprint(), sim.fingerprint());
+  assert.equal(homestead(loaded.simulation!.worldView(), actorId).outfit?.fieldWorkActivityCost, 2);
+  must(loaded.simulation!, { type: ObjectCommands.unwear, actorId, payload: { objectId: wrapId } });
+  assert.equal(homestead(loaded.simulation!.worldView(), actorId).outfit, null);
+  assert.equal(homestead(loaded.simulation!.worldView(), actorId).actions
+    .find((a) => a.id === SettlementCommands.tend && a.payload.spaceId === "space:field-edge")?.activityCost, 3);
+  must(loaded.simulation!, { type: SettlementCommands.tend, actorId, payload: { spaceId: "space:field-edge" } });
+  assert.equal(dailyActivity(loaded.simulation!.worldView(), actorId).used, 5);
+  assert.equal(loaded.simulation!.worldView().listRelations({ type: ObjectRelations.wornBy, from: wrapId }).length, 0);
+  assert.equal(holderOf(loaded.simulation!.worldView(), wrapId), actorId, "undressing keeps the same garment");
+});
+
+test("M2-B-C: strangers' clothing is not wearable and one person has just one outfit slot", () => {
+  const { sim, actorId } = world(6002);
+  must(sim, { type: SettlementCommands.arrive, actorId, payload: { placeId: "place:reedbed" } });
+  const borrowed = sim.dispatch({ type: ObjectCommands.wear, actorId,
+    payload: { objectId: "instance:lan-cloth" } });
+  assert.equal(borrowed.ok, false, "cannot wear a neighbor's item using its ID");
+  assert.equal(sim.worldView().listRelations({ type: ObjectRelations.wornBy, to: actorId }).length, 0);
+  const replay = () => {
+    const { sim: second, actorId: wearer } = world(6003);
+    must(second, { type: SettlementCommands.arrive, actorId: wearer, payload: { placeId: "place:reedbed" } });
+    for (let i = 0; i < 2; i++) must(second, { type: SettlementCommands.draw, actorId: wearer,
+      payload: { resourceId: "resource:reed", placeId: "place:reedbed" } });
+    must(second, { type: SettlementCommands.prepareFiber, actorId: wearer });
+    must(second, { type: SettlementCommands.weaveWrap, actorId: wearer });
+    const wrapId = second.worldView().listRelations({ type: ObjectRelations.heldBy, to: wearer })
+      .map((r) => r.from).find((id) => prototypeOf(second.worldView(), id).prototypeId === "prototype:fiber-wrap")!;
+    must(second, { type: ObjectCommands.wear, actorId: wearer, payload: { objectId: wrapId } });
+    assert.equal(second.dispatch({ type: ObjectCommands.wear, actorId: wearer, payload: { objectId: wrapId } }).ok, false);
+    assert.equal(second.dispatch({ type: ObjectCommands.unwear, actorId: "resident:lan", payload: { objectId: wrapId } }).ok, false);
+    second.advanceBy(1);
+    for (let i = 0; i < 2; i++) must(second, { type: SettlementCommands.draw,
+      actorId: wearer, payload: { resourceId: "resource:reed", placeId: "place:reedbed" } });
+    must(second, { type: SettlementCommands.prepareFiber, actorId: wearer });
+    must(second, { type: SettlementCommands.weaveWrap, actorId: wearer });
+    const another = second.worldView().listRelations({ type: ObjectRelations.heldBy, to: wearer })
+      .map((r) => r.from)
+      .find((id) => id !== wrapId && prototypeOf(second.worldView(), id).prototypeId === "prototype:fiber-wrap")!;
+    assert.ok(another && another !== wrapId);
+    const cannotWearBoth = second.dispatch({ type: ObjectCommands.wear, actorId: wearer, payload: { objectId: another } });
+    assert.equal(cannotWearBoth.ok, false, "different garment cannot bypass the sole outfit slot");
+    assert.equal(second.worldView().listRelations({ type: ObjectRelations.wornBy, to: wearer }).length, 1);
+    must(second, { type: ObjectCommands.unwear, actorId: wearer, payload: { objectId: wrapId } });
+    must(second, { type: ObjectCommands.wear, actorId: wearer, payload: { objectId: another } });
+    assert.equal(second.worldView().listRelations({ type: ObjectRelations.wornBy, to: wearer }).length, 1);
+    return second.fingerprint();
+  };
+  assert.equal(replay(), replay(), "same seed and real commands produce identical clothing state");
 });
 
 test("working at a worksite is only possible from that worksite", () => {

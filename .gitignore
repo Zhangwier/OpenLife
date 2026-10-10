@@ -14,3 +14,6 @@ out/
 # Ad-hoc diagnostic scratch files
 tmp-*.ts
 tmp-*.js
+
+# Verification/build output (screenshots, TAP reports, browser JSON results)
+artifacts/

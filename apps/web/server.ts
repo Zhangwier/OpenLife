@@ -26,6 +26,7 @@ import { worldClockModule } from "@openlife/module-world-clock";
 import { worldSpaceModule } from "@openlife/module-world-space";
 import { worldObjectsModule } from "@openlife/module-world-objects";
 import { settlementLocationsModule, SettlementCommands } from "@openlife/module-settlement-locations";
+import { residentId } from "@openlife/module-settlement-locations";
 import {
   playerView,
   playerActions,
@@ -35,6 +36,7 @@ import {
   loansHeldBy,
   rejected,
 } from "./src/player.ts";
+import { runVillageDayBoundary } from "./src/village-day.ts";
 import { worldCatalog } from "./src/catalog.ts";
 const PORT = Number(process.env.PORT ?? 4173);
 const PUBLIC_DIR = fileURLToPath(new URL("./public/", import.meta.url));
@@ -386,15 +388,23 @@ function gameState() {
 const SETTLEMENT_ACTIONS: Record<string, number> = {
   [SettlementCommands.arrive]: 1,
   [SettlementCommands.draw]: 1,
+  [SettlementCommands.talk]: 1,
   [SettlementCommands.drink]: 1,
   [SettlementCommands.eat]: 1,
   [SettlementCommands.cook]: 1,
+  [SettlementCommands.weaveBag]: 1,
+  [SettlementCommands.weaveMat]: 1,
+  [SettlementCommands.prepareFiber]: 1,
+  [SettlementCommands.weaveWrap]: 1,
   [SettlementCommands.sow]: 1,
   [SettlementCommands.harvest]: 1,
   [SettlementCommands.tend]: 1,
   [SettlementCommands.rest]: 1,
   [SettlementCommands.step]: 1,
   [SettlementCommands.configurePlan]: 0,
+  [SettlementCommands.playerBarterRequest]: 0,
+  [SettlementCommands.playerBarterAccept]: 0,
+  [SettlementCommands.playerBarterDecline]: 0,
 };
 
 export function isSettlementAction(action: string): boolean {
@@ -402,6 +412,10 @@ export function isSettlementAction(action: string): boolean {
     || action === "world-space.enter"
     || action === "world-space.move_within"
     || action === "world-objects.take"
+    || action === "world-objects.store"
+    || action === "world-objects.retrieve"
+    || action === "world-objects.wear"
+    || action === "world-objects.unwear"
     || action === "world-objects.place"
     || action === "world-objects.return";
 }
@@ -423,7 +437,7 @@ function buildActions(input: {
       tone: "warm",
       enabled: input.alive && input.age >= 6 && !input.learning.path,
     },
-    { id: "friend", label: "认识一个人", tone: "soft", enabled: input.alive && input.age >= 5 },
+    { id: "friend", label: "去周围找人搭话", tone: "soft", enabled: false, reason: "需在周围遇见真实村民，然后面对面交流。" },
     {
       id: "role",
       label: input.role.title ? "承担今天的役事" : "承担聚落里的角色",
@@ -549,7 +563,19 @@ function humanizeEvent(type: string, data: Record<string, unknown> = {}): string
 
 function runAction(action: string, payload: Record<string, unknown> = {}) {
   const id = activeCharacterId();
-  if (isSettlementAction(action)) return runSettlementAction(simulation, id, action, payload);
+  if (isSettlementAction(action)) {
+    const request = runSettlementAction(simulation, id, action, payload);
+    if (request.ok && action === SettlementCommands.playerBarterRequest) {
+      // The player's request is NOT the cook's consent: run a separate
+      // NPC-owned command, with full validation of both concrete items.
+      return simulation.dispatch({
+        type: SettlementCommands.cookBarterQuote,
+        actorId: residentId("cook"), source: "ai",
+        payload: { customerId: id, fuelId: payload.fuelId },
+      });
+    }
+    return request;
+  }
   if (action.startsWith("life-") || action.startsWith("pottery-")) return runPlayerAction(simulation, id, action, payload);
   // The settlement guard below reasons about *choices*, so time-advance actions
   // must be handled first: both the pottery slice and the settlement need to let
@@ -567,7 +593,7 @@ function runAction(action: string, payload: Record<string, unknown> = {}) {
     case "learn":
       return simulation.dispatch({ type: "early-civilization.begin_learning", actorId: id });
     case "friend":
-      return simulation.dispatch({ type: "family.make_friend", actorId: id, payload: { targetName: "禾" } });
+      return { ok: false, errors: [{ code: "E_REAL_ENCOUNTER_REQUIRED", message: "不能点一下直接成为朋友，请先与附近村民搭话。" }] };
     case "role":
       return simulation.dispatch({ type: "early-civilization.take_role", actorId: id });
     case "marry":
@@ -794,11 +820,15 @@ function plannedTimeBatch(days: number) {
         });
         if (!started.ok) return fail(`制陶开工失败：${started.errors?.[0]?.message ?? "条件不足"}`);
         actions.push("pottery");
+        const beforePotteryTick = simulation.tick;
         simulation.advanceBy(1);
-        simulation.syncHistory();
+        runVillageDayBoundary(simulation, beforePotteryTick);
         return fail("制陶已开工，泥料处理有重要选择需要你亲自决定。请在手艺面板完成当前工序。");
       } else if (step === "rest") {
-        payload = { ...payload, spaceId: view.spaceId };
+        const matRest = view.actions?.find((action: { id: string; enabled: boolean; payload: { matId?: string } }) =>
+          action.id === SettlementCommands.rest && action.enabled && Boolean(action.payload.matId));
+        payload = { ...payload, spaceId: view.spaceId,
+          ...(matRest?.payload.matId ? { matId: matRest.payload.matId } : {}) };
         command = SettlementCommands.rest;
       } else if (["go-hearth", "go-field", "go-kiln", "go-home"].includes(step)) {
         const placeByStep: Record<string, string> = {
@@ -853,6 +883,7 @@ function continuousTimeBatch(days: number) {
     projection: ({ tick }) => ({ tick, actorId }),
     advanceTicksPerStep: 1,
     maxCommands: 10,
+    onTickAdvanced: (tick) => { runVillageDayBoundary(simulation, tick - 1); },
     stopConditions: [
       untilActorArchived(actorId),
       {
@@ -1024,6 +1055,7 @@ const server = createServer(async (req, res) => {
         const action = String(body.action ?? "");
         const manualActorId = activeCharacterId();
         const activePlan = settlementView(simulation, manualActorId)?.dailyPlan;
+        const beforeManualTick = simulation.tick;
         const result = runAction(action, payload);
         // Manual action wins over a previously authorized routine. Suspend it
         // only after a successful action, never as a side effect of a refusal.
@@ -1032,6 +1064,7 @@ const server = createServer(async (req, res) => {
             steps: activePlan.steps, repeat: activePlan.repeat, enabled: false,
           });
         }
+        runVillageDayBoundary(simulation, beforeManualTick);
         simulation.syncHistory();
         res.end(JSON.stringify({ result, state: gameState() }));
         return;

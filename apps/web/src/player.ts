@@ -145,12 +145,36 @@ export function runSettlementAction(sim: Simulation, actorId: string, action: st
       return advance(dispatch(ObjectCommands.place, { payload: { objectId: payload.objectId, placeId: payload.placeId } }), 0);
     case ObjectCommands.returnItem:
       return advance(dispatch(ObjectCommands.returnItem, { payload: { objectId: payload.objectId } }), 0);
+    case SettlementCommands.talk:
+      return dispatch(SettlementCommands.talk, { payload: { targetId: payload.targetId } });
     case SettlementCommands.draw:
       return advance(dispatch(SettlementCommands.draw, { payload: { resourceId: payload.resourceId, placeId: payload.placeId, amount: payload.amount ?? 1 } }), 0);
     case SettlementCommands.drink:
       return advance(dispatch(SettlementCommands.drink, { payload: { containerId: payload.containerId, resourceId: "resource:water" } }), 0);
     case SettlementCommands.eat:
       return advance(dispatch(SettlementCommands.eat, { payload: { resourceId: payload.resourceId, placeId: payload.placeId, objectId: payload.objectId, planIndex: payload.planIndex, planStep: payload.planStep } }), 0);
+    case SettlementCommands.playerBarterRequest:
+      return dispatch(SettlementCommands.playerBarterRequest, { payload: { grainId: payload.grainId } });
+    case SettlementCommands.playerBarterAccept:
+      return dispatch(SettlementCommands.playerBarterAccept, { payload: { grainId: payload.grainId, fuelId: payload.fuelId } });
+    case SettlementCommands.playerBarterDecline:
+      return dispatch(SettlementCommands.playerBarterDecline, { payload: { grainId: payload.grainId, fuelId: payload.fuelId } });
+    case SettlementCommands.prepareFiber:
+      return dispatch(SettlementCommands.prepareFiber);
+    case SettlementCommands.weaveWrap:
+      return dispatch(SettlementCommands.weaveWrap);
+    case ObjectCommands.wear:
+      return dispatch(ObjectCommands.wear, { payload: { objectId: payload.objectId } });
+    case ObjectCommands.unwear:
+      return dispatch(ObjectCommands.unwear, { payload: { objectId: payload.objectId } });
+    case SettlementCommands.weaveMat:
+      return advance(dispatch(SettlementCommands.weaveMat), 0);
+    case SettlementCommands.weaveBag:
+      return advance(dispatch(SettlementCommands.weaveBag), 0);
+    case ObjectCommands.store:
+      return dispatch(ObjectCommands.store, { payload: { objectId: payload.objectId, containerId: payload.containerId } });
+    case ObjectCommands.retrieve:
+      return dispatch(ObjectCommands.retrieve, { payload: { objectId: payload.objectId } });
     case SettlementCommands.cook:
       return advance(dispatch(SettlementCommands.cook), 0);
     case SettlementCommands.sow:
@@ -160,7 +184,7 @@ export function runSettlementAction(sim: Simulation, actorId: string, action: st
     case SettlementCommands.tend:
       return advance(dispatch(SettlementCommands.tend, { payload: { spaceId: payload.spaceId, planIndex: payload.planIndex, planStep: payload.planStep } }), 0);
     case SettlementCommands.rest:
-      return advance(dispatch(SettlementCommands.rest, { payload: { spaceId: payload.spaceId, planIndex: payload.planIndex, planStep: payload.planStep } }), 0);
+      return advance(dispatch(SettlementCommands.rest, { payload: { spaceId: payload.spaceId, matId: payload.matId, planIndex: payload.planIndex, planStep: payload.planStep } }), 0);
     case SettlementCommands.configurePlan:
       return dispatch(SettlementCommands.configurePlan, { payload: { steps: payload.steps, repeat: payload.repeat, enabled: payload.enabled } });
     case SettlementCommands.step:

@@ -44,6 +44,7 @@ export const ObjectRelations = {
   heldBy: "world-objects.held_by",
   permittedTo: "world-objects.permitted_to",
   containedIn: "world-objects.contained_in",
+  wornBy: "world-objects.worn_by",
 } as const;
 
 export const ObjectCommands = {
@@ -54,6 +55,8 @@ export const ObjectCommands = {
   place: "world-objects.place",
   store: "world-objects.store",
   retrieve: "world-objects.retrieve",
+  wear: "world-objects.wear",
+  unwear: "world-objects.unwear",
   lend: "world-objects.lend",
   returnItem: "world-objects.return",
 } as const;
@@ -71,6 +74,7 @@ export const ObjectRejection = {
   NotCarryable: "E_OBJECT_NOT_CARRYABLE",
   NotAContainer: "E_OBJECT_NOT_CONTAINER",
   Full: "E_OBJECT_CONTAINER_FULL",
+  Overloaded: "E_OBJECT_OVERLOADED",
   NestedCycle: "E_OBJECT_NESTED_CYCLE",
   NotYours: "E_OBJECT_NOT_YOURS",
   InUse: "E_OBJECT_IN_USE",
@@ -163,6 +167,7 @@ export const worldObjectsModule: OpenLifeModule = {
       [ObjectRelations.heldBy, { allowedFrom: [ObjectKinds.item] }],
       [ObjectRelations.permittedTo, { allowedFrom: [ObjectKinds.item] }],
       [ObjectRelations.containedIn, { allowedFrom: [ObjectKinds.item] }],
+      [ObjectRelations.wornBy, { allowedFrom: [ObjectKinds.item] }],
     ] as const) {
       ctx.registerRelation({ id, persist: true, ...allowed, description: `world-objects relation ${id}` });
     }
@@ -175,6 +180,7 @@ export const worldObjectsModule: OpenLifeModule = {
     registerRetrieveCommand(ctx);
     registerLendCommand(ctx);
     registerReturnCommand(ctx);
+    registerWearCommands(ctx);
 
     ctx.registerProjection({
       id: ObjectProjections.stock,
@@ -346,6 +352,47 @@ function registerSpawnCommand(ctx: Registration): void {
   });
 }
 
+/** Physical portable load shared by NPCs and players, not a parallel inventory.
+ * "Hand slots" are the small collection a character can manage without
+ * storing pieces in a bag. A carried bag uses one slot, contents use its own
+ * real container limit, and their mass still counts on the wearer.
+ */
+export const CARRY_LIMITS = { looseSlots: 4, mass: 10 } as const;
+
+function objectMass(world: WorldView, objectId: string, visited = new Set<string>()): number {
+  if (visited.has(objectId)) return 0;
+  visited.add(objectId);
+  const p = prototypeOf(world, objectId);
+  const instance = readObject(world.getComponent(objectId, ObjectComponents.object));
+  const own = Math.max(0, p.mass) * Math.max(1, p.capacity > 0 ? 1 : instance.quantity);
+  return own + contentsOf(world, objectId).reduce((sum, id) => sum + objectMass(world, id, visited), 0);
+}
+
+export function portableLoad(world: WorldView, actorId: string, excludeId = "") {
+  const held = world.listRelations({ type: ObjectRelations.heldBy, to: actorId })
+    .map((r) => r.from)
+    .filter((id) => id !== excludeId && world.getEntity(id)?.archivedAt === undefined);
+  return { looseSlots: held.length, mass: held.reduce((sum, id) => sum + objectMass(world, id), 0),
+    maxSlots: CARRY_LIMITS.looseSlots, maxMass: CARRY_LIMITS.mass };
+}
+
+export function canCarryPrototype(world: WorldView, actorId: string, prototypeId: string,
+  excludeId = "", amount = 1): boolean {
+  const current = portableLoad(world, actorId, excludeId);
+  const proto = readPrototype(world.getComponent(prototypeId, ObjectComponents.prototype));
+  return Boolean(proto.name) && amount > 0 && Number.isInteger(amount) &&
+    current.looseSlots + amount <= current.maxSlots &&
+    current.mass + amount * Math.max(0, proto.mass) <= current.maxMass + 0.0001;
+}
+
+export function canCarryObject(world: WorldView, actorId: string, objectId: string,
+  excludeId = "", fromOwnedContainer = false): boolean {
+  const current = portableLoad(world, actorId, excludeId);
+  const containedMass = fromOwnedContainer ? objectMass(world, objectId) : 0;
+  return current.looseSlots + 1 <= current.maxSlots &&
+    current.mass + objectMass(world, objectId) - containedMass <= current.maxMass + 0.0001;
+}
+
 // ---------------------------------------------------------------------------
 // Take / put / place
 // ---------------------------------------------------------------------------
@@ -385,6 +432,9 @@ function registerTakeCommand(ctx: Registration): void {
         return refuse(ObjectRejection.WrongPlace, `要先走到${prototype.name}所在的地方。`);
       }
       if (holder === actorId) return refuse(ObjectRejection.NotHeld, `你已经拿着${prototype.name}了。`);
+      if (!canCarryObject(c.world, actorId, objectId, "", containerOf(c.world, objectId) !== "" &&
+          holderOf(c.world, containerOf(c.world, objectId)) === actorId))
+        return refuse(ObjectRejection.Overloaded, "随身东西太多了，先放下或装进提袋。");
       return { ok: true };
     },
   });
@@ -447,8 +497,9 @@ function registerPlaceCommand(ctx: Registration): void {
         return refuse(ObjectRejection.NotHeld, "只有拿在手里的东西才放得下。");
       }
       const place = placeId ? c.world.getEntity(placeId) : undefined;
-      if (!place || place.kind !== "world-space.place" || place.archivedAt !== undefined) {
-        return refuse(ObjectRejection.WrongPlace, "要先站到一个地方里，才能把东西放下。");
+      if (!place || place.kind !== "world-space.place" || place.archivedAt !== undefined ||
+          occupancyPlace(c.world, actorId) !== placeId) {
+        return refuse(ObjectRejection.WrongPlace, "只能把东西放在自己当前所在的地方。");
       }
       return { ok: true };
     },
@@ -504,6 +555,14 @@ function registerStoreCommand(ctx: Registration): void {
       const prototype = prototypeOf(c.world, containerId);
       if (!prototype.capabilities.includes("container") && !prototype.capabilities.includes("storage")) {
         return refuse(ObjectRejection.NotAContainer, `${prototype.name}不是容器。`);
+      }
+      // A container must be reachable and under the actor's control;
+      // an object ID cannot teleport supplies into a remote bag.
+      if (!reachable(c.world, actorId, containerId)) {
+        return refuse(ObjectRejection.WrongPlace, "要先走到容器所在的地方。");
+      }
+      if (ownerOf(c.world, containerId) !== actorId && !permitted(c.world, containerId, actorId)) {
+        return refuse(ObjectRejection.NotYours, "不能擅自往别人的容器里装东西。");
       }
       if (wouldContainItself(c.world, objectId, containerId)) {
         return refuse(ObjectRejection.NestedCycle, "不能把容器装进它自己或它装着的东西里。");
@@ -568,6 +627,8 @@ function registerRetrieveCommand(ctx: Registration): void {
       if (!reachable(c.world, actorId, objectId)) {
         return refuse(ObjectRejection.WrongPlace, `要先走到${prototype.name}所在的地方。`);
       }
+      if (!canCarryObject(c.world, actorId, objectId, "", holderOf(c.world, containerId) === actorId))
+        return refuse(ObjectRejection.Overloaded, "双手拿不下了；先放下手里的东西再取。");
       return { ok: true };
     },
   });
@@ -638,6 +699,8 @@ function registerLendCommand(ctx: Registration): void {
       if (!Number.isFinite(dueAt) || dueAt < c.world.tick) {
         return refuse(ObjectRejection.BadAmount, "归还时间必须在今天之后。");
       }
+      if (owner && owner !== borrowerId && !canCarryObject(c.world, borrowerId, objectId))
+        return refuse(ObjectRejection.Overloaded, "借物的人已经拿不下了，请先放下东西。");
       return { ok: true };
     },
   });
@@ -699,6 +762,9 @@ function registerReturnCommand(ctx: Registration): void {
       if (String(loan.borrowerId) !== actorId) {
         return refuse(ObjectRejection.NotYours, "只有借的人才还得了。");
       }
+      const lenderId = String(loan.lenderId ?? "");
+      if (lenderId && !canCarryObject(c.world, lenderId, objectId))
+        return refuse(ObjectRejection.Overloaded, "主人暂时拿不下归还物，需先腾出空间。");
       return { ok: true };
     },
   });
@@ -736,6 +802,105 @@ function registerReturnCommand(ctx: Registration): void {
       return effects;
     },
   });
+}
+
+/** The one garment is still a held/owned item: wearing grants no new custody. */
+export function wornBy(world: WorldView, objectId: string): string {
+  return world.listRelations({ type: ObjectRelations.wornBy, from: objectId })[0]?.to ?? "";
+}
+export function wornByActor(world: WorldView, actorId: string): string {
+  return world.listRelations({ type: ObjectRelations.wornBy, to: actorId })
+    .map((r) => r.from)
+    .find((id) => {
+      const entity = world.getEntity(id);
+      return entity?.kind === ObjectKinds.item && entity.archivedAt === undefined &&
+        holderOf(world, id) === actorId && ownerOf(world, id) === actorId &&
+        prototypeOf(world, id).capabilities.includes("wearable");
+    }) ?? "";
+}
+
+function registerWearCommands(ctx: Registration): void {
+  ctx.registerCommand({ type: ObjectCommands.wear, params: { objectId: "entity" },
+    description: "Wear exactly one carried garment in the sole outfit slot." });
+  ctx.registerCommand({ type: ObjectCommands.unwear, params: { objectId: "entity" },
+    description: "Remove the garment without losing custody." });
+  ctx.registerConstraintRule({
+    id: `${ObjectCommands.wear}.allowed`, commandType: ObjectCommands.wear,
+    evaluate: (c) => {
+      const actorId = c.command.actorId ?? "";
+      const objectId = text(c.command.payload.objectId);
+      const item = c.world.getEntity(objectId);
+      if (!item || item.kind !== ObjectKinds.item || item.archivedAt !== undefined) {
+        return refuse(ObjectRejection.UnknownInstance, "找不到这件衣物。");
+      }
+      if (!prototypeOf(c.world, objectId).capabilities.includes("wearable")) {
+        return refuse(ObjectRejection.NotCarryable, "这不是可以穿戴的衣物。");
+      }
+      if (ownerOf(c.world, objectId) !== actorId || holderOf(c.world, objectId) !== actorId) {
+        return refuse(ObjectRejection.NotYours, "只能穿自己实际拿在手里的衣物。");
+      }
+      if (readObject(item.components[ObjectComponents.object]).quantity !== 1) {
+        return refuse(ObjectRejection.BadAmount, "只能一次穿一件完整的衣物。");
+      }
+      if (wornBy(c.world, objectId) || wornByActor(c.world, actorId)) {
+        return refuse(ObjectRejection.InUse, "已经穿着衣物，先脱下才能更换。");
+      }
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${ObjectCommands.wear}.resolve`, commandType: ObjectCommands.wear,
+    resolve: (c) => {
+      const actorId = c.command.actorId as string;
+      const objectId = text(c.command.payload.objectId);
+      return [{
+        kind: "addRelation", type: ObjectRelations.wornBy, from: objectId, to: actorId, announce: false,
+      }, {
+        kind: "emitEvent", eventType: "world-objects.worn", actorId, targetId: objectId,
+        data: { objectId }, historicalSignificance: 0,
+      }];
+    },
+  });
+  ctx.registerConstraintRule({
+    id: `${ObjectCommands.unwear}.allowed`, commandType: ObjectCommands.unwear,
+    evaluate: (c) => {
+      const actorId = c.command.actorId ?? "";
+      const objectId = text(c.command.payload.objectId);
+      if (!objectId || wornBy(c.world, objectId) !== actorId ||
+          holderOf(c.world, objectId) !== actorId) {
+        return refuse(ObjectRejection.NotHeld, "这件衣物不是你正在穿着的。");
+      }
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${ObjectCommands.unwear}.resolve`, commandType: ObjectCommands.unwear,
+    resolve: (c) => {
+      const actorId = c.command.actorId as string;
+      const objectId = text(c.command.payload.objectId);
+      return [{
+        kind: "removeRelation", type: ObjectRelations.wornBy, from: objectId, to: actorId,
+        reason: "garment taken off", announce: false,
+      }, {
+        kind: "emitEvent", eventType: "world-objects.unworn", actorId,
+        targetId: objectId, data: { objectId }, historicalSignificance: 0,
+      }];
+    },
+  });
+  // Transfer and storage cannot strand a garment still worn by its former holder.
+  for (const commandType of [ObjectCommands.take, ObjectCommands.place, ObjectCommands.store,
+      ObjectCommands.retrieve, ObjectCommands.lend, ObjectCommands.returnItem]) {
+    ctx.registerConstraintRule({
+      id: `world-objects.wearing-transfer.${commandType}`, commandType,
+      evaluate: (c) => {
+        const id = text(c.command.payload.objectId ?? c.command.targetId);
+        if (id && wornBy(c.world, id)) {
+          return refuse(ObjectRejection.InUse, "这件衣物正穿在身上，请先脱下。");
+        }
+        return { ok: true };
+      },
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------

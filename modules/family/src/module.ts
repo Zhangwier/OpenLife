@@ -158,6 +158,9 @@ export const familyModule: OpenLifeModule = {
       evaluate: (c) => {
         const actor = requireLivingCharacter(c.world, c.command.actorId);
         if (!actor.ok) return actor.outcome;
+        if (!c.command.targetId) {
+          return { ok: false, code: "E_REAL_ENCOUNTER_REQUIRED", message: "不能凭空创建朋友。请先在聚落里遇见真实的人，并经过交谈逐渐相识。" };
+        }
         const targetId = c.command.targetId;
         if (targetId) {
           const target = c.world.getEntity(targetId);
@@ -169,6 +172,25 @@ export const familyModule: OpenLifeModule = {
           }
           if (targetId === c.command.actorId) {
             return { ok: false, code: "E_SELF_TARGET", message: "cannot befriend yourself" };
+          }
+          // In an inhabited settlement a visible resident is not a friend
+          // merely because another module knows their entity ID. Three real
+          // face-to-face conversations are the minimum before friendship.
+          if (target.components["settlement-locations.resident"]) {
+            const raw = c.world.getComponent(c.command.actorId as string, "settlement-locations.holding")?.contacts;
+            const saved = raw && typeof raw === "object" && !Array.isArray(raw)
+              ? (raw as Record<string, unknown>)[targetId] : undefined;
+            const contact = saved && typeof saved === "object" && !Array.isArray(saved)
+              ? saved as Record<string, unknown> : {};
+            if (Number(contact.conversations ?? 0) < 3) {
+              return { ok: false, code: "E_ACQUAINTANCE_REQUIRED",
+                message: "还没真正相识，先当面交谈几次再尝试成为朋友。" };
+            }
+            const here = c.world.listRelations({ type: "world-space.occupies", from: c.command.actorId as string })[0]?.to;
+            const there = c.world.listRelations({ type: "world-space.occupies", from: targetId })[0]?.to;
+            if (!here || here !== there) {
+              return { ok: false, code: "E_NOT_NEARBY", message: "需要和对方在同一个地方才能进一步结交。" };
+            }
           }
           const existing = c.world.listRelations({
             type: FR.friendOf,

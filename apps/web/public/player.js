@@ -13,6 +13,7 @@ const STAGES = ["assess-clay", "forming", "drying", "firing"];
 const STAGE_NAMES = ["辨泥与准备", "决定器形", "等待干燥", "掌握火候"];
 export function renderPlayer(s, onAction) {
   const p = s.player;
+  document.body.classList.toggle("has-practice", Boolean(p?.practice));
   if (!p?.entered && !p?.practice) {
     $("playerSituation").innerHTML = ""; $("playerOutcome").hidden = true;
     $("workshopInventory").innerHTML = ""; $("familyHandoff").innerHTML = "";
@@ -34,30 +35,27 @@ export function renderPlayer(s, onAction) {
   $("decisionHint").textContent = p.practice ? "这一阶段会占用一至两个月的生活时间。风险提示是取舍，结果仍受泥料与火候影响。" : "先做你现在关心的事。日常、手艺与相处都会占用生活时间。";
   $("occupationWord").textContent = Number(p.completed) >= 3 ? "逐渐熟练的制陶人" : "聚落里的制陶学徒";
   $("educationWord").textContent = `已完成 ${Number(p.lessons)} 段手艺学习`;
-  renderPeople(p, c, onAction);
+  renderPeople(p, c, s.settlement);
   renderWorks(p, c, onAction);
   renderHandoff(p, c, onAction);
 }
 
-function renderPeople(p, c, onAction) {
+function renderPeople(p, c, settlement) {
   const container = $("relationshipOrbit");
   container.classList.add("people-list");
-  container.innerHTML = p.people.map(person => `<article class="person-card">
-    <div class="person-heading"><div class="person-avatar">${html(person.name.slice(0, 1))}</div><div><h4>${html(person.name)} <small>${person.age} 岁</small></h4><span>${html(person.role)} · ${html(person.relation)}</span></div></div>
-    <p class="person-trait">${html(person.trait)}</p><p>${html(person.wish)}</p>
-    <div class="trust-dots" aria-label="熟悉程度 ${person.trust} / 6">${Array.from({ length: 6 }, (_, i) => `<i class="${i < person.trust ? "filled" : ""}"></i>`).join("")}</div>
-    <div class="person-choices" data-person="${html(person.id)}"></div>
-  </article>`).join("") || '<p class="empty-copy">熟悉的人已经离开。你的作品与家族仍然留下；后续版本会补充新的聚落居民。</p>';
-  container.querySelectorAll("[data-person]").forEach(el => {
-    const person = p.people.find(x => x.id === el.dataset.person);
-    const enabled = c.alive && !p.practice;
-    const actions = [
-      { id: "life-visit", label: "一起聊聊", hint: "熟悉 +1", cost: 1, enabled, reason: "先完成手中的作品", payload: { targetId: person.id }, tone: "quiet" },
-      { id: "life-help", label: "带柴火去帮忙", hint: "消耗 1 捆燃料，熟悉 +2", cost: 2, enabled: enabled && Number(p.inventory.fuel) >= 1, reason: p.practice ? "先完成手中的作品" : "需要 1 捆燃料", payload: { targetId: person.id }, tone: "soft" },
-    ];
-    if (person.age >= 16 && person.role !== "窑边的师傅" && person.relation !== "孩子" && person.relation !== "伴侣") actions.push({ id: "life-marry", label: "决定共同生活", hint: "相处与信任成为新的家庭", cost: 1, enabled: enabled && person.marriage.ok, reason: person.marriage.message ?? "先完成手中的作品", payload: { targetId: person.id }, tone: "rose" });
-    renderActionButtons(el, actions, onAction);
-  });
+  const contacts = settlement?.contacts ?? [];
+  const nearby = (settlement?.neighbours ?? [])
+    .filter(person => !contacts.some(known => known.id === person.id))
+    .map(person => ({ ...person, nearby: true, contact: "陌生", conversations: 0 }));
+  const list = [...contacts, ...nearby];
+  container.innerHTML = list.map(person => `<article class="person-card">
+    <div class="person-heading"><div class="person-avatar">${html(person.name.slice(0, 1))}</div>
+    <div><h4>${html(person.name)}</h4><span>${html(person.role)} · ${html(person.contact || "陌生")}</span></div></div>
+    <p class="person-trait">${person.conversations > 0 ? `当面聊过 ${person.conversations} 次` : "只是眼前的陌生人，还没有互相认识。"}</p>
+    <p>${person.nearby ? "这位村民在附近。去周围选中对方，才能当面搭话。" : "这位熟人现在不在身边，不能远程搭话。"}</p>
+    ${person.nearby ? '<button class="portable-item" data-route="activities">去周围搭话 →</button>' : ""}
+  </article>`).join("") ||
+    '<p class="empty-copy">目前还没有遇见的人。去「周围」当面交谈，才会逐渐认识村民。</p>';
 }
 
 function renderWorks(p, c, onAction) {

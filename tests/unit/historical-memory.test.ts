@@ -72,17 +72,21 @@ test("world truth, surviving evidence and public historical memory can diverge t
   assert.equal(work.components[HC.work]?.creatorId, creatorId, "world truth keeps the real creator");
   assert.equal(original.components[HC.artifact]?.attributionCreatorId, creatorId);
 
-  // A second person copies the technique, but this copy loses the creator mark.
-  must(sim, {
-    type: "family.make_friend",
-    actorId: creatorId,
-    payload: { targetName: "予" },
-  });
-  const copyistId = sim.worldView().listRelations({
-    type: "family.friend_of",
-    from: creatorId,
-  })[0]?.to;
-  assert.ok(copyistId);
+  const peopleBefore = sim.worldView().listEntities({ kind: "modern.character" }).length;
+  const inventedFriend = sim.dispatch({ type: "family.make_friend", actorId: creatorId,
+    payload: { targetName: "从未见过的人" } });
+  assert.equal(inventedFriend.ok, false, "friendship cannot invent someone from a label");
+  assert.equal(sim.worldView().listEntities({ kind: "modern.character" }).length, peopleBefore);
+
+  // A second real character copies the technique: friendship must never
+  // spawn a stranger on demand merely to fabricate a witness.
+  must(sim, { type: "modern.create_character", payload: {
+    givenName: "予", familyName: "河", lifespan: 95, lineageId: "family:lineage:copyist",
+  } });
+  const copyistId = sim.worldView().listEntities({ kind: "modern.character" })
+    .find((person) => person.id !== creatorId)?.id;
+  assert.ok(copyistId && copyistId !== creatorId);
+  must(sim, { type: "family.make_friend", actorId: creatorId, targetId: copyistId });
 
   must(sim, {
     type: "historical-memory.copy_artifact",

@@ -48,16 +48,17 @@
     <div id="applicationLayout" class="application-layout" hidden>
       <nav id="appNavigation" class="app-navigation" aria-label="主导航">        <div class="nav-caption">我的人生</div>
         <button data-route="life">此刻</button>
-        <button data-route="character">人物</button>
-        <button data-route="activities">活动</button>
-        <button data-route="people">关系</button>
-        <button data-route="works">物品与作品</button>
-        <button data-route="family">家族谱</button>
-        <div class="nav-caption">生活的世界</div>
-        <button data-route="map">地图与地点</button>
-        <button data-route="world">时代与世界</button>
-        <button data-route="history">记忆与历史</button>
-        <button data-route="modules">模块管理</button>
+        <button data-route="activities">周围</button>
+        <button data-route="works">行囊</button>
+        <button data-route="people">人际</button>
+        <button data-route="character">我</button>
+        <details class="nav-more"><summary>更多资料</summary>
+          <button data-route="family">家族谱</button>
+          <button data-route="map">地图与地点</button>
+          <button data-route="world">时代与世界</button>
+          <button data-route="history">记忆与历史</button>
+          <button data-route="modules">模块管理</button>
+        </details>
       </nav>
       <div class="page-container"><div class="page-heading"><div><span id="pageEyebrow">我的人生</span><h1 id="pageTitle" tabindex="-1">此刻</h1></div><span id="pageIdentity"></span></div><div id="pageScreens"></div></div>
     </div>
@@ -105,6 +106,8 @@
             <span class="scene-clock" id="sceneDay"></span>
           </div>
           <p class="scene-summary" id="sceneSummary"></p>
+          <div class="scene-shortcuts" id="sceneShortcuts"></div>
+          <button id="sceneSheetMask" type="button" class="scene-sheet-mask" hidden aria-label="关闭操作菜单"></button>
 
           <div class="scene-columns">
             <section class="scene-block">
@@ -119,18 +122,18 @@
 
           <div class="scene-columns">
             <section class="scene-block">
-              <h4>这个地方的存量</h4>
+              <h4>可取用的原料 · 点击查看</h4>
               <div class="scene-yields" id="sceneYields"></div>
             </section>
             <section class="scene-block">
-              <h4>你手里的东西</h4>
+              <h4>随身物品 · 点击操作</h4>
               <div class="scene-carried" id="sceneCarried"></div>
               <div class="scene-loans" id="sceneLoans"></div>
             </section>
           </div>
 
           <div class="scene-action-area">
-            <div class="eyebrow">接下来，你来做</div>
+            <div class="eyebrow">先选目标，再做动作</div>
             <div id="sceneActions"></div>
           </div>
         </section>

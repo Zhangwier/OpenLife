@@ -45,6 +45,8 @@ export interface AutoSimOptions {
   maxCommands?: number;
   /** Ticks to advance after each batch of commands. */
   advanceTicksPerStep?: number;
+  /** Invoked once after each authoritative tick advance; optional and bounded by stopConditions. */
+  onTickAdvanced?: (tick: number) => void;
 }
 
 export interface AutoSimResult {
@@ -104,6 +106,7 @@ export function runAutoSim(options: AutoSimOptions): AutoSimResult {
       options.kernel.advanceBy(advance);
       ctx.tick = options.kernel.tick;
       ctx.steps += 1;
+      options.onTickAdvanced?.(ctx.tick);
       continue;
     }
 
@@ -131,6 +134,7 @@ export function runAutoSim(options: AutoSimOptions): AutoSimResult {
     options.kernel.advanceBy(advance);
     ctx.tick = options.kernel.tick;
     ctx.steps += 1;
+    options.onTickAdvanced?.(ctx.tick);
   }
 
   return {

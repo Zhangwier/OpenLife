@@ -1,6 +1,6 @@
 import { html } from "/player.js";
 
-const TITLES = { life: "此刻的人生", character: "人物", activities: "活动", people: "关系", works: "物品与作品", family: "家族谱", map: "地图与地点", world: "时代与世界", history: "记忆与历史", modules: "模块管理" };
+const TITLES = { life: "此刻", character: "我", activities: "周围", people: "人际", works: "行囊", family: "家族谱", map: "地图与地点", world: "时代与世界", history: "记忆与历史", modules: "模块管理" };
 let active = "home", started = false, currentState, callbacks;
 const $ = id => document.getElementById(id);
 
@@ -71,11 +71,37 @@ export function renderShell(state) {
   const inProgress = Boolean(p?.practice);
   $("screen-life").innerHTML = `<section class="life-overview panel"><div class="overview-label">${html(state.era)} · ${state.month} 月 · ${html(c?.city)}</div><h2>${html(c?.name)}，${c?.alive ? "今天想怎样生活？" : "这一生留下了什么？"}</h2><p class="overview-intro">${c?.alive ? "生活里有许多值得停留的地方。照看自己，见一见熟人，或者接着做手中的事。" : "你留下的关系、作品与家人仍在世界里。可以到家族谱寻找接续的人生。"}</p><div class="overview-facts"><span>${c?.age ?? 0} 岁</span><span>第 ${state.generation} 代</span><span>${html(c?.role)}</span></div>${p?.outcome ? `<div class="overview-memory"><span>最近发生的事</span><p>${html(p.outcome)}</p></div>` : ""}</section>
     <div class="destination-grid">
-      <button class="destination-card" data-route="activities"><span class="destination-symbol">◎</span><h3>${inProgress ? "继续手中的活动" : "安排一段生活"}</h3><p>${inProgress ? "制陶进行中，有一个选择在等待你。" : "学习、劳作与日常。制陶是目前开放的一项手艺。"}</p><span class="destination-link">进入活动 →</span></button>
-      <button class="destination-card" data-route="people"><span class="destination-symbol">人</span><h3>去见一个人</h3><p>看看熟悉的人，选择相处、帮助或共同生活。</p><span class="destination-link">查看关系 →</span></button>
-      <button class="destination-card" data-route="map"><span class="destination-symbol">山</span><h3>看看你生活的地方</h3><p>查看当前位置与已有的地图资料。</p><span class="destination-link">地图与地点 →</span></button>
-      <button class="destination-card" data-route="character"><span class="destination-symbol">我</span><h3>照看自己</h3><p>身体、所学与手中的材料，都是这段人生的一部分。</p><span class="destination-link">查看人物 →</span></button>
+      <button class="destination-card" data-route="activities"><span class="destination-symbol">◎</span><h3>${inProgress ? "继续制作" : "看看周围"}</h3><p>${inProgress ? "你的手艺仍在进行。" : "遇见的人、手边的原料和附近的地点。"}</p><span class="destination-link">进入周围 →</span></button>
+      <button class="destination-card" data-route="character"><span class="destination-symbol">我</span><h3>查看自己</h3><p>身体、经历与正在学习的能力。</p><span class="destination-link">进入人物 →</span></button>
+      <button class="destination-card" data-route="works"><span class="destination-symbol">袋</span><h3>整理行囊</h3><p>查看真正携带的东西、负重和存放。</p><span class="destination-link">进入行囊 →</span></button>
+      <button class="destination-card" data-route="people"><span class="destination-symbol">人</span><h3>人际关系</h3><p>见过、交谈、相识，关系需要真实经历。</p><span class="destination-link">打开人际 →</span></button>
     </div>`;
+  const oldDecision = document.querySelector(".decision-area");
+  if (oldDecision && !oldDecision.closest(".legacy-choice-details")) {
+    const details = document.createElement("details");
+    details.className = "legacy-choice-details";
+    details.innerHTML = "<summary>手艺、年度与其他生活选择</summary>";
+    oldDecision.before(details); details.append(oldDecision);
+  }
+  const bag = $("screen-works");
+  let pack = $("portableOverview");
+  if (!pack) {
+    pack = document.createElement("section");
+    pack.id = "portableOverview"; pack.className = "panel portable-overview";
+    bag.prepend(pack);
+  }
+  const held = state.settlement?.objects?.filter(o => o.placement === "在手中") || [];
+  const load = state.settlement?.portableLoad;
+  pack.innerHTML = `<h2>随身行囊</h2><p class="portable-meter">${load ?
+    `当前 ${load.looseSlots}/${load.maxSlots} 件 · ${load.mass.toFixed(1)}/${load.maxMass} 负重` : "正在整理携带情况"}</p>
+    <div class="portable-items">${held.length ? held.map(o =>
+      `<button class="portable-item" data-bag-id="${html(o.id)}"><strong>${html(o.name)}</strong><small>选择后查看放下、使用和收纳</small></button>`).join("") :
+      '<p>现在没有随身物品。去周围寻找可用材料。</p>'}</div>`;
+  pack.querySelectorAll("[data-bag-id]").forEach(button =>
+    button.addEventListener("click", () => {
+      window.dispatchEvent(new CustomEvent("openlife:select-object", { detail: button.dataset.bagId }));
+      navigate("activities");
+    }));
   if (!started && !callbacks.hasSave()) {
     $("screen-family").querySelector(".lineage-card").hidden = true;
     if (!$("familyEmpty")) { const empty = document.createElement("p"); empty.id = "familyEmpty"; empty.className = "page-empty panel"; empty.textContent = "还没有开始的人生。开启新人生后，家族谱会记录成员与传承。"; $("screen-family").append(empty); }
@@ -106,6 +132,6 @@ async function loadMap() {
   try {
     const response = await fetch("/api/catalog"); if (!response.ok) throw new Error("地图资料读取失败");
     const data = await response.json();
-    screen.innerHTML = `<section class="catalog-intro panel"><div class="overview-label">当前位置</div><h2>${html(currentState?.character?.city ?? "尚未进入世界")}</h2><p>当前人生只记录出生聚落，还没有地点移动、房间探索或物体交互。下方是已有地图包的地理资料，尚未作为可游玩的地图接入。</p></section>${data.maps.map(map => `<section class="map-pack panel"><div class="panel-title-row"><div><div class="eyebrow">地图资料</div><h2>${html(map.label)}</h2></div><span class="module-status">${map.ok ? "结构校验通过" : "资料需修复"}</span></div><div class="map-counts"><span>${map.regions.length} 个区域</span><span>${map.locations.length} 个地点</span><span>${map.edges} 条连接</span></div><p class="map-limit">地形与连接已有定义；居民、房屋内部、可交互物体和衣物尚未随地图包填充。</p>${map.regions.map(region => `<details class="region-entry"><summary>${html(region.name)} <small>${html(region.id)}</small></summary><ul>${map.locations.filter(loc => loc.regionId === region.id).map(loc => `<li><strong>${html(loc.name)}</strong><span>${html(loc.type)}</span></li>`).join("")}</ul></details>`).join("")}</section>`).join("")}`;
+    screen.innerHTML = `<section class="catalog-intro panel"><div class="overview-label">当前位置</div><h2>${html(currentState?.character?.city ?? "尚未进入世界")}</h2><p>河岸聚落已经可以在「周围」真实移动、走进房间和操作物品。更远的地图包仍主要是世界资料，暂不能全部直接前往。</p></section>${data.maps.map(map => `<section class="map-pack panel"><div class="panel-title-row"><div><div class="eyebrow">地图资料</div><h2>${html(map.label)}</h2></div><span class="module-status">${map.ok ? "结构校验通过" : "资料需修复"}</span></div><div class="map-counts"><span>${map.regions.length} 个区域</span><span>${map.locations.length} 个地点</span><span>${map.edges} 条连接</span></div><p class="map-limit">地形与连接已有定义；居民、房屋内部、可交互物体和衣物尚未随地图包填充。</p>${map.regions.map(region => `<details class="region-entry"><summary>${html(region.name)} <small>${html(region.id)}</small></summary><ul>${map.locations.filter(loc => loc.regionId === region.id).map(loc => `<li><strong>${html(loc.name)}</strong><span>${html(loc.type)}</span></li>`).join("")}</ul></details>`).join("")}</section>`).join("")}`;
   } catch (error) { screen.innerHTML = `<p class="page-empty panel">${html(error.message)}</p>`; }
 }

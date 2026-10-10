@@ -27,10 +27,15 @@ import {
   ObjectKinds,
   ObjectRelations,
   contentsOf,
+  containerOf,
   holderOf,
   ownerOf,
   prototypeOf,
   readObject,
+  wornByActor,
+  canCarryPrototype,
+  canCarryObject,
+  portableLoad,
 } from "@openlife/module-world-objects";
 import {
   SpaceCommands,
@@ -66,15 +71,27 @@ export const SettlementCommands = {
   found: "settlement-locations.found",
   arrive: "settlement-locations.arrive",
   draw: "settlement-locations.draw",
+  talk: "settlement-locations.talk",
   drink: "settlement-locations.drink",
   eat: "settlement-locations.eat",
   cook: "settlement-locations.cook",
+  weaveBag: "settlement-locations.weave_bag",
+  weaveMat: "settlement-locations.weave_mat",
+  prepareFiber: "settlement-locations.prepare_fiber",
+  weaveWrap: "settlement-locations.weave_wrap",
   harvest: "settlement-locations.harvest",
   sow: "settlement-locations.sow",
   tend: "settlement-locations.tend",
   rest: "settlement-locations.rest",
   step: "settlement-locations.end_day",
   configurePlan: "settlement-locations.plan.configure",
+  npcMarkDay: "settlement-locations.npc.mark_day",
+  npcOffer: "settlement-locations.npc.barter_offer",
+  npcAccept: "settlement-locations.npc.barter_accept",
+  playerBarterRequest: "settlement-locations.barter.request",
+  cookBarterQuote: "settlement-locations.barter.cook_quote",
+  playerBarterAccept: "settlement-locations.barter.accept",
+  playerBarterDecline: "settlement-locations.barter.decline",
 } as const;
 
 export const SettlementProjections = {
@@ -309,10 +326,15 @@ export const settlementLocationsModule: OpenLifeModule = {
 
     registerFound(ctx);
     registerArrive(ctx);
+    registerTalk(ctx);
     registerDraw(ctx);
     registerDrink(ctx);
     registerEat(ctx);
     registerCook(ctx);
+    registerWeaveBag(ctx);
+    registerWeaveMat(ctx);
+    registerPrepareFiber(ctx);
+    registerWeaveWrap(ctx);
     registerSow(ctx);
     registerHarvest(ctx);
     registerTend(ctx);
@@ -321,6 +343,9 @@ export const settlementLocationsModule: OpenLifeModule = {
     registerActivityBudget(ctx);
     registerDailyPlan(ctx);
     registerPotteryPlanStart(ctx);
+    registerNpcDayMarker(ctx);
+    registerNpcBarter(ctx);
+    registerPlayerBarter(ctx);
 
     ctx.registerProjection({
       id: SettlementProjections.homestead,
@@ -715,6 +740,10 @@ function readResident(world: WorldView, residentId: string) {
     homeSpace: String(raw.homeSpace ?? ""),
     hunger: Math.max(0, Number(raw.hunger ?? 0)),
     rested: Math.max(0, Number(raw.rested ?? 1)),
+    lastRoutineAt: Number(raw.lastRoutineAt ?? -1),
+    standingRoutine: String(raw.standingRoutine ?? ""),
+    lastRoutineActions: Array.isArray(raw.lastRoutineActions) ? raw.lastRoutineActions : [],
+    tradeCount: Number(raw.tradeCount ?? 0),
   };
 }
 
@@ -777,25 +806,50 @@ const ACTIVITY_COST: Partial<Record<string, number>> = {
   [SettlementCommands.eat]: 1,
   [SettlementCommands.drink]: 1,
   [SettlementCommands.draw]: 2,
+  [SettlementCommands.talk]: 1,
   [SettlementCommands.cook]: 2,
+  [SettlementCommands.weaveBag]: 2,
+  [SettlementCommands.weaveMat]: 2,
+  [SettlementCommands.prepareFiber]: 2,
+  [SettlementCommands.weaveWrap]: 2,
   [SettlementCommands.sow]: 3,
   [SettlementCommands.harvest]: 3,
   [SettlementCommands.tend]: 3,
   [SettlementCommands.rest]: 2,
 };
 
+/** A single personally owned wrap shields the worker at the field. */
+function wornWrap(world: WorldView, actorId: string): string {
+  const id = wornByActor(world, actorId);
+  return id && prototypeOf(world, id).prototypeId === "prototype:fiber-wrap" ? id : "";
+}
+function activityCostFor(world: WorldView, actorId: string, commandType: string): number {
+  const base = ACTIVITY_COST[commandType] ?? 0;
+  if (commandType === SettlementCommands.tend &&
+      occupiedSpaceId(world, actorId) === "space:field-edge" && wornWrap(world, actorId)) {
+    return base - 1;
+  }
+  return base;
+}
+
 export function dailyActivity(world: WorldView, actorId: string) {
   const raw = world.getComponent(actorId, SettlementComponents.holding);
   const day = world.tick;
+  // A genuinely used sleeping mat grants exactly one extra unit the next day.
+  // The existing world tick stays authoritative; an old save gets 8 units.
+  // Preserve today\'s already earned bonus if the player rests again today.
+  const extraToday = day > 0 && (Number(raw?.matRestedAt ?? -1) === day - 1 ||
+    Number(raw?.matBonusPreservedAt ?? -1) === day);
+  const capacity = DAILY_ACTIVITY_CAPACITY + (extraToday ? 1 : 0);
   const used = Number(raw?.activityDay ?? -1) === day
-    ? Math.max(0, Math.min(DAILY_ACTIVITY_CAPACITY, Number(raw?.activityUsed ?? 0)))
+    ? Math.max(0, Math.min(capacity, Number(raw?.activityUsed ?? 0)))
     : 0;
-  return { day, used, remaining: DAILY_ACTIVITY_CAPACITY - used, capacity: DAILY_ACTIVITY_CAPACITY };
+  return { day, used, remaining: capacity - used, capacity };
 }
 
 function registerActivityBudget(ctx: Registration): void {
-  for (const [commandType, cost] of Object.entries(ACTIVITY_COST)) {
-    if (!cost) continue;
+  for (const [commandType, baseCost] of Object.entries(ACTIVITY_COST)) {
+    if (!baseCost) continue;
     ctx.registerConstraintRule({
       id: `settlement-locations.activity.${commandType}.allowed`,
       commandType,
@@ -803,6 +857,7 @@ function registerActivityBudget(ctx: Registration): void {
         const actorId = c.command.actorId ?? "";
         if (!c.world.hasEntity(actorId)) return refuse(SettlementRejection.NoSuchResident, "需要一位正在生活的人。");
         const remaining = dailyActivity(c.world, actorId).remaining;
+        const cost = activityCostFor(c.world, actorId, commandType);
         if (remaining < cost) return refuse(SettlementRejection.Exhausted,
           `今天还剩 ${remaining} 格活动时间，这项需要 ${cost} 格，请先结束这一天。`);
         return { ok: true };
@@ -816,6 +871,7 @@ function registerActivityBudget(ctx: Registration): void {
       resolve: (c): Effect[] => {
         const actorId = c.command.actorId as string;
         const before = dailyActivity(c.world, actorId);
+        const cost = activityCostFor(c.world, actorId, commandType);
         return [{
           kind: "modifyComponent", entityId: actorId,
           component: SettlementComponents.holding,
@@ -1000,6 +1056,375 @@ function registerPotteryPlanStart(ctx: Registration): void {
   });
 }
 
+/** M3-A: one selected resident's real daily commands finish with an auditable marker.
+ * The daily marker is not a substitute for travel, labor, food or rest.
+ */
+function registerNpcDayMarker(ctx: Registration): void {
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.npcMarkDay}.allowed`,
+    commandType: SettlementCommands.npcMarkDay,
+    evaluate: (c) => {
+      const actorId = c.command.actorId ?? "";
+      if (c.command.source !== "ai" || ![residentId("yu"), residentId("cook")].includes(actorId) ||
+          !c.world.getEntity(actorId)?.components[SettlementComponents.resident]) {
+        return refuse(SettlementRejection.NotYours, "NPC 日常状态只能由已授权的村民自动行为记录。");
+      }
+      const raw = c.world.getComponent(actorId, SettlementComponents.resident) ?? {};
+      if (Number(raw.lastRoutineAt ?? -1) === c.world.tick) {
+        return refuse(SettlementRejection.Already, "这位村民今天已经完成日常安排。");
+      }
+      if (!Array.isArray(c.command.payload.actions) ||
+          (c.command.payload.actions as unknown[]).length > 12 ||
+          !(c.command.payload.actions as unknown[]).every((v) => typeof v === "string") ||
+          typeof c.command.payload.summary !== "string") {
+        return refuse(SettlementRejection.Busy, "NPC 日常记录必须有可核对的执行摘要。");
+      }
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.npcMarkDay}.resolve`,
+    commandType: SettlementCommands.npcMarkDay,
+    resolve: (c) => [{
+      kind: "modifyComponent", entityId: c.command.actorId as string,
+      component: SettlementComponents.resident,
+      patch: {
+        lastRoutineAt: c.world.tick,
+        npcDailyCount: Number(c.world.getComponent(c.command.actorId as string, SettlementComponents.resident)?.npcDailyCount ?? 0) + 1,
+        lastRoutineActions: c.command.payload.actions,
+        standingRoutine: c.command.payload.summary,
+      },
+      reason: "NPC's real daily commands completed or a real obstacle was encountered",
+    }, {
+      kind: "emitEvent", eventType: "settlement-locations.npc_daily",
+      actorId: c.command.actorId,
+      data: { actions: c.command.payload.actions, summary: c.command.payload.summary },
+      historicalSignificance: 0,
+    }],
+  });
+}
+
+/**
+ * M3-B: narrow, explicit two-party barter between the cook and the farmer.
+ * Proposal records the cook's consent; acceptance is a second command by Yu.
+ * The single acceptance transaction swaps existing ownership AND custody of
+ * two concrete, individually held resource bundles. No parallel stock.
+ */
+function tradeReady(world: WorldView, itemId: string, actorId: string, resourceId: string): boolean {
+  const item = world.getEntity(itemId);
+  return Boolean(item && item.kind === ObjectKinds.item && item.archivedAt === undefined &&
+    ownerOf(world, itemId) === actorId && holderOf(world, itemId) === actorId &&
+    prototypeOf(world, itemId).resourceId === resourceId &&
+    readObject(item.components[ObjectComponents.object]).quantity === 1 &&
+    contentsOf(world, itemId).length === 0 &&
+    world.listRelations({ type: ObjectRelations.wornBy, from: itemId }).length === 0 &&
+    Number(world.getComponent(itemId, ObjectComponents.loan)?.active ?? 0) !== 1);
+}
+
+function registerNpcBarter(ctx: Registration): void {
+  const cook = residentId("cook"), farmer = residentId("yu");
+  const coLocated = (world: WorldView) =>
+    occupiedPlaceId(world, cook) === "place:hearth-yard" &&
+    occupiedPlaceId(world, farmer) === "place:hearth-yard";
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.npcOffer}.allowed`,
+    commandType: SettlementCommands.npcOffer,
+    evaluate: (c) => {
+      if (c.command.source !== "ai" || c.command.actorId !== cook) {
+        return refuse(SettlementRejection.NotYours, "只有阿灶可以提出自己的柴草交换报价。");
+      }
+      if (!coLocated(c.world)) {
+        return refuse(SettlementRejection.WrongPlace, "阿灶与阿予必须同时到达公用灶台。");
+      }
+      if (Number(c.world.getComponent(cook, SettlementComponents.resident)?.tradeCount ?? 0) >= 1) {
+        return refuse(SettlementRejection.Already, "本次约定的交换已经完成。");
+      }
+      const fuelId = String(c.command.payload.fuelId ?? "");
+      const grainId = String(c.command.payload.grainId ?? "");
+      if (!fuelId || !grainId || fuelId === grainId ||
+          !tradeReady(c.world, fuelId, cook, "resource:fuel") ||
+          !tradeReady(c.world, grainId, farmer, "resource:grain")) {
+        return refuse(SettlementRejection.NotYours, "双方必须各自实际持有可交换的一捆柴草和一份粟。");
+      }
+      const pending = c.world.getComponent(cook, SettlementComponents.resident)?.tradeOffer;
+      if (pending && typeof pending === "object" &&
+          (pending as Record<string, JsonValue>).status === "offered" &&
+          (pending as Record<string, JsonValue>).at === c.world.tick) {
+        return refuse(SettlementRejection.Busy, "已经有一份等待确认的交换报价。");
+      }
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.npcOffer}.resolve`,
+    commandType: SettlementCommands.npcOffer,
+    resolve: (c) => [{
+      kind: "modifyComponent", entityId: cook,
+      component: SettlementComponents.resident,
+      patch: { tradeOffer: { status: "offered", at: c.world.tick, fuelId: c.command.payload.fuelId,
+        grainId: c.command.payload.grainId, recipientId: farmer } },
+      reason: "cook's explicit conditional barter offer",
+    }, {
+      kind: "emitEvent", eventType: "settlement-locations.barter_offered",
+      actorId: cook, targetId: farmer,
+      data: { fuelId: c.command.payload.fuelId, grainId: c.command.payload.grainId },
+      historicalSignificance: 0.01,
+    }],
+  });
+
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.npcAccept}.allowed`,
+    commandType: SettlementCommands.npcAccept,
+    evaluate: (c) => {
+      if (c.command.source !== "ai" || c.command.actorId !== farmer) {
+        return refuse(SettlementRejection.NotYours, "只有阿予本人能接受交易。");
+      }
+      if (!coLocated(c.world)) {
+        return refuse(SettlementRejection.WrongPlace, "双方不在公用灶台，不能远程交换。");
+      }
+      const raw = c.world.getComponent(cook, SettlementComponents.resident)?.tradeOffer;
+      const offer = raw && typeof raw === "object" && !Array.isArray(raw)
+        ? raw as Record<string, JsonValue> : {};
+      const fuelId = String(offer.fuelId ?? ""), grainId = String(offer.grainId ?? "");
+      if (offer.status !== "offered" || offer.at !== c.world.tick ||
+          offer.recipientId !== farmer || !fuelId || !grainId ||
+          c.command.payload.fuelId !== fuelId || c.command.payload.grainId !== grainId) {
+        return refuse(SettlementRejection.Busy, "没有双方认可且当天仍有效的具体物品报价。");
+      }
+      if (!tradeReady(c.world, fuelId, cook, "resource:fuel") ||
+          !tradeReady(c.world, grainId, farmer, "resource:grain")) {
+        return refuse(SettlementRejection.NotYours, "接受时任一方的物品已不在手中，交易取消。");
+      }
+      if (!canCarryObject(c.world, farmer, fuelId, grainId) ||
+          !canCarryObject(c.world, cook, grainId, fuelId))
+        return refuse(SettlementRejection.NoRoom, "交换后有人会超出随身负重，先整理行囊。");
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.npcAccept}.resolve`,
+    commandType: SettlementCommands.npcAccept,
+    resolve: (c) => {
+      const offer = c.world.getComponent(cook, SettlementComponents.resident)!.tradeOffer as Record<string, JsonValue>;
+      const fuelId = String(offer.fuelId), grainId = String(offer.grainId);
+      const effects: Effect[] = [];
+      for (const [id, oldOwner, newOwner] of [
+        [fuelId, cook, farmer], [grainId, farmer, cook],
+      ] as [string, string, string][]) {
+        effects.push({
+          kind: "removeRelation", type: ObjectRelations.heldBy, from: id, to: oldOwner,
+          reason: "barter accepted, handover", announce: false,
+        }, {
+          kind: "removeRelation", type: ObjectRelations.ownedBy, from: id, to: oldOwner,
+          reason: "barter accepted, ownership transfer", announce: false,
+        }, {
+          kind: "addRelation", type: ObjectRelations.heldBy, from: id, to: newOwner, announce: false,
+        }, {
+          kind: "addRelation", type: ObjectRelations.ownedBy, from: id, to: newOwner, announce: false,
+        });
+      }
+      const count = Number(c.world.getComponent(cook, SettlementComponents.resident)?.tradeCount ?? 0) + 1;
+      effects.push({
+        kind: "modifyComponent", entityId: cook, component: SettlementComponents.resident,
+        patch: { tradeCount: count, tradeOffer: { ...offer, status: "accepted", acceptedAt: c.world.tick } },
+        reason: "first physical barter completed on both sides",
+      }, {
+        kind: "modifyComponent", entityId: farmer, component: SettlementComponents.resident,
+        patch: { tradeCount: count },
+        reason: "farmer accepted the barter for real materials",
+      }, {
+        kind: "emitEvent", eventType: "settlement-locations.barter_accepted",
+        actorId: farmer, targetId: cook,
+        data: { fuelId, grainId, cook, farmer, amount: 1 },
+        historicalSignificance: 0.08,
+      });
+      return effects;
+    },
+  });
+}
+
+/** M3-D: the player's requested grain-for-fuel barter with the hearth cook.
+ * A player-authored request does NOT imply NPC consent. An independent cook
+ * command authorizes a concrete quote, and only the player's own acceptance
+ * swaps the two real item IDs in a single world transaction.
+ */
+function registerPlayerBarter(ctx: Registration): void {
+  const cook = residentId("cook");
+  const activePlayer = (world: WorldView) =>
+    String(world.getComponent("modern:world", "modern.world_state")?.activeCharacterId ?? "");
+  const nearby = (world: WorldView, playerId: string) =>
+    playerId && playerId !== cook && occupiedPlaceId(world, playerId) === "place:hearth-yard" &&
+    occupiedPlaceId(world, cook) === "place:hearth-yard";
+  const requestOf = (world: WorldView, playerId: string) => {
+    const raw = world.getComponent(playerId, SettlementComponents.holding)?.playerBarterRequest;
+    return raw && typeof raw === "object" && !Array.isArray(raw)
+      ? raw as Record<string, JsonValue> : {};
+  };
+  const quoteOf = (world: WorldView) => {
+    const raw = world.getComponent(cook, SettlementComponents.resident)?.playerBarterQuote;
+    return raw && typeof raw === "object" && !Array.isArray(raw)
+      ? raw as Record<string, JsonValue> : {};
+  };
+  const finished = (world: WorldView, playerId: string) =>
+    Number(world.getComponent(playerId, SettlementComponents.holding)?.playerTradeCount ?? 0) >= 1;
+  const goodsReady = (world: WorldView, playerId: string, grainId: string, fuelId: string) =>
+    grainId !== fuelId &&
+    tradeReady(world, grainId, playerId, "resource:grain") &&
+    tradeReady(world, fuelId, cook, "resource:fuel");
+
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.playerBarterRequest}.allowed`,
+    commandType: SettlementCommands.playerBarterRequest,
+    evaluate: (c) => {
+      const playerId = c.command.actorId ?? "";
+      if (c.command.source !== "player" || playerId !== activePlayer(c.world))
+        return refuse(SettlementRejection.NotYours, "只能由当前操控角色亲自询价。");
+      if (!nearby(c.world, playerId))
+        return refuse(SettlementRejection.WrongPlace, "需要与阿灶同在公用灶台才能询价。");
+      if (finished(c.world, playerId))
+        return refuse(SettlementRejection.Already, "你已经与阿灶完成这次约定的交换。");
+      const grainId = String(c.command.payload.grainId ?? "");
+      if (!tradeReady(c.world, grainId, playerId, "resource:grain"))
+        return refuse(SettlementRejection.NotYours, "先带一份属于自己的真实粟粮才能提议交换。");
+      const quote = quoteOf(c.world);
+      if (quote.status === "offered" && quote.at === c.world.tick &&
+          quote.customerId === playerId)
+        return refuse(SettlementRejection.Busy, "阿灶已经提出报价，请先接受或拒绝。");
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.playerBarterRequest}.resolve`,
+    commandType: SettlementCommands.playerBarterRequest,
+    resolve: (c) => [{
+      kind: "modifyComponent", entityId: c.command.actorId as string,
+      component: SettlementComponents.holding,
+      patch: { playerBarterRequest: { grainId: c.command.payload.grainId,
+        cookId: cook, at: c.world.tick, status: "requested" } },
+      reason: "player explicitly asks the cook to exchange specific goods",
+    }, {
+      kind: "emitEvent", eventType: "settlement-locations.player_barter_requested",
+      actorId: c.command.actorId, targetId: cook,
+      data: { grainId: c.command.payload.grainId }, historicalSignificance: 0,
+    }],
+  });
+
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.cookBarterQuote}.allowed`,
+    commandType: SettlementCommands.cookBarterQuote,
+    evaluate: (c) => {
+      const playerId = String(c.command.payload.customerId ?? "");
+      if (c.command.source !== "ai" || c.command.actorId !== cook ||
+          playerId !== activePlayer(c.world))
+        return refuse(SettlementRejection.NotYours, "报价必须由阿灶根据实际物资单独确认。");
+      if (!nearby(c.world, playerId) || finished(c.world, playerId))
+        return refuse(SettlementRejection.WrongPlace, "交易双方必须同在灶台且尚未成交。");
+      const request = requestOf(c.world, playerId);
+      const grainId = String(request.grainId ?? "");
+      const fuelId = String(c.command.payload.fuelId ?? "");
+      if (request.status !== "requested" || request.at !== c.world.tick ||
+          request.cookId !== cook || !grainId ||
+          !goodsReady(c.world, playerId, grainId, fuelId))
+        return refuse(SettlementRejection.Empty, "阿灶暂时无法接受这笔报价：必须各自实际持有一份粟和一捆柴。");
+      const pending = quoteOf(c.world);
+      if (pending.status === "offered" && pending.at === c.world.tick)
+        return refuse(SettlementRejection.Busy, "阿灶已有一笔等待回复的实物报价。");
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.cookBarterQuote}.resolve`,
+    commandType: SettlementCommands.cookBarterQuote,
+    resolve: (c) => {
+      const playerId = String(c.command.payload.customerId);
+      const grainId = String(requestOf(c.world, playerId).grainId);
+      const fuelId = String(c.command.payload.fuelId);
+      return [{
+        kind: "modifyComponent", entityId: cook,
+        component: SettlementComponents.resident,
+        patch: { playerBarterQuote: { status: "offered", customerId: playerId,
+          grainId, fuelId, at: c.world.tick } },
+        reason: "cook independently consents to one real item-for-item quote",
+      }, {
+        kind: "emitEvent", eventType: "settlement-locations.player_barter_quoted",
+        actorId: cook, targetId: playerId,
+        data: { grainId, fuelId }, historicalSignificance: 0.01,
+      }];
+    },
+  });
+  const playerDecision = (type: string, accept: boolean) => {
+    ctx.registerConstraintRule({
+      id: `${type}.allowed`, commandType: type,
+      evaluate: (c) => {
+        const playerId = c.command.actorId ?? "";
+        if (c.command.source !== "player" || playerId !== activePlayer(c.world))
+          return refuse(SettlementRejection.NotYours, "只有报价指向的玩家本人可以决定。");
+        if (!nearby(c.world, playerId))
+          return refuse(SettlementRejection.WrongPlace, "必须当面接受或拒绝阿灶的报价。");
+        const quote = quoteOf(c.world);
+        if (quote.status !== "offered" || quote.at !== c.world.tick ||
+            quote.customerId !== playerId || finished(c.world, playerId) ||
+            c.command.payload.grainId !== quote.grainId ||
+            c.command.payload.fuelId !== quote.fuelId)
+          return refuse(SettlementRejection.Busy, "这笔报价已过期、已处理或并非你的报价。");
+        if (accept && !goodsReady(c.world, playerId,
+          String(quote.grainId), String(quote.fuelId)))
+          return refuse(SettlementRejection.NotYours, "物品已不在当事人手中，不能完成交易。");
+        if (accept && (!canCarryObject(c.world, playerId, String(quote.fuelId), String(quote.grainId)) ||
+          !canCarryObject(c.world, cook, String(quote.grainId), String(quote.fuelId))))
+          return refuse(SettlementRejection.NoRoom, "双方需先腾出足够的负重空间才能交换实物。");
+        return { ok: true };
+      },
+    });
+    ctx.registerResolutionRule({
+      id: `${type}.resolve`, commandType: type,
+      resolve: (c) => {
+        const playerId = c.command.actorId as string;
+        const quote = quoteOf(c.world);
+        const grainId = String(quote.grainId), fuelId = String(quote.fuelId);
+        const effects: Effect[] = [];
+        if (accept) {
+          for (const [id, oldOwner, newOwner] of [
+            [grainId, playerId, cook], [fuelId, cook, playerId],
+          ] as [string, string, string][]) {
+            effects.push({
+              kind: "removeRelation", type: ObjectRelations.heldBy,
+              from: id, to: oldOwner, reason: "player barter handover", announce: false,
+            }, {
+              kind: "removeRelation", type: ObjectRelations.ownedBy,
+              from: id, to: oldOwner, reason: "player barter ownership swap", announce: false,
+            }, {
+              kind: "addRelation", type: ObjectRelations.heldBy, from: id, to: newOwner, announce: false,
+            }, {
+              kind: "addRelation", type: ObjectRelations.ownedBy, from: id, to: newOwner, announce: false,
+            });
+          }
+          effects.push({
+            kind: "modifyComponent", entityId: playerId, component: SettlementComponents.holding,
+            patch: { playerTradeCount: 1 }, reason: "player owns a real completed exchange",
+          });
+        }
+        effects.push({
+          kind: "modifyComponent", entityId: cook, component: SettlementComponents.resident,
+          patch: { playerBarterQuote: { ...quote, status: accept ? "accepted" : "declined",
+            resolvedAt: c.world.tick } },
+          reason: accept ? "cook's quote accepted by the player" : "player declined the cook's quote",
+        }, {
+          kind: "emitEvent", eventType: accept
+            ? "settlement-locations.player_barter_accepted"
+            : "settlement-locations.player_barter_declined",
+          actorId: playerId, targetId: cook,
+          data: { grainId, fuelId, accepted: accept },
+          historicalSignificance: accept ? 0.07 : 0,
+        });
+        return effects;
+      },
+    });
+  };
+  playerDecision(SettlementCommands.playerBarterAccept, true);
+  playerDecision(SettlementCommands.playerBarterDecline, false);
+}
+
 export interface HomesteadView {
   exists: boolean;
   characterId: string;
@@ -1015,10 +1440,13 @@ export interface HomesteadView {
   /** Budget for several activities in the same authoritative world day. */
   dailyActivity: ReturnType<typeof dailyActivity>;
   dailyPlan: ReturnType<typeof dailyPlan>;
+  outfit: { objectId: string; name: string; fieldWorkActivityCost: number } | null;
+  /** Only the addressed player can see their cook quote at the hearth. */
+  barter: { status: string; grainId: string; fuelId: string; offeredAt: number } | null;
   /** Field status, visible when standing at the field. */
   crop?: { phase: string; remainingDays: number; tended: boolean; summary: string };
   /** People in the same place, with what they are doing right now. */
-  neighbours: { id: string; name: string; role: string; household: string; placeId: string; atWork: boolean }[];
+  neighbours: { id: string; name: string; role: string; household: string; placeId: string; atWork: boolean; dailyNote: string; tradeCount: number; contact: string; conversations: number }[];
   /** Objects reachable from here, with the action each allows. */
   objects: { id: string; name: string; prototypeId: string; placement: string; quantity: number; visible: boolean }[];
   /** Resources this place renews, and what is left. */
@@ -1027,9 +1455,23 @@ export interface HomesteadView {
   exits: { placeId: string; name: string; costDays: number; purpose: string }[];
   /** What the player is carrying, by resource. */
   carried: { resourceId: string; label: string; count: number; unit: string }[];
+  portableLoad: ReturnType<typeof portableLoad>;
+  contacts: { id: string; name: string; role: string; contact: string; conversations: number; nearby: boolean }[];
   /** The actions that are legal right now, with a reason when they are not. */
   actions: { id: string; label: string; hint: string; days: number; enabled: boolean; reason: string; payload: Record<string, JsonValue>; activityCost?: number }[];
   note: string;
+}
+
+function contactConversations(world: WorldView, actorId: string, targetId: string): number {
+  const raw = world.getComponent(actorId, SettlementComponents.holding)?.contacts;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return 0;
+  const person = (raw as Record<string, JsonValue>)[targetId];
+  if (!person || typeof person !== "object" || Array.isArray(person)) return 0;
+  return Math.max(0, Number((person as Record<string, JsonValue>).conversations ?? 0));
+}
+function contactLevel(world: WorldView, actorId: string, targetId: string): string {
+  const count = contactConversations(world, actorId, targetId);
+  return count >= 3 ? "相识" : count > 0 ? "见过" : "陌生";
 }
 
 export function homestead(world: WorldView, actorId: string): HomesteadView {
@@ -1051,6 +1493,10 @@ export function homestead(world: WorldView, actorId: string): HomesteadView {
         household: resident.household,
         placeId: otherPlace,
         atWork: otherPlace === resident.workPlace,
+        dailyNote: resident.lastRoutineAt === world.tick ? resident.standingRoutine : "",
+        tradeCount: resident.tradeCount,
+        contact: contactLevel(world, actorId, entity.id),
+        conversations: contactConversations(world, actorId, entity.id),
       };
     })
     .filter((person) => person.placeId === placeId)
@@ -1106,6 +1552,15 @@ export function homestead(world: WorldView, actorId: string): HomesteadView {
     unit: row.unit,
   }));
 
+  const cookQuoteRaw = world.getComponent(residentId("cook"), SettlementComponents.resident)?.playerBarterQuote;
+  const cookQuote = cookQuoteRaw && typeof cookQuoteRaw === "object" && !Array.isArray(cookQuoteRaw)
+    ? cookQuoteRaw as Record<string, JsonValue> : {};
+  const ownBarter = placeId === "place:hearth-yard" &&
+    cookQuote.customerId === actorId && occupiedPlaceId(world, residentId("cook")) === placeId
+    ? { status: String(cookQuote.status ?? ""), grainId: String(cookQuote.grainId ?? ""),
+      fuelId: String(cookQuote.fuelId ?? ""), offeredAt: Number(cookQuote.at ?? -1) }
+    : null;
+
   const actions = homesteadActions(world, actorId, placeId, spaceId);
 
   return {
@@ -1121,12 +1576,24 @@ export function homestead(world: WorldView, actorId: string): HomesteadView {
     hunger: hungerLevel(world, actorId),
     dailyActivity: dailyActivity(world, actorId),
     dailyPlan: dailyPlan(world, actorId),
+    barter: ownBarter,
+    outfit: wornByActor(world, actorId) ? {
+      objectId: wornByActor(world, actorId), name: nameOfObject(world, wornByActor(world, actorId)),
+      fieldWorkActivityCost: wornWrap(world, actorId) ? 2 : 3,
+    } : null,
     ...(placeId === "place:field" ? { crop: { ...fieldCrop(world), summary: cropSummary(world) } } : {}),
     neighbours,
     objects,
     yields,
     exits,
     carried,
+    portableLoad: portableLoad(world, actorId),
+    contacts: RESIDENTS.map((r) => ({
+      id: residentId(r.key), name: r.name, role: r.role,
+      contact: contactLevel(world, actorId, residentId(r.key)),
+      conversations: contactConversations(world, actorId, residentId(r.key)),
+      nearby: occupiedPlaceId(world, residentId(r.key)) === placeId,
+    })).filter((r) => r.conversations > 0),
     actions,
     note: inSettlement
       ? place?.name
@@ -1163,7 +1630,7 @@ function homesteadActions(
     reason: string,
     payload: Record<string, JsonValue> = {},
   ) => {
-    const cost = id === SettlementCommands.arrive && payload.travelMode === "local" ? 1 : ACTIVITY_COST[id] ?? 0;
+    const cost = id === SettlementCommands.arrive && payload.travelMode === "local" ? 1 : activityCostFor(world, actorId, id);
     const remaining = dailyActivity(world, actorId).remaining;
     const enoughTime = remaining >= cost;
     actions.push({ id, label, hint, days: cost ? 0 : days,
@@ -1175,6 +1642,19 @@ function homesteadActions(
   if (!placeId) {
     actionAddExits(add, world, placeId);
     return actions;
+  }
+
+  for (const resident of RESIDENTS) {
+    const id = residentId(resident.key);
+    if (id === actorId || occupiedPlaceId(world, id) !== placeId) continue;
+    const raw = world.getComponent(actorId, SettlementComponents.holding)?.contacts;
+    const info = raw && typeof raw === "object" && !Array.isArray(raw)
+      ? (raw as Record<string, JsonValue>)[id] : undefined;
+    const talked = info && typeof info === "object" && !Array.isArray(info) &&
+      (info as Record<string, JsonValue>).lastTalkAt === world.tick;
+    add(SettlementCommands.talk, `与${resident.name}搭话`,
+      "当面交流后逐渐相识；搭一次话不会直接成为朋友。",
+      0, !talked, talked ? "今天已经聊过，明天再来" : "", { targetId: id });
   }
 
   const available = yieldPoints(world).filter((point) => point.placeId === placeId && point.stock > 0);
@@ -1238,6 +1718,100 @@ function homesteadActions(
       {});
   }
 
+  if (placeId === "place:hearth-yard" &&
+      occupiedPlaceId(world, residentId("cook")) === placeId &&
+      actorId !== residentId("cook")) {
+    const grainId = heldIngredient(world, actorId, "resource:grain");
+    const cook = residentId("cook");
+    const fuelId = world.listRelations({ type: ObjectRelations.heldBy, to: cook })
+      .map((r) => r.from).sort((a, b) => a.localeCompare(b))
+      .find((id) => tradeReady(world, id, cook, "resource:fuel")) ?? "";
+    const raw = world.getComponent(cook, SettlementComponents.resident)?.playerBarterQuote;
+    const quote = raw && typeof raw === "object" && !Array.isArray(raw)
+      ? raw as Record<string, JsonValue> : {};
+    const pending = quote.customerId === actorId && quote.status === "offered" &&
+      quote.at === world.tick;
+    const finished = Number(world.getComponent(actorId, SettlementComponents.holding)?.playerTradeCount ?? 0) >= 1;
+    if (pending) {
+      const quotePayload = { grainId: String(quote.grainId ?? ""), fuelId: String(quote.fuelId ?? "") };
+      add(SettlementCommands.playerBarterAccept, "接受阿灶报价：交 1 份粟，得 1 捆柴",
+        "双方已经分别授权；确认后两件实物的持有权和所有权在同一事务中互换。",
+        0, !finished && tradeReady(world, quotePayload.grainId, actorId, "resource:grain") &&
+          tradeReady(world, quotePayload.fuelId, cook, "resource:fuel"),
+        "双方物品必须仍在各自手里", quotePayload);
+      add(SettlementCommands.playerBarterDecline, "拒绝这次报价",
+        "拒绝只结束这次报价，不扣粮食或柴草。", 0, true, "", quotePayload);
+    } else {
+      add(SettlementCommands.playerBarterRequest, "向阿灶询价：用一份粟换一捆柴",
+        "你先明确提出以自己的一份真实粟换柴；阿灶按实际库存和规则独立给出报价，随后由你决定接受或拒绝。",
+        0, !finished && Boolean(grainId && fuelId),
+        finished ? "你已与阿灶完成过本次交换" : !grainId ? "请先从田地采集一份属于自己的粟粮" :
+          !fuelId ? "阿灶现在没有可交换的柴草，等他采集后再来" : "",
+        grainId && fuelId ? { grainId, fuelId } : {});
+    }
+  }
+
+  if (placeId === "place:reedbed") {
+    const inWeavingArea = spaceId === "space:reed-cut";
+    const reeds = reedInputs(world, actorId);
+    add(SettlementCommands.weaveBag, "编一只芦苇提袋",
+      "用自己持有的两捆芦苇编出一只容量三件的提袋，可装入和取出实物。",
+      0, inWeavingArea && reeds.length >= 2,
+      !inWeavingArea ? "先到芦苇滩编织处" : reeds.length < 2 ? "缺少两捆自己的芦苇" : "");
+    add(SettlementCommands.weaveMat, "编一张苇席",
+      "用自己持有的两捆芦苇编席；带回住处休息，次日活动时间增加一格。",
+      0, inWeavingArea && reeds.length >= 2,
+      !inWeavingArea ? "先到芦苇滩编织处" : reeds.length < 2 ? "缺少两捆自己的芦苇" : "");
+    add(SettlementCommands.prepareFiber, "剥取两束苇纤维",
+      "真实消耗两捆自己持有的芦苇，加工出两束可以编衣的纤维。",
+      0, inWeavingArea && reeds.length >= 2,
+      !inWeavingArea ? "先到编织处" : reeds.length < 2 ? "缺少两捆自己的芦苇" : "");
+    const fibers = fiberInputs(world, actorId);
+    add(SettlementCommands.weaveWrap, "编一件纤维裹身",
+      "消耗自己持有的两束纤维，织成可穿脱的裹身衣；穿着下田劳动节省一格活动。",
+      0, inWeavingArea && fibers.length >= 2,
+      !inWeavingArea ? "先到编织处" : fibers.length < 2 ? "缺少两束自己的纤维" : "");
+  }
+
+  const outfitId = wornByActor(world, actorId);
+  for (const relation of world.listRelations({ type: ObjectRelations.heldBy, to: actorId })) {
+    const id = relation.from;
+    if (ownerOf(world, id) !== actorId ||
+        !prototypeOf(world, id).capabilities.includes("wearable")) continue;
+    if (outfitId === id) {
+      add(ObjectCommands.unwear, `脱下${nameOfObject(world, id)}`,
+        "脱下后仍保留原来的衣物，田间劳动恢复原活动开销。",
+        0, true, "", { objectId: id });
+    } else {
+      add(ObjectCommands.wear, `穿上${nameOfObject(world, id)}`,
+        "只能穿一件自己的衣物；纤维裹身在田间劳动时可节省一格活动时间。",
+        0, !outfitId, outfitId ? "已有衣物穿着，需先脱下" : "", { objectId: id });
+    }
+  }
+
+  // Use the shared world-objects container rules, not another inventory.
+  const heldIds = world.listRelations({ type: ObjectRelations.heldBy, to: actorId })
+    .map((relation) => relation.from).sort((a, b) => a.localeCompare(b));
+  for (const bagId of heldIds) {
+    if (ownerOf(world, bagId) !== actorId ||
+        prototypeOf(world, bagId).prototypeId !== "prototype:carrying-bag") continue;
+    const contents = contentsOf(world, bagId);
+    const room = prototypeOf(world, bagId).capacity - contents.length;
+    for (const objectId of heldIds) {
+      if (objectId === bagId || ownerOf(world, objectId) !== actorId) continue;
+      if (contents.includes(objectId)) continue;
+      add(ObjectCommands.store, `把${nameOfObject(world, objectId)}装进提袋`,
+        "真实放入容器，取出后仍是原来的那件物品。",
+        0, room > 0, room <= 0 ? "提袋已装满" : "",
+        { objectId, containerId: bagId });
+    }
+    for (const objectId of contents) {
+      add(ObjectCommands.retrieve, `从提袋取出${nameOfObject(world, objectId)}`,
+        "从提袋取回原物，可继续烹饪、使用或加工。",
+        0, true, "", { objectId });
+    }
+  }
+
   if (placeId === "place:field") {
     const crop = fieldCrop(world);
     const grainId = heldIngredient(world, actorId, "resource:grain");
@@ -1258,6 +1832,13 @@ function homesteadActions(
   }
 
   const homeSpace = HOME_SPACES.includes(spaceId);
+  if (homeSpace) {
+    for (const matId of availableRestMats(world, actorId)) {
+      add(SettlementCommands.rest, `铺开${nameOfObject(world, matId)}休息`,
+        "用自己的苇席好好休息，次日增加一格活动时间；效果不叠加。",
+        0, true, "", { spaceId, matId });
+    }
+  }
   add(
     SettlementCommands.rest,
     homeSpace ? "在家休息" : "歇一会儿",
@@ -1458,6 +2039,63 @@ function seasonOf(tick: number): string {
 // Daily actions
 // ---------------------------------------------------------------------------
 
+/** A conversation is an encounter, not instant friendship.
+ * One real resident, at the player's actual place, at most once each day.
+ * Persistent contact grows from first greeting to acquaintance, never
+ * secretly creates a new character or a family.friend_of relation.
+ */
+function registerTalk(ctx: Registration): void {
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.talk}.allowed`,
+    commandType: SettlementCommands.talk,
+    evaluate: (c) => {
+      const actorId = c.command.actorId ?? "";
+      const targetId = String(c.command.payload.targetId ?? "");
+      if (!actorId || actorId === targetId ||
+          c.world.getComponent("modern:world", "modern.world_state")?.activeCharacterId !== actorId)
+        return refuse(SettlementRejection.NotYours, "只能由你自己主动搭话。");
+      if (!c.world.getComponent(targetId, SettlementComponents.resident))
+        return refuse(SettlementRejection.NoSuchResident, "这里没有这位可以搭话的村民。");
+      if (!occupiedPlaceId(c.world, actorId) ||
+          occupiedPlaceId(c.world, actorId) !== occupiedPlaceId(c.world, targetId))
+        return refuse(SettlementRejection.WrongPlace, "需要走到对方面前，才可以搭话。");
+      const raw = c.world.getComponent(actorId, SettlementComponents.holding)?.contacts;
+      const contacts = raw && typeof raw === "object" && !Array.isArray(raw)
+        ? raw as Record<string, JsonValue> : {};
+      const contact = contacts[targetId];
+      if (contact && typeof contact === "object" && !Array.isArray(contact) &&
+          (contact as Record<string, JsonValue>).lastTalkAt === c.world.tick)
+        return refuse(SettlementRejection.Already, "今天已经聊过了，明天再来吧。");
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.talk}.resolve`,
+    commandType: SettlementCommands.talk,
+    resolve: (c) => {
+      const actorId = c.command.actorId as string;
+      const targetId = String(c.command.payload.targetId);
+      const raw = c.world.getComponent(actorId, SettlementComponents.holding)?.contacts;
+      const contacts = raw && typeof raw === "object" && !Array.isArray(raw)
+        ? { ...raw as Record<string, JsonValue> } : {};
+      const before = contacts[targetId] && typeof contacts[targetId] === "object"
+        ? contacts[targetId] as Record<string, JsonValue> : {};
+      const conversations = Math.max(0, Number(before.conversations ?? 0)) + 1;
+      contacts[targetId] = { firstMetAt: before.firstMetAt ?? c.world.tick,
+        lastTalkAt: c.world.tick, conversations };
+      return [{
+        kind: "modifyComponent", entityId: actorId, component: SettlementComponents.holding,
+        patch: { contacts }, reason: "player truly met and spoke with a present resident",
+      }, {
+        kind: "emitEvent", eventType: "settlement-locations.conversation",
+        actorId, targetId,
+        data: { conversations, relationship: conversations >= 3 ? "acquaintance" : "met" },
+        historicalSignificance: 0.02,
+      }];
+    },
+  });
+}
+
 function registerDraw(ctx: Registration): void {
   ctx.registerConstraintRule({
     id: `${SettlementCommands.draw}.allowed`,
@@ -1474,6 +2112,8 @@ function registerDraw(ctx: Registration): void {
       if (point.stock <= 0) {
         return refuse(SettlementRejection.Exhausted, `${point.label}这一季已经取尽了，过些时候才会回来。`);
       }
+      if (!canCarryPrototype(c.world, actorId, prototypeForResource(resourceId)))
+        return refuse(SettlementRejection.NoRoom, "你拿不下这么多东西。先放下或装进提袋。");
       return { ok: true };
     },
   });
@@ -1769,7 +2409,308 @@ function registerCook(ctx: Registration): void {
 }
 
 
-/** M2-A3: one consumed grain is the seed for one bounded, tended field crop. */
+/** M2-B-A: weave two personally held reed bundles into a real carrying bag.
+ * The original bundles are archived in the same world transaction.
+ */
+function reedInputs(world: WorldView, actorId: string): string[] {
+  return world.listRelations({ type: ObjectRelations.heldBy, to: actorId })
+    .map((relation) => relation.from)
+    .filter((objectId) => {
+      const item = world.getEntity(objectId);
+      return item?.kind === ObjectKinds.item && item.archivedAt === undefined &&
+        ownerOf(world, objectId) === actorId &&
+        prototypeOf(world, objectId).resourceId === "resource:reed" &&
+        readObject(item.components[ObjectComponents.object]).quantity === 1;
+    })
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function registerWeaveBag(ctx: Registration): void {
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.weaveBag}.allowed`,
+    commandType: SettlementCommands.weaveBag,
+    evaluate: (c) => {
+      const actorId = c.command.actorId ?? "";
+      if (occupiedPlaceId(c.world, actorId) !== "place:reedbed" ||
+          occupiedSpaceId(c.world, actorId) !== "space:reed-cut") {
+        return refuse(SettlementRejection.WrongPlace, "编织芦苇提袋需要在芦苇滩的编织处操作。");
+      }
+      if (reedInputs(c.world, actorId).length < 2) {
+        return refuse(SettlementRejection.Empty, "需要自己持有的两捆芦苇才能编袋。");
+      }
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.weaveBag}.resolve`,
+    commandType: SettlementCommands.weaveBag,
+    resolve: (c) => {
+      const actorId = c.command.actorId as string;
+      const inputs = reedInputs(c.world, actorId).slice(0, 2);
+      const bagId = `settlement-locations:reed-bag:${inputs[0]}`;
+      const effects: Effect[] = [];
+      for (const id of inputs) {
+        effects.push({
+          kind: "removeRelation", type: ObjectRelations.heldBy,
+          from: id, to: actorId, reason: "reeds woven into a bag", announce: false,
+        }, {
+          kind: "archiveEntity", entityId: id,
+          reason: "reeds woven into a bag", announce: false,
+        });
+      }
+      effects.push({
+        kind: "spawnEntity", localId: "woven-bag", id: bagId,
+        entityKind: ObjectKinds.item, announce: false,
+        components: {
+          [ObjectComponents.object]: {
+            prototypeId: "prototype:carrying-bag", name: "芦苇提袋",
+            condition: "woven", quantity: 1, durability: 28, madeAt: c.world.tick,
+            provenance: { reedIds: inputs, placeId: "place:reedbed", at: c.world.tick },
+            visibleFromOutside: true,
+          } as unknown as Record<string, never>,
+        },
+      }, {
+        kind: "addRelation", type: ObjectRelations.instanceOf,
+        from: bagId, to: "prototype:carrying-bag", announce: false,
+      }, {
+        kind: "addRelation", type: ObjectRelations.ownedBy,
+        from: bagId, to: actorId, announce: false,
+      }, {
+        kind: "addRelation", type: ObjectRelations.heldBy,
+        from: bagId, to: actorId, announce: false,
+      }, {
+        kind: "emitEvent", eventType: "settlement-locations.bag_woven",
+        actorId, targetId: bagId,
+        data: { bagId, reedIds: inputs, capacity: 3 },
+        historicalSignificance: 0.03,
+      });
+      return effects;
+    },
+  });
+}
+
+/** Only one's own, directly held or locally laid-out mat can help rest. */
+function availableRestMats(world: WorldView, actorId: string): string[] {
+  const placeId = occupiedPlaceId(world, actorId);
+  const spaceId = occupiedSpaceId(world, actorId);
+  if (!HOME_SPACES.includes(spaceId)) return [];
+  return world.listEntities({ kind: ObjectKinds.item })
+    .filter((entity) => entity.archivedAt === undefined)
+    .filter((entity) => {
+      if (ownerOf(world, entity.id) !== actorId ||
+          prototypeOf(world, entity.id).prototypeId !== "prototype:mat") return false;
+      const holder = holderOf(world, entity.id);
+      if (holder === actorId) return true;
+      if (holder) return false;
+      const location = containerOf(world, entity.id);
+      return location === placeId || location === spaceId;
+    })
+    .map((entity) => entity.id).sort((a, b) => a.localeCompare(b));
+}
+
+/** Two gathered reed bundles become a single portable mat with source IDs. */
+function registerWeaveMat(ctx: Registration): void {
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.weaveMat}.allowed`,
+    commandType: SettlementCommands.weaveMat,
+    evaluate: (c) => {
+      const actorId = c.command.actorId ?? "";
+      if (occupiedPlaceId(c.world, actorId) !== "place:reedbed" ||
+          occupiedSpaceId(c.world, actorId) !== "space:reed-cut") {
+        return refuse(SettlementRejection.WrongPlace, "必须到芦苇滩的编织处制作苇席。");
+      }
+      if (reedInputs(c.world, actorId).length < 2) {
+        return refuse(SettlementRejection.Empty, "制作苇席需要自己持有的两捆芦苇。");
+      }
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.weaveMat}.resolve`,
+    commandType: SettlementCommands.weaveMat,
+    resolve: (c) => {
+      const actorId = c.command.actorId as string;
+      const reedIds = reedInputs(c.world, actorId).slice(0, 2);
+      const matId = `settlement-locations:reed-mat:${reedIds[0]}`;
+      const effects: Effect[] = [];
+      for (const reedId of reedIds) {
+        effects.push({
+          kind: "removeRelation", type: ObjectRelations.heldBy,
+          from: reedId, to: actorId, reason: "reed woven into a sleeping mat", announce: false,
+        }, {
+          kind: "archiveEntity", entityId: reedId,
+          reason: "reed woven into a sleeping mat", announce: false,
+        });
+      }
+      effects.push({
+        kind: "spawnEntity", localId: "woven-mat", id: matId,
+        entityKind: ObjectKinds.item, announce: false,
+        components: {
+          [ObjectComponents.object]: {
+            prototypeId: "prototype:mat", name: "自己编的苇席",
+            condition: "woven", quantity: 1, durability: 40, madeAt: c.world.tick,
+            provenance: { reedIds, placeId: "place:reedbed", at: c.world.tick },
+            visibleFromOutside: true,
+          } as unknown as Record<string, never>,
+        },
+      }, {
+        kind: "addRelation", type: ObjectRelations.instanceOf,
+        from: matId, to: "prototype:mat", announce: false,
+      }, {
+        kind: "addRelation", type: ObjectRelations.ownedBy,
+        from: matId, to: actorId, announce: false,
+      }, {
+        kind: "addRelation", type: ObjectRelations.heldBy,
+        from: matId, to: actorId, announce: false,
+      }, {
+        kind: "emitEvent", eventType: "settlement-locations.mat_woven",
+        actorId, targetId: matId,
+        data: { matId, reedIds },
+        historicalSignificance: 0.03,
+      });
+      return effects;
+    },
+  });
+}
+
+/** M2-B-C: fibre processing and clothing both consume real, directly carried inputs. */
+function fiberInputs(world: WorldView, actorId: string): string[] {
+  return world.listRelations({ type: ObjectRelations.heldBy, to: actorId })
+    .map((r) => r.from)
+    .filter((id) => {
+      const entity = world.getEntity(id);
+      return entity?.kind === ObjectKinds.item && entity.archivedAt === undefined &&
+        ownerOf(world, id) === actorId &&
+        prototypeOf(world, id).prototypeId === "prototype:fiber-bundle" &&
+        readObject(entity.components[ObjectComponents.object]).quantity === 1;
+    }).sort((a, b) => a.localeCompare(b));
+}
+
+function registerPrepareFiber(ctx: Registration): void {
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.prepareFiber}.allowed`,
+    commandType: SettlementCommands.prepareFiber,
+    evaluate: (c) => {
+      const actorId = c.command.actorId ?? "";
+      if (occupiedPlaceId(c.world, actorId) !== "place:reedbed" ||
+          occupiedSpaceId(c.world, actorId) !== "space:reed-cut") {
+        return refuse(SettlementRejection.WrongPlace, "要在芦苇滩的编织处剥取植物纤维。");
+      }
+      if (reedInputs(c.world, actorId).length < 2) {
+        return refuse(SettlementRejection.Empty, "需要自己持有的两捆芦苇才能整理出两束纤维。");
+      }
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.prepareFiber}.resolve`,
+    commandType: SettlementCommands.prepareFiber,
+    resolve: (c) => {
+      const actorId = c.command.actorId as string;
+      const reedIds = reedInputs(c.world, actorId).slice(0, 2);
+      const effects: Effect[] = [];
+      for (const reedId of reedIds) {
+        const fiberId = `settlement-locations:processed-fiber:${reedId}`;
+        effects.push({
+          kind: "removeRelation", type: ObjectRelations.heldBy,
+          from: reedId, to: actorId, reason: "reed stripped for weaving fibers", announce: false,
+        }, {
+          kind: "archiveEntity", entityId: reedId,
+          reason: "converted from reed into fiber", announce: false,
+        }, {
+          kind: "spawnEntity", localId: `fiber-${fiberId}`, id: fiberId,
+          entityKind: ObjectKinds.item, announce: false,
+          components: {
+            [ObjectComponents.object]: {
+              prototypeId: "prototype:fiber-bundle", name: "整理好的苇纤维",
+              condition: "prepared", quantity: 1, durability: 0, madeAt: c.world.tick,
+              provenance: { fromReedId: reedId, placeId: "place:reedbed", at: c.world.tick },
+              visibleFromOutside: false,
+            } as unknown as Record<string, never>,
+          },
+        }, {
+          kind: "addRelation", type: ObjectRelations.instanceOf, from: fiberId,
+          to: "prototype:fiber-bundle", announce: false,
+        }, {
+          kind: "addRelation", type: ObjectRelations.ownedBy, from: fiberId,
+          to: actorId, announce: false,
+        }, {
+          kind: "addRelation", type: ObjectRelations.heldBy, from: fiberId,
+          to: actorId, announce: false,
+        });
+      }
+      effects.push({
+        kind: "emitEvent", eventType: "settlement-locations.fiber_prepared",
+        actorId, data: { reedIds, fiberCount: 2 }, historicalSignificance: 0.02,
+      });
+      return effects;
+    },
+  });
+}
+
+function registerWeaveWrap(ctx: Registration): void {
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.weaveWrap}.allowed`,
+    commandType: SettlementCommands.weaveWrap,
+    evaluate: (c) => {
+      const actorId = c.command.actorId ?? "";
+      if (occupiedPlaceId(c.world, actorId) !== "place:reedbed" ||
+          occupiedSpaceId(c.world, actorId) !== "space:reed-cut") {
+        return refuse(SettlementRejection.WrongPlace, "要在芦苇滩的编织处编织裹身衣。");
+      }
+      if (fiberInputs(c.world, actorId).length < 2) {
+        return refuse(SettlementRejection.Empty, "需要两束自己持有的植物纤维。");
+      }
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.weaveWrap}.resolve`,
+    commandType: SettlementCommands.weaveWrap,
+    resolve: (c) => {
+      const actorId = c.command.actorId as string;
+      const fiberIds = fiberInputs(c.world, actorId).slice(0, 2);
+      const wrapId = `settlement-locations:fiber-wrap:${fiberIds[0]}`;
+      const effects: Effect[] = [];
+      for (const fiberId of fiberIds) {
+        effects.push({
+          kind: "removeRelation", type: ObjectRelations.heldBy,
+          from: fiberId, to: actorId, reason: "fibers woven into one wrap", announce: false,
+        }, {
+          kind: "archiveEntity", entityId: fiberId,
+          reason: "fiber used in woven clothing", announce: false,
+        });
+      }
+      effects.push({
+        kind: "spawnEntity", localId: "woven-fiber-wrap", id: wrapId,
+        entityKind: ObjectKinds.item, announce: false,
+        components: {
+          [ObjectComponents.object]: {
+            prototypeId: "prototype:fiber-wrap", name: "自己编的纤维裹身",
+            condition: "woven", quantity: 1, durability: 25, madeAt: c.world.tick,
+            provenance: { fromFiberIds: fiberIds, placeId: "place:reedbed", at: c.world.tick },
+            visibleFromOutside: false,
+          } as unknown as Record<string, never>,
+        },
+      }, {
+        kind: "addRelation", type: ObjectRelations.instanceOf, from: wrapId,
+        to: "prototype:fiber-wrap", announce: false,
+      }, {
+        kind: "addRelation", type: ObjectRelations.ownedBy, from: wrapId,
+        to: actorId, announce: false,
+      }, {
+        kind: "addRelation", type: ObjectRelations.heldBy, from: wrapId,
+        to: actorId, announce: false,
+      }, {
+        kind: "emitEvent", eventType: "settlement-locations.wrap_woven",
+        actorId, targetId: wrapId, data: { fiberIds, wrapId },
+        historicalSignificance: 0.03,
+      });
+      return effects;
+    },
+  });
+}
+
 function registerSow(ctx: Registration): void {
   ctx.registerConstraintRule({
     id: `${SettlementCommands.sow}.allowed`,
@@ -1829,6 +2770,8 @@ function registerHarvest(ctx: Registration): void {
       if (!crop.seedId) return refuse(SettlementRejection.Empty, "这块地还没有播种。");
       if (!crop.tended) return refuse(SettlementRejection.Busy, "粟田还没照料，不能收获。");
       if (crop.remainingDays > 0) return refuse(SettlementRejection.Busy, `粟还要生长约 ${crop.remainingDays} 天。`);
+      if (!canCarryPrototype(c.world, actorId, "prototype:grain", "", CROP_YIELD))
+        return refuse(SettlementRejection.NoRoom, "一次收三份粮食，先腾出双手和行囊空间再收获。");
       return { ok: true };
     },
   });
@@ -1947,6 +2890,10 @@ function registerRest(ctx: Registration): void {
       if (!occupiedPlaceId(c.world, actorId)) {
         return refuse(SettlementRejection.WrongPlace, "先走进一个能休息的地方。");
       }
+      const matId = String(c.command.payload.matId ?? "");
+      if (matId && !availableRestMats(c.world, actorId).includes(matId)) {
+        return refuse(SettlementRejection.NotYours, "只有在住处铺开自己持有或放在身边的苇席才能好好休息。");
+      }
       return { ok: true };
     },
   });
@@ -1954,19 +2901,25 @@ function registerRest(ctx: Registration): void {
   ctx.registerResolutionRule({
     id: `${SettlementCommands.rest}.resolve`,
     commandType: SettlementCommands.rest,
-    resolve: (c) => [{
-      kind: "modifyComponent",
-      entityId: c.command.actorId as string,
-      component: SettlementComponents.holding,
-      patch: { lastRestedAt: c.world.tick },
-      reason: "rested at the settlement",
-    }, {
-      kind: "emitEvent",
-      eventType: "settlement-locations.rested",
-      actorId: c.command.actorId,
-      data: { placeId: occupiedPlaceId(c.world, c.command.actorId as string) },
-      historicalSignificance: 0,
-    }],
+    resolve: (c) => {
+      const matId = String(c.command.payload.matId ?? "");
+      const hadBonusToday = dailyActivity(c.world, c.command.actorId as string).capacity > DAILY_ACTIVITY_CAPACITY;
+      return [{
+        kind: "modifyComponent", entityId: c.command.actorId as string,
+        component: SettlementComponents.holding,
+        patch: { lastRestedAt: c.world.tick, ...(matId ? {
+          matRestedAt: c.world.tick,
+          ...(hadBonusToday ? { matBonusPreservedAt: c.world.tick } : {}),
+        } : {}) },
+        reason: matId ? "well rested using an owned sleeping mat" : "rested at the settlement",
+      }, {
+        kind: "emitEvent", eventType: "settlement-locations.rested",
+        actorId: c.command.actorId,
+        data: { placeId: occupiedPlaceId(c.world, c.command.actorId as string),
+          matId: matId || null, nextDayExtraActivity: matId ? 1 : 0 },
+        historicalSignificance: 0,
+      }];
+    },
   });
 }
 
