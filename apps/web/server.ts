@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import type { SavePackage } from "@openlife/contracts";
-import { readFile } from "node:fs/promises";
-import { extname, join, normalize } from "node:path";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { dirname, extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Simulation } from "@openlife/simulation";
 import { runAutoSim, untilActorArchived, untilTick, type AutoSimContext } from "@openlife/autonomy-runtime";
@@ -60,6 +60,104 @@ const modules = [
   settlementLifeModule,
 ];
 let simulation = createGame();
+
+// ---------------------------------------------------------------------------
+// Server-side persistence: the world is autosaved to disk on an interval and
+// restored on startup, so a process restart no longer wipes everyone's game.
+// The browser-side /api/save + /api/load flow is unchanged.
+//
+//   OPENLIFE_SAVE_PATH        where the autosave lives
+//                             (default: ./data/openlife-save.json next to server.ts)
+//   OPENLIFE_SAVE_INTERVAL_MS autosave period, 0 disables the timer
+//                             (default: 300000 = 5 minutes)
+// ---------------------------------------------------------------------------
+const SAVE_PATH =
+  process.env.OPENLIFE_SAVE_PATH ??
+  fileURLToPath(new URL("./data/openlife-save.json", import.meta.url));
+const SAVE_INTERVAL_MS = Number(process.env.OPENLIFE_SAVE_INTERVAL_MS ?? 5 * 60 * 1000);
+
+interface DiskSaveFile {
+  version: 1;
+  savedAt: string;
+  save: SavePackage;
+}
+
+/** Write the current world to disk atomically (temp file + rename). Never throws. */
+async function persistNow(reason: string): Promise<void> {
+  try {
+    const save: SavePackage = simulation.save({ label: `autosave:${reason}` });
+    const payload: DiskSaveFile = {
+      version: 1,
+      savedAt: new Date().toISOString(),
+      save,
+    };
+    await mkdir(dirname(SAVE_PATH), { recursive: true });
+    const tmpPath = `${SAVE_PATH}.${process.pid}.tmp`;
+    await writeFile(tmpPath, JSON.stringify(payload), "utf8");
+    await rename(tmpPath, SAVE_PATH);
+  } catch (error) {
+    console.error(`[openlife] autosave failed (${reason}):`, (error as Error).message);
+  }
+}
+
+/** Load the world from the last autosave, if one exists and is valid. */
+async function restoreFromDisk(): Promise<boolean> {
+  let raw: string;
+  try {
+    raw = await readFile(SAVE_PATH, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      console.error("[openlife] could not read autosave file:", (error as Error).message);
+    }
+    return false;
+  }
+  try {
+    const parsed = JSON.parse(raw) as Partial<DiskSaveFile>;
+    if (!parsed || typeof parsed.save !== "object" || parsed.save === null) {
+      console.error("[openlife] autosave file is malformed, starting a fresh world");
+      return false;
+    }
+    const loaded = Simulation.load(parsed.save as SavePackage, modules);
+    if (!loaded.result.ok || !loaded.simulation) {
+      console.error(
+        "[openlife] autosave is incompatible, starting a fresh world:",
+        loaded.result.errors?.[0]?.message ?? "unknown error",
+      );
+      return false;
+    }
+    simulation = loaded.simulation;
+    console.log(
+      `[openlife] restored world from ${SAVE_PATH} (saved at ${parsed.savedAt ?? "unknown"})`,
+    );
+    return true;
+  } catch (error) {
+    console.error(
+      "[openlife] autosave restore failed, starting a fresh world:",
+      (error as Error).message,
+    );
+    return false;
+  }
+}
+
+/** Start the periodic autosave timer and flush-on-shutdown hooks. */
+function startAutosave(): void {
+  if (Number.isFinite(SAVE_INTERVAL_MS) && SAVE_INTERVAL_MS > 0) {
+    const timer = setInterval(() => {
+      void persistNow("interval");
+    }, SAVE_INTERVAL_MS);
+    timer.unref?.();
+    console.log(
+      `[openlife] autosave every ${Math.round(SAVE_INTERVAL_MS / 1000)}s -> ${SAVE_PATH}`,
+    );
+  } else {
+    console.log("[openlife] periodic autosave disabled (OPENLIFE_SAVE_INTERVAL_MS<=0)");
+  }
+  const shutdown = (): void => {
+    void persistNow("shutdown").finally(() => process.exit(0));
+  };
+  process.once("SIGTERM", shutdown);
+  process.once("SIGINT", shutdown);
+}
 
 interface NewLifeOptions {
   seed?: number;
@@ -1123,6 +1221,7 @@ const server = createServer(async (req, res) => {
           return;
         }
         simulation = loaded.simulation;
+        void persistNow("load");
         res.end(JSON.stringify({ result: loaded.result, state: gameState() }));
         return;
       }
@@ -1134,6 +1233,7 @@ const server = createServer(async (req, res) => {
           familyName: typeof body.familyName === "string" ? body.familyName : undefined,
           cityId: typeof body.cityId === "string" ? body.cityId : undefined,
         });
+        void persistNow("reset");
         res.end(JSON.stringify({ state: gameState() }));
         return;
       }
@@ -1153,6 +1253,10 @@ const server = createServer(async (req, res) => {
     res.end(JSON.stringify({ error: (error as Error).message }));
   }
 });
+
+// Restore the last autosaved world (if any), then start the autosave loop.
+await restoreFromDisk();
+startAutosave();
 
 server.listen(PORT, () => {
   const address = server.address();
