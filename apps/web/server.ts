@@ -405,6 +405,7 @@ const SETTLEMENT_ACTIONS: Record<string, number> = {
   [SettlementCommands.playerBarterRequest]: 0,
   [SettlementCommands.playerBarterAccept]: 0,
   [SettlementCommands.playerBarterDecline]: 0,
+  [SettlementCommands.helpHearth]: 0,
 };
 
 export function isSettlementAction(action: string): boolean {
@@ -583,6 +584,9 @@ function runAction(action: string, payload: Record<string, unknown> = {}) {
   switch (action) {
     case "advance-year":
       // "A year" is one world year, in whatever scale the world declares.
+      if (simulation.worldView().getEntity("settlement-locations:settlement:river-terrace") &&
+          !simulation.worldView().getComponent(id, Life.state))
+        return rejected("活跃聚落不能直接跳过一整年；请按天推进，让村民的真实生活同步发生。");
       simulation.advanceBy(ageInWorldYears(simulation, 1));
       return { ok: true, errors: [] };
     default:
@@ -1166,5 +1170,6 @@ function contentType(ext: string): string {
   if (ext === ".html") return "text/html; charset=utf-8";
   if (ext === ".css") return "text/css; charset=utf-8";
   if (ext === ".js") return "text/javascript; charset=utf-8";
+  if (ext === ".svg") return "image/svg+xml";
   return "application/octet-stream";
 }

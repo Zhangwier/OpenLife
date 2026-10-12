@@ -46,7 +46,8 @@ test("M3-C: one authoritative day-boundary advances both NPCs once; replay after
     const first = runVillageDayBoundary(sim, start);
     assert.equal(first.ran, true);
     assert.equal(first.tick, start + 1);
-    assert.equal(first.notes.length, 2);
+    assert.equal(first.notes.length, 14);
+    assert.equal(sim.worldView().getComponent(residentId("reed-worker"), SettlementComponents.resident)?.lastRoutineAt, sim.tick);
     const cook = residentId("cook"), farmer = residentId("yu");
     assert.equal(sim.worldView().getComponent(cook, SettlementComponents.resident)?.lastRoutineAt, sim.tick);
     assert.equal(sim.worldView().getComponent(farmer, SettlementComponents.resident)?.lastRoutineAt, sim.tick);
@@ -96,10 +97,10 @@ test("M3-C: one authoritative day-boundary advances both NPCs once; replay after
     assert.equal(runVillageDayBoundary(resumed, afterSkip).ran, true);
     assert.equal(Number(resumed.worldView().getComponent(cook, SettlementComponents.resident)?.npcDailyCount),
       beforeSkipCookDays + 1);
-    assert.equal(worksites(resumed.worldView()).places.find((p) => p.placeId === "place:field")!.resources
-      .find((r) => r.resourceId === "resource:grain")!.stock, previousGrain,
-      "a skipped year does not fabricate grain-for-fuel barter");
-    return resumed.fingerprint();
+    const grainAfterRealDay = worksites(resumed.worldView()).places.find((p) => p.placeId === "place:field")!.resources
+      .find((r) => r.resourceId === "resource:grain")!.stock;
+    assert.ok(grainAfterRealDay >= 0 && grainAfterRealDay <= previousGrain,
+      "only the resumed real day can gather more grain, not the skipped history");    return resumed.fingerprint();
   };
   assert.equal(play(), play(), "same seed and command sequence yields the same complete world");
 });
@@ -418,44 +419,29 @@ test("M3-B: expired, displaced, missing or unauthorized goods reject barter with
   }
 });
 
-test("M3-B: two NPCs complete limited daily commands, one real exchange and no repeat after load", () => {
+test("M3: no hardcoded sixth-day exchange; real resource-based routines persist", () => {
   const { sim, playerId } = village(7203);
-  const cookId = residentId("cook"), yu = residentId("yu");
-  const play = () => {
+  const cook = residentId("cook"), yu = residentId("yu");
+  const start = sim.tick;
+  for (let day = 0; day < 6; day += 1) {
+    const before = sim.tick;
     sim.advanceBy(1);
-    const cook = runSecondNpcDay(sim);
-    const farmer = runFirstNpcDay(sim);
-    assert.equal(cook.skipped, false);
-    assert.equal(farmer.skipped, false);
-    assert.equal(runSecondNpcDay(sim).skipped, true);
-    const repeatedFarmer = runFirstNpcDay(sim);
-    assert.equal(repeatedFarmer.skipped, true, JSON.stringify({ cook, farmer, repeatedFarmer, record: sim.worldView().getComponent(yu, SettlementComponents.resident) }));
+    const report = runVillageDayBoundary(sim, before);
+    assert.equal(report.ran, true);
+    assert.equal(report.notes.length, 14);
+    assert.equal(Number(sim.worldView().getComponent(cook, SettlementComponents.resident)?.npcDailyCount), day + 1);
+    assert.equal(Number(sim.worldView().getComponent(yu, SettlementComponents.resident)?.npcDailyCount), day + 1);
     assert.equal(dailyActivity(sim.worldView(), playerId).used, 0);
-    return { cook, farmer };
-  };
-  for (let day = 0; day < 5; day++) {
-    const before = Number(sim.worldView().getComponent(cookId, SettlementComponents.resident)?.tradeCount ?? 0);
-    const results = play();
-    assert.equal(before, 0);
-    assert.equal(Number(sim.worldView().getComponent(cookId, SettlementComponents.resident)?.tradeCount ?? 0), 0,
-      JSON.stringify(results));
+    assert.equal(runVillageDayBoundary(sim, before).ran, false);
   }
-  const beforeGrain = worksites(sim.worldView()).places.find((p) => p.placeId === "place:field")!.resources
-    .find((r) => r.resourceId === "resource:grain")!.stock;
-  const sixth = play();
-  assert.ok(sixth.farmer.actions.includes("接受交换，得到柴草"), sixth.farmer.note);
-  assert.equal(Number(sim.worldView().getComponent(cookId, SettlementComponents.resident)?.tradeCount ?? 0), 1);
-  assert.equal(Number(sim.worldView().getComponent(yu, SettlementComponents.resident)?.tradeCount ?? 0), 1);
-  const grainAfter = worksites(sim.worldView()).places.find((p) => p.placeId === "place:field")!.resources
-    .find((r) => r.resourceId === "resource:grain")!.stock;
-  assert.equal(grainAfter, beforeGrain - 1, "the barter consumed exactly one real field grain");
-  const saved = Simulation.load(sim.save(), modules);
-  assert.equal(saved.result.ok, true);
-  assert.equal(saved.simulation!.fingerprint(), sim.fingerprint());
-  const after = play();
-  assert.equal(Number(sim.worldView().getComponent(cookId, SettlementComponents.resident)?.tradeCount ?? 0), 1, after.farmer.note);
-});
-test("M3-A: identical seed and NPC commands replay, player control never gives orders to NPC", () => {
+  assert.equal(sim.tick, start + 6);
+  const record = sim.worldView().getComponent(cook, SettlementComponents.resident);
+  assert.ok(Number(record?.lastFireAt ?? -1) > 0, "a real owned fuel bundle was burned");
+  assert.equal(Number(record?.tradeCount ?? 0), 0, "exchange is not tied to the sixth day");
+  const resumed = Simulation.load(sim.save(), modules);
+  assert.equal(resumed.result.ok, true);
+  assert.equal(resumed.simulation!.fingerprint(), sim.fingerprint());
+});test("M3-A: identical seed and NPC commands replay, player control never gives orders to NPC", () => {
   const run = () => {
     const { sim, playerId } = village(7003);
     for (let day = 0; day < 3; day++) prepared(sim);

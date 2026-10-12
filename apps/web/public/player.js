@@ -1,3 +1,5 @@
+import { openDetail, closeDetail } from "/detail-navigation.js";
+import { renderFigure } from "/character-appearance.js";
 const $ = id => document.getElementById(id);
 export function html(value) { return String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[c])); }
 export function renderActionButtons(container, actions, onAction) {
@@ -13,6 +15,7 @@ const STAGES = ["assess-clay", "forming", "drying", "firing"];
 const STAGE_NAMES = ["辨泥与准备", "决定器形", "等待干燥", "掌握火候"];
 export function renderPlayer(s, onAction) {
   const p = s.player;
+  if (s.settlement?.exists) renderPeople(s.settlement);
   document.body.classList.toggle("has-practice", Boolean(p?.practice));
   if (!p?.entered && !p?.practice) {
     $("playerSituation").innerHTML = ""; $("playerOutcome").hidden = true;
@@ -35,27 +38,28 @@ export function renderPlayer(s, onAction) {
   $("decisionHint").textContent = p.practice ? "这一阶段会占用一至两个月的生活时间。风险提示是取舍，结果仍受泥料与火候影响。" : "先做你现在关心的事。日常、手艺与相处都会占用生活时间。";
   $("occupationWord").textContent = Number(p.completed) >= 3 ? "逐渐熟练的制陶人" : "聚落里的制陶学徒";
   $("educationWord").textContent = `已完成 ${Number(p.lessons)} 段手艺学习`;
-  renderPeople(p, c, s.settlement);
   renderWorks(p, c, onAction);
   renderHandoff(p, c, onAction);
 }
 
-function renderPeople(p, c, settlement) {
+function renderPeople(settlement) {
   const container = $("relationshipOrbit");
   container.classList.add("people-list");
   const contacts = settlement?.contacts ?? [];
-  const nearby = (settlement?.neighbours ?? [])
+  const neighbours = settlement?.neighbours ?? [];
+  const nearby = neighbours
     .filter(person => !contacts.some(known => known.id === person.id))
     .map(person => ({ ...person, nearby: true, contact: "陌生", conversations: 0 }));
-  const list = [...contacts, ...nearby];
+  const list = [...contacts.map(person => ({ ...person, nearby: neighbours.some(n => n.id === person.id) })), ...nearby];
+  $("relationCount").textContent = `来往 ${contacts.length} 人 · 附近 ${neighbours.length} 人`;
   container.innerHTML = list.map(person => `<article class="person-card">
-    <div class="person-heading"><div class="person-avatar">${html(person.name.slice(0, 1))}</div>
+    <div class="person-heading"><div class="contact-portrait" aria-hidden="true">${renderFigure(person.id, `${person.role} ${person.name}`)}</div>
     <div><h4>${html(person.name)}</h4><span>${html(person.role)} · ${html(person.contact || "陌生")}</span></div></div>
     <p class="person-trait">${person.conversations > 0 ? `当面聊过 ${person.conversations} 次` : "只是眼前的陌生人，还没有互相认识。"}</p>
-    <p>${person.nearby ? "这位村民在附近。去周围选中对方，才能当面搭话。" : "这位熟人现在不在身边，不能远程搭话。"}</p>
-    ${person.nearby ? '<button class="portable-item" data-route="activities">去周围搭话 →</button>' : ""}
+    <p>${person.nearby ? "就在附近，可以走过去聊聊。" : "现在不在身边，下次遇见再聊。"}</p>
+    ${person.nearby ? `<button class="contact-action" data-person-route="${html(person.id)}">去找${html(person.name)} →</button>` : ""}
   </article>`).join("") ||
-    '<p class="empty-copy">目前还没有遇见的人。去「周围」当面交谈，才会逐渐认识村民。</p>';
+    '<div class="bag-empty"><strong>还没有遇见的人</strong><p>到生活场景中当面交谈，慢慢认识聚落里的村民。</p><button data-route="activities">去附近走走 →</button></div>';
 }
 
 function renderWorks(p, c, onAction) {
@@ -93,11 +97,18 @@ export function installViews() {
 }
 export function installModalAccess() {
   let returnFocus = null;
+  let modalKey = null;
   document.addEventListener("focusin", event => {
     if (!event.target.closest(".modal-backdrop")) returnFocus = event.target;
   });
   const update = () => {
     const visible = [...document.querySelectorAll(".modal-backdrop")].find(modal => !modal.hidden);
+    if (visible) {
+      modalKey = visible.id;
+      openDetail(modalKey, () => { visible.hidden = true; });
+    } else if (modalKey) {
+      const key = modalKey; modalKey = null; closeDetail(key);
+    }
     document.querySelector("main").inert = Boolean(visible);
     if (visible && !visible.contains(document.activeElement)) visible.querySelector("input,button,select")?.focus();
     if (!visible && returnFocus?.isConnected) returnFocus.focus();

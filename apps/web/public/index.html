@@ -2,10 +2,12 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>OpenLife · 开放人生</title>
   <link rel="stylesheet" href="/styles.css" />
   <link rel="stylesheet" href="/shell.css" />
+  <link rel="stylesheet" href="/scene.css" />
+  <link rel="stylesheet" href="/mobile-ui.css" />
 </head>
 <body data-screen="home">
   <div class="grain"></div>
@@ -41,17 +43,17 @@
         <button class="ghost-button" data-route="home">主菜单</button>
         <button class="ghost-button memory-button" id="memoryButton">记忆</button>
         <button class="icon-button" id="resetButton" aria-label="开始新人生" title="开始新人生">↺</button>
-        <button class="ghost-button" id="autoButton">让时间前行</button>
+        <button class="ghost-button" id="autoButton">时间与日程</button>
         <button class="ghost-button" id="pauseAutoButton" hidden aria-label="暂停持续模拟">暂停生活</button>
+        <button class="ghost-button" id="menuButton" aria-label="打开菜单">☰</button>
       </div>
     </header>
     <div id="applicationLayout" class="application-layout" hidden>
       <nav id="appNavigation" class="app-navigation" aria-label="主导航">        <div class="nav-caption">我的人生</div>
-        <button data-route="life">此刻</button>
-        <button data-route="activities">周围</button>
+        <button data-route="activities">生活</button>
         <button data-route="works">行囊</button>
         <button data-route="people">人际</button>
-        <button data-route="character">我</button>
+        <button data-route="character">人物</button>
         <details class="nav-more"><summary>更多资料</summary>
           <button data-route="family">家族谱</button>
           <button data-route="map">地图与地点</button>
@@ -60,7 +62,7 @@
           <button data-route="modules">模块管理</button>
         </details>
       </nav>
-      <div class="page-container"><div class="page-heading"><div><span id="pageEyebrow">我的人生</span><h1 id="pageTitle" tabindex="-1">此刻</h1></div><span id="pageIdentity"></span></div><div id="pageScreens"></div></div>
+      <div class="page-container"><p id="pageFeedback" class="page-feedback" role="status" aria-live="polite" hidden></p><div class="page-heading"><div><span id="pageEyebrow">我的人生</span><h1 id="pageTitle" tabindex="-1">生活</h1></div><span id="pageIdentity"></span></div><div id="pageScreens"></div></div>
     </div>
     <div id="legacyLayout" hidden>
     <section class="hero-grid">
@@ -106,9 +108,32 @@
             <span class="scene-clock" id="sceneDay"></span>
           </div>
           <p class="scene-summary" id="sceneSummary"></p>
+          <div class="scene-theater" id="sceneTheater" aria-label="可互动的聚落生活场景">
+            <img id="sceneBackdrop" class="scene-backdrop" src="/art/scene-yard.svg" alt="" draggable="false" />
+            <div class="scene-shimmer" aria-hidden="true"></div>
+            <div class="scene-stage-top">
+              <div><span class="scene-stage-kicker">OPENLIFE · 河岸聚落</span>
+                <strong id="sceneStageName">眼前的世界</strong></div>
+              <span class="scene-stage-season" id="sceneStageSeason">时光与生活</span>
+            </div>
+            <div id="sceneHotspots" class="scene-hotspots" aria-label="点击人物、物资或去别的地方"></div>
+            <div class="scene-stage-foot"><span>◈ 这里的一切都会留下真实痕迹</span>
+              <span id="sceneStageHint">点击人物或场景物件互动</span></div>
+          </div>
+          <section class="interaction-dock" id="interactionDock" aria-label="当前操作">
+            <p id="actionFeedback" class="action-feedback" role="status" aria-live="polite">轻触人物或物件，看看可以做什么。</p>
+            <div id="sceneQuickActions" class="scene-quick-actions" role="region" aria-label="场景操作" hidden></div>
+            <div class="dock-tools" id="dockTools">
+              <button id="sceneMapButton" type="button">地点 <span aria-hidden="true">↗</span></button>
+              <button id="sceneWorkButton" type="button">劳动与休息</button>
+              <button id="sceneTimeButton" type="button">时间安排</button>
+            </div>
+          </section>
+          <section id="communityFeed" class="hearth-story" aria-label="眼前聚落动态"></section>
           <div class="scene-shortcuts" id="sceneShortcuts"></div>
           <button id="sceneSheetMask" type="button" class="scene-sheet-mask" hidden aria-label="关闭操作菜单"></button>
 
+          <details class="scene-ledger" id="sceneLedger"><summary>打开物资与人物明细 <span>查看全部可交互对象 ▾</span></summary>
           <div class="scene-columns">
             <section class="scene-block">
               <h4>这里的人</h4>
@@ -132,6 +157,7 @@
             </section>
           </div>
 
+          </details>
           <div class="scene-action-area">
             <div class="eyebrow">先选目标，再做动作</div>
             <div id="sceneActions"></div>
@@ -219,7 +245,22 @@
     </section>
     </div>
   </main>
-  <div class="toast" id="toast"></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="modal-backdrop" id="menuModal" hidden>
+    <section class="modal menu-modal">
+      <div class="menu-heading"><h2>人生与世界</h2><button id="closeMenu" aria-label="关闭菜单">×</button></div>
+      <div class="menu-links">
+        <button data-control="memoryButton">保存与读取</button>
+        <button data-control="autoButton">时间与日程</button>
+        <button data-route="family">家族谱</button>
+        <button data-route="history">记忆与历史</button>
+        <button data-route="world">时代与世界</button>
+        <button data-route="modules">模块管理</button>
+        <button data-route="home">返回主菜单</button>
+        <button data-control="resetButton">开启新人生</button>
+      </div>
+    </section>
+  </div>
   <div class="modal-backdrop" id="autoModal" hidden>
     <section class="modal">
       <div class="eyebrow">时间前行</div>

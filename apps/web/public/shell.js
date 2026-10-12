@@ -1,7 +1,11 @@
 import { html } from "/player.js";
+import { commandsForTarget } from "/settlement.js";
+import { objectKind, propSvg, fillRatio } from "/scene-props.js";
+import { openDetail, closeDetail, leaveDetail } from "/detail-navigation.js";
 
-const TITLES = { life: "此刻", character: "我", activities: "周围", people: "人际", works: "行囊", family: "家族谱", map: "地图与地点", world: "时代与世界", history: "记忆与历史", modules: "模块管理" };
+const TITLES = { life: "人生概述", character: "人物", activities: "生活", people: "人际", works: "行囊", family: "家族谱", map: "地图与地点", world: "时代与世界", history: "记忆与历史", modules: "模块管理" };
 let active = "home", started = false, currentState, callbacks;
+let bagSelection = null;
 const $ = id => document.getElementById(id);
 
 export function installShell(options) {
@@ -17,7 +21,31 @@ export function installShell(options) {
     $("pageScreens").append(screen);
   }
   $("legacyLayout").remove();
+  $("screen-character").insertAdjacentHTML("beforeend", `<section class="panel personal-links"><h3>人生手账</h3><div class="menu-links"><button data-route="life">人生概述</button><button data-route="family">家族与传承</button><button data-route="history">往日记忆</button><button data-route="world">时代与世界</button></div></section>`);
+  const collection = document.createElement("details");
+  collection.className = "collection-fold";
+  collection.innerHTML = "<summary>亲手留下的作品</summary>";
+  $("screen-works").append(collection);
+  collection.append(document.querySelector(".works-card"));
+  $("menuButton").onclick = () => { $("menuModal").hidden = false; };
+  $("closeMenu").onclick = () => { $("menuModal").hidden = true; };
+  $("sceneTimeButton").onclick = () => $("autoButton").click();
+  document.addEventListener("click", event => {
+    const control = event.target.closest("[data-control]");
+    if (control) {
+      leaveDetail();
+      $("menuModal").hidden = true;
+      // Reuse the modal history entry when moving from menu to another dialog.
+      $(control.dataset.control)?.click();
+    }
+  });
   document.addEventListener("click", async event => {
+    const person = event.target.closest("[data-person-route]");
+    if (person) {
+      navigate("activities");
+      window.dispatchEvent(new CustomEvent("openlife:select-person", { detail: person.dataset.personRoute }));
+      return;
+    }
     const button = event.target.closest("[data-route]");
     if (button) {
       if (button.dataset.route === "family" && !started && options.hasSave()) {
@@ -31,27 +59,34 @@ export function installShell(options) {
   $("homeSaves").addEventListener("click", () => $("memoryButton").click());
   $("continueLife").addEventListener("click", async () => {
     $("continueLife").disabled = true;
-    try { if (!started) await options.continueLife(); started = true; navigate("life"); }
+    try { if (!started) await options.continueLife(); started = true; navigate("activities"); }
     catch (error) { $("homeStatus").textContent = `这段人生暂时无法恢复：${error.message}。可以从人生存档选择其他记录。`; }
     finally { updateHome(); }
   });
   window.addEventListener("hashchange", () => showRoute(routeFromHash()));
+  window.addEventListener("popstate", () => { if (routeFromHash() !== active) showRoute(routeFromHash()); });
   showRoute("home");
 }
 
 function routeFromHash() { const route = location.hash.slice(1); return route === "home" || TITLES[route] ? route : "home"; }
 export function navigate(route) {
   if (route !== "home" && !TITLES[route]) return;
-  if (location.hash !== `#${route}`) history.pushState(null, "", `#${route}`);
+  const hadDetail = leaveDetail();
+  $("menuModal").hidden = true;
+  if (hadDetail) history.replaceState(null, "", `#${route}`);
+  else if (location.hash !== `#${route}`) history.pushState(null, "", `#${route}`);
   showRoute(route);
 }
 function showRoute(route) {
+  const changed = active !== route;
+  if (changed) { $("toast").classList.remove("show"); $("pageFeedback").hidden = true; }
   active = route; document.body.dataset.screen = route;
   $("homeScreen").hidden = route !== "home";
   $("applicationLayout").hidden = route === "home";
   document.querySelectorAll("[data-screen-panel]").forEach(el => el.hidden = el.dataset.screenPanel !== route);
+  const primary = ["activities", "works", "people", "character"].includes(route) ? route : route === "map" ? "activities" : "character";
   document.querySelectorAll("#appNavigation [data-route]").forEach(el => {
-    const selected = el.dataset.route === route; el.classList.toggle("selected", selected);
+    const selected = el.dataset.route === route || (el.parentElement.id === "appNavigation" && el.dataset.route === primary); el.classList.toggle("selected", selected);
     if (selected) el.setAttribute("aria-current", "page"); else el.removeAttribute("aria-current");
   });
   if (route !== "home") {
@@ -61,9 +96,9 @@ function showRoute(route) {
   }
   if (route === "modules") loadModules();
   if (route === "map") loadMap();
-  window.scrollTo({ top: 0, behavior: "instant" });
+  if (changed) window.scrollTo({ top: 0, behavior: "instant" });
 }
-export function enterLife() { started = true; if (currentState) renderShell(currentState); updateHome(); navigate("life"); }
+export function enterLife() { started = true; if (currentState) renderShell(currentState); updateHome(); navigate("activities"); }
 export function renderShell(state) {
   currentState = state; updateHome();
   $("pageIdentity").textContent = state.character ? `${state.character.name} · ${state.character.age} 岁 · ${state.character.city}` : "";
@@ -90,24 +125,51 @@ export function renderShell(state) {
     pack.id = "portableOverview"; pack.className = "panel portable-overview";
     bag.prepend(pack);
   }
-  const held = state.settlement?.objects?.filter(o => o.placement === "在手中") || [];
-  const load = state.settlement?.portableLoad;
-  pack.innerHTML = `<h2>随身行囊</h2><p class="portable-meter">${load ?
-    `当前 ${load.looseSlots}/${load.maxSlots} 件 · ${load.mass.toFixed(1)}/${load.maxMass} 负重` : "正在整理携带情况"}</p>
-    <div class="portable-items">${held.length ? held.map(o =>
-      `<button class="portable-item" data-bag-id="${html(o.id)}"><strong>${html(o.name)}</strong><small>选择后查看放下、使用和收纳</small></button>`).join("") :
-      '<p>现在没有随身物品。去周围寻找可用材料。</p>'}</div>`;
-  pack.querySelectorAll("[data-bag-id]").forEach(button =>
-    button.addEventListener("click", () => {
-      window.dispatchEvent(new CustomEvent("openlife:select-object", { detail: button.dataset.bagId }));
-      navigate("activities");
-    }));
+  renderBag();
   if (!started && !callbacks.hasSave()) {
     $("screen-family").querySelector(".lineage-card").hidden = true;
     if (!$("familyEmpty")) { const empty = document.createElement("p"); empty.id = "familyEmpty"; empty.className = "page-empty panel"; empty.textContent = "还没有开始的人生。开启新人生后，家族谱会记录成员与传承。"; $("screen-family").append(empty); }
   } else {
     $("screen-family").querySelector(".lineage-card").hidden = false; $("familyEmpty")?.remove();
   }
+}
+function renderBag() {
+  const pack = $("portableOverview"), s = currentState?.settlement;
+  if (!pack) return;
+  const held = s?.objects?.filter(o => o.placement === "在手中") || [];
+  const load = s?.portableLoad;
+  pack.innerHTML = `<div class="bag-heading"><div><span class="eyebrow">随身携带</span><h2>随身行囊</h2></div><span class="bag-mark" aria-hidden="true">${propSvg("basket")}</span></div>
+    <p class="portable-meter">${load ? `${load.looseSlots}/${load.maxSlots} 件 · 负重 ${load.mass.toFixed(1)}/${load.maxMass}` : "暂无携带记录"}</p>
+    <div class="portable-items">${held.length ? held.map(o =>
+      `<button class="portable-item" data-bag-id="${html(o.id)}" aria-pressed="${bagSelection === o.id}"><span class="bag-item-art" aria-hidden="true">${propSvg(objectKind(o), fillRatio(o))}</span><strong>${html(o.name)}</strong><small>${html(o.placement)}${o.capacity ? ` · 容量 ${o.contentsCount || o.quantity || 0}/${o.capacity}` : ""}</small></button>`).join("") :
+      '<div class="bag-empty"><strong>轻装出发</strong><p>行囊还是空的。到生活场景中，轻触物件或原料，查看能否取用。</p><button data-route="activities">去寻找材料 →</button></div>'}</div>
+    <section id="bagDetail" class="bag-detail" aria-label="物品操作" hidden></section>`;
+  pack.querySelectorAll("[data-bag-id]").forEach(button => button.onclick = () => {
+    bagSelection = button.dataset.bagId;
+    openDetail("bag", () => { bagSelection = null; renderBag(); });
+    renderBagDetail();
+    $("bagDetail").scrollIntoView({ block: "nearest" });
+    $("bagDetail").querySelector("strong")?.focus({ preventScroll: true });
+  });
+  renderBagDetail();
+}
+function renderBagDetail() {
+  const box = $("bagDetail"), s = currentState?.settlement;
+  if (!box) return;
+  const item = s?.objects.find(o => o.id === bagSelection);
+  if (!item || !bagSelection || item.placement !== "在手中") { box.hidden = true; if (bagSelection) closeDetail("bag"); return; }
+  box.hidden = false;
+  $("portableOverview").querySelectorAll("[data-bag-id]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.bagId === bagSelection)));
+  const actions = commandsForTarget(s, { type: "object", id: bagSelection });
+  box.innerHTML = `<div class="scene-quick-head"><strong tabindex="-1">${html(item.name)}</strong><button data-bag-close aria-label="关闭物品详情">×</button></div>
+    <p>${html(item.placement)} · 当前位置：${html(s.placeName)}</p>
+    <div class="scene-quick-list">${actions.map((a, i) => `<button class="scene-quick-choice" data-bag-action="${i}" ${a.enabled === false ? "disabled" : ""}><span>${html(a.label)}</span>${a.activityCost ? `<small>${a.activityCost} 格活动</small>` : a.days ? `<small>${a.days} 天</small>` : ""}${a.enabled === false ? `<small class="quick-blocker">${html(a.reason || "当前条件不允许")}</small>` : ""}</button>`).join("") || '<p>这里暂时没有可用操作。可以前往其他地点查看。</p>'}</div>`;
+  box.querySelector("[data-bag-close]").onclick = () => closeDetail("bag");
+  box.querySelectorAll("[data-bag-action]").forEach(button => button.onclick = async () => {
+    const action = actions[Number(button.dataset.bagAction)];
+    if (!action || action.enabled === false || document.body.classList.contains("is-busy")) return;
+    await callbacks.onSettlementAction(action.id, action.payload || {});
+  });
 }
 function updateHome() {
   if (!callbacks) return;

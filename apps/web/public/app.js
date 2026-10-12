@@ -35,7 +35,7 @@ function render(s, animate = false) {
   const c = s.character;
   $("timeRibbon").querySelector(".time-year").textContent = s.era ?? String(s.year);
   $("timeRibbon").querySelector(".time-copy").textContent = continuousRunning
-    ? `${s.month} 月 · 自动时间推进中` : `${s.month} 月 · 已暂停，等待你的选择`;
+    ? `${s.month} 月 · ${s.settlement?.season || seasonForMonth(s.month)} · 推进中` : `${s.month} 月 · ${s.settlement?.season || seasonForMonth(s.month)} · 已暂停`;
   $("generationPill").textContent = numberGeneration(s.generation);
   $("lineageLabel").textContent = numberGeneration(s.generation);
 
@@ -306,7 +306,7 @@ async function autoRemember() {
  * still drives its own buttons.
  */
 async function performSettlementAction(action, payload) {
-  if (busy) return;
+  if (busy) { showToast("上一个行动正在完成，稍后再试。"); return; }
   busy = true;
   document.body.classList.add("is-busy");
   try {
@@ -418,7 +418,15 @@ function actionMessage(action) {
 let toastTimer;
 function showToast(message) {
   const el = $("toast");
-  el.textContent = message;
+  const inLife = document.body.dataset.screen === "activities";
+  const inPage = document.body.dataset.screen !== "home";
+  const modal = [...document.querySelectorAll(".modal-backdrop")].some(m => !m.hidden);
+  if (inPage && !modal) {
+    const feedback = $(inLife ? "actionFeedback" : "pageFeedback");
+    feedback.hidden = false;
+    feedback.textContent = message;
+  }
+  el.textContent = inPage && !modal ? "" : message;
   el.classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
@@ -434,10 +442,12 @@ let continuousRunning = false;
 let stopRequested = false;
 function updateContinuousControls(message = "") {
   $("pauseAutoButton").hidden = !continuousRunning;
-  $("autoButton").textContent = continuousRunning ? "世界持续运行中…" : "让时间前行";
+  $("sceneTimeButton").textContent = continuousRunning ? "暂停推进" : "时间安排";
+  $("sceneTimeButton").onclick = continuousRunning ? pauseContinuousLife : openPlanEditor;
+  $("autoButton").textContent = continuousRunning ? "时间设置" : "时间与日程";
   $("autoRunStatus").textContent = message || (continuousRunning ? "持续推进中，可随时暂停" : "当前已暂停");
   $("timeRibbon").querySelector(".time-copy").textContent =
-    continuousRunning ? "自动时间推进中 · 可随时暂停" : "已暂停 · 等待你的选择";
+    continuousRunning ? "自动推进中 · 可暂停" : `${state?.month ?? 1} 月 · ${state?.settlement?.season || ""} · 已暂停`;
 }
 function pauseContinuousLife() {
   if (!continuousRunning) return;
@@ -690,6 +700,7 @@ $("newLifeForm").addEventListener("submit", async (event) => {
   }
 });
 installShell({
+  onSettlementAction: performSettlementAction,
   hasSave: () => Boolean(readMemory("auto")?.save),
   saveSummary: () => readMemory("auto")?.summary,
   continueLife: async () => {

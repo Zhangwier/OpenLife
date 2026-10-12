@@ -92,6 +92,10 @@ export const SettlementCommands = {
   cookBarterQuote: "settlement-locations.barter.cook_quote",
   playerBarterAccept: "settlement-locations.barter.accept",
   playerBarterDecline: "settlement-locations.barter.decline",
+  helpHearth: "settlement-locations.hearth.help",
+  npcAskHelp: "settlement-locations.npc.ask_help",
+  npcAnswerHelp: "settlement-locations.npc.answer_help",
+  npcFire: "settlement-locations.npc.fire",
 } as const;
 
 export const SettlementProjections = {
@@ -156,6 +160,9 @@ const RESIDENTS: ResidentSpec[] = [
 ];
 
 /** Places of the settlement, each with a purpose and a cost to reach. */
+// Open outdoor arrival spots allow villagers and visitors to pass; 0 is the
+// shared world-space convention for unbounded open areas. Indoor rooms remain
+// capacity-limited. The main household accommodates its two adults + guests.
 const PLACES: {
   id: string; name: string; type: string; costDays: number;
   /** Where someone arriving here actually stands: the room or spot they enter. */
@@ -165,7 +172,7 @@ const PLACES: {
   {
     id: "place:yard", name: "陶家庭院", type: "yard", costDays: 0, entrySpace: "space:main-sleep",
     spaces: [
-      { id: "space:main-sleep", name: "主屋寝处", type: "sleep", capacity: 2 },
+      { id: "space:main-sleep", name: "主屋寝处", type: "sleep", capacity: 4 },
       { id: "space:store", name: "储粮处", type: "storage", capacity: 2 },
       { id: "space:drying-rack", name: "晾坯架下", type: "work", capacity: 3, visible: true },
     ],
@@ -173,7 +180,7 @@ const PLACES: {
   {
     id: "place:hearth-yard", name: "公用灶台", type: "kitchen", costDays: 1, entrySpace: "space:hearth",
     spaces: [
-      { id: "space:hearth", name: "灶边", type: "work", capacity: 3, visible: true },
+      { id: "space:hearth", name: "灶边", type: "work", capacity: 0, visible: true },
       { id: "space:hearth-sleep", name: "灶家铺位", type: "sleep", capacity: 3 },
     ],
   },
@@ -186,28 +193,28 @@ const PLACES: {
   {
     id: "place:field", name: "河岸旱地", type: "field", costDays: 2, entrySpace: "space:field-edge",
     spaces: [
-      { id: "space:field-edge", name: "田头", type: "work", capacity: 4, visible: true },
+      { id: "space:field-edge", name: "田头", type: "work", capacity: 0, visible: true },
       { id: "space:yu-sleep", name: "予家棚屋", type: "sleep", capacity: 3 },
     ],
   },
   {
     id: "place:kiln", name: "共用陶窑", type: "kiln", costDays: 2, entrySpace: "space:kiln-mouth",
     spaces: [
-      { id: "space:kiln-mouth", name: "窑口", type: "work", capacity: 2, visible: true },
+      { id: "space:kiln-mouth", name: "窑口", type: "work", capacity: 0, visible: true },
       { id: "space:kiln-shed", name: "窑棚", type: "work", capacity: 3 },
     ],
   },
   {
     id: "place:claypits", name: "河湾黏土坑", type: "clay-pit", costDays: 2, entrySpace: "space:pit-edge",
     spaces: [
-      { id: "space:pit-edge", name: "坑边", type: "work", capacity: 4, visible: true },
+      { id: "space:pit-edge", name: "坑边", type: "work", capacity: 0, visible: true },
       { id: "space:clay-sleep", name: "埴家窝棚", type: "sleep", capacity: 3 },
     ],
   },
   {
     id: "place:reedbed", name: "芦苇滩", type: "reed-flat", costDays: 3, entrySpace: "space:reed-cut",
     spaces: [
-      { id: "space:reed-cut", name: "割苇处", type: "work", capacity: 4, visible: true },
+      { id: "space:reed-cut", name: "割苇处", type: "work", capacity: 0, visible: true },
       { id: "space:reed-sleep", name: "苇家窝棚", type: "sleep", capacity: 2 },
       { id: "space:lan-sleep", name: "岚家屋舍", type: "sleep", capacity: 3 },
     ],
@@ -215,7 +222,7 @@ const PLACES: {
   {
     id: "place:ford", name: "渡口", type: "crossing", costDays: 2, entrySpace: "space:ford-landing",
     spaces: [
-      { id: "space:ford-landing", name: "渡口岸边", type: "work", capacity: 4, visible: true },
+      { id: "space:ford-landing", name: "渡口岸边", type: "work", capacity: 0, visible: true },
       { id: "space:water-sleep", name: "汲家棚屋", type: "sleep", capacity: 3 },
       { id: "space:ford-sleep", name: "埴公落脚处", type: "sleep", capacity: 2 },
     ],
@@ -346,6 +353,9 @@ export const settlementLocationsModule: OpenLifeModule = {
     registerNpcDayMarker(ctx);
     registerNpcBarter(ctx);
     registerPlayerBarter(ctx);
+    registerHearthRelief(ctx);
+    registerNpcHelp(ctx);
+    registerNpcFire(ctx);
 
     ctx.registerProjection({
       id: SettlementProjections.homestead,
@@ -548,6 +558,7 @@ function registerFound(ctx: Registration): void {
               durability: 50,
               madeAt: c.world.tick,
               provenance: { authored: true },
+              ...(instance.id === "instance:jar:0:0" ? { loanPolicy: "public-visitor" } : {}),
               visibleFromOutside: true,
             } as unknown as Record<string, never>,
           },
@@ -1065,8 +1076,9 @@ function registerNpcDayMarker(ctx: Registration): void {
     commandType: SettlementCommands.npcMarkDay,
     evaluate: (c) => {
       const actorId = c.command.actorId ?? "";
-      if (c.command.source !== "ai" || ![residentId("yu"), residentId("cook")].includes(actorId) ||
-          !c.world.getEntity(actorId)?.components[SettlementComponents.resident]) {
+      if (c.command.source !== "ai" ||
+          !c.world.getEntity(actorId)?.components[SettlementComponents.resident] ||
+          c.world.getComponent("modern:world", "modern.world_state")?.activeCharacterId === actorId) {
         return refuse(SettlementRejection.NotYours, "NPC 日常状态只能由已授权的村民自动行为记录。");
       }
       const raw = c.world.getComponent(actorId, SettlementComponents.resident) ?? {};
@@ -1425,6 +1437,207 @@ function registerPlayerBarter(ctx: Registration): void {
   playerDecision(SettlementCommands.playerBarterDecline, false);
 }
 
+
+
+/**
+ * NPC-owned request/answer. These are ordinary world commands, not a scripted
+ * quest. Both residents must physically meet; the answer is chosen by the
+ * responder and only an accepted response transfers an actual item.
+ */
+function registerNpcHelp(ctx: Registration): void {
+  const cook = residentId("cook"), reed = residentId("reed-worker");
+  const requestOf = (w: WorldView) => {
+    const raw = w.getComponent(cook, SettlementComponents.resident)?.helpRequest;
+    return raw && typeof raw === "object" && !Array.isArray(raw)
+      ? raw as Record<string, JsonValue> : {};
+  };
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.npcAskHelp}.allowed`, commandType: SettlementCommands.npcAskHelp,
+    evaluate: (c) => {
+      if (c.command.source !== "ai" || c.command.actorId !== cook ||
+          c.command.payload.targetId !== reed) return refuse(SettlementRejection.NotYours, "只有阿灶能自己当面向阿苇求助。");
+      if (occupiedPlaceId(c.world, cook) !== "place:reedbed" ||
+          occupiedPlaceId(c.world, reed) !== "place:reedbed")
+        return refuse(SettlementRejection.WrongPlace, "两人必须真正在芦苇滩见面。");
+      if (heldIngredient(c.world, cook, "resource:fuel"))
+        return refuse(SettlementRejection.Already, "阿灶手里还有可用的柴草，不必求助。");
+      const stock = yieldPoints(c.world).find(p => p.placeId === "place:reedbed" && p.resourceId === "resource:fuel")?.stock ?? 0;
+      if (stock > 2) return refuse(SettlementRejection.Busy, "附近仍有柴草，阿灶应先尝试自己采集。");
+      const prev = requestOf(c.world);
+      if (prev.status === "pending" || c.world.tick - Number(prev.at ?? -100) < 3)
+        return refuse(SettlementRejection.Busy, "阿灶已经提出过请求，先等一等对方。");
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.npcAskHelp}.resolve`, commandType: SettlementCommands.npcAskHelp,
+    resolve: (c): Effect[] => [{
+      kind: "modifyComponent", entityId: cook, component: SettlementComponents.resident,
+      patch: { helpRequest: { status: "pending", at: c.world.tick, from: cook, to: reed,
+        resourceId: "resource:fuel" } }, reason: "a resident independently asks for help when real fuel runs low",
+    }, {
+      kind: "emitEvent", eventType: "settlement-locations.help_requested",
+      actorId: cook, targetId: reed, data: { resourceId: "resource:fuel", placeId: "place:reedbed" },
+      historicalSignificance: 0.06,
+    }],
+  });
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.npcAnswerHelp}.allowed`, commandType: SettlementCommands.npcAnswerHelp,
+    evaluate: (c) => {
+      if (c.command.source !== "ai" || c.command.actorId !== reed ||
+          c.command.payload.requesterId !== cook ||
+          typeof c.command.payload.accept !== "boolean")
+        return refuse(SettlementRejection.NotYours, "只能由受邀的阿苇自行答复。");
+      const request = requestOf(c.world);
+      if (request.status !== "pending" || request.to !== reed ||
+          request.resourceId !== "resource:fuel" || c.world.tick - Number(request.at) > 2)
+        return refuse(SettlementRejection.Busy, "没有仍然有效的请求。");
+      if (occupiedPlaceId(c.world, cook) !== "place:reedbed" ||
+          occupiedPlaceId(c.world, reed) !== "place:reedbed")
+        return refuse(SettlementRejection.WrongPlace, "没有面对面见到求助的人。");
+      if (c.command.payload.accept === true) {
+        const itemId = String(c.command.payload.itemId ?? "");
+        const owned = c.world.listRelations({ type: ObjectRelations.heldBy, to: reed })
+          .map(r => r.from).filter(id => tradeReady(c.world, id, reed, "resource:fuel"));
+        if (owned.length < 2 || !owned.includes(itemId))
+          return refuse(SettlementRejection.Empty, "阿苇需要保留自己的一份柴草，不能凭空送出。");
+        if (!canCarryObject(c.world, cook, itemId))
+          return refuse(SettlementRejection.NoRoom, "阿灶手中拿不下这捆柴草。");
+      }
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.npcAnswerHelp}.resolve`, commandType: SettlementCommands.npcAnswerHelp,
+    resolve: (c): Effect[] => {
+      const accepted = c.command.payload.accept === true;
+      const itemId = String(c.command.payload.itemId ?? "");
+      const request = requestOf(c.world);
+      const effects: Effect[] = [{
+        kind: "modifyComponent", entityId: cook, component: SettlementComponents.resident,
+        patch: { helpRequest: { ...request, status: accepted ? "accepted" : "declined",
+          resolvedAt: c.world.tick, itemId: accepted ? itemId : "" } },
+        reason: "the other resident's independent answer becomes persistent evidence",
+      }, {
+        kind: "modifyComponent", entityId: reed, component: SettlementComponents.resident,
+        patch: { lastHelpOutcome: accepted ? "shared" : "declined",
+          lastHelpAt: c.world.tick,
+          trustTowardCook: Math.max(0, Math.min(10, Number(c.world.getComponent(reed, SettlementComponents.resident)?.trustTowardCook ?? 5) + (accepted ? 1 : -1))) },
+        reason: "the resident remembers cooperating or protecting their own supply",
+      }];
+      if (accepted) effects.push(
+        { kind: "removeRelation", type: ObjectRelations.heldBy, from: itemId, to: reed, reason: "voluntary aid", announce: false },
+        { kind: "removeRelation", type: ObjectRelations.ownedBy, from: itemId, to: reed, reason: "voluntary aid", announce: false },
+        { kind: "addRelation", type: ObjectRelations.heldBy, from: itemId, to: cook, announce: false },
+        { kind: "addRelation", type: ObjectRelations.ownedBy, from: itemId, to: cook, announce: false },
+      );
+      effects.push({ kind: "emitEvent",
+        eventType: accepted ? "settlement-locations.help_given" : "settlement-locations.help_refused",
+        actorId: reed, targetId: cook,
+        data: { itemId: accepted ? itemId : "", resourceId: "resource:fuel", reason: accepted ? "spare-resource" : "reserve-protection" },
+        historicalSignificance: accepted ? 0.12 : 0.05,
+      });
+      return effects;
+    },
+  });
+}
+
+/** Lighting the public fire uses (and archives) a real owned bundle. */
+function registerNpcFire(ctx: Registration): void {
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.npcFire}.allowed`, commandType: SettlementCommands.npcFire,
+    evaluate: (c) => {
+      const cook = residentId("cook");
+      if (c.command.source !== "ai" || c.command.actorId !== cook ||
+          occupiedPlaceId(c.world, cook) !== "place:hearth-yard")
+        return refuse(SettlementRejection.NotYours, "只有在公灶的阿灶能点火。");
+      if (String(c.command.payload.itemId ?? "") !== heldIngredient(c.world, cook, "resource:fuel"))
+        return refuse(SettlementRejection.Empty, "没有属于阿灶的实物柴草，灶火不能凭空点燃。");
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.npcFire}.resolve`, commandType: SettlementCommands.npcFire,
+    resolve: (c): Effect[] => {
+      const itemId = String(c.command.payload.itemId);
+      const cook = residentId("cook");
+      return [{
+        kind: "removeRelation", type: ObjectRelations.heldBy, from: itemId, to: cook,
+        reason: "the public fire consumes the bundle", announce: false,
+      }, {
+        kind: "archiveEntity", entityId: itemId, reason: "burned in the public hearth", announce: false,
+      }, {
+        kind: "modifyComponent", entityId: cook, component: SettlementComponents.resident,
+        patch: { lastFireAt: c.world.tick }, reason: "a real fire ran today",
+      }, {
+        kind: "emitEvent", eventType: "settlement-locations.hearth_lit",
+        actorId: cook, data: { itemId }, historicalSignificance: 0.01,
+      }];
+    },
+  });
+}
+
+/** Repeatable voluntary aid grounded in a real encounter and one owned item. */
+function registerHearthRelief(ctx: Registration): void {
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.helpHearth}.allowed`,
+    commandType: SettlementCommands.helpHearth,
+    evaluate: (c) => {
+      const actorId = c.command.actorId ?? "";
+      const cookId = residentId("cook");
+      if (!actorId || c.world.getComponent("modern:world", "modern.world_state")?.activeCharacterId !== actorId)
+        return refuse(SettlementRejection.NotYours, "只能决定自己如何帮助公灶。");
+      if (occupiedPlaceId(c.world, actorId) !== "place:hearth-yard" ||
+          occupiedPlaceId(c.world, cookId) !== "place:hearth-yard")
+        return refuse(SettlementRejection.WrongPlace, "请到公灶当面把物资交给阿灶。");
+      if (contactConversations(c.world, actorId, cookId) < 1)
+        return refuse(SettlementRejection.Busy, "先与阿灶搭话，了解公灶需要什么。");
+      const objectId = String(c.command.payload.objectId ?? "");
+      const item = c.world.getEntity(objectId);
+      const resourceId = item && item.archivedAt === undefined ? prototypeOf(c.world, objectId).resourceId : "";
+      if (!["resource:fuel", "resource:grain"].includes(resourceId) ||
+          heldIngredient(c.world, actorId, resourceId) !== objectId)
+        return refuse(SettlementRejection.NotYours, "必须交出自己随身持有的一捆柴草或一份粟粮。");
+      if (resourceId === "resource:fuel" && !canCarryObject(c.world, cookId, objectId))
+        return refuse(SettlementRejection.NoRoom, "阿灶现在拿不下这捆柴草。");
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.helpHearth}.resolve`,
+    commandType: SettlementCommands.helpHearth,
+    resolve: (c): Effect[] => {
+      const actorId = c.command.actorId as string;
+      const itemId = String(c.command.payload.objectId);
+      const route = prototypeOf(c.world, itemId).resourceId;
+      const cookId = residentId("cook");
+      return [{
+        kind: "removeRelation", type: ObjectRelations.heldBy, from: itemId, to: actorId,
+        reason: "player supplied the hearth", announce: false,
+      }, {
+        kind: "removeRelation", type: ObjectRelations.ownedBy, from: itemId, to: actorId,
+        reason: "voluntary contribution", announce: false,
+      }, {
+        kind: "addRelation", type: ObjectRelations.ownedBy, from: itemId, to: cookId, announce: false,
+      }, ...(route === "resource:fuel" ? [{
+        kind: "addRelation" as const, type: ObjectRelations.heldBy, from: itemId, to: cookId,
+        announce: false,
+      }] : [{
+        kind: "addRelation" as const, type: ObjectRelations.containedIn, from: itemId,
+        to: "space:hearth", announce: false,
+      }]), {
+        kind: "modifyComponent", entityId: cookId, component: SettlementComponents.resident,
+        patch: { giftCount: Number(c.world.getComponent(cookId, SettlementComponents.resident)?.giftCount ?? 0) + 1,
+          lastGift: { route, itemId, playerId: actorId, at: c.world.tick } },
+        reason: "resident remembers real help; there is no quest completion flag",
+      }, {        kind: "emitEvent", eventType: "settlement-locations.hearth_helped",
+        actorId, targetId: cookId, data: { route, itemId, placeId: "place:hearth-yard" },
+        historicalSignificance: 0.1,
+      }];
+    },
+  });
+}
+
 export interface HomesteadView {
   exists: boolean;
   characterId: string;
@@ -1443,12 +1656,13 @@ export interface HomesteadView {
   outfit: { objectId: string; name: string; fieldWorkActivityCost: number } | null;
   /** Only the addressed player can see their cook quote at the hearth. */
   barter: { status: string; grainId: string; fuelId: string; offeredAt: number } | null;
+  communitySituation: { visible: boolean; urgent: boolean; title: string; note: string; requestStatus: string; recentHelp: string; fuelStock: number | null };
   /** Field status, visible when standing at the field. */
   crop?: { phase: string; remainingDays: number; tended: boolean; summary: string };
   /** People in the same place, with what they are doing right now. */
   neighbours: { id: string; name: string; role: string; household: string; placeId: string; atWork: boolean; dailyNote: string; tradeCount: number; contact: string; conversations: number }[];
   /** Objects reachable from here, with the action each allows. */
-  objects: { id: string; name: string; prototypeId: string; placement: string; quantity: number; visible: boolean }[];
+  objects: { id: string; name: string; prototypeId: string; placement: string; quantity: number; capacity: number; contentsCount: number; canTake: boolean; visible: boolean }[];
   /** Resources this place renews, and what is left. */
   yields: { resourceId: string; label: string; stock: number; capacity: number; unit: string }[];
   /** Where the player could go next, with the day cost. */
@@ -1524,6 +1738,9 @@ export function homestead(world: WorldView, actorId: string): HomesteadView {
         prototypeId: prototype.prototypeId,
         placement,
         quantity: instance.quantity,
+        capacity: prototype.capacity,
+        contentsCount: contentsOf(world, entity.id).length,
+        canTake: !ownerOf(world, entity.id) || ownerOf(world, entity.id) === actorId || instance.loanPolicy === "public-visitor",
         visible: holder === actorId || reachableHolders.has(containerId),
       };
     })
@@ -1562,7 +1779,40 @@ export function homestead(world: WorldView, actorId: string): HomesteadView {
     : null;
 
   const actions = homesteadActions(world, actorId, placeId, spaceId);
-
+  const cookState = world.getComponent(residentId("cook"), SettlementComponents.resident);
+  const rawRequest = cookState?.helpRequest;
+  const request = rawRequest && typeof rawRequest === "object" && !Array.isArray(rawRequest)
+    ? rawRequest as Record<string, JsonValue> : {};
+  const gift = cookState?.lastGift;
+  const lastGift = gift && typeof gift === "object" && !Array.isArray(gift)
+    ? gift as Record<string, JsonValue> : {};
+  const cookHere = occupiedPlaceId(world, residentId("cook")) === placeId;
+  const observing = (placeId === "place:hearth-yard" && cookHere) ||
+    (placeId === "place:reedbed" && cookHere &&
+      occupiedPlaceId(world, residentId("reed-worker")) === placeId);
+  const fuelStock = placeId === "place:reedbed"
+    ? yieldPoints(world).find(p => p.placeId === "place:reedbed" && p.resourceId === "resource:fuel")?.stock ?? 0 : null;
+  const pending = request.status === "pending" && world.tick - Number(request.at ?? -100) <= 2;
+  const replyRecent = ["accepted", "declined"].includes(String(request.status)) &&
+    world.tick - Number(request.resolvedAt ?? -100) <= 3;
+  const fireToday = Number(cookState?.lastFireAt ?? -1) === world.tick;
+  const recentHelp = lastGift.playerId === actorId && Number(lastGift.at ?? -100) >= world.tick - 3
+    ? (lastGift.route === "resource:fuel" ? "你送来的柴草已归阿灶使用" : "你送来的粟粮留在公灶") : "";
+  const communitySituation: HomesteadView["communitySituation"] = observing
+    ? { visible: true, urgent: pending || (!fireToday && (fuelStock ?? 0) <= 2),
+      title: pending ? "阿灶向阿苇求助中"
+        : replyRecent && request.status === "accepted" ? "阿苇决定分享柴草"
+        : replyRecent && request.status === "declined" ? "阿苇暂时拒绝了求助"
+        : fireToday ? "公灶今天点过火" : "阿灶在安排今天的灶火",
+      note: pending ? "阿灶在芦苇滩当面提出请求，等阿苇自己决定。"
+        : replyRecent && request.status === "accepted" ? "阿苇把自己多余的一捆真柴草交给阿灶，物品已实际换手。"
+        : replyRecent && request.status === "declined" ? "阿苇为保障自家储备拒绝交出柴草。阿灶需要考虑其他办法。"
+        : fireToday ? "公灶真实消耗了一捆柴草。明天的生计还得重新安排。"
+        : "看看眼前村民的真实行动，或者自愿提出帮助。",
+      requestStatus: String(request.status ?? ""), recentHelp, fuelStock }
+    : { visible: false, urgent: false, title: "世界在继续生活",
+      note: "村民会自己劳动、寻找物资、谈判或拒绝。前往现场才能知道他们的具体处境。",
+      requestStatus: "", recentHelp: "", fuelStock };
   return {
     exists: inSettlement,
     characterId: actorId,
@@ -1577,6 +1827,7 @@ export function homestead(world: WorldView, actorId: string): HomesteadView {
     dailyActivity: dailyActivity(world, actorId),
     dailyPlan: dailyPlan(world, actorId),
     barter: ownBarter,
+    communitySituation,
     outfit: wornByActor(world, actorId) ? {
       objectId: wornByActor(world, actorId), name: nameOfObject(world, wornByActor(world, actorId)),
       fieldWorkActivityCost: wornWrap(world, actorId) ? 2 : 3,
@@ -1748,6 +1999,23 @@ function homesteadActions(
         finished ? "你已与阿灶完成过本次交换" : !grainId ? "请先从田地采集一份属于自己的粟粮" :
           !fuelId ? "阿灶现在没有可交换的柴草，等他采集后再来" : "",
         grainId && fuelId ? { grainId, fuelId } : {});
+    }
+  }
+
+
+  if (placeId === "place:hearth-yard" &&
+      occupiedPlaceId(world, residentId("cook")) === placeId &&
+      actorId !== residentId("cook")) {
+    for (const [resourceId, label] of [
+      ["resource:fuel", "一捆柴草"], ["resource:grain", "一份粟粮"],
+    ] as const) {
+      const itemId = heldIngredient(world, actorId, resourceId);
+      const introduced = contactConversations(world, actorId, residentId("cook")) > 0;
+      add(SettlementCommands.helpHearth, `交给阿灶${label}`,
+        "送出一件真正属于自己的物品；阿灶会把柴草用于点火。不是固定任务。",
+        0, Boolean(itemId && introduced),
+        !introduced ? "请先向阿灶打听公灶的情况" : !itemId ? `随身没有属于自己的${label}` : "",
+        { targetId: residentId("cook"), objectId: itemId, resourceId });
     }
   }
 

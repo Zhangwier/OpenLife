@@ -113,13 +113,10 @@ export function runSettlementAction(sim: Simulation, actorId: string, action: st
     case SpaceCommands.enter:
       return advance(dispatch(SpaceCommands.enter, { payload: { placeId: payload.placeId } }), Number(payload.costDays ?? 1));
     case ObjectCommands.take: {
-      // Picking something up is a real act with a real consequence.
-      //
-      // If it is yours, you simply hold it. If it belongs to a household, you
-      // cannot lend it to yourself: the owner is the one who grants custody, so
-      // the request is recorded as a loan *from the owner*, which is also what
-      // makes "he lent it to me and I have not given it back" a real debt
-      // rather than a line of text (NPC-004, OBJ-001).
+      // A loan requires an explicit permission fact from the real owner.
+      // The first shared household jar has a standing public grant; other
+      // private goods must never be "consented to" by a player-originated
+      // command pretending to be their owner.
       const objectId = String(payload.objectId);
       const world = sim.worldView();
       const owner = world
@@ -128,17 +125,17 @@ export function runSettlementAction(sim: Simulation, actorId: string, action: st
       if (!owner || owner === actorId) {
         return dispatch(ObjectCommands.take, { payload: { objectId } });
       }
+      const standingPolicy = world.getComponent(objectId, ObjectComponents.object)?.loanPolicy;
+      if (standingPolicy !== "public-visitor") return rejected("这件物品属于别人，还没有得到物主同意。可借用的是明确标为共用的陶罐。");
       const borrowed = sim.dispatch({
         type: ObjectCommands.lend,
         actorId: owner,
-        source: "player",
+        source: "ai", // executes the owner\'s standing authorization, not a player impersonation
         targetId: objectId,
         payload: { objectId, borrowerId: actorId, dueAt: sim.tick + 2 * 30 },
       });
       if (borrowed.ok) return borrowed;
-      // The owner refuses to lend a worn-out or already-lent thing; in that
-      // case the player may still ask and be told no, which is the answer the
-      // rule engine already produced.
+      // The owner may still be unable to lend an occupied or damaged item.
       return borrowed;
     }
     case ObjectCommands.place:
@@ -147,6 +144,8 @@ export function runSettlementAction(sim: Simulation, actorId: string, action: st
       return advance(dispatch(ObjectCommands.returnItem, { payload: { objectId: payload.objectId } }), 0);
     case SettlementCommands.talk:
       return dispatch(SettlementCommands.talk, { payload: { targetId: payload.targetId } });
+    case SettlementCommands.helpHearth:
+      return dispatch(SettlementCommands.helpHearth, { payload: { objectId: payload.objectId } });
     case SettlementCommands.draw:
       return advance(dispatch(SettlementCommands.draw, { payload: { resourceId: payload.resourceId, placeId: payload.placeId, amount: payload.amount ?? 1 } }), 0);
     case SettlementCommands.drink:

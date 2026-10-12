@@ -74,9 +74,9 @@ export function runFirstNpcDay(sim: Simulation): NpcDailyResult {
       prototypeOf(sim.worldView(), id).resourceId === "resource:fuel");
   const fieldGrain = sim.worldView().getComponent("yield:place:field:resource:grain",
     SettlementComponents.yieldPoint);
-  // Actual completed NPC days, not absolute world ticks or player age,
-  // gate the first small trading opportunity.
-  const wantsBarter = Number(cook?.npcDailyCount ?? 0) >= 6 && Number(cook?.tradeCount ?? 0) === 0 &&
+  // Trade is now an opportunity derived from concrete supplies and available
+  // activity, not a scripted event on a chosen day.
+  const wantsBarter = Number(cook?.tradeCount ?? 0) === 0 &&
     Boolean(cookFuel) && Number(fieldGrain?.stock ?? 0) > 0 &&
     dailyActivity(sim.worldView(), actorId).remaining >= 4;
   if (wantsBarter && !act(SettlementCommands.draw,

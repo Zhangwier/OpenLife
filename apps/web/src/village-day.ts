@@ -8,6 +8,8 @@ import { SettlementId } from "@openlife/module-settlement-locations";
 import { reading as clockReading } from "@openlife/module-world-clock";
 import { runFirstNpcDay } from "./npc.ts";
 import { runSecondNpcDay } from "./npc-cook.ts";
+import { runThirdNpcDay } from "./npc-reed.ts";
+import { runOtherNpcDays } from "./npc-general.ts";
 
 export interface VillageDayBoundary {
   ran: boolean;
@@ -24,8 +26,10 @@ export function runVillageDayBoundary(sim: Simulation, fromTick: number): Villag
     return { ran: false, fromTick, tick, notes: [] };
   }
   const cook = runSecondNpcDay(sim);
+  const reed = runThirdNpcDay(sim);
   const farmer = runFirstNpcDay(sim);
+  const others = runOtherNpcDays(sim);
   sim.syncHistory();
-  return { ran: !cook.skipped || !farmer.skipped, fromTick, tick,
-    notes: [cook.note, farmer.note] };
+  return { ran: [cook, reed, farmer, ...others].some(a => !a.skipped), fromTick, tick,
+    notes: [cook, reed, farmer, ...others].map(a => a.note) };
 }
