@@ -11,12 +11,11 @@
 
 import type { Effect, OpenLifeModule, WorldView } from "@openlife/contracts";
 import {
-  ageInYears,
-  TICKS_PER_YEAR,
   ModernComponents as MW,
   ModernKinds as MWK,
   WORLD_ENTITY_ID,
 } from "@openlife/life-contracts/modern";
+import { ageInYearsIn, ticksPerYearIn } from "@openlife/life-contracts";
 import { educationLevelOf } from "@openlife/life-contracts/education";
 import {
   EconomyComponents as EC,
@@ -142,7 +141,7 @@ export const careerModule: OpenLifeModule = {
           return { ok: false, code: "E_CHARACTER_DEAD", message: "character is dead" };
         }
         const bornAt = Number(entity.components[MW.identity]?.bornAt ?? entity.createdAt);
-        const age = ageInYears(bornAt, c.world.tick);
+        const age = ageInYearsIn(c.world, bornAt, c.world.tick);
         if (age < 16) {
           return {
             ok: false,

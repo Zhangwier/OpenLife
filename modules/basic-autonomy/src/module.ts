@@ -12,12 +12,11 @@
 
 import type { CommandIntent, OpenLifeModule } from "@openlife/contracts";
 import {
-  ageInYears,
   ModernComponents as MW,
   ModernKinds as MWK,
-  TICKS_PER_YEAR,
   WORLD_ENTITY_ID,
 } from "@openlife/life-contracts/modern";
+import { ageInYearsIn, ticksPerYearIn } from "@openlife/life-contracts";
 
 const OWNER = "basic-autonomy";
 const LIFE_TASK = "basic-autonomy.life_year";
@@ -66,7 +65,7 @@ export const basicAutonomyModule: OpenLifeModule = {
 
         const identity = character.components[MW.identity] ?? {};
         const bornAt = Number(identity.bornAt ?? character.createdAt);
-        const age = ageInYears(bornAt, c.world.tick);
+        const age = ageInYearsIn(c.world, bornAt, c.world.tick);
         const generation = Number(identity.generation ?? 1);
 
         const command = lifeDecision(characterId, age, generation);
@@ -85,15 +84,16 @@ export const basicAutonomyModule: OpenLifeModule = {
     const scheduleCharacter = (
       characterId: string | undefined,
       tick: number,
+      year: number,
     ): import("@openlife/contracts").Effect[] => {
       if (!characterId) return [];
       return [
         {
           kind: "scheduleTask",
           taskType: LIFE_TASK,
-          afterTicks: TICKS_PER_YEAR,
-          everyTicks: TICKS_PER_YEAR,
-          untilTick: tick + 110 * TICKS_PER_YEAR,
+          afterTicks: year,
+          everyTicks: year,
+          untilTick: tick + 110 * year,
           payload: { characterId },
           dedupeKey: `life:${characterId}`,
         },
@@ -103,13 +103,13 @@ export const basicAutonomyModule: OpenLifeModule = {
     ctx.registerReactionRule({
       id: "basic-autonomy.character_created.schedule",
       eventType: "modern.character_created",
-      react: (c) => scheduleCharacter(c.event.actorId, c.world.tick),
+      react: (c) => scheduleCharacter(c.event.actorId, c.world.tick, ticksPerYearIn(c.world)),
     });
 
     ctx.registerReactionRule({
       id: "basic-autonomy.child_born.schedule",
       eventType: "family.child_born",
-      react: (c) => scheduleCharacter(c.event.targetId, c.world.tick),
+      react: (c) => scheduleCharacter(c.event.targetId, c.world.tick, ticksPerYearIn(c.world)),
     });
   },
 };
