@@ -1,0 +1,64 @@
+/*
+ * UI revamp v2 (2026-10-13) — 叠加在 2D 场景版（scene.css / mobile-ui.css）之上。
+ * 只做表现层：状态量表、主动作强调、行囊量表、时间文案层级。不改任何动作或规则。
+ */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---- 顶栏时间：季节·第 N 天为主，纪年为副 ---- */
+.time-ribbon .time-year { white-space: nowrap; }
+.time-ribbon .time-copy { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- 生活页状态条：量表替代一句话 ---- */
+.scene-summary .hud { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 18px; align-items: center; }
+.hud-item { display: grid; grid-template-columns: auto minmax(36px, 1fr) auto; gap: 8px; align-items: center; min-width: 0; }
+.hud-label { font-size: 12px; color: #a9bca5; letter-spacing: .04em; }
+.hud-item b { font-size: 13px; font-weight: 600; color: #eef1e2; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hud-track { height: 6px; border-radius: 6px; background: #ffffff1f; overflow: hidden; }
+.hud-track i { display: block; height: 100%; border-radius: 6px; background: #d9b779; transition: width .4s ease; }
+.hud-item.warn .hud-track i { background: #e0835b; }
+.hud-item.warn b { color: #f3b293; }
+.hud-pips { display: flex; gap: 3px; }
+.hud-pips i { flex: 1; max-width: 14px; height: 8px; border-radius: 3px; background: #ffffff1f; }
+.hud-pips i.on { background: #9cc58f; }
+.hud-note { display: block; margin-top: 6px; font-size: 12px; color: #d8c79c; }
+
+/* ---- 动作面板：第一个可做的动作是主按钮；阻碍写成「需要」 ---- */
+.scene-quick-choice.is-primary { background: #3f6a4a; border-color: #3f6a4a; color: #f6f1e2; font-weight: 700; }
+.scene-quick-choice.is-primary small { color: #d5e4cd; }
+.scene-quick-choice.is-primary:not(:disabled):hover { background: #4b7a56; }
+.scene-quick-choice .quick-blocker::before { content: "需要："; font-weight: 700; }
+
+/* ---- 行囊：两条量表 ---- */
+.portable-meter { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 22px; }
+.bag-meter { display: grid; grid-template-columns: auto minmax(40px, 1fr) auto; gap: 8px; align-items: center; font-size: 13px; color: #5d6552; }
+.bag-meter b { color: #2f3a2c; font-variant-numeric: tabular-nums; }
+.bag-meter .hud-track { background: #dcd2b8; }
+.bag-meter .hud-track i { background: #9a6a3b; }
+
+@media (max-width: 600px) {
+  .scene-summary .hud { grid-template-columns: 1fr; gap: 7px; }
+  .hud-item { grid-template-columns: 34px minmax(0, 1fr) 58px; }
+  .hud-item b { text-align: right; }
+  .portable-meter { grid-template-columns: 1fr; }
+}
+
+/* ---- 人物页：手绘头像替代几何占位 ---- */
+.portrait { background: linear-gradient(#e4dcc4, #b9c3a6); }
+.portrait > span { display: none; }
+.portrait-figure.has-figure { inset: 4px 0 0; width: auto; height: auto; bottom: 0; background: none; border-radius: 0; }
+.portrait-figure.has-figure::before { display: none; }
+.portrait-figure.has-figure svg { width: 100%; height: 100%; display: block; }
+
+/* ---- 模块页：已加载与未接入分组、标题可读 ---- */
+.module-group { margin: 22px 4px 12px; font-size: 14px; color: #d9c79e; letter-spacing: .06em; font-weight: 600; }
+.module-card h3 { color: #2f3a2c !important; }
+.module-card { padding: 16px 18px; }
+.module-card > p { margin: 10px 0; }
+.module-fold { margin-top: 18px; }
+.module-fold > summary, .region-fold > summary { cursor: pointer; padding: 12px 16px; border-radius: 10px; border: 1px solid #c9b88f66; color: #e9e1c9; font-size: 14px; list-style: none; }
+.module-fold > summary::before, .region-fold > summary::before { content: "▸ "; }
+.module-fold[open] > summary::before, .region-fold[open] > summary::before { content: "▾ "; }
+.module-fold > .module-list { margin-top: 12px; }
+.region-fold > summary { color: #5d553f; border-color: #cbbf9e; }
+.region-fold[open] > summary { margin-bottom: 6px; }
+@media (max-width: 600px) { .module-list { grid-template-columns: 1fr; } }

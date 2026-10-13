@@ -552,6 +552,7 @@ function humanizeEvent(type: string, data: Record<string, unknown> = {}): string
   const labels: Record<string, string> = {
     "modern.character_created": "一个新生命来到世界",
     "modern.world_initialized": "世界开始运转",
+    "settlement-locations.founded": "河岸聚落在这里扎下了根",
     "early-civilization.era_begun": "夏初的聚落开始延续",
     "early-civilization.learning_begun": "开始跟随生活学习",
     "family.married": "两个人决定共同生活",

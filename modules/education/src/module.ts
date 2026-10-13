@@ -10,11 +10,10 @@
 
 import type { Effect, OpenLifeModule } from "@openlife/contracts";
 import {
-  ageInYears,
-  TICKS_PER_YEAR,
   ModernComponents as MW,
   ModernKinds as MWK,
 } from "@openlife/life-contracts/modern";
+import { ageInYearsIn, ticksPerYearIn } from "@openlife/life-contracts";
 import {
   EducationComponents as EC,
   EducationRelations as ER,
@@ -28,7 +27,7 @@ export type { EducationLevel };
 
 const OWNER = "education";
 const SCHOOL_ID = "education:school:academy";
-const PROGRAM_TICKS = TICKS_PER_YEAR * 4;
+const PROGRAM_YEARS = 4;
 
 export const educationModule: OpenLifeModule = {
   manifest: {
@@ -134,7 +133,7 @@ export const educationModule: OpenLifeModule = {
           return { ok: false, code: "E_ALREADY_ENROLLED", message: "character is already enrolled" };
         }
         const bornAt = Number(entity.components[MW.identity]?.bornAt ?? entity.createdAt);
-        const age = ageInYears(bornAt, c.world.tick);
+        const age = ageInYearsIn(c.world, bornAt, c.world.tick);
         if (age < 6) {
           return {
             ok: false,
@@ -157,7 +156,7 @@ export const educationModule: OpenLifeModule = {
         const schoolName = typeof c.command.payload.schoolName === "string"
           ? c.command.payload.schoolName
           : "Northport Academy";
-        const programmeTicks = c.resolve("education.program_duration", PROGRAM_TICKS, [
+        const programmeTicks = c.resolve("education.program_duration", PROGRAM_YEARS * ticksPerYearIn(c.world), [
           {
             id: "education.enroll.base_duration",
             source: OWNER,

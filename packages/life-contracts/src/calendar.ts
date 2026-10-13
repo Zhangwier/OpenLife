@@ -217,3 +217,30 @@ export function legacyTickToDayTick(legacyTick: number): number {
 export function dayTickToLegacyTick(dayTick: number): number {
   return monthsElapsed(Math.max(0, dayTick));
 }
+
+// ---------------------------------------------------------------------------
+// World-aware year length (fixes modules that assumed 12 ticks per year)
+// ---------------------------------------------------------------------------
+
+/** The minimal read a year-length lookup needs; any WorldView satisfies it. */
+export interface ClockProbe {
+  getComponent(entityId: string, componentType: string): unknown;
+}
+
+/**
+ * Ticks in one year for the world being simulated: 360 once the world clock
+ * declares the day scale, 12 for a legacy month-scale world or save.
+ * This is the one helper life modules should use instead of `TICKS_PER_YEAR`.
+ */
+export function scaleIn(world: ClockProbe): TimeScale {
+  return world.getComponent("modern:world", "world-clock.clock") ? "day" : "month";
+}
+
+export function ticksPerYearIn(world: ClockProbe): number {
+  return ticksPerYearOfScale(scaleIn(world));
+}
+
+/** Whole years between `bornAt` and `now`, in the world's own scale. */
+export function ageInYearsIn(world: ClockProbe, bornAt: number, now: number): number {
+  return ageInYearsAt(bornAt, now, scaleIn(world));
+}
