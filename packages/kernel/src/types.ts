@@ -20,6 +20,12 @@ export interface KernelOptions {
   maxDepth?: number;
   /** Maximum events produced by a single transaction (§88). */
   maxEventsPerTransaction?: number;
+  /**
+   * Longest single advance (in ticks) whose days agents live through one by
+   * one. A longer advance is a time skip: scheduled tasks still run, agents do
+   * not replay the skipped days. Defaults to 31.
+   */
+  agentCatchUpLimit?: number;
 }
 
 /** Mutable services shared across the kernel, exposed for save/load wiring. */

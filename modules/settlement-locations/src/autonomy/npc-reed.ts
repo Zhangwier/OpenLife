@@ -2,14 +2,14 @@
  * A second independently deciding agent. He protects his own household's
  * reserve, gathers only if ecology allows, and explicitly responds when met.
  */
-import type { Simulation } from "@openlife/simulation";
-import { SettlementCommands, SettlementComponents, residentId, dailyActivity } from "@openlife/module-settlement-locations";
+import type { AgentHost as NpcHost } from "@openlife/contracts";
+import { SettlementCommands, SettlementComponents, residentId, dailyActivity } from "../module.ts";
 import { SpaceCommands, occupiedPlaceId, occupiedSpaceId } from "@openlife/module-world-space";
 import { ObjectRelations, ownerOf, prototypeOf } from "@openlife/module-world-objects";
 import { chooseNpcIntent, shortagePressure } from "./npc-goals.ts";
 
 export const THIRD_AUTONOMOUS_RESIDENT = residentId("reed-worker");
-export function runThirdNpcDay(sim: Simulation) {
+export function runThirdNpcDay(sim: NpcHost) {
   const actorId = THIRD_AUTONOMOUS_RESIDENT, tick = sim.tick;
   const world = sim.worldView(), entity = world.getEntity(actorId);
   const resident = world.getComponent(actorId, SettlementComponents.resident);

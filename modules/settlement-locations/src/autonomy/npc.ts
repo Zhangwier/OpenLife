@@ -1,13 +1,13 @@
 /**
  * M3-A: one visible village resident lives by actual world commands.
  *
- * Called only after the single authoritative clock advances during Web
- * continuous simulation. No background scheduler, parallel inventory,
- * fabricated labor, or hidden player command. Each day is idempotent via the
- * settlement resident's persisted lastRoutineAt marker.
+ * Run by the settlement module's village agent once per stepped world day,
+ * whoever advanced the clock (M4-B). No parallel inventory, fabricated labor
+ * or hidden player command. Each day is idempotent via the settlement
+ * resident's persisted lastRoutineAt marker.
  */
-import type { Simulation } from "@openlife/simulation";
-import { SettlementCommands, SettlementComponents, residentId, dailyActivity } from "@openlife/module-settlement-locations";
+import type { AgentHost as NpcHost } from "@openlife/contracts";
+import { SettlementCommands, SettlementComponents, residentId, dailyActivity } from "../module.ts";
 import { SpaceCommands, occupiedPlaceId, occupiedSpaceId } from "@openlife/module-world-space";
 import { ObjectRelations, holderOf, ownerOf, prototypeOf } from "@openlife/module-world-objects";
 
@@ -21,7 +21,7 @@ export interface NpcDailyResult {
   note: string;
 }
 
-export function runFirstNpcDay(sim: Simulation): NpcDailyResult {
+export function runFirstNpcDay(sim: NpcHost): NpcDailyResult {
   const actorId = FIRST_AUTONOMOUS_RESIDENT;
   const world = sim.worldView();
   const tick = sim.tick;

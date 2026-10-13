@@ -2,14 +2,14 @@
  * Self-directed hearth keeper: chooses actions from actual fuel, finite
  * gathered resources and unresolved requests. No scripted incident/day number.
  */
-import type { Simulation } from "@openlife/simulation";
-import { SettlementCommands, SettlementComponents, residentId, dailyActivity } from "@openlife/module-settlement-locations";
+import type { AgentHost as NpcHost } from "@openlife/contracts";
+import { SettlementCommands, SettlementComponents, residentId, dailyActivity } from "../module.ts";
 import { SpaceCommands, occupiedPlaceId, occupiedSpaceId } from "@openlife/module-world-space";
 import { ObjectRelations, ownerOf, prototypeOf } from "@openlife/module-world-objects";
 import { chooseNpcIntent, shortagePressure } from "./npc-goals.ts";
 
 export const SECOND_AUTONOMOUS_RESIDENT = residentId("cook");
-export function runSecondNpcDay(sim: Simulation) {
+export function runSecondNpcDay(sim: NpcHost) {
   const actorId = SECOND_AUTONOMOUS_RESIDENT, tick = sim.tick;
   const resident = sim.worldView().getComponent(actorId, SettlementComponents.resident);
   const entity = sim.worldView().getEntity(actorId);

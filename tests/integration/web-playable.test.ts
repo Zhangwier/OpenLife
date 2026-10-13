@@ -286,15 +286,14 @@ test("M3-C: manual end-day and continuous batches share one persisted NPC day bo
     assert.equal(cookedStock(), initialFood - 3, "third day uses same bounded day routine");
     assert.equal(cook()?.tradeCount, 0);
 
-    // A legacy multi-day travel skip must not silently synthesize old NPC days.
-    const stockBeforeJump = cookedStock();
+    // M4-B: a two-day journey is two lived village days, not a frozen village.
+    // The engine's village agent runs for each stepped day of the trip.
     const beforeJump = state.tick;
     await action("settlement-locations.arrive", { placeId: "place:river", costDays: 2 });
     assert.equal(state.tick, beforeJump + 2);
     await action("settlement-locations.arrive", { placeId: "place:hearth-yard", travelMode: "local" });
-    assert.equal(cookedStock(), stockBeforeJump);
-    assert.equal(cook()?.dailyNote ?? "", "", "no fake current-day note after a skipped period");
-    assert.equal(cook()?.tradeCount, 0);
+    assert.ok(cookedStock() >= 0, "shared food stays a real, finite stock");
+    assert.match(cook()?.dailyNote ?? "", /\S/, "the cook kept living while the player travelled");
     const page = await (await fetch(`${base}/`)).text();
     assert.match(page, /pauseAutoButton|startContinuousAuto/,
       "the existing start/pause controls remain present");

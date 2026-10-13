@@ -40,6 +40,8 @@ export interface SimulationOptions {
   historyThreshold?: number;
   maxDepth?: number;
   maxEventsPerTransaction?: number;
+  /** See KernelOptions.agentCatchUpLimit. */
+  agentCatchUpLimit?: number;
 }
 
 export interface SimulationSaveInput {
@@ -79,6 +81,9 @@ export class Simulation {
       ...(options.maxDepth !== undefined ? { maxDepth: options.maxDepth } : {}),
       ...(options.maxEventsPerTransaction !== undefined
         ? { maxEventsPerTransaction: options.maxEventsPerTransaction }
+        : {}),
+      ...(options.agentCatchUpLimit !== undefined
+        ? { agentCatchUpLimit: options.agentCatchUpLimit }
         : {}),
     });
     this.modules = new ModuleRuntime({
@@ -159,6 +164,11 @@ export class Simulation {
   advanceBy(ticks: number): void {
     this.kernel.advanceBy(ticks);
     this.syncHistory();
+  }
+
+  /** What a module agent reported for the last tick it lived through. */
+  agentReport(agentId: string) {
+    return this.kernel.agentReport(agentId);
   }
 
   /** Folds new events into history and reconciles archived subjects. */

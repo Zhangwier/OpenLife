@@ -5,10 +5,20 @@ import { modernWorldModule } from "@openlife/module-modern-world";
 import { worldClockModule } from "@openlife/module-world-clock";
 import { worldSpaceModule } from "@openlife/module-world-space";
 import { worldObjectsModule, ObjectRelations, ownerOf, holderOf, prototypeOf } from "@openlife/module-world-objects";
-import { settlementLocationsModule, SettlementComponents, SettlementCommands, residentId, people } from "@openlife/module-settlement-locations";
-import { runVillageDayBoundary } from "../../apps/web/src/village-day.ts";
+import { settlementLocationsModule, SettlementComponents, SettlementCommands, residentId, people,
+  VILLAGE_DAY_AGENT, type VillageDayBoundary } from "@openlife/module-settlement-locations";
 
 const modules = [modernWorldModule, worldClockModule, worldSpaceModule, worldObjectsModule, settlementLocationsModule];
+
+/** Advance one day; the engine's village agent lives through it (M4-B). */
+function liveDay(sim: Simulation): VillageDayBoundary {
+  const before = sim.tick;
+  sim.advanceBy(1);
+  const report = sim.agentReport(VILLAGE_DAY_AGENT);
+  assert.equal(report?.tick, before + 1, "the village agent ran for the stepped day");
+  assert.equal(report?.error, undefined, String(report?.error));
+  return report!.report as VillageDayBoundary;
+}
 function make(seed: number) {
   const sim = new Simulation({ worldSeed: seed, modules });
   assert.equal(sim.dispatch({ type: "modern.initialize_world" }).ok, true);
@@ -21,9 +31,7 @@ function run30(seed: number, resumeAt = -1) {
   const cook = residentId("cook"), reed = residentId("reed-worker"), yu = residentId("yu");
   const observed: { day: number; need: string; replied: string; supply: number; fire: boolean; notes: string[] }[] = [];
   for (let day = 1; day <= 30; day++) {
-    const before = sim.tick;
-    sim.advanceBy(1);
-    const boundary = runVillageDayBoundary(sim, before);
+    const boundary = liveDay(sim);
     assert.equal(boundary.ran, true);
     assert.equal(boundary.notes.length, 14, "all authored villagers have a daily decision");
     const state = sim.worldView();

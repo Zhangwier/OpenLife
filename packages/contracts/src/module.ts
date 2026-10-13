@@ -131,6 +131,42 @@ export interface TaskOutcome {
   rescheduleAt?: number;
 }
 
+/**
+ * A module-owned autonomous agent (village residents, wildlife, institutions).
+ *
+ * Agents are the engine-level home of NPC life: the kernel runs every active
+ * agent once after each world tick it steps through, whoever advanced the
+ * clock (Web, debug console, AutoSim). An agent reads the world through the
+ * host's read-only view and acts only through ordinary validated Commands;
+ * the host stamps every command it issues as `source: "ai"`, so an agent can
+ * never act with player authority.
+ *
+ * Long clock jumps are time skips, not lived days: when one advance covers
+ * more than the kernel's agent catch-up limit (31 ticks by default), agents do
+ * not replay the skipped days.
+ */
+export interface AgentDefinition {
+  id: string;
+  owner: string;
+  description?: string;
+  /** Called once per stepped tick, after that tick's scheduled tasks. */
+  run(host: AgentHost, step: AgentStep): unknown;
+}
+
+export interface AgentStep {
+  /** The tick the world was at before this step. */
+  fromTick: number;
+  /** The tick the world is at now. Always `fromTick + 1`. */
+  tick: number;
+}
+
+export interface AgentHost {
+  readonly tick: number;
+  worldView(): import("./rule.ts").WorldView;
+  /** Runs one validated command as `source: "ai"`; a caller-supplied source is ignored. */
+  dispatch(intent: import("./command.ts").CommandIntent): import("./command.ts").CommandResult;
+}
+
 export interface ModuleMigration {
   from: string;
   to: string;
@@ -159,6 +195,8 @@ export interface ModuleRegistrationContext {
   registerResolutionRule(rule: Omit<import("./rule.ts").ResolutionRule, "owner" | "kind">): void;
   registerReactionRule(rule: Omit<import("./rule.ts").ReactionRule, "owner" | "kind">): void;
   registerTask(definition: Omit<TaskDefinition, "owner">): void;
+  /** Registers an autonomous agent the kernel runs once per stepped tick. */
+  registerAgent(definition: Omit<AgentDefinition, "owner">): void;
   registerKnowledge(
     definition: Omit<import("./knowledge.ts").KnowledgeDefinition, "owner">,
   ): void;

@@ -36,7 +36,6 @@ import {
   loansHeldBy,
   rejected,
 } from "./src/player.ts";
-import { runVillageDayBoundary } from "./src/village-day.ts";
 import { worldCatalog } from "./src/catalog.ts";
 const PORT = Number(process.env.PORT ?? 4173);
 const PUBLIC_DIR = fileURLToPath(new URL("./public/", import.meta.url));
@@ -825,9 +824,8 @@ function plannedTimeBatch(days: number) {
         });
         if (!started.ok) return fail(`制陶开工失败：${started.errors?.[0]?.message ?? "条件不足"}`);
         actions.push("pottery");
-        const beforePotteryTick = simulation.tick;
+        // The village lives through this day inside the engine (M4-B).
         simulation.advanceBy(1);
-        runVillageDayBoundary(simulation, beforePotteryTick);
         return fail("制陶已开工，泥料处理有重要选择需要你亲自决定。请在手艺面板完成当前工序。");
       } else if (step === "rest") {
         const matRest = view.actions?.find((action: { id: string; enabled: boolean; payload: { matId?: string } }) =>
@@ -888,7 +886,6 @@ function continuousTimeBatch(days: number) {
     projection: ({ tick }) => ({ tick, actorId }),
     advanceTicksPerStep: 1,
     maxCommands: 10,
-    onTickAdvanced: (tick) => { runVillageDayBoundary(simulation, tick - 1); },
     stopConditions: [
       untilActorArchived(actorId),
       {
@@ -1060,7 +1057,6 @@ const server = createServer(async (req, res) => {
         const action = String(body.action ?? "");
         const manualActorId = activeCharacterId();
         const activePlan = settlementView(simulation, manualActorId)?.dailyPlan;
-        const beforeManualTick = simulation.tick;
         const result = runAction(action, payload);
         // Manual action wins over a previously authorized routine. Suspend it
         // only after a successful action, never as a side effect of a refusal.
@@ -1069,7 +1065,6 @@ const server = createServer(async (req, res) => {
             steps: activePlan.steps, repeat: activePlan.repeat, enabled: false,
           });
         }
-        runVillageDayBoundary(simulation, beforeManualTick);
         simulation.syncHistory();
         res.end(JSON.stringify({ result, state: gameState() }));
         return;

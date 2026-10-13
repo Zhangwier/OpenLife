@@ -293,6 +293,8 @@ export class ModuleRuntime {
         definitions.reactions.register(rule.id, { ...rule, kind: "reaction", owner }, owner),
       registerTask: (definition) =>
         definitions.tasks.register(definition.type, { ...definition, owner }, owner),
+      registerAgent: (definition) =>
+        definitions.agents.register(definition.id, { ...definition, owner }, owner),
       registerKnowledge: (definition) =>
         definitions.knowledge.register(definition.id, { ...definition, owner }, owner),
       registerResource: (definition) =>

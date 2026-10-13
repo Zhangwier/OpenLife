@@ -3,8 +3,8 @@
  * household/workplace/needs drive mundane decisions, not authored quest arcs.
  * Every accepted move, draw, meal, store or rest uses validated world commands.
  */
-import type { Simulation } from "@openlife/simulation";
-import { SettlementCommands, SettlementComponents, SettlementId, people, residentId, dailyActivity, worksites } from "@openlife/module-settlement-locations";
+import type { AgentHost as NpcHost } from "@openlife/contracts";
+import { SettlementCommands, SettlementComponents, SettlementId, people, residentId, dailyActivity, worksites } from "../module.ts";
 import { SpaceCommands, SpaceRelations, occupiedPlaceId, occupiedSpaceId } from "@openlife/module-world-space";
 import { ObjectCommands, ObjectRelations, ownerOf } from "@openlife/module-world-objects";
 import { chooseNpcIntent } from "./npc-goals.ts";
@@ -25,12 +25,12 @@ const WORK_SPACES: Record<string, string> = {
   "place:river": "space:bank",
   "place:ford": "space:ford-landing",
 };
-export function runOtherNpcDays(sim: Simulation) {
+export function runOtherNpcDays(sim: NpcHost) {
   return (people(sim.worldView()).residents as Array<Record<string, unknown>>)
     .filter(p => !SPECIAL.has(String(p.id)))
     .map(p => runGenericNpcDay(sim, p));
 }
-function runGenericNpcDay(sim: Simulation, resident: Record<string, unknown>) {
+function runGenericNpcDay(sim: NpcHost, resident: Record<string, unknown>) {
   const actorId = String(resident.id), name = String(resident.name), tick = sim.tick;
   const state = sim.worldView();
   const entity = state.getEntity(actorId);

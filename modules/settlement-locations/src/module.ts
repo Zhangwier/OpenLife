@@ -48,6 +48,7 @@ import {
   readPlace,
   readSpace,
 } from "@openlife/module-world-space";
+import { VILLAGE_DAY_AGENT, runVillageAgent } from "./autonomy/village-day.ts";
 
 const OWNER = "settlement-locations";
 const WORLD = "modern:world";
@@ -323,6 +324,11 @@ export const settlementLocationsModule: OpenLifeModule = {
   },
 
   register(ctx) {
+    ctx.registerAgent({
+      id: VILLAGE_DAY_AGENT,
+      description: "村民每天按真实需求与物资自主生活（只通过经过校验的命令行动）",
+      run: runVillageAgent,
+    });
     for (const id of Object.values(SettlementComponents)) {
       ctx.registerComponent({ id, persist: true, description: `settlement-locations component ${id}` });
     }
