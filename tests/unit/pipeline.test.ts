@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { DefinitionSet } from "@openlife/rule-engine";
 import { Kernel } from "@openlife/kernel";
 import { WorldStore } from "@openlife/world-model";
+import { seedEntities, scheduleThroughCommand } from "../helpers/seed.ts";
 
 function buildKernel(): Kernel {
   const definitions = new DefinitionSet();
@@ -62,12 +63,7 @@ function buildKernel(): Kernel {
   );
 
   const kernel = new Kernel({ worldSeed: 1, definitions });
-  kernel.internals.store.createEntity({
-    id: "demo:actor",
-    kind: "demo.actor",
-    components: { "demo.counter": { value: 0 } },
-    createdAt: 0,
-  });
+  seedEntities(kernel, [{ id: "demo:actor", kind: "demo.actor", components: { "demo.counter": { value: 0 } } }]);
   return kernel;
 }
 
@@ -206,12 +202,7 @@ test("a failed reaction rolls back every earlier effect in the transaction", () 
     "demo",
   );
   const kernel = new Kernel({ worldSeed: 9, definitions });
-  kernel.internals.store.createEntity({
-    id: "demo:actor",
-    kind: "demo.actor",
-    components: { "demo.counter": { value: 0 } },
-    createdAt: 0,
-  });
+  seedEntities(kernel, [{ id: "demo:actor", kind: "demo.actor", components: { "demo.counter": { value: 0 } } }]);
 
   const before = kernel.internals.store.fingerprint();
   const result = kernel.dispatch({ type: "demo.atomic" });

@@ -6,6 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DefinitionSet } from "@openlife/rule-engine";
 import { Kernel } from "@openlife/kernel";
+import { seedEntities } from "../helpers/seed.ts";
 
 function kernelWith(writableBy?: string[]) {
   const definitions = new DefinitionSet();
@@ -24,7 +25,7 @@ function kernelWith(writableBy?: string[]) {
     resolve: () => [{ kind: "modifyComponent", entityId: "thing", component: "intruder.unregistered", patch: { x: 1 } }],
   }, "intruder");
   const kernel = new Kernel({ worldSeed: 1, definitions });
-  kernel.internals.store.createEntity({ id: "thing", kind: "test.thing", components: {}, createdAt: 0 });
+  seedEntities(kernel, [{ id: "thing", kind: "test.thing", components: {} }]);
   return kernel;
 }
 

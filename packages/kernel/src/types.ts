@@ -28,13 +28,30 @@ export interface KernelOptions {
   agentCatchUpLimit?: number;
 }
 
-/** Mutable services shared across the kernel, exposed for save/load wiring. */
+/** Read-only view of the world store (no create/set/merge/archive/restore). */
+export type ReadonlyWorldStore = Pick<WorldStore,
+  "entityCount" | "relationCount" | "getEntity" | "hasEntity" | "listEntities" |
+  "countEntities" | "getComponent" | "getRelation" | "serialize" | "fingerprint">;
+/** Read-only view of the event journal (no append/restore). */
+export type ReadonlyEventLog = Pick<EventLog, "length" | "nextSeq" | "all" | "since" | "list" | "get" | "serialize">;
+/** Read-only view of the scheduler (no schedule/complete/cancel/restore). */
+export type ReadonlyScheduler = Pick<Scheduler, "size" | "list" | "nextDueTick" | "serialize">;
+/** Read-only view of the fact store (no add/restore). */
+export type ReadonlyFactStore = Pick<FactStore, "size" | "all" | "list" | "serialize">;
+
+/**
+ * Inspection surface for the history runtime, save wiring and debug console.
+ *
+ * Every member is a live read-only facade: it always reads the kernel's
+ * current state (also after `restore`), and offers no way to write it. The
+ * only write paths stay `dispatch` (Command) and `advanceTo` (Clock).
+ */
 export interface KernelInternals {
-  store: WorldStore;
-  clock: ClockState;
-  rng: DeterministicRng;
-  scheduler: Scheduler;
-  eventLog: EventLog;
-  facts: FactStore;
-  definitions: DefinitionSet;
+  readonly store: ReadonlyWorldStore;
+  readonly clock: Readonly<ClockState>;
+  readonly rng: { snapshot(): { seed: number; draws: number } };
+  readonly scheduler: ReadonlyScheduler;
+  readonly eventLog: ReadonlyEventLog;
+  readonly facts: ReadonlyFactStore;
+  readonly definitions: DefinitionSet;
 }

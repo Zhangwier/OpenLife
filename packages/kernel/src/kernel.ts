@@ -111,15 +111,49 @@ export class Kernel {
   }
 
   get internals(): KernelInternals {
-    return {
-      store: this.#store,
-      clock: this.#clock,
-      rng: this.#rng,
-      scheduler: this.#scheduler,
-      eventLog: this.#eventLog,
-      facts: this.#facts,
+    const kernel = this;
+    const store = () => kernel.#store;
+    const log = () => kernel.#eventLog;
+    const scheduler = () => kernel.#scheduler;
+    const facts = () => kernel.#facts;
+    return Object.freeze({
+      store: Object.freeze({
+        get entityCount() { return store().entityCount; },
+        get relationCount() { return store().relationCount; },
+        getEntity: (...a: Parameters<WorldStore["getEntity"]>) => structuredClone(store().getEntity(...a)),
+        hasEntity: (...a: Parameters<WorldStore["hasEntity"]>) => store().hasEntity(...a),
+        listEntities: (...a: Parameters<WorldStore["listEntities"]>) => structuredClone(store().listEntities(...a)),
+        countEntities: (...a: Parameters<WorldStore["countEntities"]>) => store().countEntities(...a),
+        getComponent: (...a: Parameters<WorldStore["getComponent"]>) => structuredClone(store().getComponent(...a)),
+        getRelation: (...a: Parameters<WorldStore["getRelation"]>) => structuredClone(store().getRelation(...a)),
+        serialize: () => store().serialize(),
+        fingerprint: () => store().fingerprint(),
+      }),
+      get clock() { return Object.freeze({ ...kernel.#clock }); },
+      rng: Object.freeze({ snapshot: () => kernel.#rng.snapshot() }),
+      scheduler: Object.freeze({
+        get size() { return scheduler().size; },
+        list: () => structuredClone(scheduler().list()),
+        nextDueTick: () => scheduler().nextDueTick(),
+        serialize: () => scheduler().serialize(),
+      }),
+      eventLog: Object.freeze({
+        get length() { return log().length; },
+        get nextSeq() { return log().nextSeq; },
+        all: () => Object.freeze(structuredClone([...log().all()])),
+        since: (...a: Parameters<EventLog["since"]>) => structuredClone(log().since(...a)),
+        list: (...a: Parameters<EventLog["list"]>) => structuredClone(log().list(...a)),
+        get: (...a: Parameters<EventLog["get"]>) => structuredClone(log().get(...a)),
+        serialize: () => log().serialize(),
+      }),
+      facts: Object.freeze({
+        get size() { return facts().size; },
+        all: () => structuredClone(facts().all()),
+        list: (...a: Parameters<FactStore["list"]>) => structuredClone(facts().list(...a)),
+        serialize: () => facts().serialize(),
+      }),
       definitions: this.#definitions,
-    };
+    }) as KernelInternals;
   }
 
   /** Read-only world view. Rules, modules and projections only ever see this. */
