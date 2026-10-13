@@ -49,6 +49,7 @@ import {
   readSpace,
 } from "@openlife/module-world-space";
 import { VILLAGE_DAY_AGENT, runVillageAgent } from "./autonomy/village-day.ts";
+import { RIVER_TERRACE_PACK, type ResidentSpec, type PlaceSpec, type YieldSpec, type PrototypeSpec } from "./content.ts";
 
 const OWNER = "settlement-locations";
 const WORLD = "modern:world";
@@ -121,19 +122,6 @@ export const SettlementRejection = {
 /** The authored settlement: one terrace village beside the central river. */
 export const SettlementId = "settlement-locations:settlement:river-terrace";
 
-interface ResidentSpec {
-  key: string;
-  name: string;
-  age: number;
-  role: string;
-  trait: string;
-  wish: string;
-  /** Which place this person works in during the day. */
-  workPlace: string;
-  /** Which space they sleep in at night. */
-  homeSpace: string;
-  household: string;
-}
 
 /**
  * Fourteen residents across six households.
@@ -143,164 +131,24 @@ interface ResidentSpec {
  * the honest label for a 2070 BCE village (see the content policy in
  * `OPEN_WORLD_REQUIREMENTS.md` 搂3).
  */
-const RESIDENTS: ResidentSpec[] = [
-  { key: "elder", name: "陶叔", age: 52, role: "看火的老人", trait: "慢，但记得每一次火候", wish: "想在还看得见的时候，把这套看火的经验讲给一个人。", workPlace: "place:kiln", homeSpace: "space:main-sleep", household: "陶家" },
-  { key: "elder-wife", name: "陶婶", age: 49, role: "操持家事的妇人", trait: "把每件陶器都记得属于谁", wish: "今年想把储粮补到够吃到来年。", workPlace: "place:yard", homeSpace: "space:main-sleep", household: "陶家" },
-  { key: "yu", name: "阿予", age: 19, role: "照看旱地的邻居", trait: "务实，也记得别人帮过的事", wish: "新屋还缺一个能装水的罐子，最近也缺柴火。", workPlace: "place:field", homeSpace: "space:yu-sleep", household: "予家" },
-  { key: "yu-brother", name: "阿石", age: 16, role: "跟着阿予下地的人", trait: "话少，做事稳", wish: "想学会分辨什么样的土能烧成器。", workPlace: "place:field", homeSpace: "space:yu-sleep", household: "予家" },
-  { key: "lan", name: "阿岚", age: 21, role: "往返两岸的交换者", trait: "好奇，愿意试新东西", wish: "想带一件轻巧的陶器去南岸，让更多人认识这里的手艺。", workPlace: "place:ford", homeSpace: "space:lan-sleep", household: "岚家" },
-  { key: "lan-mother", name: "岚母", age: 44, role: "织席与编绳的人", trait: "手上的活比嘴上多", wish: "芦苇够用的话，今年想多编几张席子。", workPlace: "place:reedbed", homeSpace: "space:lan-sleep", household: "岚家" },
-  { key: "reed-worker", name: "阿苇", age: 27, role: "割芦苇的人", trait: "知道哪片滩一年比一年薄", wish: "想和人说清楚，芦苇地不能再这样割下去。", workPlace: "place:reedbed", homeSpace: "space:reed-sleep", household: "苇家" },
-  { key: "clay-digger", name: "阿埴", age: 33, role: "取黏土的人", trait: "认得河岸每一段土的颜色", wish: "想找一个愿意一起去更远的河湾取土的人。", workPlace: "place:claypits", homeSpace: "space:clay-sleep", household: "埴家" },
-  { key: "clay-child", name: "小满", age: 9, role: "跟着大人捡东西的孩子", trait: "什么都想捡回来看", wish: "想有一个属于自己的小罐子。", workPlace: "place:claypits", homeSpace: "space:clay-sleep", household: "埴家" },
-  { key: "water-carrier", name: "阿汲", age: 24, role: "每天来回取水的人", trait: "走得快，也知道水什么时候浑", wish: "想攒够力气换一个更大一点的罐子。", workPlace: "place:river", homeSpace: "space:water-sleep", household: "汲家" },
-  { key: "water-child", name: "小汲", age: 12, role: "帮着提水的孩子", trait: "喜欢看河里的倒影", wish: "想知道河另一头是什么样子。", workPlace: "place:river", homeSpace: "space:water-sleep", household: "汲家" },
-  { key: "cook", name: "阿灶", age: 38, role: "管公共灶火的人", trait: "记得谁家最近没粮", wish: "想让公用灶台一直有柴火可用。", workPlace: "place:hearth-yard", homeSpace: "space:hearth-sleep", household: "灶家" },
-  { key: "cook-helper", name: "阿稷", age: 17, role: "在灶边帮忙的人", trait: "学什么都快", wish: "想独立做一次全家的饭。", workPlace: "place:hearth-yard", homeSpace: "space:hearth-sleep", household: "灶家" },
-  { key: "trader-elder", name: "埴公", age: 61, role: "带过几次远路的人", trait: "讲的路线比走过的多", wish: "想在走不动之前，把渡口那条路教给别人。", workPlace: "place:ford", homeSpace: "space:ford-sleep", household: "埴公家" },
-];
+const RESIDENTS: ResidentSpec[] = RIVER_TERRACE_PACK.residents;
 
 /** Places of the settlement, each with a purpose and a cost to reach. */
 // Open outdoor arrival spots allow villagers and visitors to pass; 0 is the
 // shared world-space convention for unbounded open areas. Indoor rooms remain
 // capacity-limited. The main household accommodates its two adults + guests.
-const PLACES: {
-  id: string; name: string; type: string; costDays: number;
-  /** Where someone arriving here actually stands: the room or spot they enter. */
-  entrySpace: string;
-  spaces: { id: string; name: string; type: string; capacity: number; visible?: boolean }[];
-}[] = [
-  {
-    id: "place:yard", name: "陶家庭院", type: "yard", costDays: 0, entrySpace: "space:main-sleep",
-    spaces: [
-      { id: "space:main-sleep", name: "主屋寝处", type: "sleep", capacity: 4 },
-      { id: "space:store", name: "储粮处", type: "storage", capacity: 2 },
-      { id: "space:drying-rack", name: "晾坯架下", type: "work", capacity: 3, visible: true },
-    ],
-  },
-  {
-    id: "place:hearth-yard", name: "公用灶台", type: "kitchen", costDays: 1, entrySpace: "space:hearth",
-    spaces: [
-      { id: "space:hearth", name: "灶边", type: "work", capacity: 0, visible: true },
-      { id: "space:hearth-sleep", name: "灶家铺位", type: "sleep", capacity: 3 },
-    ],
-  },
-  {
-    id: "place:river", name: "河边取水点", type: "water", costDays: 1, entrySpace: "space:bank",
-    spaces: [
-      { id: "space:bank", name: "河岸浅滩", type: "water", capacity: 0, visible: true },
-    ],
-  },
-  {
-    id: "place:field", name: "河岸旱地", type: "field", costDays: 2, entrySpace: "space:field-edge",
-    spaces: [
-      { id: "space:field-edge", name: "田头", type: "work", capacity: 0, visible: true },
-      { id: "space:yu-sleep", name: "予家棚屋", type: "sleep", capacity: 3 },
-    ],
-  },
-  {
-    id: "place:kiln", name: "共用陶窑", type: "kiln", costDays: 2, entrySpace: "space:kiln-mouth",
-    spaces: [
-      { id: "space:kiln-mouth", name: "窑口", type: "work", capacity: 0, visible: true },
-      { id: "space:kiln-shed", name: "窑棚", type: "work", capacity: 3 },
-    ],
-  },
-  {
-    id: "place:claypits", name: "河湾黏土坑", type: "clay-pit", costDays: 2, entrySpace: "space:pit-edge",
-    spaces: [
-      { id: "space:pit-edge", name: "坑边", type: "work", capacity: 0, visible: true },
-      { id: "space:clay-sleep", name: "埴家窝棚", type: "sleep", capacity: 3 },
-    ],
-  },
-  {
-    id: "place:reedbed", name: "芦苇滩", type: "reed-flat", costDays: 3, entrySpace: "space:reed-cut",
-    spaces: [
-      { id: "space:reed-cut", name: "割苇处", type: "work", capacity: 0, visible: true },
-      { id: "space:reed-sleep", name: "苇家窝棚", type: "sleep", capacity: 2 },
-      { id: "space:lan-sleep", name: "岚家屋舍", type: "sleep", capacity: 3 },
-    ],
-  },
-  {
-    id: "place:ford", name: "渡口", type: "crossing", costDays: 2, entrySpace: "space:ford-landing",
-    spaces: [
-      { id: "space:ford-landing", name: "渡口岸边", type: "work", capacity: 0, visible: true },
-      { id: "space:water-sleep", name: "汲家棚屋", type: "sleep", capacity: 3 },
-      { id: "space:ford-sleep", name: "埴公落脚处", type: "sleep", capacity: 2 },
-    ],
-  },
-];
+const PLACES: PlaceSpec[] = RIVER_TERRACE_PACK.places;
 
 /** Renewing resources. Each has one authoritative owner: this module. */
-const YIELDS: { placeId: string; resourceId: string; label: string; capacity: number; renewDays: number; unit: string }[] = [
-  { placeId: "place:river", resourceId: "resource:water", label: "河水", capacity: 40, renewDays: 1, unit: "份" },
-  { placeId: "place:claypits", resourceId: "resource:clay", label: "黏土", capacity: 12, renewDays: 20, unit: "份" },
-  { placeId: "place:reedbed", resourceId: "resource:reed", label: "芦苇", capacity: 10, renewDays: 45, unit: "捆" },
-  { placeId: "place:field", resourceId: "resource:grain", label: "粟", capacity: 16, renewDays: 90, unit: "份" },
-  { placeId: "place:reedbed", resourceId: "resource:fuel", label: "柴草", capacity: 14, renewDays: 12, unit: "捆" },
-  { placeId: "place:kiln", resourceId: "resource:fuel", label: "窑边柴火", capacity: 8, renewDays: 20, unit: "捆" },
-  { placeId: "place:hearth-yard", resourceId: "resource:cooked", label: "熟食", capacity: 6, renewDays: 3, unit: "份" },
-];
+const YIELDS: YieldSpec[] = RIVER_TERRACE_PACK.yields;
 
 /**
  * Object prototypes. Capabilities decide what can be done with a thing, so a
  * new vessel never needs a new button (OBJ-001).
  */
-const PROTOTYPES: {
-  id: string; name: string; material: string; resourceId: string; unit: string;
-  mass: number; capacity: number; capabilities: string[]; durability: number; visible?: boolean;
-}[] = [
-  { id: "prototype:water-jar", name: "储水陶罐", material: "fired-clay", resourceId: "resource:jar", unit: "个", mass: 2.6, capacity: 4, capabilities: ["carryable", "container", "liquid-holder", "storage"], durability: 70 },
-  { id: "prototype:small-jar", name: "小陶罐", material: "fired-clay", resourceId: "resource:jar", unit: "个", mass: 0.9, capacity: 1, capabilities: ["carryable", "container", "liquid-holder"], durability: 45 },
-  { id: "prototype:grain-jar", name: "储粮陶瓮", material: "fired-clay", resourceId: "resource:jar", unit: "个", mass: 6.2, capacity: 8, capabilities: ["container", "storage"], durability: 90, visible: true },
-  { id: "prototype:cooking-pot", name: "炊煮陶釜", material: "fired-clay", resourceId: "resource:cookware", unit: "个", mass: 3.4, capacity: 3, capabilities: ["carryable", "container", "liquid-holder"], durability: 55, visible: true },
-  { id: "prototype:bowl", name: "陶碗", material: "fired-clay", resourceId: "resource:bowl", unit: "个", mass: 0.5, capacity: 1, capabilities: ["carryable", "container"], durability: 35 },
-  { id: "prototype:water", name: "水", material: "water", resourceId: "resource:water", unit: "份", mass: 1, capacity: 0, capabilities: ["carryable", "edible", "liquid-holder"], durability: 0 },
-  { id: "prototype:grain", name: "粟", material: "grain", resourceId: "resource:grain", unit: "份", mass: 0.6, capacity: 0, capabilities: ["carryable", "edible", "storage"], durability: 0 },
-  { id: "prototype:cooked-food", name: "熟食", material: "cooked-grain", resourceId: "resource:cooked", unit: "份", mass: 0.7, capacity: 0, capabilities: ["carryable", "edible"], durability: 0 },
-  { id: "prototype:clay-batch", name: "黏土", material: "raw-clay", resourceId: "resource:clay", unit: "份", mass: 1.4, capacity: 0, capabilities: ["carryable", "workable", "storage"], durability: 0 },
-  { id: "prototype:fuel-bundle", name: "柴捆", material: "dry-reed", resourceId: "resource:fuel", unit: "捆", mass: 1.8, capacity: 0, capabilities: ["carryable", "burnable", "storage"], durability: 0 },
-  { id: "prototype:reed-bundle", name: "芦苇捆", material: "reed", resourceId: "resource:reed", unit: "捆", mass: 1.6, capacity: 0, capabilities: ["carryable", "workable", "storage"], durability: 0 },
-  { id: "prototype:mat", name: "苇席", material: "woven-reed", resourceId: "resource:mat", unit: "张", mass: 1.2, capacity: 0, capabilities: ["carryable", "fixture", "sleep-on"], durability: 40, visible: true },
-  { id: "prototype:rope", name: "草绳", material: "twisted-fiber", resourceId: "resource:rope", unit: "根", mass: 0.3, capacity: 0, capabilities: ["carryable", "tool", "workable"], durability: 30 },
-  { id: "prototype:fiber-bundle", name: "纤维束", material: "plant-fiber", resourceId: "resource:fiber", unit: "束", mass: 0.4, capacity: 0, capabilities: ["carryable", "workable", "storage"], durability: 0 },
-  { id: "prototype:digging-stick", name: "木耒", material: "wood", resourceId: "resource:tool", unit: "根", mass: 1.9, capacity: 0, capabilities: ["carryable", "tool"], durability: 50, visible: true },
-  { id: "prototype:paddle", name: "木桨", material: "wood", resourceId: "resource:tool", unit: "支", mass: 2.2, capacity: 0, capabilities: ["carryable", "tool"], durability: 45 },
-  { id: "prototype:bone-needle", name: "骨针", material: "bone", resourceId: "resource:tool", unit: "根", mass: 0.02, capacity: 0, capabilities: ["carryable", "tool"], durability: 20 },
-  { id: "prototype:stone-knife", name: "石刀", material: "stone", resourceId: "resource:tool", unit: "把", mass: 0.3, capacity: 0, capabilities: ["carryable", "tool"], durability: 40 },
-  { id: "prototype:sieve", name: "陶筛", material: "fired-clay", resourceId: "resource:tool", unit: "个", mass: 0.7, capacity: 0, capabilities: ["carryable", "tool"], durability: 35 },
-  { id: "prototype:hide-cloak", name: "兽皮披", material: "hide", resourceId: "resource:cloth", unit: "件", mass: 1.5, capacity: 0, capabilities: ["carryable", "wearable", "warm"], durability: 40 },
-  { id: "prototype:fiber-wrap", name: "纤维裹身", material: "woven-fiber", resourceId: "resource:cloth", unit: "件", mass: 0.8, capacity: 0, capabilities: ["carryable", "wearable"], durability: 25 },
-  { id: "prototype:carrying-bag", name: "编织袋", material: "woven-fiber", resourceId: "resource:bag", unit: "个", mass: 0.5, capacity: 3, capabilities: ["carryable", "container", "storage"], durability: 28 },
-  { id: "prototype:fish-trap", name: "渔篓", material: "woven-reed", resourceId: "resource:trap", unit: "个", mass: 1.4, capacity: 2, capabilities: ["carryable", "container", "tool"], durability: 30 },
-  { id: "prototype:net", name: "网", material: "twisted-fiber", resourceId: "resource:net", unit: "张", mass: 0.9, capacity: 0, capabilities: ["carryable", "tool"], durability: 22 },
-  { id: "prototype:fish", name: "鱼", material: "fish", resourceId: "resource:fish", unit: "条", mass: 0.8, capacity: 0, capabilities: ["carryable", "edible"], durability: 0 },
-  { id: "prototype:shared-kiln", name: "共用陶窑", material: "earth", resourceId: "resource:kiln", unit: "座", mass: 0, capacity: 0, capabilities: ["fixture", "workable"], durability: 0, visible: true },
-  { id: "prototype:hearth", name: "公用灶塘", material: "earth", resourceId: "resource:hearth", unit: "处", mass: 0, capacity: 0, capabilities: ["fixture", "workable"], durability: 0, visible: true },
-  { id: "prototype:grinding-stone", name: "石磨盘", material: "stone", resourceId: "resource:millstone", unit: "套", mass: 0, capacity: 0, capabilities: ["fixture", "tool", "workable"], durability: 0, visible: true },
-  { id: "prototype:water-cache", name: "储水坑", material: "earth", resourceId: "resource:cistern", unit: "处", mass: 0, capacity: 12, capabilities: ["fixture", "container", "liquid-holder"], durability: 0 },
-  { id: "prototype:fence-post", name: "围栏木桩", material: "wood", resourceId: "resource:fence", unit: "根", mass: 2.4, capacity: 0, capabilities: ["fixture"], durability: 60 },
-  { id: "prototype:grain-basket", name: "竹编粮囤", material: "woven-reed", resourceId: "resource:basket", unit: "个", mass: 1.1, capacity: 5, capabilities: ["container", "storage"], durability: 26, visible: true },
-  { id: "prototype:sleep-mat", name: "寝席", material: "woven-reed", resourceId: "resource:mat", unit: "张", mass: 1.1, capacity: 0, capabilities: ["fixture", "sleep-on"], durability: 35, visible: true },
-];
+const PROTOTYPES: PrototypeSpec[] = RIVER_TERRACE_PACK.prototypes;
 
-const RESOURCE_LABELS: Record<string, string> = {
-  "resource:water": "水",
-  "resource:clay": "黏土",
-  "resource:reed": "芦苇",
-  "resource:grain": "粟",
-  "resource:fuel": "柴草",
-  "resource:cooked": "熟食",
-  "resource:fish": "鱼",
-  "resource:jar": "陶罐",
-  "resource:bowl": "陶碗",
-  "resource:cookware": "炊具",
-  "resource:fiber": "纤维",
-  "resource:rope": "草绳",
-  "resource:mat": "席",
-  "resource:tool": "工具",
-  "resource:cloth": "衣料",
-  "resource:bag": "编织袋",
-};
+const RESOURCE_LABELS: Record<string, string> = RIVER_TERRACE_PACK.resourceLabels;
 
 export const settlementLocationsModule: OpenLifeModule = {
   manifest: {
@@ -3352,121 +3200,8 @@ interface InstanceSpec {
  * both a position and an owner; the counts are asserted by the M1 density test.
  */
 function buildInstances(): InstanceSpec[] {
-  const out: InstanceSpec[] = [];
-  const push = (id: string, prototypeId: string, ownerId: string, inId: string, quantity = 0) =>
-    out.push({ id, prototypeId, ownerId, inId, quantity });
-
-  // Household vessels, each in the space it belongs to.
-  const households: { household: string; ownerKey: string; sleepSpace: string; jarCount: number }[] = [
-    { household: "陶家", ownerKey: "elder", sleepSpace: "space:main-sleep", jarCount: 3 },
-    { household: "予家", ownerKey: "yu", sleepSpace: "space:yu-sleep", jarCount: 2 },
-    { household: "岚家", ownerKey: "lan", sleepSpace: "space:lan-sleep", jarCount: 2 },
-    { household: "苇家", ownerKey: "reed-worker", sleepSpace: "space:reed-sleep", jarCount: 2 },
-    { household: "埴家", ownerKey: "clay-digger", sleepSpace: "space:clay-sleep", jarCount: 2 },
-    { household: "汲家", ownerKey: "water-carrier", sleepSpace: "space:water-sleep", jarCount: 3 },
-    { household: "灶家", ownerKey: "cook", sleepSpace: "space:hearth-sleep", jarCount: 2 },
-    { household: "埴公家", ownerKey: "trader-elder", sleepSpace: "space:ford-sleep", jarCount: 1 },
-  ];
-
-  for (const [index, household] of households.entries()) {
-    const owner = residentId(household.ownerKey);
-    for (let n = 0; n < household.jarCount; n += 1) {
-      push(`instance:jar:${index}:${n}`, n === 0 ? "prototype:water-jar" : "prototype:small-jar", owner, household.sleepSpace, 0);
-    }
-    push(`instance:bowl:${index}`, "prototype:bowl", owner, household.sleepSpace);
-    push(`instance:mat:${index}`, "prototype:sleep-mat", owner, household.sleepSpace);
-    push(`instance:mat:${index}:b`, "prototype:mat", owner, household.sleepSpace);
-    push(`instance:bag:${index}`, "prototype:carrying-bag", owner, household.sleepSpace);
-    push(`instance:cloak:${index}`, index % 2 === 0 ? "prototype:hide-cloak" : "prototype:fiber-wrap", owner, household.sleepSpace);
-    push(`instance:knife:${index}`, "prototype:stone-knife", owner, household.sleepSpace);
-    push(`instance:needle:${index}`, "prototype:bone-needle", owner, household.sleepSpace);
-    push(`instance:fiber:${index}`, "prototype:fiber-bundle", owner, household.sleepSpace, 1);
-    push(`instance:rope:${index}`, "prototype:rope", owner, household.sleepSpace);
-    push(`instance:grain-basket:${index}`, "prototype:grain-basket", owner, household.sleepSpace, 0);
-    push(`instance:grain:${index}`, "prototype:grain", owner, `instance:grain-basket:${index}`, 2);
-  }
-
-  // Yard: storage, drying and the household cooking pot.
-  push("instance:grain-urn:0", "prototype:grain-jar", residentId("elder"), "space:store", 0);
-  push("instance:grain-urn:0:grain", "prototype:grain", residentId("elder"), "instance:grain-urn:0", 3);
-  push("instance:grain-urn:1", "prototype:grain-jar", residentId("elder-wife"), "space:store", 0);
-  push("instance:cooking-pot:0", "prototype:cooking-pot", residentId("elder-wife"), "space:hearth", 0);
-  push("instance:sieve:0", "prototype:sieve", residentId("elder"), "space:drying-rack");
-  push("instance:greenware:0", "prototype:small-jar", residentId("elder"), "space:drying-rack");
-  push("instance:greenware:1", "prototype:bowl", residentId("elder"), "space:drying-rack");
-
-  // Hearth yard: shared cooking equipment and firewood.
-  push("instance:hearth-pot", "prototype:cooking-pot", residentId("cook"), "space:hearth");
-  push("instance:hearth-millstone", "prototype:grinding-stone", residentId("cook"), "space:hearth", 0);
-  push("instance:hearth-wood:0", "prototype:fuel-bundle", residentId("cook"), "space:hearth", 0);
-  push("instance:hearth-wood:1", "prototype:fuel-bundle", residentId("cook-helper"), "space:hearth", 0);
-  push("instance:hearth-basket", "prototype:grain-basket", residentId("cook"), "space:hearth", 0);
-  push("instance:hearth-grain", "prototype:grain", residentId("cook"), "instance:hearth-basket", 4);
-
-  // River: the common water jar, kept at the bank.
-  push("instance:bank-jar:0", "prototype:water-jar", residentId("water-carrier"), "space:bank", 0);
-  push("instance:bank-jar:1", "prototype:water-jar", residentId("water-carrier"), "space:bank", 0);
-  push("instance:bank-jar:2", "prototype:small-jar", residentId("water-child"), "space:bank", 0);
-  push("instance:bank-cache", "prototype:water-cache", residentId("water-carrier"), "space:bank", 6);
-  push("instance:bank-net", "prototype:net", residentId("water-carrier"), "space:bank");
-  push("instance:bank-trap", "prototype:fish-trap", residentId("water-child"), "space:bank", 0);
-
-  // Field: tools and the household grain.
-  push("instance:field-dig:0", "prototype:digging-stick", residentId("yu"), "space:field-edge");
-  push("instance:field-dig:1", "prototype:digging-stick", residentId("yu-brother"), "space:field-edge");
-  push("instance:field-knife", "prototype:stone-knife", residentId("yu"), "space:field-edge");
-  push("instance:field-basket:0", "prototype:grain-basket", residentId("yu"), "space:field-edge", 0);
-  push("instance:field-grain:0", "prototype:grain", residentId("yu"), "instance:field-basket:0", 3);
-  push("instance:field-basket:1", "prototype:carrying-bag", residentId("yu-brother"), "space:field-edge", 0);
-  push("instance:field-fence:0", "prototype:fence-post", residentId("yu"), "space:field-edge", 0);
-  push("instance:field-fence:1", "prototype:fence-post", residentId("yu"), "space:field-edge", 0);
-
-  // Kiln: the shared kiln and the potter's working set.
-  push("instance:kiln:0", "prototype:shared-kiln", residentId("elder"), "space:kiln-mouth", 0);
-  push("instance:kiln-wood:0", "prototype:fuel-bundle", residentId("elder"), "space:kiln-shed", 0);
-  push("instance:kiln-wood:1", "prototype:fuel-bundle", residentId("elder"), "space:kiln-shed", 0);
-  push("instance:kiln-wood:2", "prototype:fuel-bundle", residentId("elder-wife"), "space:kiln-shed", 0);
-  push("instance:kiln-sieve", "prototype:sieve", residentId("elder-wife"), "space:kiln-shed");
-  push("instance:kiln-bowl:0", "prototype:bowl", residentId("elder"), "space:kiln-shed");
-  push("instance:kiln-bowl:1", "prototype:bowl", residentId("elder-wife"), "space:kiln-shed");
-
-  // Clay pits: the diggers' tools.
-  push("instance:pit-stick:0", "prototype:digging-stick", residentId("clay-digger"), "space:pit-edge");
-  push("instance:pit-stick:1", "prototype:digging-stick", residentId("clay-child"), "space:pit-edge");
-  push("instance:pit-bag", "prototype:carrying-bag", residentId("clay-digger"), "space:pit-edge", 0);
-  push("instance:pit-clay:0", "prototype:clay-batch", residentId("clay-digger"), "space:pit-edge", 0);
-  push("instance:pit-clay:1", "prototype:clay-batch", residentId("clay-digger"), "space:pit-edge", 0);
-  push("instance:pit-bowl", "prototype:small-jar", residentId("clay-child"), "space:pit-edge", 0);
-
-  // Reed flats: cutting and weaving.
-  push("instance:reed-knife:0", "prototype:stone-knife", residentId("reed-worker"), "space:reed-cut");
-  push("instance:reed-knife:1", "prototype:stone-knife", residentId("lan-mother"), "space:reed-cut");
-  push("instance:reed-bundle:0", "prototype:reed-bundle", residentId("reed-worker"), "space:reed-cut", 0);
-  push("instance:reed-bundle:1", "prototype:reed-bundle", residentId("lan-mother"), "space:reed-cut", 0);
-  push("instance:reed-bundle:2", "prototype:reed-bundle", residentId("lan"), "space:reed-cut", 0);
-  push("instance:reed-rope", "prototype:rope", residentId("lan-mother"), "space:reed-cut");
-  push("instance:reed-fiber", "prototype:fiber-bundle", residentId("lan-mother"), "space:reed-cut", 1);
-  push("instance:reed-mat", "prototype:mat", residentId("reed-worker"), "space:reed-cut");
-  push("instance:reed-bag", "prototype:carrying-bag", residentId("reed-worker"), "space:reed-cut", 0);
-  push("instance:reed-fish", "prototype:fish", residentId("reed-worker"), "space:reed-cut", 1);
-  push("instance:lan-jar", "prototype:small-jar", residentId("lan"), "space:reed-cut", 0);
-  push("instance:lan-bowl", "prototype:bowl", residentId("lan"), "space:reed-cut");
-  push("instance:lan-rope", "prototype:rope", residentId("lan"), "space:reed-cut");
-  push("instance:lan-cloth", "prototype:fiber-wrap", residentId("lan"), "space:reed-cut");
-  push("instance:lane-mat", "prototype:sleep-mat", residentId("lan"), "space:reed-cut");
-
-  // Ford: travel gear and the trader's stock.
-  push("instance:ford-paddle:0", "prototype:paddle", residentId("trader-elder"), "space:ford-landing");
-  push("instance:ford-paddle:1", "prototype:paddle", residentId("lan"), "space:ford-landing");
-  push("instance:ford-rope", "prototype:rope", residentId("trader-elder"), "space:ford-landing");
-  push("instance:ford-bag", "prototype:carrying-bag", residentId("trader-elder"), "space:ford-landing", 0);
-  push("instance:ford-jar:0", "prototype:small-jar", residentId("trader-elder"), "space:ford-landing", 0);
-  push("instance:ford-jar:1", "prototype:small-jar", residentId("lan"), "space:ford-landing", 0);
-  push("instance:ford-grain", "prototype:grain", residentId("trader-elder"), "instance:ford-bag", 2);
-  push("instance:ford-mat", "prototype:mat", residentId("trader-elder"), "space:ford-landing");
-  push("instance:ford-cache", "prototype:water-cache", residentId("water-carrier"), "space:ford-landing", 4);
-
-  return out;
+  return RIVER_TERRACE_PACK.instances.map(({ owner, ...seed }) =>
+    ({ quantity: 0, ...seed, ownerId: residentId(owner) }));
 }
 
 const INSTANCES: InstanceSpec[] = buildInstances();

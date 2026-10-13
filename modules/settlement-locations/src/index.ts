@@ -5,3 +5,4 @@ export { SECOND_AUTONOMOUS_RESIDENT, runSecondNpcDay } from "./autonomy/npc-cook
 export { runThirdNpcDay } from "./autonomy/npc-reed.ts";
 export { runOtherNpcDays } from "./autonomy/npc-general.ts";
 export { chooseNpcIntent, shortagePressure, type NpcIntent } from "./autonomy/npc-goals.ts";
+export * from "./content.ts";
