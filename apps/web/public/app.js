@@ -33,9 +33,12 @@ function render(s, animate = false) {
     setTimeout(() => document.body.classList.remove("is-transitioning"), 750);
   }
   const c = s.character;
-  $("timeRibbon").querySelector(".time-year").textContent = s.era ?? String(s.year);
+  // 统一时间文案：玩家过的是「冬 · 第 N 天」，公元纪年作为副标题。
+  $("timeRibbon").querySelector(".time-year").textContent = s.settlement?.exists
+    ? `${s.settlement.season} · 第 ${s.settlement.day} 天` : (s.era ?? String(s.year));
+  $("timeRibbon").dataset.era = s.era ?? "";
   $("timeRibbon").querySelector(".time-copy").textContent = continuousRunning
-    ? `${s.month} 月 · ${s.settlement?.season || seasonForMonth(s.month)} · 推进中` : `${s.month} 月 · ${s.settlement?.season || seasonForMonth(s.month)} · 已暂停`;
+    ? `${s.era ?? ""} · ${s.month} 月 · 推进中` : `${s.era ?? ""} · ${s.month} 月 · 已暂停`;
   $("generationPill").textContent = numberGeneration(s.generation);
   $("lineageLabel").textContent = numberGeneration(s.generation);
 
@@ -447,7 +450,7 @@ function updateContinuousControls(message = "") {
   $("autoButton").textContent = continuousRunning ? "时间设置" : "时间与日程";
   $("autoRunStatus").textContent = message || (continuousRunning ? "持续推进中，可随时暂停" : "当前已暂停");
   $("timeRibbon").querySelector(".time-copy").textContent =
-    continuousRunning ? "自动推进中 · 可暂停" : `${state?.month ?? 1} 月 · ${state?.settlement?.season || ""} · 已暂停`;
+    continuousRunning ? "自动推进中 · 可暂停" : `${state?.era ?? ""} · ${state?.month ?? 1} 月 · 已暂停`;
 }
 function pauseContinuousLife() {
   if (!continuousRunning) return;

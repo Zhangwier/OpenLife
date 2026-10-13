@@ -133,13 +133,17 @@ export function renderShell(state) {
     $("screen-family").querySelector(".lineage-card").hidden = false; $("familyEmpty")?.remove();
   }
 }
+function bagMeter(label, value, max, unit) {
+  const pct = max ? Math.max(0, Math.min(100, Math.round((value / max) * 100))) : 0;
+  return `<span class="bag-meter"><span>${label}</span><span class="hud-track"><i style="width:${pct}%"></i></span><b>${value}/${max}${unit}</b></span>`;
+}
 function renderBag() {
   const pack = $("portableOverview"), s = currentState?.settlement;
   if (!pack) return;
   const held = s?.objects?.filter(o => o.placement === "在手中") || [];
   const load = s?.portableLoad;
   pack.innerHTML = `<div class="bag-heading"><div><span class="eyebrow">随身携带</span><h2>随身行囊</h2></div><span class="bag-mark" aria-hidden="true">${propSvg("basket")}</span></div>
-    <p class="portable-meter">${load ? `${load.looseSlots}/${load.maxSlots} 件 · 负重 ${load.mass.toFixed(1)}/${load.maxMass}` : "暂无携带记录"}</p>
+    <div class="portable-meter">${load ? `${bagMeter("随身", load.looseSlots, load.maxSlots, "件")}${bagMeter("负重", Number(load.mass.toFixed(1)), load.maxMass, "")}` : "暂无携带记录"}</div>
     <div class="portable-items">${held.length ? held.map(o =>
       `<button class="portable-item" data-bag-id="${html(o.id)}" aria-pressed="${bagSelection === o.id}"><span class="bag-item-art" aria-hidden="true">${propSvg(objectKind(o), fillRatio(o))}</span><strong>${html(o.name)}</strong><small>${html(o.placement)}${o.capacity ? ` · 容量 ${o.contentsCount || o.quantity || 0}/${o.capacity}` : ""}</small></button>`).join("") :
       '<div class="bag-empty"><strong>轻装出发</strong><p>行囊还是空的。到生活场景中，轻触物件或原料，查看能否取用。</p><button data-route="activities">去寻找材料 →</button></div>'}</div>
