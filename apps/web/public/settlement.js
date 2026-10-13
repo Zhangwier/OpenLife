@@ -91,6 +91,10 @@ function renderPaintedStage(s) {
  $("sceneStageHint").textContent="观察眼前物品与村民，轻触即可互动";
 }
 let previousScenePlace = "";
+function hudMeter(label, value, max, tone) {
+  const pct = max ? Math.max(0, Math.min(100, Math.round((value / max) * 100))) : 0;
+  return `<span class="hud-item ${tone}"><span class="hud-label">${label}</span><span class="hud-track"><i style="width:${pct}%"></i></span><b>${value}/${max}</b></span>`;
+}
 function renderInSceneMenu(s, heading, candidates, onAction) {
   const theater = $("sceneTheater"), box = $("sceneQuickActions");
   if (!box || !theater) return;
@@ -107,7 +111,8 @@ function renderInSceneMenu(s, heading, candidates, onAction) {
   const btn = (action, i) => {
     const why = action.enabled === false ? (action.reason || "当前条件不允许") : "";
     const cost = Number(action.activityCost || 0);
-    return '<button type="button" class="scene-quick-choice" data-scene-quick="' + i + '"' +
+    const primary = !why && selected.type !== "walk" && i === shown.findIndex(a => a.enabled !== false);
+    return '<button type="button" class="scene-quick-choice' + (primary ? ' is-primary' : '') + '" data-scene-quick="' + i + '"' +
       (why ? ' disabled aria-disabled="true"' : '') + '><span>' + esc(action.label) + '</span>' +
       (cost ? '<small>' + cost + ' 格活动</small>' : Number(action.days) > 0 ? '<small>' + Number(action.days) + ' 天</small>' : '') +
       (why ? '<small class="quick-blocker">' + esc(why) + '</small>' : '') + '</button>';
@@ -159,7 +164,17 @@ export function renderSettlement(state, onAction) {
     s.outfit ? `已穿：${s.outfit.name}` : "",
     s.barter?.status === "offered" && s.barter.offeredAt === state.tick ? "阿灶正在等待你回复报价" : "",
   ];
-  $("sceneSummary").textContent = status.filter(Boolean).join("  ·  ");
+  // 状态用量表而不是一句话：饥饿、今日活动格、随身负重一眼可读。
+  const act = s.dailyActivity || { remaining: 0, capacity: 8 };
+  const load = s.portableLoad;
+  const pips = Array.from({ length: act.capacity ?? 8 }, (_, i) => `<i class="${i < (act.remaining ?? 0) ? "on" : ""}"></i>`).join("");
+  const extra = status.slice(2).filter(Boolean);
+  $("sceneSummary").innerHTML = `<span class="sr-only">${esc(status.filter(Boolean).join(" · "))}</span>
+    <span class="hud" aria-hidden="true">
+      ${hudMeter("饥饿", s.hunger ?? 0, 10, (s.hunger ?? 0) >= 7 ? "warn" : "")}
+      <span class="hud-item"><span class="hud-label">今天</span><span class="hud-pips">${pips}</span><b>剩 ${act.remaining ?? 0} 格</b></span>
+      ${load ? hudMeter("负重", Number(load.mass.toFixed(1)), load.maxMass, load.mass >= load.maxMass ? "warn" : "") : ""}
+    </span>${extra.length ? `<span class="hud-note">${esc(extra.join(" · "))}</span>` : ""}`;
   renderPaintedStage(s);
 
   const story = $("communityFeed");
