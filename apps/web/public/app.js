@@ -1,6 +1,7 @@
 import { renderPlayer, renderActionButtons, installModalAccess, selectView } from "/player.js";
 import { installShell, renderShell, enterLife } from "/shell.js";
 import { renderSettlement, describeSettlementResult } from "/settlement.js";
+import { renderFigure } from "/character-appearance.js";
 const $ = (id) => document.getElementById(id);
 let state;
 let busy = false;
@@ -46,6 +47,13 @@ function render(s, animate = false) {
     $("characterName").textContent = c.name;
     $("characterMeta").textContent = `${c.age} 岁 · ${c.city}`;
     $("portraitInitial").textContent = c.name.slice(0, 1);
+    // 人物页头像与生活场景里的角色用同一套手绘形象。
+    const figureId = s.settlement?.characterId ?? c.id ?? c.name;
+    const portrait = document.querySelector(".portrait-figure");
+    if (portrait && portrait.dataset.figure !== figureId) {
+      portrait.dataset.figure = figureId; portrait.classList.add("has-figure");
+      portrait.innerHTML = renderFigure(figureId, "player");
+    }
     $("healthWord").textContent = c.healthWord;
     $("educationWord").textContent = c.learning;
     $("occupationWord").textContent = c.role;
