@@ -172,6 +172,20 @@ export interface ModuleMigration {
   to: string;
   /** Transforms this module's persisted state; core never inspects it. */
   migrate(state: Record<string, unknown>): Record<string, unknown>;
+  /**
+   * Optionally migrates this module's own components in the saved world,
+   * before the world is restored. Writes are limited to components the
+   * migrating module owns (INV-007).
+   */
+  migrateWorld?(world: ModuleWorldMigration): void;
+}
+
+/** What a module migration may do to the saved world: its own components only. */
+export interface ModuleWorldMigration {
+  entities(filter?: { kind?: string }): readonly { id: string; kind: string }[];
+  getComponent(entityId: string, componentId: string): Record<string, unknown> | undefined;
+  setComponent(entityId: string, componentId: string, value: Record<string, unknown>): void;
+  removeComponent(entityId: string, componentId: string): void;
 }
 
 export interface OpenLifeModule {

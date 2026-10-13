@@ -68,6 +68,8 @@ export class Simulation {
   #projections: ProjectionRuntime;
   readonly #engineVersion: string;
   readonly #historyThreshold: number;
+  /** Modules a loaded save used that are not installed (ORPHANED, §62). */
+  #orphaned: { id: ModuleId; version: string; state: Record<string, unknown> }[] = [];
 
   constructor(options: SimulationOptions) {
     this.#engineVersion = options.engineVersion ?? ENGINE_VERSION;
@@ -166,6 +168,11 @@ export class Simulation {
     this.syncHistory();
   }
 
+  /** Modules the loaded save used that are not installed now. */
+  orphanedModules(): { id: ModuleId; version: string }[] {
+    return this.#orphaned.map(({ id, version }) => ({ id, version }));
+  }
+
   /** What a module agent reported for the last tick it lived through. */
   agentReport(agentId: string) {
     return this.kernel.agentReport(agentId);
@@ -203,10 +210,16 @@ export class Simulation {
         rng: kernelState.rng,
         scheduler: kernelState.scheduler,
       } satisfies SaveSnapshotShape,
-      moduleState: this.modules.serializeState(),
+      moduleState: {
+        ...Object.fromEntries(this.#orphaned.map((m) => [m.id, { ...m.state }])),
+        ...this.modules.serializeState(),
+      },
       eventJournal: kernelState.eventLog.events,
       history: historyState.records,
-      modules: this.modules.savedVersions(),
+      modules: [
+        ...this.modules.savedVersions(),
+        ...this.#orphaned.map(({ id, version }) => ({ id, version })),
+      ],
       metadata: {
         ...(input.label ? { label: input.label } : {}),
         engineVersion: this.#engineVersion,
@@ -250,9 +263,8 @@ export class Simulation {
       worldSeed: pkg.manifest.worldSeed,
       worldId: pkg.manifest.worldId,
       timelineId: pkg.manifest.timelineId,
-      engineVersion: options.allowVersionMismatch
-        ? ENGINE_VERSION
-        : pkg.manifest.engineVersion,
+      // A loaded save is upgraded: its next save carries this engine version.
+      engineVersion: ENGINE_VERSION,
       historyThreshold,
     });
     for (const module of modules) simulation.install(module);
@@ -261,7 +273,30 @@ export class Simulation {
     // Migrating the fresh default state would discard the migration result when
     // restoreState runs afterwards.
     simulation.modules.restoreState(pkg.moduleState);
-    const migrationsApplied = simulation.modules.migrateFrom(pkg.manifest.modules);
+    // Module migrations may rewrite their own components in the saved world
+    // before it is restored; work on a copy so the package stays untouched.
+    const savedWorld = structuredClone(snapshot.world.store);
+    let migrationsApplied: LoadResult["migrationsApplied"];
+    try {
+      migrationsApplied = simulation.modules.migrateFrom(
+        pkg.manifest.modules, savedWorld as unknown as Parameters<ModuleRuntime["migrateFrom"]>[1]);
+    } catch (error) {
+      return {
+        simulation: undefined,
+        result: {
+          ok: false,
+          errors: [{ code: ErrorCode.MigrationFailed, message: `migration failed: ${(error as Error).message}` }],
+          warnings: compatibility.warnings,
+          migrationsApplied: [],
+        },
+      };
+    }
+    const installed = new Set(simulation.modules.savedVersions().map((m) => m.id));
+    simulation.#orphaned = pkg.manifest.modules
+      .filter((m) => !installed.has(m.id))
+      .map((m) => ({ id: m.id, version: m.version, state: { ...(pkg.moduleState[m.id] ?? {}) } }));
+    const orphanWarnings = simulation.#orphaned.map((m) =>
+      `module ${m.id}@${m.version} is not installed; its data is kept as ORPHANED`);
 
     const kernelState: KernelState = {
       worldId: pkg.manifest.worldId,
@@ -270,7 +305,7 @@ export class Simulation {
       clock: snapshot.clock,
       commandSeq: snapshot.world.commandSeq,
       txnSeq: snapshot.world.txnSeq,
-      store: snapshot.world.store,
+      store: savedWorld,
       rng: snapshot.rng,
       eventLog: {
         events: pkg.eventJournal,
@@ -301,8 +336,11 @@ export class Simulation {
       result: {
         ok: true,
         errors: [],
-        warnings: compatibility.warnings,
+        warnings: [...compatibility.warnings, ...orphanWarnings],
         migrationsApplied,
+        ...(simulation.#orphaned.length > 0
+          ? { orphanedModules: simulation.#orphaned.map(({ id, version }) => ({ id, version })) }
+          : {}),
       },
     };
   }
