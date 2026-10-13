@@ -93,6 +93,7 @@ export const worldVegetationModule: OpenLifeModule = {
       id: VegetationComponents.composition,
       persist: true,
       description: "Known vegetation composition at one Location; represented biomass must fit inside ecology plant biomass.",
+      writableBy: ["world-grazing"],
     });
 
     ctx.registerCommand({

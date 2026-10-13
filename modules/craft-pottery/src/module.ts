@@ -94,7 +94,8 @@ export const craftPotteryModule: OpenLifeModule = {
 
     registerMaterialVocabulary(ctx);
 
-    ctx.registerComponent({ id: PotteryComponents.inventory, persist: true, description: "Local clay and kiln fuel currently available to a potter." });
+    ctx.registerComponent({ id: PotteryComponents.inventory, persist: true, description: "Local clay and kiln fuel currently available to a potter.",
+      writableBy: ["settlement-life"] });
     ctx.registerComponent({ id: PotteryComponents.vessel, persist: true, description: "A fired or failed pottery artifact with its production trace." });
     ctx.registerRelation({
       id: PotteryRelations.craftedBy,
