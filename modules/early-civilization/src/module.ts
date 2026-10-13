@@ -9,14 +9,13 @@
 
 import type { Effect, OpenLifeModule, WorldView } from "@openlife/contracts";
 import {
-  ageInYears,
   CITY_NORTH,
   CITY_SOUTH,
   ModernComponents as MW,
   ModernKinds as MWK,
-  TICKS_PER_YEAR,
   WORLD_ENTITY_ID,
 } from "@openlife/life-contracts/modern";
+import { ageInYearsIn, ticksPerYearIn } from "@openlife/life-contracts";
 
 const OWNER = "early-civilization";
 
@@ -86,7 +85,7 @@ export const earlyCivilizationModule: OpenLifeModule = {
         if (state.activeCharacterId === characterId) return undefined;
 
         const bornAt = Number(character.components[MW.identity]?.bornAt ?? character.createdAt);
-        const age = ageInYears(bornAt, c.world.tick);
+        const age = ageInYearsIn(c.world, bornAt, c.world.tick);
         if (age >= 6 && !character.components[EarlyComponents.learning]) {
           return {
             command: {
@@ -166,12 +165,13 @@ export const earlyCivilizationModule: OpenLifeModule = {
     const scheduleLife = (
       characterId: string | undefined,
       tick: number,
+      year: number,
     ): Effect[] => characterId ? [{
       kind: "scheduleTask",
       taskType: "early-civilization.life_year",
-      afterTicks: TICKS_PER_YEAR,
-      everyTicks: TICKS_PER_YEAR,
-      untilTick: tick + 100 * TICKS_PER_YEAR,
+      afterTicks: year,
+      everyTicks: year,
+      untilTick: tick + 100 * year,
       payload: { characterId },
       dedupeKey: `life:${characterId}`,
     }] : [];
@@ -179,12 +179,12 @@ export const earlyCivilizationModule: OpenLifeModule = {
     ctx.registerReactionRule({
       id: "early-civilization.character_created.schedule",
       eventType: "modern.character_created",
-      react: (c) => scheduleLife(c.event.actorId, c.world.tick),
+      react: (c) => scheduleLife(c.event.actorId, c.world.tick, ticksPerYearIn(c.world)),
     });
     ctx.registerReactionRule({
       id: "early-civilization.child_born.schedule",
       eventType: "family.child_born",
-      react: (c) => scheduleLife(c.event.targetId, c.world.tick),
+      react: (c) => scheduleLife(c.event.targetId, c.world.tick, ticksPerYearIn(c.world)),
     });
 
     ctx.registerConstraintRule({
@@ -321,7 +321,7 @@ export const earlyCivilizationModule: OpenLifeModule = {
               contentKey: `early-civilization:${roleId}:legacy`,
               medium: roleId === "craftsperson" ? "clay" : "oral",
               markCreator: c.rng.chance(roleId === "craftsperson" ? 0.7 : 0.3),
-              preservationIntervalTicks: 40 * TICKS_PER_YEAR,
+              preservationIntervalTicks: 40 * ticksPerYearIn(c.world),
             },
             historicalSignificance: 0,
             visibility: "public",
@@ -361,7 +361,8 @@ function requireLivingCharacter(
 function characterAge(world: WorldView, actorId: string): number {
   const entity = world.getEntity(actorId);
   if (!entity) return 0;
-  return ageInYears(
+  return ageInYearsIn(
+    world,
     Number(entity.components[MW.identity]?.bornAt ?? entity.createdAt),
     world.tick,
   );

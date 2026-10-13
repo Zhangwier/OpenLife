@@ -11,11 +11,10 @@
 
 import { HistorySemanticEvents, type Effect, type OpenLifeModule } from "@openlife/contracts";
 import {
-  ageInYears,
-  TICKS_PER_YEAR,
   ModernComponents as MW,
   ModernKinds as MWK,
 } from "@openlife/life-contracts/modern";
+import { ageInYearsIn, ticksPerYearIn } from "@openlife/life-contracts";
 
 const OWNER = "family";
 
@@ -324,7 +323,7 @@ export const familyModule: OpenLifeModule = {
                 sex: "other",
                 generation: 0,
                 lineageId: "npc",
-                bornAt: c.world.tick - TICKS_PER_YEAR * c.rng.nextInt(20, 35),
+                bornAt: c.world.tick - ticksPerYearIn(c.world) * c.rng.nextInt(20, 35),
               },
               [MW.vitals]: {
                 alive: true,
@@ -559,5 +558,5 @@ function characterAge(world: import("@openlife/contracts").WorldView, actorId: s
   const entity = world.getEntity(actorId);
   if (!entity) return 0;
   const bornAt = Number(entity.components[MW.identity]?.bornAt ?? entity.createdAt);
-  return ageInYears(bornAt, world.tick);
+  return ageInYearsIn(world, bornAt, world.tick);
 }
