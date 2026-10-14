@@ -1,17 +1,18 @@
 /**
  * M3-A: one visible village resident lives by actual world commands.
  *
- * Called only after the single authoritative clock advances during Web
- * continuous simulation. No background scheduler, parallel inventory,
- * fabricated labor, or hidden player command. Each day is idempotent via the
- * settlement resident's persisted lastRoutineAt marker.
+ * Run by the settlement module's village agent once per stepped world day,
+ * whoever advanced the clock (M4-B). No parallel inventory, fabricated labor
+ * or hidden player command. Each day is idempotent via the settlement
+ * resident's persisted lastRoutineAt marker.
  */
-import type { Simulation } from "@openlife/simulation";
-import { SettlementCommands, SettlementComponents, residentId, dailyActivity } from "@openlife/module-settlement-locations";
+import type { AgentHost as NpcHost } from "@openlife/contracts";
+import { SettlementCommands, SettlementComponents, residentId, dailyActivity } from "../module.ts";
 import { SpaceCommands, occupiedPlaceId, occupiedSpaceId } from "@openlife/module-world-space";
 import { ObjectRelations, holderOf, ownerOf, prototypeOf } from "@openlife/module-world-objects";
+import { ROLES, yieldId } from "./roles.ts";
 
-export const FIRST_AUTONOMOUS_RESIDENT = residentId("yu");
+export const FIRST_AUTONOMOUS_RESIDENT = ROLES.farmer.id;
 
 export interface NpcDailyResult {
   actorId: string;
@@ -21,7 +22,7 @@ export interface NpcDailyResult {
   note: string;
 }
 
-export function runFirstNpcDay(sim: Simulation): NpcDailyResult {
+export function runFirstNpcDay(sim: NpcHost): NpcDailyResult {
   const actorId = FIRST_AUTONOMOUS_RESIDENT;
   const world = sim.worldView();
   const tick = sim.tick;
@@ -52,27 +53,27 @@ export function runFirstNpcDay(sim: Simulation): NpcDailyResult {
   const at = () => occupiedPlaceId(sim.worldView(), actorId);
   const inSpace = () => occupiedSpaceId(sim.worldView(), actorId);
 
-  if (at() !== "place:field" &&
-      !act(SettlementCommands.arrive, { placeId: "place:field", travelMode: "local" }, "走到田地")) {
+  if (at() !== ROLES.farmer.workPlace &&
+      !act(SettlementCommands.arrive, { placeId: ROLES.farmer.workPlace, travelMode: "local" }, "走到田地")) {
     return finish();
   }
-  if (inSpace() !== "space:field-edge" &&
-      !act(SpaceCommands.moveWithin, { spaceId: "space:field-edge" }, "走到田头")) {
+  if (inSpace() !== ROLES.farmer.workSpot &&
+      !act(SpaceCommands.moveWithin, { spaceId: ROLES.farmer.workSpot }, "走到田头")) {
     return finish();
   }
-  if (!act(SettlementCommands.tend, { spaceId: "space:field-edge" }, "照料田地")) {
+  if (!act(SettlementCommands.tend, { spaceId: ROLES.farmer.workSpot }, "照料田地")) {
     return finish();
   }
   // One authored exchange opportunity after several days of village life.
   // Yu must gather an actual seed-grain item, spending 2 action slots.
   // The cook gathered real fuel on earlier days; absence means no proposal.
-  const cookId = residentId("cook");
+  const cookId = ROLES.cook.id;
   const cook = sim.worldView().getComponent(cookId, SettlementComponents.resident);
   const cookFuel = sim.worldView().listRelations({ type: ObjectRelations.heldBy, to: cookId })
     .map((r) => r.from).sort()
     .find((id) => ownerOf(sim.worldView(), id) === cookId &&
       prototypeOf(sim.worldView(), id).resourceId === "resource:fuel");
-  const fieldGrain = sim.worldView().getComponent("yield:place:field:resource:grain",
+  const fieldGrain = sim.worldView().getComponent(yieldId(ROLES.farmer.workPlace, "resource:grain"),
     SettlementComponents.yieldPoint);
   // Trade is now an opportunity derived from concrete supplies and available
   // activity, not a scripted event on a chosen day.
@@ -80,11 +81,11 @@ export function runFirstNpcDay(sim: Simulation): NpcDailyResult {
     Boolean(cookFuel) && Number(fieldGrain?.stock ?? 0) > 0 &&
     dailyActivity(sim.worldView(), actorId).remaining >= 4;
   if (wantsBarter && !act(SettlementCommands.draw,
-      { placeId: "place:field", resourceId: "resource:grain" }, "为交换采集一份粟")) {
+      { placeId: ROLES.farmer.workPlace, resourceId: "resource:grain" }, "为交换采集一份粟")) {
     return finish();
   }
   if (!act(SettlementCommands.arrive,
-      { placeId: "place:hearth-yard", travelMode: "local" }, "走到灶台")) return finish();
+      { placeId: ROLES.cook.workPlace, travelMode: "local" }, "走到灶台")) return finish();
   if (wantsBarter && cookFuel) {
     const grainId = sim.worldView().listRelations({ type: ObjectRelations.heldBy, to: actorId })
       .map((r) => r.from).sort()
@@ -94,7 +95,7 @@ export function runFirstNpcDay(sim: Simulation): NpcDailyResult {
       const proposal = sim.dispatch({ type: SettlementCommands.npcOffer, actorId: cookId,
         source: "ai", payload: { fuelId: cookFuel, grainId } });
       if (proposal.ok) {
-        actions.push("阿灶提出以柴换粟");
+        actions.push(`${ROLES.cook.name}提出以柴换粟`);
         const acceptance = sim.dispatch({ type: SettlementCommands.npcAccept, actorId,
           source: "ai", payload: { fuelId: cookFuel, grainId } });
         if (acceptance.ok) actions.push("接受交换，得到柴草");
@@ -103,25 +104,25 @@ export function runFirstNpcDay(sim: Simulation): NpcDailyResult {
     }
   }
   // The shared cooked-food stock is finite and the same stock players use.
-  const food = sim.worldView().getComponent("yield:place:hearth-yard:resource:cooked",
+  const food = sim.worldView().getComponent(yieldId(ROLES.cook.workPlace, "resource:cooked"),
     SettlementComponents.yieldPoint);
   if (Number(food?.stock ?? 0) > 0) {
     // Never simulate the meal without the original validated eating command.
     act(SettlementCommands.eat,
-      { placeId: "place:hearth-yard", resourceId: "resource:cooked" }, "吃一份熟食");
+      { placeId: ROLES.cook.workPlace, resourceId: "resource:cooked" }, "吃一份熟食");
   } else {
     obstacle = "公用灶台没有熟食，今天没有吃到饭";
   }
-  if (at() !== "place:field" &&
-      !act(SettlementCommands.arrive, { placeId: "place:field", travelMode: "local" }, "返回住处")) {
+  if (at() !== ROLES.farmer.workPlace &&
+      !act(SettlementCommands.arrive, { placeId: ROLES.farmer.workPlace, travelMode: "local" }, "返回住处")) {
     return finish();
   }
-  if (inSpace() !== "space:yu-sleep" &&
-      !act(SpaceCommands.moveWithin, { spaceId: "space:yu-sleep" }, "进入家中")) {
+  if (inSpace() !== ROLES.farmer.home &&
+      !act(SpaceCommands.moveWithin, { spaceId: ROLES.farmer.home }, "进入家中")) {
     return finish();
   }
   if (dailyActivity(sim.worldView(), actorId).remaining >= 2) {
-    act(SettlementCommands.rest, { spaceId: "space:yu-sleep" }, "休息");
+    act(SettlementCommands.rest, { spaceId: ROLES.farmer.home }, "休息");
   } else if (!obstacle) {
     obstacle = "今天活动时间已用尽，没能继续休息";
   }
@@ -129,8 +130,8 @@ export function runFirstNpcDay(sim: Simulation): NpcDailyResult {
 
   function finish(): NpcDailyResult {
     const note = obstacle
-      ? `阿予：${actions.join("、") || "未能行动"}；${obstacle}`
-      : `阿予今天${actions.join("、")}`;
+      ? `${ROLES.farmer.name}：${actions.join("、") || "未能行动"}；${obstacle}`
+      : `${ROLES.farmer.name}今天${actions.join("、")}`;
     const marker = sim.dispatch({
       type: SettlementCommands.npcMarkDay, actorId, source: "ai",
       payload: { actions, summary: note },

@@ -21,6 +21,8 @@ const REED_WORK = new Set([
 ]);
 const FIBER_WORK = new Set(["settlement-locations.weave_wrap"]);
 const TRAVEL = new Set(["settlement-locations.arrive", "world-space.move_within"]);
+// 灶台主人来自服务端数据包（s.roles），客户端不再写死人名；旧服务端回退到原值。
+const cookOf = (s) => s?.roles?.cook ?? { id: "settlement-locations:resident:cook", name: "阿灶", workPlace: "place:hearth-yard" };
 
 
 const SCENE_ART = {
@@ -162,7 +164,7 @@ export function renderSettlement(state, onAction) {
     `饥饿 ${s.hunger ?? 0}/10`,
     `今日活动 ${s.dailyActivity?.remaining ?? 0}/${s.dailyActivity?.capacity ?? 8} 格`,
     s.outfit ? `已穿：${s.outfit.name}` : "",
-    s.barter?.status === "offered" && s.barter.offeredAt === state.tick ? "阿灶正在等待你回复报价" : "",
+    s.barter?.status === "offered" && s.barter.offeredAt === state.tick ? `${cookOf(s).name}正在等待你回复报价` : "",
   ];
   // 状态用量表而不是一句话：饥饿、今日活动格、随身负重一眼可读。
   const act = s.dailyActivity || { remaining: 0, capacity: 8 };
@@ -191,17 +193,18 @@ export function renderSettlement(state, onAction) {
     const offer = (label, action) => { if (action?.enabled) options.push({ label, action }); };
     const travel = placeId => available.find(a => a.id === "settlement-locations.arrive" &&
       a.enabled && a.payload?.placeId === placeId);
-    if (!situation.visible && s.placeId !== "place:hearth-yard") {
-      offer("到公灶看看", travel("place:hearth-yard"));
-    } else if (s.placeId === "place:hearth-yard") {
-      const cook = s.neighbours.find(p => p.name === "阿灶");
+    const hearth = cookOf(s).workPlace, fuelPlace = s.roles?.fuelGatherer?.workPlace ?? "place:reedbed";
+    if (!situation.visible && s.placeId !== hearth) {
+      offer("到公灶看看", travel(hearth));
+    } else if (s.placeId === hearth) {
+      const cook = s.neighbours.find(p => p.id === cookOf(s).id);
       if (cook) {
-        offer("和阿灶谈谈", available.find(a => a.id === "settlement-locations.talk" &&
+        offer(`和${cook.name}谈谈`, available.find(a => a.id === "settlement-locations.talk" &&
           a.payload?.targetId === cook.id));
         for (const action of available.filter(a => a.id === "settlement-locations.hearth.help"))
           offer(action.payload?.resourceId === "resource:fuel" ? "自愿送一捆柴草" : "自愿送一份粟粮", action);
       }
-    } else if (s.placeId === "place:reedbed") {
+    } else if (s.placeId === fuelPlace) {
       offer("采集眼前的柴草", available.find(a => a.id === "settlement-locations.draw" &&
         a.payload?.resourceId === "resource:fuel"));
     }
@@ -380,7 +383,7 @@ export function commandsForTarget(s, target) {
     const a = action.id, p = action.payload || {};
     if (type === "walk") return TRAVEL.has(a);
     if (type === "person") return ((a === "settlement-locations.talk" || a === "settlement-locations.hearth.help") && p.targetId === id) ||
-      (person?.name === "阿灶" && a.startsWith("settlement-locations.barter."));
+      (person?.id === cookOf(s).id && a.startsWith("settlement-locations.barter."));
     if (type === "yield") return p.resourceId === id ||
       (id === "resource:reed" && REED_WORK.has(a)) ||
       (id === "resource:fiber" && FIBER_WORK.has(a)) ||

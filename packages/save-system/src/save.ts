@@ -13,7 +13,7 @@ import type {
   SavePackage,
   SaveSnapshot,
 } from "@openlife/contracts";
-import { ENGINE_VERSION, ErrorCode, SAVE_FORMAT_VERSION } from "@openlife/contracts";
+import { ENGINE_VERSION, ErrorCode, SAVE_FORMAT_VERSION, engineSaveCompatibility } from "@openlife/contracts";
 import { stableStringify } from "@openlife/world-model";
 
 export interface BuildSaveInput {
@@ -83,13 +83,14 @@ export function checkLoadCompatibility(
     const verification = verifySave(pkg);
     if (!verification.ok) errors.push(...verification.errors);
   }
-  if (!options.allowVersionMismatch && pkg.manifest.engineVersion !== ENGINE_VERSION) {
+  const engine = engineSaveCompatibility(pkg.manifest.engineVersion, ENGINE_VERSION);
+  if (engine === "incompatible" && !options.allowVersionMismatch) {
     errors.push({
       code: ErrorCode.SaveIncompatible,
-      message: `save was written by engine ${pkg.manifest.engineVersion}, running ${ENGINE_VERSION}`,
+      message: `save was written by engine ${pkg.manifest.engineVersion}, which engine ${ENGINE_VERSION} cannot load`,
     });
   }
-  if (pkg.manifest.engineVersion !== ENGINE_VERSION) {
+  if (engine !== "same") {
     warnings.push(
       `engine version differs (${pkg.manifest.engineVersion} -> ${ENGINE_VERSION}); migrations will be applied`,
     );

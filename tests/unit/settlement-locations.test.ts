@@ -41,8 +41,10 @@ import {
   dailyActivity,
 } from "@openlife/module-settlement-locations";
 import { DAYS_PER_MONTH } from "@openlife/life-contracts";
+import { withoutAgents } from "../helpers/agents.ts";
 
-const modules = [modernWorldModule, worldClockModule, worldSpaceModule, worldObjectsModule, settlementLocationsModule];
+// Mechanics under test here are measured without villagers living their days.
+const modules = [modernWorldModule, worldClockModule, worldSpaceModule, worldObjectsModule, withoutAgents(settlementLocationsModule)];
 
 function world(seed = 4242, locationId = "") {
   const sim = new Simulation({ worldSeed: seed, modules });

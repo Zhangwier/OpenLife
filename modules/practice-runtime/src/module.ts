@@ -162,6 +162,7 @@ export const practiceRuntimeModule: OpenLifeModule = {
       id: PracticeComponents.practice,
       persist: true,
       description: "Persistent state of one concrete Practice instance.",
+      writableBy: ["settlement-life"],
     });
     ctx.registerComponent({
       id: PracticeComponents.checkpoint,

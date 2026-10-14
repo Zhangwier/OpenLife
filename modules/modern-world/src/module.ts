@@ -66,8 +66,15 @@ export const modernWorldModule: OpenLifeModule = {
   },
 
   register(ctx) {
+    // INV-007 grants: life modules that legitimately update shared person data.
+    const writableBy: Record<string, string[]> = {
+      [C.wealth]: ["career"],
+      [C.identity]: ["early-civilization"],
+      [C.worldState]: ["settlement-life"],
+    };
     for (const id of [C.identity, C.vitals, C.wealth, C.residence, C.worldState, C.organization]) {
-      ctx.registerComponent({ id, persist: true, description: `modern world component ${id}` });
+      ctx.registerComponent({ id, persist: true, description: `modern world component ${id}`,
+        ...(writableBy[id] ? { writableBy: writableBy[id] } : {}) });
     }
     for (const id of [R.livesIn, R.owns]) {
       ctx.registerRelation({ id, persist: true, description: `modern world relation ${id}` });
