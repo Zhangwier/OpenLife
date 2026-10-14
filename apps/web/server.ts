@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import type { SavePackage } from "@openlife/contracts";
 import { readFile } from "node:fs/promises";
-import { extname, join, normalize } from "node:path";
+import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Simulation } from "@openlife/simulation";
 import { runAutoSim, untilActorArchived, untilTick, type AutoSimContext } from "@openlife/autonomy-runtime";
@@ -1028,11 +1028,35 @@ function saveSummary() {
   };
 }
 
+/** A client error with an HTTP status; anything else is a 500. */
+class HttpError extends Error {
+  readonly status: number;
+  constructor(status: number, message: string) { super(message); this.status = status; }
+}
+
+/** Largest request body accepted (a long life's save is a few MB). */
+const MAX_BODY_BYTES = Number(process.env.OPENLIFE_MAX_BODY_BYTES ?? 32 * 1024 * 1024);
+const API_ROUTES: Record<string, string> = {
+  "/api/catalog": "GET", "/api/state": "GET", "/api/action": "POST", "/api/autosim": "POST",
+  "/api/save": "POST", "/api/load": "POST", "/api/reset": "POST",
+};
+
 const server = createServer(async (req, res) => {
+  res.setHeader("x-content-type-options", "nosniff");
+  res.setHeader("referrer-policy", "no-referrer");
   try {
-    const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+    const url = new URL(req.url ?? "/", "http://localhost");
     if (url.pathname.startsWith("/api/")) {
       res.setHeader("content-type", "application/json; charset=utf-8");
+      res.setHeader("cache-control", "no-store");
+      const method = API_ROUTES[url.pathname];
+      if (method && req.method !== method) {
+        res.setHeader("allow", method);
+        throw new HttpError(405, `${url.pathname} 只接受 ${method}`);
+      }
+      if (req.method === "POST" && !String(req.headers["content-type"] ?? "application/json").includes("json")) {
+        throw new HttpError(415, "请求体必须是 JSON");
+      }
       if (req.method === "GET" && url.pathname === "/api/catalog") {
         res.end(JSON.stringify(await worldCatalog(simulation)));
         return;
@@ -1109,7 +1133,9 @@ const server = createServer(async (req, res) => {
           res.end(JSON.stringify({ error: "缺少有效的 OpenLife 存档" }));
           return;
         }
-        const loaded = Simulation.load(body.save as SavePackage, modules);
+        let loaded: ReturnType<typeof Simulation.load>;
+        try { loaded = Simulation.load(body.save as SavePackage, modules); }
+        catch { throw new HttpError(400, "存档已损坏或不是 OpenLife 存档"); }
         if (!loaded.result.ok || !loaded.simulation) {
           res.statusCode = 409;
           res.end(JSON.stringify({
@@ -1124,11 +1150,14 @@ const server = createServer(async (req, res) => {
       }
       if (req.method === "POST" && url.pathname === "/api/reset") {
         const body = await readJson(req);
+        const seed = Number(body.seed ?? 104);
+        if (!Number.isSafeInteger(seed) || seed < 0) throw new HttpError(400, "种子必须是非负整数");
+        const text = (value: unknown) => typeof value === "string" ? value.trim().slice(0, 24) || undefined : undefined;
         simulation = createGame({
-          seed: Number(body.seed ?? 104),
-          givenName: typeof body.givenName === "string" ? body.givenName : undefined,
-          familyName: typeof body.familyName === "string" ? body.familyName : undefined,
-          cityId: typeof body.cityId === "string" ? body.cityId : undefined,
+          seed,
+          givenName: text(body.givenName),
+          familyName: text(body.familyName),
+          cityId: text(body.cityId),
         });
         res.end(JSON.stringify({ state: gameState() }));
         return;
@@ -1138,28 +1167,54 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    const requested = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
-    const safe = normalize(requested).replace(/^([.][.][/\\])+/, "");
-    const data = await readFile(join(PUBLIC_DIR, safe));
-    res.setHeader("content-type", contentType(extname(safe)));
-    res.end(data);
+    if (req.method !== "GET" && req.method !== "HEAD") throw new HttpError(405, "静态文件只接受 GET");
+    let requested: string;
+    try { requested = decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname); }
+    catch { throw new HttpError(400, "无效的路径"); }
+    // Resolve inside public/ and refuse anything that escapes it.
+    const root = resolve(PUBLIC_DIR);
+    const file = resolve(root, "." + requested);
+    if (requested.includes("\u0000") || (file !== root && !file.startsWith(root + sep))) throw new HttpError(404, "not found");
+    let data: Buffer;
+    try { data = await readFile(file); }
+    catch { throw new HttpError(404, "not found"); }
+    res.setHeader("content-type", contentType(extname(file)));
+    res.end(req.method === "HEAD" ? undefined : data);
   } catch (error) {
-    res.statusCode = 500;
-    res.setHeader("content-type", "application/json; charset=utf-8");
-    res.end(JSON.stringify({ error: (error as Error).message }));
+    const status = error instanceof HttpError ? error.status : 500;
+    if (status === 500) console.error(error);
+    if (!res.headersSent) {
+      res.statusCode = status;
+      res.setHeader("content-type", "application/json; charset=utf-8");
+    }
+    // A 500 never echoes internals (file paths, stack text) to the page.
+    res.end(JSON.stringify({ error: status === 500 ? "服务器内部错误" : (error as Error).message }));
   }
 });
 
-server.listen(PORT, () => {
+// Local by default; set HOST=0.0.0.0 to play from another device on your LAN.
+const HOST = process.env.HOST ?? "127.0.0.1";
+server.listen(PORT, HOST, () => {
   const address = server.address();
-  console.log(`OpenLife web running at http://127.0.0.1:${typeof address === "object" && address ? address.port : PORT}`);
+  console.log(`OpenLife web running at http://${HOST === "0.0.0.0" ? "127.0.0.1" : HOST}:${typeof address === "object" && address ? address.port : PORT}`);
 });
 
 async function readJson(req: import("node:http").IncomingMessage): Promise<Record<string, unknown>> {
+  const declared = Number(req.headers["content-length"] ?? 0);
+  if (declared > MAX_BODY_BYTES) throw new HttpError(413, "请求体过大");
   const chunks: Buffer[] = [];
-  for await (const chunk of req) chunks.push(Buffer.from(chunk));
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > MAX_BODY_BYTES) throw new HttpError(413, "请求体过大");
+    chunks.push(Buffer.from(chunk));
+  }
   if (chunks.length === 0) return {};
-  return JSON.parse(Buffer.concat(chunks).toString("utf8")) as Record<string, unknown>;
+  let parsed: unknown;
+  try { parsed = JSON.parse(Buffer.concat(chunks).toString("utf8")); }
+  catch { throw new HttpError(400, "请求体不是有效的 JSON"); }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new HttpError(400, "请求体必须是 JSON 对象");
+  return parsed as Record<string, unknown>;
 }
 
 function contentType(ext: string): string {
