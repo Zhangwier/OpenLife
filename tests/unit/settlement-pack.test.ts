@@ -57,3 +57,19 @@ test("M5-B: village routines take their people, places and rooms from the pack",
   assert.ok(problems.some((p) => p.includes("work spot")));
   assert.ok(problems.some((p) => p.includes("job resource")));
 });
+
+test("M5-B: the homestead view tells clients who the cook is", async () => {
+  const { Simulation } = await import("@openlife/simulation");
+  const { modernWorldModule } = await import("@openlife/module-modern-world");
+  const { worldClockModule } = await import("@openlife/module-world-clock");
+  const { worldSpaceModule } = await import("@openlife/module-world-space");
+  const { worldObjectsModule } = await import("@openlife/module-world-objects");
+  const { settlementLocationsModule, SettlementCommands, homestead } = await import("@openlife/module-settlement-locations");
+  const sim = new Simulation({ worldSeed: 5, modules: [modernWorldModule, worldClockModule, worldSpaceModule, worldObjectsModule, settlementLocationsModule] });
+  sim.dispatch({ type: "modern.initialize_world" });
+  sim.dispatch({ type: "modern.create_character", payload: { givenName: "禾", familyName: "启" } });
+  assert.equal(sim.dispatch({ type: SettlementCommands.found }).ok, true);
+  const id = String(sim.worldView().getComponent("modern:world", "modern.world_state")?.activeCharacterId);
+  const view = homestead(sim.worldView(), id);
+  assert.deepEqual(view.roles.cook, { id: "settlement-locations:resident:cook", name: "阿灶", workPlace: "place:hearth-yard" });
+});

@@ -149,6 +149,11 @@ const YIELDS: YieldSpec[] = RIVER_TERRACE_PACK.yields;
 const PROTOTYPES: PrototypeSpec[] = RIVER_TERRACE_PACK.prototypes;
 
 const RESOURCE_LABELS: Record<string, string> = RIVER_TERRACE_PACK.resourceLabels;
+/** Named routine holders, sent to clients so they never hardcode a villager. */
+const ROLE_VIEW = Object.fromEntries(Object.entries(RIVER_TERRACE_PACK.autonomy).map(([role, key]) => {
+  const resident = RIVER_TERRACE_PACK.residents.find((r) => r.key === key)!;
+  return [role, { id: `settlement-locations:resident:${key}`, name: resident.name, workPlace: resident.workPlace }];
+})) as Record<"farmer" | "cook" | "fuelGatherer", { id: string; name: string; workPlace: string }>;
 
 export const settlementLocationsModule: OpenLifeModule = {
   manifest: {
@@ -1513,6 +1518,8 @@ export interface HomesteadView {
   communitySituation: { visible: boolean; urgent: boolean; title: string; note: string; requestStatus: string; recentHelp: string; fuelStock: number | null };
   /** Field status, visible when standing at the field. */
   crop?: { phase: string; remainingDays: number; tended: boolean; summary: string };
+  /** Who carries the village's named routines (from the settlement pack). */
+  roles: Record<"farmer" | "cook" | "fuelGatherer", { id: string; name: string; workPlace: string }>;
   /** People in the same place, with what they are doing right now. */
   neighbours: { id: string; name: string; role: string; household: string; placeId: string; atWork: boolean; dailyNote: string; tradeCount: number; contact: string; conversations: number }[];
   /** Objects reachable from here, with the action each allows. */
@@ -1687,6 +1694,7 @@ export function homestead(world: WorldView, actorId: string): HomesteadView {
       fieldWorkActivityCost: wornWrap(world, actorId) ? 2 : 3,
     } : null,
     ...(placeId === "place:field" ? { crop: { ...fieldCrop(world), summary: cropSummary(world) } } : {}),
+    roles: ROLE_VIEW,
     neighbours,
     objects,
     yields,
