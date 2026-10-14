@@ -8,23 +8,9 @@ import { SettlementCommands, SettlementComponents, SettlementId, people, residen
 import { SpaceCommands, SpaceRelations, occupiedPlaceId, occupiedSpaceId } from "@openlife/module-world-space";
 import { ObjectCommands, ObjectRelations, ownerOf } from "@openlife/module-world-objects";
 import { chooseNpcIntent } from "./npc-goals.ts";
+import { ROLES, RESOURCE_AT_WORK, WORK_SPACES } from "./roles.ts";
 
-const SPECIAL = new Set([residentId("yu"), residentId("cook"), residentId("reed-worker")]);
-const RESOURCE_AT_WORK: Record<string, string> = {
-  "place:river": "resource:water",
-  "place:field": "resource:grain",
-  "place:claypits": "resource:clay",
-  "place:reedbed": "resource:reed",
-  "place:kiln": "resource:fuel",
-};
-const WORK_SPACES: Record<string, string> = {
-  "place:field": "space:field-edge",
-  "place:reedbed": "space:reed-cut",
-  "place:kiln": "space:kiln-mouth",
-  "place:claypits": "space:pit-edge",
-  "place:river": "space:bank",
-  "place:ford": "space:ford-landing",
-};
+const SPECIAL = new Set([ROLES.farmer.id, ROLES.cook.id, ROLES.fuelGatherer.id]);
 export function runOtherNpcDays(sim: NpcHost) {
   return (people(sim.worldView()).residents as Array<Record<string, unknown>>)
     .filter(p => !SPECIAL.has(String(p.id)))
@@ -58,7 +44,7 @@ function runGenericNpcDay(sim: NpcHost, resident: Record<string, unknown>) {
     const since = Number(holding?.hungerAt ?? founded ?? tick);
     return Math.min(10, Number(holding?.hunger ?? 0) + Math.max(0, tick - since));
   };
-  const foodStock = () => worksites(sim.worldView()).places.find(p => p.placeId === "place:hearth-yard")
+  const foodStock = () => worksites(sim.worldView()).places.find(p => p.placeId === ROLES.cook.workPlace)
     ?.resources.find(p => p.resourceId === "resource:cooked")?.stock ?? 0;
   const act = (type: string, payload: Record<string, string> = {}, label: string) => {
     const result = sim.dispatch({ type, actorId, source: "ai", payload });
@@ -85,9 +71,9 @@ function runGenericNpcDay(sim: NpcHost, resident: Record<string, unknown>) {
   ]);
   if (goal) actions.push(`决定：${goal.because}`);
   if (goal?.id === "eat") {
-    if (move("place:hearth-yard", "前往公灶")) {
+    if (move(ROLES.cook.workPlace, "前往公灶")) {
       if (foodStock() > 0 && act(SettlementCommands.eat,
-          { placeId: "place:hearth-yard", resourceId: "resource:cooked" }, "吃一份真熟食"))
+          { placeId: ROLES.cook.workPlace, resourceId: "resource:cooked" }, "吃一份真熟食"))
         actions.push("饥饿有所缓解");
       else actions.push("到达后发现今天没有可吃的熟食");
     }  } else if (goal?.id === "store") {

@@ -6,3 +6,4 @@ export { runThirdNpcDay } from "./autonomy/npc-reed.ts";
 export { runOtherNpcDays } from "./autonomy/npc-general.ts";
 export { chooseNpcIntent, shortagePressure, type NpcIntent } from "./autonomy/npc-goals.ts";
 export * from "./content.ts";
+export { villageRoles, ROLES as VillageRoles } from "./autonomy/roles.ts";

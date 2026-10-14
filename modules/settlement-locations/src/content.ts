@@ -27,6 +27,10 @@ export interface PlaceSpec {
   /** Where someone arriving here actually stands: the room or spot they enter. */
   entrySpace: string;
   spaces: { id: string; name: string; type: string; capacity: number; visible?: boolean }[];
+  /** Where villagers who work here stand and tend (omitted: nothing to tend). */
+  workSpot?: string;
+  /** What a villager working here gathers in a generic day (omitted: nothing). */
+  jobResource?: string;
 }
 
 export interface YieldSpec { placeId: string; resourceId: string; label: string; capacity: number; renewDays: number; unit: string }
@@ -43,6 +47,12 @@ export interface SettlementPack {
   id: string;
   name: string;
   formatVersion: number;
+  /**
+   * Which residents carry the three bespoke daily routines (farmer, cook,
+   * fuel gatherer). Their places and rooms come from each resident's own
+   * workPlace/homeSpace; everyone else follows the generic routine.
+   */
+  autonomy: { farmer: string; cook: string; fuelGatherer: string };
   residents: ResidentSpec[];
   places: PlaceSpec[];
   yields: YieldSpec[];
@@ -79,6 +89,12 @@ export function validateSettlementPack(pack: SettlementPack): string[] {
     if (!place.spaces.some((s) => s.id === place.entrySpace)) {
       problems.push(`place ${place.id}: entry space ${place.entrySpace} is not one of its spaces`);
     }
+    if (place.workSpot && !place.spaces.some((s) => s.id === place.workSpot)) {
+      problems.push(`place ${place.id}: work spot ${place.workSpot} is not one of its spaces`);
+    }
+    if (place.jobResource && !pack.yields.some((y) => y.placeId === place.id && y.resourceId === place.jobResource)) {
+      problems.push(`place ${place.id}: job resource ${place.jobResource} is not yielded there`);
+    }
     if (!Number.isInteger(place.costDays) || place.costDays < 0) problems.push(`place ${place.id}: bad costDays`);
   }
   for (const r of pack.residents) {
@@ -86,6 +102,10 @@ export function validateSettlementPack(pack: SettlementPack): string[] {
     if (!spaces.has(r.homeSpace)) problems.push(`resident ${r.key}: unknown home space ${r.homeSpace}`);
     if (!(r.age >= 0)) problems.push(`resident ${r.key}: bad age`);
   }
+  for (const [role, key] of Object.entries(pack.autonomy ?? {})) {
+    if (!residents.has(key)) problems.push(`autonomy role ${role}: unknown resident ${key}`);
+  }
+  if (!pack.autonomy) problems.push("autonomy roles are missing");
   for (const y of pack.yields) {
     if (!places.has(y.placeId)) problems.push(`yield ${y.resourceId}: unknown place ${y.placeId}`);
     if (!(y.capacity > 0) || !(y.renewDays > 0)) problems.push(`yield ${y.placeId}/${y.resourceId}: capacity and renewDays must be positive`);

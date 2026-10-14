@@ -36,3 +36,24 @@ test("duplicates and a wrong format version are rejected", () => {
   assert.ok(problems.some((p) => p.startsWith("duplicate resident")));
   assert.ok(problems.some((p) => p.includes("pack format 2")));
 });
+
+test("M5-B: village routines take their people, places and rooms from the pack", async () => {
+  const { villageRoles, VillageRoles } = await import("@openlife/module-settlement-locations");
+  assert.equal(VillageRoles.cook.name, "阿灶");
+  assert.equal(VillageRoles.cook.workPlace, "place:hearth-yard");
+  assert.equal(VillageRoles.fuelGatherer.workSpot, "space:reed-cut");
+  assert.equal(VillageRoles.farmer.home, "space:yu-sleep");
+  const pack = copy();
+  pack.autonomy.farmer = "yu-brother";
+  const roles = villageRoles(pack);
+  assert.equal(roles.farmer.name, "阿石");
+  assert.equal(roles.farmer.home, "space:yu-sleep");
+  pack.autonomy.cook = "nobody";
+  assert.ok(validateSettlementPack(pack).some((p) => p.includes("autonomy role cook")));
+  const badSpot = copy();
+  badSpot.places[1]!.workSpot = "space:elsewhere";
+  badSpot.places[0]!.jobResource = "resource:gold";
+  const problems = validateSettlementPack(badSpot);
+  assert.ok(problems.some((p) => p.includes("work spot")));
+  assert.ok(problems.some((p) => p.includes("job resource")));
+});
