@@ -82,7 +82,9 @@ test("30 days: all 14 residents act, scarcity creates distinct outcomes, and rep
   assert.ok(needs.length > 0, "shortage causes an NPC-owned request without player involvement");
   assert.ok(replies.length > 0, "a second NPC independently responds");
   assert.ok(control.observed.some(row => row.replied === "shared"), "aid is actually given when there is a spare item");
-  assert.ok(control.observed.some(row => row.replied === "declined"), "the same resident can later refuse when reserves are gone");
+  // Refusal is no longer forced by the old renewal bug (every draw restarted
+  // the regrowth clock, so the reed flat never recovered under daily use). The
+  // decision itself is covered below against real holdings.
   assert.ok(control.observed.some(row => row.notes.some(note => note.includes("照料田地"))),
     "farmer continues working instead of joining a scripted quest");
 });
@@ -95,4 +97,12 @@ test("NPC help rejects impersonation, remote agreement and fabricated item trans
   assert.equal(sim.dispatch({ type: SettlementCommands.npcAnswerHelp, actorId: reed, source: "ai",
     payload: { requesterId: cook, accept: true, itemId: "fake" } }).ok, false);
   assert.equal(sim.worldView().getComponent(cook, SettlementComponents.resident)?.helpRequest, undefined);
+});
+
+test("the fuel gatherer refuses once his own reserve is gone, and shares when he has a spare", async () => {
+  const { fuelHelpReply } = await import("@openlife/module-settlement-locations");
+  assert.equal(fuelHelpReply(3, 5, 10), "share");
+  assert.equal(fuelHelpReply(2, 5, 6), "share");
+  assert.equal(fuelHelpReply(1, 9, 14), "refuse", "never gives away his last bundle");
+  assert.equal(fuelHelpReply(0, 9, 14), "refuse");
 });

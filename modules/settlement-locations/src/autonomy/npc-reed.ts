@@ -40,15 +40,7 @@ export function runThirdNpcDay(sim: NpcHost) {
       tick - Number(request.at) <= 2) {
     const possessions = held();
     const trust = Number(sim.worldView().getComponent(actorId, SettlementComponents.resident)?.trustTowardCook ?? 5);
-    const reply = chooseNpcIntent([
-      { id: "share", possible: possessions.length >= 2,
-        utility: 75 + trust * 2 + Math.max(0, possessions.length - 1) * 3 - shortagePressure(stock(), 14) / 6,
-        because: "有多余的柴草且愿意合作" },
-      { id: "refuse", possible: true,
-        utility: 35 + shortagePressure(stock(), 14) / 3 + (possessions.length < 2 ? 40 : 0),
-        because: "必须保护自己家里的必需储备" },
-    ]);
-    const willing = reply?.id === "share";
+    const willing = fuelHelpReply(possessions.length, trust, stock()) === "share";
     act(SettlementCommands.npcAnswerHelp,
       { requesterId: cookId, accept: willing, ...(willing ? { itemId: possessions[0] } : {}) },
       willing ? `衡量自己的余量后，送${ROLES.cook.name}一捆柴草` : "自家储备优先，拒绝借出");
@@ -80,4 +72,20 @@ export function runThirdNpcDay(sim: NpcHost) {
     return { actorId, tick, skipped: false, actions,
       note: marker.ok ? note : note + "；日程记录失败" };
   }
+}
+
+/**
+ * Whether the fuel gatherer shares a bundle with the cook: a pure decision
+ * over what he really holds, his trust, and what is left on the reed flat.
+ */
+export function fuelHelpReply(bundlesHeld: number, trust: number, flatStock: number): "share" | "refuse" {
+  const reply = chooseNpcIntent([
+    { id: "share", possible: bundlesHeld >= 2,
+      utility: 75 + trust * 2 + Math.max(0, bundlesHeld - 1) * 3 - shortagePressure(flatStock, 14) / 6,
+      because: "有多余的柴草且愿意合作" },
+    { id: "refuse", possible: true,
+      utility: 35 + shortagePressure(flatStock, 14) / 3 + (bundlesHeld < 2 ? 40 : 0),
+      because: "必须保护自己家里的必需储备" },
+  ]);
+  return reply?.id === "share" ? "share" : "refuse";
 }

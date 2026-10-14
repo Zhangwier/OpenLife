@@ -589,6 +589,17 @@ function yieldPoints(world: WorldView): YieldState[] {
  * is only written back when someone actually draws, which keeps the number of
  * transactions proportional to player actions.
  */
+/**
+ * Clock anchor to store after a draw: keeps the partial renewal cycle already
+ * under way, so drawing on day 2 of a 3-day cycle does not restart the wait.
+ * A full point has nothing in progress, so its clock starts now.
+ */
+function renewalAnchor(point: YieldState, tick: number): number {
+  if (point.stock >= point.capacity) return tick;
+  const cycles = Math.floor(Math.max(0, tick - point.lastRenewedAt) / point.renewDays);
+  return point.lastRenewedAt + cycles * point.renewDays;
+}
+
 function renewedStock(state: YieldState, tick: number): number {
   const elapsed = Math.max(0, tick - state.lastRenewedAt);
   const cycles = Math.floor(elapsed / state.renewDays);
@@ -632,13 +643,25 @@ function hungerLevel(world: WorldView, actorId: string): number {
 
 /** A carried cooked ration must be a real, owned, live item, not a yield point. */
 function carriedRation(world: WorldView, actorId: string, objectId: string): boolean {
-  const entity = world.getEntity(objectId);
-  if (!entity || entity.kind !== ObjectKinds.item || entity.archivedAt !== undefined) return false;
-  return ownerOf(world, objectId) === actorId
-    && holderOf(world, objectId) === actorId
-    && prototypeOf(world, objectId).resourceId === "resource:cooked"
-    && readObject(entity.components[ObjectComponents.object]).quantity >= 1;
+  return carriedFood(world, actorId, objectId) === "resource:cooked";
 }
+
+/**
+ * What a carried, owned, live food item is: cooked ration or raw grain.
+ * Raw grain is edible anywhere but eases less hunger than a cooked ration,
+ * so a starving player holding grain is never locked out of eating.
+ */
+function carriedFood(world: WorldView, actorId: string, objectId: string): "resource:cooked" | "resource:grain" | "" {
+  const entity = world.getEntity(objectId);
+  if (!entity || entity.kind !== ObjectKinds.item || entity.archivedAt !== undefined) return "";
+  if (ownerOf(world, objectId) !== actorId || holderOf(world, objectId) !== actorId) return "";
+  if (readObject(entity.components[ObjectComponents.object]).quantity < 1) return "";
+  const resourceId = prototypeOf(world, objectId).resourceId;
+  return resourceId === "resource:cooked" || resourceId === "resource:grain" ? resourceId : "";
+}
+
+/** Hunger eased by one portion: cooked food 4, raw grain 2. */
+const HUNGER_EASED: Record<string, number> = { "resource:cooked": 4, "resource:grain": 2 };
 
 
 const CROP_GROW_DAYS = 30;
@@ -1813,12 +1836,20 @@ function homesteadActions(
     );
   }
 
+  let rawGrainOffered = false;
   for (const relation of world.listRelations({ type: ObjectRelations.heldBy, to: actorId })) {
     const objectId = relation.from;
-    if (!carriedRation(world, actorId, objectId)) continue;
-    add(SettlementCommands.eat, "吃一份随身熟食",
-      "随身的熟食真正减少一份，饥饿程度降低；可在任何聚落地点食用。",
-      1, true, "", { objectId, resourceId: "resource:cooked" });
+    const food = carriedFood(world, actorId, objectId);
+    if (food === "resource:cooked") {
+      add(SettlementCommands.eat, "吃一份随身熟食",
+        "随身的熟食真正减少一份，饥饿程度降低；可在任何聚落地点食用。",
+        1, true, "", { objectId, resourceId: "resource:cooked" });
+    } else if (food === "resource:grain" && !rawGrainOffered) {
+      rawGrainOffered = true;
+      add(SettlementCommands.eat, "生嚼一份随身的粟",
+        "没有熟食时也能充饥，但只缓解一半饥饿；这份粟就不能再播种或烘制了。",
+        1, true, "", { objectId, resourceId: "resource:grain" });
+    }
   }
 
   if (placeId === "place:hearth-yard") {
@@ -1952,8 +1983,9 @@ function homesteadActions(
       !inField ? "先到田头" : crop.seedId ? "这块田已播种" : !grainId ? "缺少一份自己的粟粒" : "");
     add(SettlementCommands.harvest, "收获田里的粟",
       "成熟且已照料的作物，一次收获三份真实粮食。",
-      1, inField && crop.phase === "ready",
-      !inField ? "先到田头" : !crop.seedId ? "还没有播种" : !crop.tended ? "先照料田地" : crop.remainingDays ? `还需等待 ${crop.remainingDays} 天` : "");
+      1, inField && crop.phase === "ready" && canCarryPrototype(world, actorId, "prototype:grain", "", CROP_YIELD),
+      !inField ? "先到田头" : !crop.seedId ? "还没有播种" : !crop.tended ? "先照料田地" : crop.remainingDays ? `还需等待 ${crop.remainingDays} 天`
+        : !canCarryPrototype(world, actorId, "prototype:grain", "", CROP_YIELD) ? "一次收三份，先腾出双手或行囊" : "");
   }
 
   const workSpace = SPACE_WORK[spaceId];
@@ -2270,7 +2302,7 @@ function registerDraw(ctx: Registration): void {
         value: {
           placeId, resourceId, label: point.label, unit: point.unit,
           capacity: point.capacity, stock: point.stock - taken,
-          renewDays: point.renewDays, lastRenewedAt: c.world.tick,
+          renewDays: point.renewDays, lastRenewedAt: renewalAnchor(point, c.world.tick),
         },
       }];
 
@@ -2369,8 +2401,8 @@ function registerEat(ctx: Registration): void {
       const actorId = c.command.actorId ?? "";
       const objectId = String(c.command.payload.objectId ?? "");
       if (objectId) {
-        if (!carriedRation(c.world, actorId, objectId)) {
-          return refuse(SettlementRejection.NotYours, "要先亲自持有一份可食用的熟食。");
+        if (!carriedFood(c.world, actorId, objectId)) {
+          return refuse(SettlementRejection.NotYours, "要先亲自持有一份可以吃的食物。");
         }
         return { ok: true };
       }
@@ -2392,7 +2424,8 @@ function registerEat(ctx: Registration): void {
       const actorId = c.command.actorId as string;
       const objectId = String(c.command.payload.objectId ?? "");
       const before = hungerLevel(c.world, actorId);
-      const after = Math.max(0, before - 4);
+      const eaten = objectId ? carriedFood(c.world, actorId, objectId) : String(c.command.payload.resourceId ?? "");
+      const after = Math.max(0, before - (HUNGER_EASED[eaten] ?? 4));
       const effects: Effect[] = [{
         kind: "modifyComponent",
         entityId: actorId,
@@ -2405,7 +2438,7 @@ function registerEat(ctx: Registration): void {
         if (item.quantity > 1) {
           effects.push({
             kind: "modifyComponent", entityId: objectId, component: ObjectComponents.object,
-            patch: { quantity: item.quantity - 1 }, reason: "one cooked ration eaten",
+            patch: { quantity: item.quantity - 1 }, reason: "one carried portion eaten",
           });
         } else {
           effects.push({
@@ -2418,7 +2451,7 @@ function registerEat(ctx: Registration): void {
         effects.push({
           kind: "emitEvent", eventType: "settlement-locations.ate",
           actorId, targetId: objectId,
-          data: { objectId, resourceId: "resource:cooked", from: "carried", shared: false, hungerBefore: before, hungerAfter: after },
+          data: { objectId, resourceId: eaten, from: "carried", shared: false, hungerBefore: before, hungerAfter: after },
           historicalSignificance: 0,
         });
       } else {
@@ -2432,7 +2465,7 @@ function registerEat(ctx: Registration): void {
           value: {
             placeId, resourceId, label: point.label, unit: point.unit,
             capacity: point.capacity, stock: point.stock - 1,
-            renewDays: point.renewDays, lastRenewedAt: c.world.tick,
+            renewDays: point.renewDays, lastRenewedAt: renewalAnchor(point, c.world.tick),
           },
         }, {
           kind: "emitEvent", eventType: "settlement-locations.ate",
@@ -3111,7 +3144,7 @@ export function fillEffects(world: WorldView, actorId: string, containerId: stri
     value: {
       placeId, resourceId, label: point.label, unit: point.unit,
       capacity: point.capacity, stock: point.stock - amount,
-      renewDays: point.renewDays, lastRenewedAt: tick,
+      renewDays: point.renewDays, lastRenewedAt: renewalAnchor(point, tick),
     },
   }];
 
