@@ -388,6 +388,7 @@ const SETTLEMENT_ACTIONS: Record<string, number> = {
   [SettlementCommands.arrive]: 1,
   [SettlementCommands.draw]: 1,
   [SettlementCommands.talk]: 1,
+  [SettlementCommands.exchange]: 1,
   [SettlementCommands.drink]: 1,
   [SettlementCommands.eat]: 1,
   [SettlementCommands.cook]: 1,
@@ -405,6 +406,7 @@ const SETTLEMENT_ACTIONS: Record<string, number> = {
   [SettlementCommands.playerBarterAccept]: 0,
   [SettlementCommands.playerBarterDecline]: 0,
   [SettlementCommands.helpHearth]: 0,
+  [SettlementCommands.requestAnswer]: 0,
 };
 
 export function isSettlementAction(action: string): boolean {
@@ -1222,5 +1224,7 @@ function contentType(ext: string): string {
   if (ext === ".css") return "text/css; charset=utf-8";
   if (ext === ".js") return "text/javascript; charset=utf-8";
   if (ext === ".svg") return "image/svg+xml";
+  if (ext === ".webp") return "image/webp";
+  if (ext === ".png") return "image/png";
   return "application/octet-stream";
 }

@@ -20,7 +20,14 @@ export interface ResidentSpec {
   /** Which space they sleep in at night. */
   homeSpace: string;
   household: string;
+  /** Personality, each 0..100: drives what a villager's brain values (optional; derived from the key when absent). */
+  personality?: Personality;
+  /** Bodily and mental capacities, each 1..10 (optional; derived from age and key when absent). */
+  attributes?: Attributes;
 }
+
+export interface Personality { diligence: number; sociability: number; generosity: number; caution: number; curiosity: number }
+export interface Attributes { strength: number; dexterity: number; wits: number }
 
 export interface PlaceSpec {
   id: string; name: string; type: string; costDays: number;
@@ -33,7 +40,13 @@ export interface PlaceSpec {
   jobResource?: string;
 }
 
-export interface YieldSpec { placeId: string; resourceId: string; label: string; capacity: number; renewDays: number; unit: string }
+export interface YieldSpec {
+  placeId: string; resourceId: string; label: string; capacity: number; renewDays: number; unit: string;
+  /** Renewal scales with population: one unit per this many villagers per cycle (rounded up). */
+  perResidents?: number;
+  /** Seasons (春/夏/秋/冬) in which it grows back; omitted = all year. */
+  seasons?: string[];
+}
 
 export interface PrototypeSpec {
   id: string; name: string; material: string; resourceId: string; unit: string;
@@ -59,6 +72,49 @@ export interface SettlementPack {
   prototypes: PrototypeSpec[];
   resourceLabels: Record<string, string>;
   instances: InstanceSeed[];
+  /**
+   * General exchange: each resource's base worth, and what each resident needs
+   * for their work or wish (worth half again as much to them). Optional: a
+   * pack without it only knows the fixed barter offers.
+   */
+  exchange?: { values: Record<string, number>; wants: Record<string, string[]> };
+  /**
+   * Generic recipes: inputs + tool + workplace + time → one output object.
+   * Inputs are real carried things the maker owns; the tool may be in hand
+   * (owned or borrowed) or lying at the workplace. Optional: a pack without
+   * recipes only has the built-in crafts.
+   */
+  recipes?: RecipeSpec[];
+}
+
+export interface RecipeSpec {
+  id: string;
+  label: string;
+  hint: string;
+  spaceId: string;
+  /** minAgeDays: the input must have been made at least that many days ago (greenware must dry). */
+  inputs: Array<{ resourceId: string; count: number; minAgeDays?: number }>;
+  /** Needs a dry day (no rain or snow), e.g. firing the kiln. */
+  dryOnly?: boolean;
+  tool?: string;
+  activity: number;
+  seasons?: string[];
+  /** A dedicated older command that runs this recipe too (kept so old clients and saves keep working). */
+  command?: string;
+  /** Upkeep instead of a new object: e.g. mending the roof of the home the maker stands in. */
+  repairs?: "roof";
+  output?: {
+    prototypeId: string; name: string; durability: number;
+    condition?: string;
+    /** Several outputs; with perInput, one per consumed input. */
+    count?: number; perInput?: boolean;
+    /** Stable id: prefix + first input id (or + each input id when perInput). */
+    idPrefix?: string;
+  };
+  /** Provenance written on each output. "$inputs" = all input ids, "$input" = this output's input. */
+  provenance?: Record<string, string>;
+  /** Event to emit instead of the generic crafted event. "$output", "$outputs", "$inputs", "$count" are filled in. */
+  event?: { type: string; data?: Record<string, string | number>; significance?: number };
 }
 
 export const SETTLEMENT_PACK_FORMAT = 1;
@@ -110,6 +166,8 @@ export function validateSettlementPack(pack: SettlementPack): string[] {
     if (!places.has(y.placeId)) problems.push(`yield ${y.resourceId}: unknown place ${y.placeId}`);
     if (!(y.capacity > 0) || !(y.renewDays > 0)) problems.push(`yield ${y.placeId}/${y.resourceId}: capacity and renewDays must be positive`);
     if (!pack.resourceLabels[y.resourceId]) problems.push(`yield ${y.resourceId}: no resource label`);
+    if (y.seasons && !y.seasons.every((x) => ["春", "夏", "秋", "冬"].includes(x))) problems.push(`yield ${y.placeId}/${y.resourceId}: unknown season`);
+    if (y.perResidents !== undefined && !(y.perResidents > 0)) problems.push(`yield ${y.placeId}/${y.resourceId}: perResidents must be positive`);
   }
   for (const p of pack.prototypes) {
     if (!(p.mass >= 0) || !(p.capacity >= 0)) problems.push(`prototype ${p.id}: mass and capacity must not be negative`);
@@ -118,6 +176,30 @@ export function validateSettlementPack(pack: SettlementPack): string[] {
     if (!prototypes.has(i.prototypeId)) problems.push(`instance ${i.id}: unknown prototype ${i.prototypeId}`);
     if (!residents.has(i.owner)) problems.push(`instance ${i.id}: unknown owner ${i.owner}`);
     if (!spaces.has(i.inId) && !instances.has(i.inId)) problems.push(`instance ${i.id}: unknown location ${i.inId}`);
+  }
+  for (const [key, list] of Object.entries(pack.exchange?.wants ?? {})) {
+    if (!residents.has(key)) problems.push(`exchange wants: unknown resident ${key}`);
+    for (const r of list) if (!pack.resourceLabels[r]) problems.push(`exchange wants ${key}: unknown resource ${r}`);
+  }
+  const spaceIds = new Set(pack.places.flatMap((p) => p.spaces.map((sp) => sp.id)));
+  const protoIds = new Set(pack.prototypes.map((p) => p.id));
+  const recipeIds = new Set<string>();
+  for (const r of pack.recipes ?? []) {
+    if (recipeIds.has(r.id)) problems.push(`recipe ${r.id}: duplicate id`);
+    recipeIds.add(r.id);
+    if (r.spaceId !== "@home" && !spaceIds.has(r.spaceId)) problems.push(`recipe ${r.id}: unknown space ${r.spaceId}`);
+    if (!r.output && !r.repairs) problems.push(`recipe ${r.id}: needs an output or a repair`);
+    if (r.output && !protoIds.has(r.output.prototypeId)) problems.push(`recipe ${r.id}: unknown output ${r.output!.prototypeId}`);
+    if (r.tool && !protoIds.has(r.tool)) problems.push(`recipe ${r.id}: unknown tool ${r.tool}`);
+    if (!(r.activity >= 1 && r.activity <= 8)) problems.push(`recipe ${r.id}: activity must be 1-8`);
+    for (const i of r.inputs) {
+      if (!pack.resourceLabels[i.resourceId]) problems.push(`recipe ${r.id}: unknown input ${i.resourceId}`);
+      if (!(i.count >= 1 && i.count <= 4)) problems.push(`recipe ${r.id}: input count must be 1-4`);
+    }
+  }
+  for (const [r, v] of Object.entries(pack.exchange?.values ?? {})) {
+    if (!pack.resourceLabels[r]) problems.push(`exchange value: unknown resource ${r}`);
+    if (!(v > 0)) problems.push(`exchange value ${r}: must be positive`);
   }
   return problems;
 }

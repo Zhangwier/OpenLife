@@ -7,7 +7,10 @@
  * authored on the place.
  */
 import { RIVER_TERRACE_PACK, type SettlementPack } from "../content.ts";
-import { residentId } from "../module.ts";
+import { residentId, worksites, hungerAt, SettlementCommands, SettlementComponents, SettlementId } from "../module.ts";
+import { occupiedPlaceId } from "@openlife/module-world-space";
+import type { AgentHost } from "@openlife/contracts";
+import type { WorldView } from "@openlife/contracts";
 
 export interface VillageRole {
   key: string;
@@ -56,3 +59,29 @@ export const WORK_SPACES: Record<string, string> = Object.fromEntries(
 );
 
 export const yieldId = (placeId: string, resourceId: string) => `yield:${placeId}:${resourceId}`;
+
+/** Current stock at a yield point as anyone standing there sees it (renewal applied). */
+export function stockAt(world: WorldView, placeId: string, resourceId: string): number {
+  return worksites(world).places.find((p) => p.placeId === placeId)
+    ?.resources.find((r) => r.resourceId === resourceId)?.stock ?? 0;
+}
+
+/** A resident's current hunger, read the same way the player's is. */
+export function residentHunger(world: WorldView, actorId: string): number {
+  const holding = world.getComponent(actorId, SettlementComponents.holding);
+  const founded = world.getComponent(SettlementId, SettlementComponents.settlement)?.foundedAt;
+  return hungerAt(Number(holding?.hunger ?? 0), Number(holding?.hungerAt ?? founded ?? world.tick), world.tick);
+}
+
+/**
+ * Specialist routines (cook, fuel gatherer) eat like everyone else: when hungry
+ * and the shared kitchen really has a portion, walk there and eat one.
+ */
+export function mealIfHungry(sim: AgentHost, actorId: string,
+    act: (type: string, payload: Record<string, string>, label: string) => boolean): boolean {
+  const world = sim.worldView();
+  if (residentHunger(world, actorId) < 4 || stockAt(world, ROLES.cook.workPlace, "resource:cooked") <= 0) return false;
+  if (occupiedPlaceId(world, actorId) !== ROLES.cook.workPlace &&
+      !act(SettlementCommands.arrive, { placeId: ROLES.cook.workPlace, travelMode: "local" }, "饿了，去公灶")) return false;
+  return act(SettlementCommands.eat, { placeId: ROLES.cook.workPlace, resourceId: "resource:cooked" }, "吃一份熟食");
+}

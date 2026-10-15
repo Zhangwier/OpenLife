@@ -2,6 +2,9 @@ import { renderPlayer, renderActionButtons, installModalAccess, selectView } fro
 import { installShell, renderShell, enterLife } from "/shell.js";
 import { renderSettlement, describeSettlementResult } from "/settlement.js";
 import { renderFigure } from "/character-appearance.js";
+import { playActionFx } from "/action-fx.js";
+import { isTextMode } from "/view-mode.js";
+import { renderLifeLog, logAction, diffSettlement, chipText } from "/life-log.js";
 const $ = (id) => document.getElementById(id);
 let state;
 let busy = false;
@@ -36,7 +39,8 @@ function render(s, animate = false) {
   const c = s.character;
   // 统一时间文案：玩家过的是「冬 · 第 N 天」，公元纪年作为副标题。
   $("timeRibbon").querySelector(".time-year").textContent = s.settlement?.exists
-    ? `${s.settlement.season} · 第 ${s.settlement.day} 天` : (s.era ?? String(s.year));
+    ? `${s.settlement.season} · 第 ${s.settlement.day} 天${s.settlement.weather ? ` · ${s.settlement.weather.sky}` : ""}` : (s.era ?? String(s.year));
+  $("timeRibbon").title = s.settlement?.weather?.note ?? "";
   $("timeRibbon").dataset.era = s.era ?? "";
   $("timeRibbon").querySelector(".time-copy").textContent = continuousRunning
     ? `${s.era ?? ""} · ${s.month} 月 · 推进中` : `${s.era ?? ""} · ${s.month} 月 · 已暂停`;
@@ -50,7 +54,7 @@ function render(s, animate = false) {
     // 人物页头像与生活场景里的角色用同一套手绘形象。
     const figureId = s.settlement?.characterId ?? c.id ?? c.name;
     const portrait = document.querySelector(".portrait-figure");
-    if (portrait && portrait.dataset.figure !== figureId) {
+    if (portrait && !isTextMode() && portrait.dataset.figure !== figureId) {
       portrait.dataset.figure = figureId; portrait.classList.add("has-figure");
       portrait.innerHTML = renderFigure(figureId, "player");
     }
@@ -72,6 +76,7 @@ function render(s, animate = false) {
   renderWorld(s.world);
   renderPlayer(s, performAction);
   renderSettlement(s, performSettlementAction);
+  if (isTextMode()) renderLifeLog(s);
   updatePlanStatus(s);
   renderShell(s);
 }
@@ -333,9 +338,15 @@ async function performSettlementAction(action, payload) {
       }),
     });
     if (!data.result.ok) throw new Error(data.result.errors?.[0]?.message || "这件事现在还不能发生");
+    const before = state.settlement;
     state = data.state;
+    const target = payload?.targetId ? (before?.neighbours || []).find((n) => n.id === payload.targetId) : null;
+    const told = describeSettlementResult(action, data.result, state).replace("眼前的村民", target?.name || "眼前的村民");
+    const chips = diffSettlement(before, state.settlement);
+    if (isTextMode()) logAction(state, told, chips);
     render(state, true);
-    showToast(describeSettlementResult(action, data.result));
+    if (!isTextMode()) playActionFx({ action, payload: payload ?? {}, before, after: state.settlement });
+    showToast(isTextMode() && chips.length ? `${told}（${chipText(chips)}）` : told);
     await autoRemember();
   } catch (error) {
     showToast(error.message);

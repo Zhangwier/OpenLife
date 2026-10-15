@@ -7,7 +7,7 @@ import { SettlementCommands, SettlementComponents, residentId, dailyActivity } f
 import { SpaceCommands, occupiedPlaceId, occupiedSpaceId } from "@openlife/module-world-space";
 import { ObjectRelations, ownerOf, prototypeOf } from "@openlife/module-world-objects";
 import { chooseNpcIntent, shortagePressure } from "./npc-goals.ts";
-import { ROLES, yieldId } from "./roles.ts";
+import { ROLES, yieldId, stockAt, mealIfHungry } from "./roles.ts";
 
 export const THIRD_AUTONOMOUS_RESIDENT = ROLES.fuelGatherer.id;
 export function runThirdNpcDay(sim: NpcHost) {
@@ -24,13 +24,13 @@ export function runThirdNpcDay(sim: NpcHost) {
   const held = () => sim.worldView().listRelations({ type: ObjectRelations.heldBy, to: actorId })
     .map(r => r.from).sort().filter(id => ownerOf(sim.worldView(), id) === actorId &&
       prototypeOf(sim.worldView(), id).resourceId === "resource:fuel");
-  const stock = () => Number(sim.worldView().getComponent(yieldId(ROLES.fuelGatherer.workPlace, "resource:fuel"),
-    SettlementComponents.yieldPoint)?.stock ?? 0);
+  const stock = () => stockAt(sim.worldView(), ROLES.fuelGatherer.workPlace, "resource:fuel");
   const act = (type: string, payload: Record<string, string | boolean> = {}, label: string) => {
     const result = sim.dispatch({ type, actorId, source: "ai", payload });
     if (result.ok) { actions.push(label); return true; }
     obstacle = result.errors?.[0]?.message ?? `${label}受阻`; return false;
   };
+  mealIfHungry(sim, actorId, act);
   if (occupiedPlaceId(sim.worldView(), actorId) !== ROLES.fuelGatherer.workPlace &&
       !act(SettlementCommands.arrive, { placeId: ROLES.fuelGatherer.workPlace, travelMode: "local" }, "回到芦苇滩")) return finish();
   const cookId = ROLES.cook.id;

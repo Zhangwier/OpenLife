@@ -152,6 +152,15 @@ export function runSettlementAction(sim: Simulation, actorId: string, action: st
       return advance(dispatch(SettlementCommands.drink, { payload: { containerId: payload.containerId, resourceId: "resource:water" } }), 0);
     case SettlementCommands.eat:
       return advance(dispatch(SettlementCommands.eat, { payload: { resourceId: payload.resourceId, placeId: payload.placeId, objectId: payload.objectId, planIndex: payload.planIndex, planStep: payload.planStep } }), 0);
+    case SettlementCommands.craft:
+      return dispatch(SettlementCommands.craft, { payload: { recipeId: String(payload.recipeId ?? "") } });
+    case SettlementCommands.exchange:
+      return dispatch(SettlementCommands.exchange, { payload: {
+        targetId: String(payload.targetId ?? ""), give: Array.isArray(payload.give) ? payload.give.map(String) : [],
+        askResource: String(payload.askResource ?? ""), askAmount: Number(payload.askAmount ?? 1), credit: payload.credit === true,
+      } });
+    case SettlementCommands.requestAnswer:
+      return dispatch(SettlementCommands.requestAnswer, { payload: { requesterId: String(payload.requesterId ?? ""), accept: payload.accept === true } });
     case SettlementCommands.playerBarterRequest:
       return dispatch(SettlementCommands.playerBarterRequest, { payload: { grainId: payload.grainId } });
     case SettlementCommands.playerBarterAccept:
@@ -183,7 +192,7 @@ export function runSettlementAction(sim: Simulation, actorId: string, action: st
     case SettlementCommands.tend:
       return advance(dispatch(SettlementCommands.tend, { payload: { spaceId: payload.spaceId, planIndex: payload.planIndex, planStep: payload.planStep } }), 0);
     case SettlementCommands.rest:
-      return advance(dispatch(SettlementCommands.rest, { payload: { spaceId: payload.spaceId, matId: payload.matId, planIndex: payload.planIndex, planStep: payload.planStep } }), 0);
+      return advance(dispatch(SettlementCommands.rest, { payload: { spaceId: payload.spaceId, matId: payload.matId, fuelId: payload.fuelId, planIndex: payload.planIndex, planStep: payload.planStep } }), 0);
     case SettlementCommands.configurePlan:
       return dispatch(SettlementCommands.configurePlan, { payload: { steps: payload.steps, repeat: payload.repeat, enabled: payload.enabled } });
     case SettlementCommands.step:

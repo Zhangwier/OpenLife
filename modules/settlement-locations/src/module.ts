@@ -21,6 +21,8 @@
 
 import type { ComponentData, Effect, JsonValue, OpenLifeModule, WorldView } from "@openlife/contracts";
 import { DAYS_PER_MONTH, DAY_TICKS_PER_YEAR } from "@openlife/life-contracts";
+import { appraise, type CounterpartView, type Closeness } from "./exchange.ts";
+import { skyOn, isWet, OUTDOOR_PLACES, SKY_NOTE } from "./weather.ts";
 import {
   ObjectCommands,
   ObjectComponents,
@@ -49,7 +51,9 @@ import {
   readSpace,
 } from "@openlife/module-world-space";
 import { VILLAGE_DAY_AGENT, runVillageAgent } from "./autonomy/village-day.ts";
-import { RIVER_TERRACE_PACK, type ResidentSpec, type PlaceSpec, type YieldSpec, type PrototypeSpec } from "./content.ts";
+import { residentMind, temperamentWords } from "./autonomy/mind.ts";
+import { readSocial, bondOf, withBond, mergeHeard, toJson, ASK_COOLDOWN, REQUEST_DAYS, type SocialMemory } from "./social.ts";
+import { RIVER_TERRACE_PACK, type ResidentSpec, type PlaceSpec, type YieldSpec, type PrototypeSpec, type RecipeSpec } from "./content.ts";
 
 const OWNER = "settlement-locations";
 const WORLD = "modern:world";
@@ -67,6 +71,8 @@ export const SettlementComponents = {
   /** Crop state on the existing field place; absent for old saves means fallow. */
   cropPlot: "settlement-locations.crop-plot",
   dailyPlan: "settlement-locations.daily-plan",
+  /** A home's roof, on the home space: level after the last mending and the day it was mended. */
+  roof: "settlement-locations.roof",
 } as const;
 
 export const SettlementCommands = {
@@ -94,10 +100,21 @@ export const SettlementCommands = {
   cookBarterQuote: "settlement-locations.barter.cook_quote",
   playerBarterAccept: "settlement-locations.barter.accept",
   playerBarterDecline: "settlement-locations.barter.decline",
+  /** General exchange between any two people in the same place. */
+  exchange: "settlement-locations.exchange",
+  craft: "settlement-locations.craft",
   helpHearth: "settlement-locations.hearth.help",
   npcAskHelp: "settlement-locations.npc.ask_help",
   npcAnswerHelp: "settlement-locations.npc.answer_help",
   npcFire: "settlement-locations.npc.fire",
+  /** A resident looks around: who is here, what they carry; old requests are settled. */
+  npcNotice: "settlement-locations.npc.notice",
+  /** A resident, face to face, asks the player for something (borrow, trade or collect a favour). */
+  npcRequest: "settlement-locations.npc.request",
+  /** The player answers a resident's request. */
+  requestAnswer: "settlement-locations.request.answer",
+  /** A resident hands someone one of their own things (repaying a favour, thanks). */
+  npcGive: "settlement-locations.npc.give",
 } as const;
 
 export const SettlementProjections = {
@@ -212,9 +229,12 @@ export const settlementLocationsModule: OpenLifeModule = {
     registerNpcDayMarker(ctx);
     registerNpcBarter(ctx);
     registerPlayerBarter(ctx);
+    registerExchange(ctx);
+    registerCraft(ctx);
     registerHearthRelief(ctx);
     registerNpcHelp(ctx);
     registerNpcFire(ctx);
+    registerSocial(ctx);
 
     ctx.registerProjection({
       id: SettlementProjections.homestead,
@@ -560,6 +580,8 @@ interface YieldState {
 }
 
 /** Every yield point, with the stock that has regenerated since it was last drawn. */
+/** Cheap read of every gathering point's current stock (no object counting). */
+export function currentYields(world: WorldView): YieldState[] { return yieldPoints(world); }
 function yieldPoints(world: WorldView): YieldState[] {
   return world
     .listEntities({ kind: "settlement-locations.yield-point" })
@@ -576,7 +598,11 @@ function yieldPoints(world: WorldView): YieldState[] {
         renewDays: Math.max(1, Number(raw.renewDays ?? 30)),
         lastRenewedAt: Math.max(0, Number(raw.lastRenewedAt ?? 0)),
       };
-      return { ...state, stock: renewedStock(state, world.tick) };
+      // Capacity and pace come from the content pack, so a rebalanced pack
+      // also applies to worlds founded before it (the stored values are a cache).
+      const spec = yieldSpecFor(state.placeId, state.resourceId);
+      if (spec) { state.capacity = spec.capacity; state.renewDays = spec.renewDays; }
+      return { ...state, stock: renewedStock(state, world.tick, renewalPerCycle(world, spec), spec?.seasons) };
     })
     .sort((a, b) => (a.placeId + a.resourceId).localeCompare(b.placeId + b.resourceId));
 }
@@ -600,13 +626,40 @@ function renewalAnchor(point: YieldState, tick: number): number {
   return point.lastRenewedAt + cycles * point.renewDays;
 }
 
-function renewedStock(state: YieldState, tick: number): number {
+function renewedStock(state: YieldState, tick: number, perCycle: number, seasons?: string[]): number {
   const elapsed = Math.max(0, tick - state.lastRenewedAt);
   const cycles = Math.floor(elapsed / state.renewDays);
-  // The initial grain stock is finite seed grain; only sowing and harvest
-  // produce new grain. Other natural yield points retain their renewal cycles.
-  if (state.resourceId === "resource:grain") return state.stock;
-  return Math.min(state.capacity, state.stock + cycles);
+  // perCycle 0 means the point never renews on its own (e.g. finite seed grain
+  // in a pack that does not model other households' fields).
+  if (!seasons?.length || perCycle <= 0) return Math.min(state.capacity, state.stock + cycles * perCycle);
+  // Seasonal points only grow back in cycles that end in one of their seasons.
+  let stock = state.stock;
+  for (let k = 1; k <= cycles && stock < state.capacity; k += 1) {
+    if (seasons.includes(seasonOf(state.lastRenewedAt + k * state.renewDays))) stock += perCycle;
+  }
+  return Math.min(state.capacity, stock);
+}
+
+function yieldSpecFor(placeId: string, resourceId: string): YieldSpec | undefined {
+  return YIELDS.find((y) => y.placeId === placeId && y.resourceId === resourceId);
+}
+
+/** Living villagers (residents and the player alike) who eat from shared stores. */
+export function villagePopulation(world: WorldView): number {
+  return world.listEntities({ kind: "modern.character" })
+    .filter((e) => e.archivedAt === undefined && e.components["modern.vitals"]?.alive !== false)
+    .length;
+}
+
+/**
+ * Units a point regains per renewal cycle. Points with `perResidents` represent
+ * the whole village's off-screen work (other households cooking, other fields),
+ * so they scale with how many people live here: one unit per `perResidents`
+ * people, rounded up. Grain without `perResidents` stays finite seed stock.
+ */
+function renewalPerCycle(world: WorldView, spec: YieldSpec | undefined): number {
+  if (spec?.perResidents) return Math.max(1, Math.ceil(villagePopulation(world) / spec.perResidents));
+  return spec?.resourceId === "resource:grain" ? 0 : 1;
 }
 
 function readResident(world: WorldView, residentId: string) {
@@ -628,6 +681,11 @@ function readResident(world: WorldView, residentId: string) {
   };
 }
 
+/** 给界面看的性格词（来自数据包里的性格数值）。 */
+export function residentTemperament(id: string): string[] {
+  const mind = residentMind(id);
+  return mind ? temperamentWords(mind) : [];
+}
 export function residentId(key: string): string {
   return `settlement-locations:resident:${key}`;
 }
@@ -638,7 +696,13 @@ function hungerLevel(world: WorldView, actorId: string): number {
   const settlementStart = world.getComponent(SettlementId, SettlementComponents.settlement)?.foundedAt;
   const since = Number(state?.hungerAt ?? settlementStart ?? world.tick);
   const base = Number(state?.hunger ?? 0);
-  return Math.max(0, Math.min(10, base + Math.max(0, world.tick - since)));
+  return hungerAt(base, since, world.tick);
+}
+
+/** Hunger grows by one point every HUNGER_DAYS_PER_POINT days since the last meal, capped at 10. */
+export const HUNGER_DAYS_PER_POINT = 2;
+export function hungerAt(base: number, since: number, tick: number): number {
+  return Math.max(0, Math.min(10, base + Math.floor(Math.max(0, tick - since) / HUNGER_DAYS_PER_POINT)));
 }
 
 /** A carried cooked ration must be a real, owned, live item, not a yield point. */
@@ -651,30 +715,45 @@ function carriedRation(world: WorldView, actorId: string, objectId: string): boo
  * Raw grain is edible anywhere but eases less hunger than a cooked ration,
  * so a starving player holding grain is never locked out of eating.
  */
-function carriedFood(world: WorldView, actorId: string, objectId: string): "resource:cooked" | "resource:grain" | "" {
+function carriedFood(world: WorldView, actorId: string, objectId: string): "resource:cooked" | "resource:grain" | "resource:fish" | "" {
   const entity = world.getEntity(objectId);
   if (!entity || entity.kind !== ObjectKinds.item || entity.archivedAt !== undefined) return "";
   if (ownerOf(world, objectId) !== actorId || holderOf(world, objectId) !== actorId) return "";
   if (readObject(entity.components[ObjectComponents.object]).quantity < 1) return "";
   const resourceId = prototypeOf(world, objectId).resourceId;
-  return resourceId === "resource:cooked" || resourceId === "resource:grain" ? resourceId : "";
+  return resourceId === "resource:cooked" || resourceId === "resource:grain" || resourceId === "resource:fish" ? resourceId : "";
 }
 
 /** Hunger eased by one portion: cooked food 4, raw grain 2. */
-const HUNGER_EASED: Record<string, number> = { "resource:cooked": 4, "resource:grain": 2 };
+const HUNGER_EASED: Record<string, number> = { "resource:cooked": 4, "resource:grain": 2, "resource:fish": 2 };
 
 
-const CROP_GROW_DAYS = 30;
-const CROP_YIELD = 3;
+/**
+ * Seasons shape farming. Millet sown in spring or summer ripens in 30 days;
+ * autumn sowing needs 45, winter sowing 60. What a harvest brings depends on
+ * the season it is gathered in: autumn is the true harvest.
+ * The harvester carries three portions home; the rest goes onto the field heap.
+ */
+const CROP_GROW_DAYS: Record<string, number> = { "春": 30, "夏": 30, "秋": 45, "冬": 60 };
+const CROP_YIELD: Record<string, number> = { "春": 8, "夏": 8, "秋": 10, "冬": 5 };
+const HARVEST_IN_HAND = 3;
+export function cropGrowDays(sownAt: number): number { return CROP_GROW_DAYS[seasonOf(sownAt)] ?? 30; }
+export function cropYield(harvestAt: number): number { return CROP_YIELD[seasonOf(harvestAt)] ?? 8; }
 
 /** A plot lives on the existing field place; missing component means fallow (old saves). */
 function fieldCrop(world: WorldView) {
   const raw = world.getComponent("place:field", SettlementComponents.cropPlot);
   const seedId = String(raw?.seedId ?? "");
   const sownAt = Number(raw?.sownAt ?? 0);
-  const tended = Boolean(raw?.tended ?? false);
+  let tended = Boolean(raw?.tended ?? false);
   const harvests = Math.max(0, Number(raw?.harvests ?? 0));
-  const remainingDays = seedId ? Math.max(0, CROP_GROW_DAYS - Math.max(0, world.tick - sownAt)) : 0;
+  const remainingDays = seedId ? Math.max(0, cropGrowDays(sownAt) - Math.max(0, world.tick - sownAt)) : 0;
+  // Rain on the growing field waters it as well as a day of tending would.
+  if (seedId && !tended) {
+    for (let day = sownAt + 1; day <= Math.min(world.tick, sownAt + cropGrowDays(sownAt)); day += 1) {
+      if (skyOn(day) === "雨") { tended = true; break; }
+    }
+  }
   return {
     seedId, sownAt, tended, harvests, remainingDays,
     phase: !seedId ? "fallow" : remainingDays === 0 && tended ? "ready" : "growing",
@@ -684,7 +763,7 @@ function fieldCrop(world: WorldView) {
 function cropSummary(world: WorldView): string {
   const crop = fieldCrop(world);
   if (crop.phase === "fallow") return "田地闲置：带来一份粟作种粮，可开始播种。";
-  if (crop.phase === "ready") return "粟已经成熟，可以收获三份真实粮食。";
+  if (crop.phase === "ready") return `粟已经成熟，${seasonOf(world.tick)}收可得 ${cropYield(world.tick)} 份：三份随身，其余入田边粮堆。`;
   if (!crop.tended) return `粟正在生长，还需要照料；距成熟约 ${crop.remainingDays} 天。`;
   return `粟已经照料，距成熟约 ${crop.remainingDays} 天。`;
 }
@@ -712,17 +791,21 @@ const ACTIVITY_COST: Partial<Record<string, number>> = {
 };
 
 /** A single personally owned wrap shields the worker at the field. */
-function wornWrap(world: WorldView, actorId: string): string {
+export function wornWrap(world: WorldView, actorId: string): string {
   const id = wornByActor(world, actorId);
   return id && prototypeOf(world, id).prototypeId === "prototype:fiber-wrap" ? id : "";
 }
-function activityCostFor(world: WorldView, actorId: string, commandType: string): number {
-  const base = ACTIVITY_COST[commandType] ?? 0;
+const OUTDOOR_WORK = new Set<string>([SettlementCommands.draw, SettlementCommands.tend, SettlementCommands.sow, SettlementCommands.harvest]);
+export function activityCostFor(world: WorldView, actorId: string, commandType: string): number {
+  let cost = ACTIVITY_COST[commandType] ?? 0;
+  // Rain and snow make outdoor labour heavier.
+  if (cost && OUTDOOR_WORK.has(commandType) && isWet(world.tick) &&
+      OUTDOOR_PLACES.has(occupiedPlaceId(world, actorId))) cost += 1;
   if (commandType === SettlementCommands.tend &&
       occupiedSpaceId(world, actorId) === "space:field-edge" && wornWrap(world, actorId)) {
-    return base - 1;
+    cost -= 1;
   }
-  return base;
+  return cost;
 }
 
 export function dailyActivity(world: WorldView, actorId: string) {
@@ -733,7 +816,9 @@ export function dailyActivity(world: WorldView, actorId: string) {
   // Preserve today\'s already earned bonus if the player rests again today.
   const extraToday = day > 0 && (Number(raw?.matRestedAt ?? -1) === day - 1 ||
     Number(raw?.matBonusPreservedAt ?? -1) === day);
-  const capacity = DAILY_ACTIVITY_CAPACITY + (extraToday ? 1 : 0);
+  // A winter night by one's own fire is worth another unit, on top of a mat.
+  const warmToday = day > 0 && Number(raw?.warmNightAt ?? -1) === day - 1;
+  const capacity = DAILY_ACTIVITY_CAPACITY + (extraToday ? 1 : 0) + (warmToday ? 1 : 0);
   const used = Number(raw?.activityDay ?? -1) === day
     ? Math.max(0, Math.min(capacity, Number(raw?.activityUsed ?? 0)))
     : 0;
@@ -1131,6 +1216,192 @@ function registerNpcBarter(ctx: Registration): void {
         actorId: farmer, targetId: cook,
         data: { fuelId, grainId, cook, farmer, amount: 1 },
         historicalSignificance: 0.08,
+      });
+      return effects;
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// General exchange (any two people, any valued goods, favours owed)
+// ---------------------------------------------------------------------------
+
+const EXCHANGE_VALUES: Record<string, number> = RIVER_TERRACE_PACK.exchange?.values ?? {};
+const EXCHANGE_WANTS: Record<string, string[]> = RIVER_TERRACE_PACK.exchange?.wants ?? {};
+const MAX_EXCHANGE_ITEMS = 4;
+
+function isPerson(world: WorldView, id: string): boolean {
+  const entity = world.getEntity(id);
+  return Boolean(entity && entity.archivedAt === undefined && entity.kind === "modern.character");
+}
+
+/** Items a person holds and owns outright that can change hands, by resource. */
+export function tradeableGoods(world: WorldView, personId: string): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  const held = world.listRelations({ type: ObjectRelations.heldBy, to: personId }).map((r) => r.from).sort();
+  for (const id of held) {
+    const resourceId = prototypeOf(world, id).resourceId ?? "";
+    if (!resourceId || !(resourceId in EXCHANGE_VALUES) || !tradeReady(world, id, personId, resourceId)) continue;
+    (out[resourceId] ??= []).push(id);
+  }
+  return out;
+}
+
+/** Favours: worth units `debtorId` owes `creditorId` (kept on the creditor). */
+export function favourOwed(world: WorldView, creditorId: string, debtorId: string): number {
+  const raw = world.getComponent(creditorId, SettlementComponents.resident)?.favours ??
+    world.getComponent(creditorId, SettlementComponents.holding)?.favours;
+  const map = raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, JsonValue> : {};
+  return Number(map[debtorId] ?? 0);
+}
+
+function wantsOf(world: WorldView, personId: string): string[] {
+  const key = RESIDENTS.find((r) => residentId(r.key) === personId)?.key;
+  return key ? EXCHANGE_WANTS[key] ?? [] : [];
+}
+
+function personName(world: WorldView, personId: string): string {
+  const key = RESIDENTS.find((r) => residentId(r.key) === personId);
+  return key?.name ?? (world.getEntity(personId)?.name || "对方");
+}
+
+export function counterpartView(world: WorldView, proposerId: string, targetId: string): CounterpartView {
+  const goods = tradeableGoods(world, targetId);
+  return {
+    name: personName(world, targetId),
+    hunger: hungerLevel(world, targetId),
+    holds: Object.fromEntries(Object.entries(goods).map(([r, ids]) => [r, ids.length])),
+    wants: wantsOf(world, targetId),
+    closeness: feltCloseness(world, proposerId, targetId),
+    owed: favourOwed(world, targetId, proposerId),
+  };
+}
+
+interface ExchangePayload { targetId: string; give: string[]; askResource: string; askAmount: number; credit: boolean }
+
+function readExchange(payload: Record<string, unknown>): ExchangePayload {
+  return {
+    targetId: String(payload.targetId ?? ""),
+    give: Array.isArray(payload.give) ? payload.give.map(String) : [],
+    askResource: String(payload.askResource ?? ""),
+    askAmount: Number(payload.askAmount ?? 1),
+    credit: payload.credit === true,
+  };
+}
+
+function exchangeProblem(world: WorldView, actorId: string, p: ExchangePayload): string {
+  if (!actorId || !isPerson(world, actorId)) return "只有村里的人才能交换东西。";
+  if (!p.targetId || p.targetId === actorId || !isPerson(world, p.targetId)) return "要和一位具体的村民交换。";
+  const active = String(world.getComponent("modern:world", "modern.world_state")?.activeCharacterId ?? "");
+  if (p.targetId === active) return "玩家的东西只能由玩家自己决定是否交换。";
+  const here = occupiedPlaceId(world, actorId);
+  if (!here || here !== occupiedPlaceId(world, p.targetId)) return "要当面交换：先走到对方所在的地方。";
+  if (new Set(p.give).size !== p.give.length || p.give.length > MAX_EXCHANGE_ITEMS) return "一次最多拿出四件不同的东西。";
+  if (!(p.askResource in EXCHANGE_VALUES)) return "这样东西在村里还没有约定的价值。";
+  if (!Number.isInteger(p.askAmount) || p.askAmount < 1 || p.askAmount > MAX_EXCHANGE_ITEMS) return "一次最多要四份。";
+  if (!p.give.length && !p.credit) return "空手只能请求赊欠。";
+  for (const id of p.give) {
+    const r = prototypeOf(world, id).resourceId ?? "";
+    if (!(r in EXCHANGE_VALUES) || !tradeReady(world, id, actorId, r)) return "拿出的东西必须是你自己手里、完整且没借给别人的。";
+    if (r === p.askResource) return "不能用同一种东西换同一种东西。";
+  }
+  const have = tradeableGoods(world, p.targetId)[p.askResource] ?? [];
+  if (have.length < p.askAmount) return `${personName(world, p.targetId)}手上没有 ${p.askAmount} 份${RESOURCE_LABELS[p.askResource] ?? "这种东西"}。`;
+  // Both sides must be able to carry the result.
+  const asked = have.slice(0, p.askAmount);
+  const mass = (owner: string, ids: string[]) => ids.reduce((sum, id) =>
+    sum + portableLoad(world, owner).mass - portableLoad(world, owner, id).mass, 0);
+  const fits = (who: string, outIds: string[], inIds: string[], inOwner: string) => {
+    const load = portableLoad(world, who);
+    return load.looseSlots - outIds.length + inIds.length <= load.maxSlots &&
+      load.mass - mass(who, outIds) + mass(inOwner, inIds) <= load.maxMass + 0.0001;
+  };
+  if (!fits(actorId, p.give, asked, p.targetId)) return "换完你会拿不下，先放下些东西。";
+  if (!fits(p.targetId, asked, p.give, actorId)) return `换完${personName(world, p.targetId)}会拿不下。`;
+  return "";
+}
+
+function exchangeView(world: WorldView, actorId: string): HomesteadView["exchange"] {
+  const here = occupiedPlaceId(world, actorId);
+  const partners = here ? RESIDENTS.map((r) => residentId(r.key))
+    .filter((id) => id !== actorId && occupiedPlaceId(world, id) === here)
+    .map((id) => {
+      const v = counterpartView(world, actorId, id);
+      return { id, name: v.name, goods: v.holds, wants: v.wants, owed: v.owed, closeness: v.closeness };
+    }) : [];
+  const raw = world.getComponent(actorId, SettlementComponents.holding)?.lastExchange;
+  return {
+    labels: Object.fromEntries(Object.keys(EXCHANGE_VALUES).map((r) => [r, RESOURCE_LABELS[r] ?? r])),
+    mine: tradeableGoods(world, actorId),
+    partners,
+    last: raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, JsonValue> : null,
+  };
+}
+
+function registerExchange(ctx: Registration): void {
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.exchange}.allowed`,
+    commandType: SettlementCommands.exchange,
+    evaluate: (c) => {
+      const problem = exchangeProblem(c.world, c.command.actorId ?? "", readExchange(c.command.payload ?? {}));
+      return problem ? refuse(problem.includes("当面") ? SettlementRejection.WrongPlace
+        : problem.includes("拿不下") ? SettlementRejection.NoRoom : SettlementRejection.NotYours, problem) : { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.exchange}.resolve`,
+    commandType: SettlementCommands.exchange,
+    resolve: (c) => {
+      const actorId = c.command.actorId as string;
+      const p = readExchange(c.command.payload ?? {});
+      const view = counterpartView(c.world, actorId, p.targetId);
+      const decision = appraise(view, EXCHANGE_VALUES,
+        { resources: p.give.map((id) => prototypeOf(c.world, id).resourceId ?? "") },
+        { resourceId: p.askResource, amount: p.askAmount }, p.credit,
+        (r) => RESOURCE_LABELS[r] ?? r);
+      const asked = (tradeableGoods(c.world, p.targetId)[p.askResource] ?? []).slice(0, p.askAmount);
+      const effects: Effect[] = [];
+      if (decision.accept) {
+        const moves: [string, string, string][] = [
+          ...p.give.map((id) => [id, actorId, p.targetId] as [string, string, string]),
+          ...asked.map((id) => [id, p.targetId, actorId] as [string, string, string]),
+        ];
+        for (const [id, from, to] of moves) {
+          effects.push(
+            { kind: "removeRelation", type: ObjectRelations.heldBy, from: id, to: from, reason: "exchange handover", announce: false },
+            { kind: "removeRelation", type: ObjectRelations.ownedBy, from: id, to: from, reason: "exchange ownership", announce: false },
+            { kind: "addRelation", type: ObjectRelations.heldBy, from: id, to, announce: false },
+            { kind: "addRelation", type: ObjectRelations.ownedBy, from: id, to, announce: false },
+          );
+        }
+        const owed = Math.round((view.owed - decision.repaid + decision.onCredit) * 10) / 10;
+        const component = c.world.getComponent(p.targetId, SettlementComponents.resident)
+          ? SettlementComponents.resident
+          : c.world.getComponent(p.targetId, SettlementComponents.holding) ? SettlementComponents.holding : "";
+        if (owed !== view.owed && component) {
+          const raw = c.world.getComponent(p.targetId, component)?.favours;
+          const favours = { ...(raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, JsonValue> : {}) };
+          if (owed > 0) favours[actorId] = owed; else delete favours[actorId];
+          effects.push({ kind: "modifyComponent", entityId: p.targetId, component,
+            patch: { favours }, reason: decision.onCredit ? "favour owed for an uneven exchange" : "favour repaid" });
+        }
+      }
+      const summary = {
+        targetId: p.targetId, accepted: decision.accept, reason: decision.reason, at: c.world.tick,
+        gave: p.give.map((id) => prototypeOf(c.world, id).resourceId ?? ""),
+        got: decision.accept ? asked.map(() => p.askResource) : [],
+        onCredit: decision.onCredit, repaid: decision.repaid,
+      };
+      if (c.world.getComponent(actorId, SettlementComponents.holding)) {
+        effects.push({ kind: "modifyComponent", entityId: actorId, component: SettlementComponents.holding,
+          patch: { lastExchange: summary as unknown as JsonValue }, reason: "remember the last exchange outcome" });
+      }
+      effects.push({
+        kind: "emitEvent",
+        eventType: decision.accept ? "settlement-locations.exchanged" : "settlement-locations.exchange_declined",
+        actorId, targetId: p.targetId,
+        data: { ...summary, received: decision.received, cost: decision.cost } as unknown as Record<string, JsonValue>,
+        historicalSignificance: decision.accept ? 0.03 : 0,
       });
       return effects;
     },
@@ -1538,13 +1809,26 @@ export interface HomesteadView {
   outfit: { objectId: string; name: string; fieldWorkActivityCost: number } | null;
   /** Only the addressed player can see their cook quote at the hearth. */
   barter: { status: string; grainId: string; fuelId: string; offeredAt: number } | null;
+  /** Today's sky and what it means for work. */
+  weather: { sky: string; note: string };
+  /** The roof over the home you stand in (or your household's main room). */
+  roof: { spaceId: string; condition: number; max: number; leaking: boolean };
+  /** General exchange: what you can offer, and what each person here could trade. */
+  exchange: {
+    labels: Record<string, string>;
+    mine: Record<string, string[]>;
+    partners: { id: string; name: string; goods: Record<string, number>; wants: string[]; owed: number; closeness: string }[];
+    last: Record<string, JsonValue> | null;
+  };
   communitySituation: { visible: boolean; urgent: boolean; title: string; note: string; requestStatus: string; recentHelp: string; fuelStock: number | null };
   /** Field status, visible when standing at the field. */
   crop?: { phase: string; remainingDays: number; tended: boolean; summary: string };
   /** Who carries the village's named routines (from the settlement pack). */
   roles: Record<"farmer" | "cook" | "fuelGatherer", { id: string; name: string; workPlace: string }>;
   /** People in the same place, with what they are doing right now. */
-  neighbours: { id: string; name: string; role: string; household: string; placeId: string; atWork: boolean; dailyNote: string; tradeCount: number; contact: string; conversations: number }[];
+  neighbours: { id: string; name: string; role: string; household: string; placeId: string; atWork: boolean; dailyNote: string; tradeCount: number; contact: string; conversations: number; temperament: string[]; regard: string }[];
+  /** Residents who came to ask the player for something and await an answer. */
+  requests: PlayerRequestView[];
   /** Objects reachable from here, with the action each allows. */
   objects: { id: string; name: string; prototypeId: string; placement: string; quantity: number; capacity: number; contentsCount: number; canTake: boolean; visible: boolean }[];
   /** Resources this place renews, and what is left. */
@@ -1595,6 +1879,8 @@ export function homestead(world: WorldView, actorId: string): HomesteadView {
         tradeCount: resident.tradeCount,
         contact: contactLevel(world, actorId, entity.id),
         conversations: contactConversations(world, actorId, entity.id),
+        temperament: residentTemperament(entity.id),
+        regard: regardWord(world, entity.id, actorId),
       };
     })
     .filter((person) => person.placeId === placeId)
@@ -1711,7 +1997,15 @@ export function homestead(world: WorldView, actorId: string): HomesteadView {
     dailyActivity: dailyActivity(world, actorId),
     dailyPlan: dailyPlan(world, actorId),
     barter: ownBarter,
+    exchange: exchangeView(world, actorId),
+    weather: { sky: skyOn(world.tick), note: SKY_NOTE[skyOn(world.tick)] },
+    roof: (() => {
+      const roofSpace = HOME_SPACES.includes(spaceId) ? spaceId : "space:main-sleep";
+      const r = roofState(world, roofSpace);
+      return { spaceId: roofSpace, condition: r.condition, max: r.max, leaking: r.leaking };
+    })(),
     communitySituation,
+    requests: playerRequests(world, actorId),
     outfit: wornByActor(world, actorId) ? {
       objectId: wornByActor(world, actorId), name: nameOfObject(world, wornByActor(world, actorId)),
       fieldWorkActivityCost: wornWrap(world, actorId) ? 2 : 3,
@@ -1766,7 +2060,9 @@ function homesteadActions(
     reason: string,
     payload: Record<string, JsonValue> = {},
   ) => {
-    const cost = id === SettlementCommands.arrive && payload.travelMode === "local" ? 1 : activityCostFor(world, actorId, id);
+    const cost = id === SettlementCommands.arrive && payload.travelMode === "local" ? 1
+      : id === SettlementCommands.craft ? (recipeById(String(payload.recipeId))?.activity ?? 0)
+      : activityCostFor(world, actorId, id);
     const remaining = dailyActivity(world, actorId).remaining;
     const enoughTime = remaining >= cost;
     actions.push({ id, label, hint, days: cost ? 0 : days,
@@ -1912,28 +2208,6 @@ function homesteadActions(
     }
   }
 
-  if (placeId === "place:reedbed") {
-    const inWeavingArea = spaceId === "space:reed-cut";
-    const reeds = reedInputs(world, actorId);
-    add(SettlementCommands.weaveBag, "编一只芦苇提袋",
-      "用自己持有的两捆芦苇编出一只容量三件的提袋，可装入和取出实物。",
-      0, inWeavingArea && reeds.length >= 2,
-      !inWeavingArea ? "先到芦苇滩编织处" : reeds.length < 2 ? "缺少两捆自己的芦苇" : "");
-    add(SettlementCommands.weaveMat, "编一张苇席",
-      "用自己持有的两捆芦苇编席；带回住处休息，次日活动时间增加一格。",
-      0, inWeavingArea && reeds.length >= 2,
-      !inWeavingArea ? "先到芦苇滩编织处" : reeds.length < 2 ? "缺少两捆自己的芦苇" : "");
-    add(SettlementCommands.prepareFiber, "剥取两束苇纤维",
-      "真实消耗两捆自己持有的芦苇，加工出两束可以编衣的纤维。",
-      0, inWeavingArea && reeds.length >= 2,
-      !inWeavingArea ? "先到编织处" : reeds.length < 2 ? "缺少两捆自己的芦苇" : "");
-    const fibers = fiberInputs(world, actorId);
-    add(SettlementCommands.weaveWrap, "编一件纤维裹身",
-      "消耗自己持有的两束纤维，织成可穿脱的裹身衣；穿着下田劳动节省一格活动。",
-      0, inWeavingArea && fibers.length >= 2,
-      !inWeavingArea ? "先到编织处" : fibers.length < 2 ? "缺少两束自己的纤维" : "");
-  }
-
   const outfitId = wornByActor(world, actorId);
   for (const relation of world.listRelations({ type: ObjectRelations.heldBy, to: actorId })) {
     const id = relation.from;
@@ -1978,22 +2252,38 @@ function homesteadActions(
     const grainId = heldIngredient(world, actorId, "resource:grain");
     const inField = spaceId === "space:field-edge";
     add(SettlementCommands.sow, "播种一份粟粒",
-      "消耗一份随身粟粒作种子，种下后需照料并等待约三十天。",
+      `消耗一份随身粟粒作种子；${seasonOf(world.tick)}天种下约 ${cropGrowDays(world.tick)} 天成熟，需要照料。`,
       1, inField && !crop.seedId && Boolean(grainId),
       !inField ? "先到田头" : crop.seedId ? "这块田已播种" : !grainId ? "缺少一份自己的粟粒" : "");
     add(SettlementCommands.harvest, "收获田里的粟",
-      "成熟且已照料的作物，一次收获三份真实粮食。",
-      1, inField && crop.phase === "ready" && canCarryPrototype(world, actorId, "prototype:grain", "", CROP_YIELD),
+      `成熟且已照料的作物，${seasonOf(world.tick)}收 ${cropYield(world.tick)} 份：三份随身，其余入田边粮堆。`,
+      1, inField && crop.phase === "ready" && canCarryPrototype(world, actorId, "prototype:grain", "", HARVEST_IN_HAND),
       !inField ? "先到田头" : !crop.seedId ? "还没有播种" : !crop.tended ? "先照料田地" : crop.remainingDays ? `还需等待 ${crop.remainingDays} 天`
-        : !canCarryPrototype(world, actorId, "prototype:grain", "", CROP_YIELD) ? "一次收三份，先腾出双手或行囊" : "");
+        : !canCarryPrototype(world, actorId, "prototype:grain", "", HARVEST_IN_HAND) ? "随身要带走三份新粟，先腾出双手或行囊" : "");
   }
 
+  for (const { recipe, blocker } of recipesHere(world, actorId)) {
+    const needs = recipe.inputs.map((i) => `${i.count}份${RIVER_TERRACE_PACK.resourceLabels[i.resourceId] ?? i.resourceId}`).join("、");
+    const tool = recipe.tool ? PROTOTYPES.find((p) => p.id === recipe.tool)?.name : "";
+    add(recipe.command ?? SettlementCommands.craft, recipe.label,
+      recipe.command ? recipe.hint
+        : `${recipe.hint}${needs || tool ? `（需要${[needs, tool].filter(Boolean).join("，工具：")}）` : ""}`,
+      0, !blocker, blocker, recipe.command ? {} : { recipeId: recipe.id });
+  }
   const workSpace = SPACE_WORK[spaceId];
   if (workSpace) {
-    add(SettlementCommands.tend, workSpace.label, workSpace.hint, workSpace.days, true, "", { spaceId });
+    const wetKiln = spaceId === "space:kiln-mouth" && isWet(world.tick);
+    add(SettlementCommands.tend, workSpace.label, workSpace.hint, workSpace.days, !wetKiln,
+      wetKiln ? `今天${skyOn(world.tick)}，窑火点不起来` : "", { spaceId });
   }
 
   const homeSpace = HOME_SPACES.includes(spaceId);
+  if (homeSpace && seasonOf(world.tick) === "冬") {
+    const fuelId = heldIngredient(world, actorId, "resource:fuel");
+    add(SettlementCommands.rest, "生一盆火过冬夜",
+      "烧掉手里一捆柴取暖，暖和地睡一夜，次日多一格活动时间；可以和苇席叠加。",
+      0, Boolean(fuelId), fuelId ? "" : "手里没有柴草", { spaceId, ...(fuelId ? { fuelId } : {}) });
+  }
   if (homeSpace) {
     for (const matId of availableRestMats(world, actorId)) {
       add(SettlementCommands.rest, `铺开${nameOfObject(world, matId)}休息`,
@@ -2189,7 +2479,7 @@ function isStandingIn(world: WorldView, objectId: string, placeId: string): bool
   return container === placeId;
 }
 
-function seasonOf(tick: number): string {
+export function seasonOf(tick: number): string {
   const month = (Math.floor(tick / DAYS_PER_MONTH) % 12) + 1;
   if (month >= 3 && month <= 5) return "春";
   if (month >= 6 && month <= 8) return "夏";
@@ -2248,7 +2538,8 @@ function registerTalk(ctx: Registration): void {
       return [{
         kind: "modifyComponent", entityId: actorId, component: SettlementComponents.holding,
         patch: { contacts }, reason: "player truly met and spoke with a present resident",
-      }, {
+      }, saveSocial(targetId, withBond(socialOf(c.world, targetId), actorId, { familiarity: 1 }, c.world.tick),
+        "the resident remembers the conversation too"), {
         kind: "emitEvent", eventType: "settlement-locations.conversation",
         actorId, targetId,
         data: { conversations, relationship: conversations >= 3 ? "acquaintance" : "met" },
@@ -2607,48 +2898,7 @@ function registerWeaveBag(ctx: Registration): void {
   ctx.registerResolutionRule({
     id: `${SettlementCommands.weaveBag}.resolve`,
     commandType: SettlementCommands.weaveBag,
-    resolve: (c) => {
-      const actorId = c.command.actorId as string;
-      const inputs = reedInputs(c.world, actorId).slice(0, 2);
-      const bagId = `settlement-locations:reed-bag:${inputs[0]}`;
-      const effects: Effect[] = [];
-      for (const id of inputs) {
-        effects.push({
-          kind: "removeRelation", type: ObjectRelations.heldBy,
-          from: id, to: actorId, reason: "reeds woven into a bag", announce: false,
-        }, {
-          kind: "archiveEntity", entityId: id,
-          reason: "reeds woven into a bag", announce: false,
-        });
-      }
-      effects.push({
-        kind: "spawnEntity", localId: "woven-bag", id: bagId,
-        entityKind: ObjectKinds.item, announce: false,
-        components: {
-          [ObjectComponents.object]: {
-            prototypeId: "prototype:carrying-bag", name: "芦苇提袋",
-            condition: "woven", quantity: 1, durability: 28, madeAt: c.world.tick,
-            provenance: { reedIds: inputs, placeId: "place:reedbed", at: c.world.tick },
-            visibleFromOutside: true,
-          } as unknown as Record<string, never>,
-        },
-      }, {
-        kind: "addRelation", type: ObjectRelations.instanceOf,
-        from: bagId, to: "prototype:carrying-bag", announce: false,
-      }, {
-        kind: "addRelation", type: ObjectRelations.ownedBy,
-        from: bagId, to: actorId, announce: false,
-      }, {
-        kind: "addRelation", type: ObjectRelations.heldBy,
-        from: bagId, to: actorId, announce: false,
-      }, {
-        kind: "emitEvent", eventType: "settlement-locations.bag_woven",
-        actorId, targetId: bagId,
-        data: { bagId, reedIds: inputs, capacity: 3 },
-        historicalSignificance: 0.03,
-      });
-      return effects;
-    },
+    resolve: (c) => craftEffects(c.world, c.command.actorId as string, recipeForCommand(SettlementCommands.weaveBag), false),
   });
 }
 
@@ -2691,48 +2941,7 @@ function registerWeaveMat(ctx: Registration): void {
   ctx.registerResolutionRule({
     id: `${SettlementCommands.weaveMat}.resolve`,
     commandType: SettlementCommands.weaveMat,
-    resolve: (c) => {
-      const actorId = c.command.actorId as string;
-      const reedIds = reedInputs(c.world, actorId).slice(0, 2);
-      const matId = `settlement-locations:reed-mat:${reedIds[0]}`;
-      const effects: Effect[] = [];
-      for (const reedId of reedIds) {
-        effects.push({
-          kind: "removeRelation", type: ObjectRelations.heldBy,
-          from: reedId, to: actorId, reason: "reed woven into a sleeping mat", announce: false,
-        }, {
-          kind: "archiveEntity", entityId: reedId,
-          reason: "reed woven into a sleeping mat", announce: false,
-        });
-      }
-      effects.push({
-        kind: "spawnEntity", localId: "woven-mat", id: matId,
-        entityKind: ObjectKinds.item, announce: false,
-        components: {
-          [ObjectComponents.object]: {
-            prototypeId: "prototype:mat", name: "自己编的苇席",
-            condition: "woven", quantity: 1, durability: 40, madeAt: c.world.tick,
-            provenance: { reedIds, placeId: "place:reedbed", at: c.world.tick },
-            visibleFromOutside: true,
-          } as unknown as Record<string, never>,
-        },
-      }, {
-        kind: "addRelation", type: ObjectRelations.instanceOf,
-        from: matId, to: "prototype:mat", announce: false,
-      }, {
-        kind: "addRelation", type: ObjectRelations.ownedBy,
-        from: matId, to: actorId, announce: false,
-      }, {
-        kind: "addRelation", type: ObjectRelations.heldBy,
-        from: matId, to: actorId, announce: false,
-      }, {
-        kind: "emitEvent", eventType: "settlement-locations.mat_woven",
-        actorId, targetId: matId,
-        data: { matId, reedIds },
-        historicalSignificance: 0.03,
-      });
-      return effects;
-    },
+    resolve: (c) => craftEffects(c.world, c.command.actorId as string, recipeForCommand(SettlementCommands.weaveMat), false),
   });
 }
 
@@ -2768,46 +2977,7 @@ function registerPrepareFiber(ctx: Registration): void {
   ctx.registerResolutionRule({
     id: `${SettlementCommands.prepareFiber}.resolve`,
     commandType: SettlementCommands.prepareFiber,
-    resolve: (c) => {
-      const actorId = c.command.actorId as string;
-      const reedIds = reedInputs(c.world, actorId).slice(0, 2);
-      const effects: Effect[] = [];
-      for (const reedId of reedIds) {
-        const fiberId = `settlement-locations:processed-fiber:${reedId}`;
-        effects.push({
-          kind: "removeRelation", type: ObjectRelations.heldBy,
-          from: reedId, to: actorId, reason: "reed stripped for weaving fibers", announce: false,
-        }, {
-          kind: "archiveEntity", entityId: reedId,
-          reason: "converted from reed into fiber", announce: false,
-        }, {
-          kind: "spawnEntity", localId: `fiber-${fiberId}`, id: fiberId,
-          entityKind: ObjectKinds.item, announce: false,
-          components: {
-            [ObjectComponents.object]: {
-              prototypeId: "prototype:fiber-bundle", name: "整理好的苇纤维",
-              condition: "prepared", quantity: 1, durability: 0, madeAt: c.world.tick,
-              provenance: { fromReedId: reedId, placeId: "place:reedbed", at: c.world.tick },
-              visibleFromOutside: false,
-            } as unknown as Record<string, never>,
-          },
-        }, {
-          kind: "addRelation", type: ObjectRelations.instanceOf, from: fiberId,
-          to: "prototype:fiber-bundle", announce: false,
-        }, {
-          kind: "addRelation", type: ObjectRelations.ownedBy, from: fiberId,
-          to: actorId, announce: false,
-        }, {
-          kind: "addRelation", type: ObjectRelations.heldBy, from: fiberId,
-          to: actorId, announce: false,
-        });
-      }
-      effects.push({
-        kind: "emitEvent", eventType: "settlement-locations.fiber_prepared",
-        actorId, data: { reedIds, fiberCount: 2 }, historicalSignificance: 0.02,
-      });
-      return effects;
-    },
+    resolve: (c) => craftEffects(c.world, c.command.actorId as string, recipeForCommand(SettlementCommands.prepareFiber), false),
   });
 }
 
@@ -2830,47 +3000,7 @@ function registerWeaveWrap(ctx: Registration): void {
   ctx.registerResolutionRule({
     id: `${SettlementCommands.weaveWrap}.resolve`,
     commandType: SettlementCommands.weaveWrap,
-    resolve: (c) => {
-      const actorId = c.command.actorId as string;
-      const fiberIds = fiberInputs(c.world, actorId).slice(0, 2);
-      const wrapId = `settlement-locations:fiber-wrap:${fiberIds[0]}`;
-      const effects: Effect[] = [];
-      for (const fiberId of fiberIds) {
-        effects.push({
-          kind: "removeRelation", type: ObjectRelations.heldBy,
-          from: fiberId, to: actorId, reason: "fibers woven into one wrap", announce: false,
-        }, {
-          kind: "archiveEntity", entityId: fiberId,
-          reason: "fiber used in woven clothing", announce: false,
-        });
-      }
-      effects.push({
-        kind: "spawnEntity", localId: "woven-fiber-wrap", id: wrapId,
-        entityKind: ObjectKinds.item, announce: false,
-        components: {
-          [ObjectComponents.object]: {
-            prototypeId: "prototype:fiber-wrap", name: "自己编的纤维裹身",
-            condition: "woven", quantity: 1, durability: 25, madeAt: c.world.tick,
-            provenance: { fromFiberIds: fiberIds, placeId: "place:reedbed", at: c.world.tick },
-            visibleFromOutside: false,
-          } as unknown as Record<string, never>,
-        },
-      }, {
-        kind: "addRelation", type: ObjectRelations.instanceOf, from: wrapId,
-        to: "prototype:fiber-wrap", announce: false,
-      }, {
-        kind: "addRelation", type: ObjectRelations.ownedBy, from: wrapId,
-        to: actorId, announce: false,
-      }, {
-        kind: "addRelation", type: ObjectRelations.heldBy, from: wrapId,
-        to: actorId, announce: false,
-      }, {
-        kind: "emitEvent", eventType: "settlement-locations.wrap_woven",
-        actorId, targetId: wrapId, data: { fiberIds, wrapId },
-        historicalSignificance: 0.03,
-      });
-      return effects;
-    },
+    resolve: (c) => craftEffects(c.world, c.command.actorId as string, recipeForCommand(SettlementCommands.weaveWrap), false),
   });
 }
 
@@ -2912,7 +3042,7 @@ function registerSow(ctx: Registration): void {
         reason: "sow grain in the field",
       }, {
         kind: "emitEvent", eventType: "settlement-locations.sown",
-        actorId, targetId: "place:field", data: { seedId, matureAt: c.world.tick + CROP_GROW_DAYS },
+        actorId, targetId: "place:field", data: { seedId, matureAt: c.world.tick + cropGrowDays(c.world.tick) },
         historicalSignificance: 0.04,
       }];
     },
@@ -2933,8 +3063,8 @@ function registerHarvest(ctx: Registration): void {
       if (!crop.seedId) return refuse(SettlementRejection.Empty, "这块地还没有播种。");
       if (!crop.tended) return refuse(SettlementRejection.Busy, "粟田还没照料，不能收获。");
       if (crop.remainingDays > 0) return refuse(SettlementRejection.Busy, `粟还要生长约 ${crop.remainingDays} 天。`);
-      if (!canCarryPrototype(c.world, actorId, "prototype:grain", "", CROP_YIELD))
-        return refuse(SettlementRejection.NoRoom, "一次收三份粮食，先腾出双手和行囊空间再收获。");
+      if (!canCarryPrototype(c.world, actorId, "prototype:grain", "", HARVEST_IN_HAND))
+        return refuse(SettlementRejection.NoRoom, "随身要带走三份新粟，先腾出双手和行囊空间再收获。");
       return { ok: true };
     },
   });
@@ -2950,7 +3080,7 @@ function registerHarvest(ctx: Registration): void {
         value: { seedId: "", sownAt: 0, tended: false, harvests: crop.harvests + 1 },
         reason: "harvest completed; plot is fallow again",
       }];
-      for (let index = 0; index < CROP_YIELD; index += 1) {
+      for (let index = 0; index < HARVEST_IN_HAND; index += 1) {
         const objectId = `settlement-locations:harvest:${crop.seedId}:${index}`;
         effects.push({
           kind: "spawnEntity", localId: `harvest-${index}`, id: objectId,
@@ -2974,10 +3104,24 @@ function registerHarvest(ctx: Registration): void {
           from: objectId, to: actorId, announce: false,
         });
       }
+      // The rest of the crop goes onto the field's shared grain heap.
+      const heap = yieldPoints(c.world).find((p) => p.placeId === "place:field" && p.resourceId === "resource:grain");
+      if (heap) {
+        effects.push({
+          kind: "setComponent", entityId: `yield:${heap.placeId}:${heap.resourceId}`,
+          component: SettlementComponents.yieldPoint,
+          value: {
+            placeId: heap.placeId, resourceId: heap.resourceId, label: heap.label, unit: heap.unit,
+            capacity: heap.capacity, stock: Math.min(heap.capacity, heap.stock + cropYield(c.world.tick) - HARVEST_IN_HAND),
+            renewDays: heap.renewDays, lastRenewedAt: renewalAnchor(heap, c.world.tick),
+          } as unknown as Record<string, never>,
+          reason: "harvest surplus stored at the field",
+        });
+      }
       effects.push({
         kind: "emitEvent", eventType: "settlement-locations.harvested",
         actorId, targetId: "place:field",
-        data: { seedId: crop.seedId, amount: CROP_YIELD, harvests: crop.harvests + 1 },
+        data: { seedId: crop.seedId, amount: cropYield(c.world.tick), season: seasonOf(c.world.tick), carried: HARVEST_IN_HAND, harvests: crop.harvests + 1 },
         historicalSignificance: 0.07,
       });
       return effects;
@@ -3000,6 +3144,9 @@ function registerTend(ctx: Registration): void {
       }
       if (occupiedSpaceId(c.world, actorId) !== spaceId) {
         return refuse(SettlementRejection.WrongPlace, "要先走到那个位置上。");
+      }
+      if (spaceId === "space:kiln-mouth" && isWet(c.world.tick)) {
+        return refuse(SettlementRejection.Busy, `今天${skyOn(c.world.tick)}，窑口潮湿，窑火点不起来。等天晴再来。`);
       }
       return { ok: true };
     },
@@ -3057,6 +3204,14 @@ function registerRest(ctx: Registration): void {
       if (matId && !availableRestMats(c.world, actorId).includes(matId)) {
         return refuse(SettlementRejection.NotYours, "只有在住处铺开自己持有或放在身边的苇席才能好好休息。");
       }
+      const fuelId = String(c.command.payload.fuelId ?? "");
+      if (fuelId) {
+        if (seasonOf(c.world.tick) !== "冬") return refuse(SettlementRejection.Busy, "不是冬天，不用生火取暖。");
+        if (!HOME_SPACES.includes(occupiedSpaceId(c.world, actorId)))
+          return refuse(SettlementRejection.WrongPlace, "要在自己的住处才能生火过夜。");
+        if (!tradeReady(c.world, fuelId, actorId, "resource:fuel"))
+          return refuse(SettlementRejection.NotYours, "要烧的必须是你自己手里的一捆柴草。");
+      }
       return { ok: true };
     },
   });
@@ -3065,9 +3220,19 @@ function registerRest(ctx: Registration): void {
     id: `${SettlementCommands.rest}.resolve`,
     commandType: SettlementCommands.rest,
     resolve: (c) => {
-      const matId = String(c.command.payload.matId ?? "");
+      const restSpace = occupiedSpaceId(c.world, c.command.actorId as string);
+      // A leaking roof on a wet night soaks the bedding and puts out the fire: no bonus.
+      const leaked = HOME_SPACES.includes(restSpace) && isWet(c.world.tick) && roofState(c.world, restSpace).leaking;
+      const matId = leaked ? "" : String(c.command.payload.matId ?? "");
+      const fuelId = String(c.command.payload.fuelId ?? "");
       const hadBonusToday = dailyActivity(c.world, c.command.actorId as string).capacity > DAILY_ACTIVITY_CAPACITY;
-      return [{
+      return [...(fuelId ? [{
+        kind: "modifyComponent" as const, entityId: c.command.actorId as string,
+        component: SettlementComponents.holding, patch: leaked ? {} : { warmNightAt: c.world.tick },
+        reason: "a fire kept the winter night warm",
+      }, {
+        kind: "archiveEntity" as const, entityId: fuelId, reason: "burned for warmth on a winter night", announce: false,
+      }] : []), {
         kind: "modifyComponent", entityId: c.command.actorId as string,
         component: SettlementComponents.holding,
         patch: { lastRestedAt: c.world.tick, ...(matId ? {
@@ -3079,7 +3244,8 @@ function registerRest(ctx: Registration): void {
         kind: "emitEvent", eventType: "settlement-locations.rested",
         actorId: c.command.actorId,
         data: { placeId: occupiedPlaceId(c.world, c.command.actorId as string),
-          matId: matId || null, nextDayExtraActivity: matId ? 1 : 0 },
+          matId: matId || null, fuelId: fuelId || null, leaked,
+          nextDayExtraActivity: leaked ? 0 : (matId ? 1 : 0) + (fuelId ? 1 : 0) },
         historicalSignificance: 0,
       }];
     },
@@ -3282,3 +3448,507 @@ export function instanceSpecs(): readonly InstanceSpec[] {
 }
 
 export type { ComponentData };
+
+
+/* ------------------------------------------------------------------ */
+/* Generic recipes: inputs + tool + workplace + time → one output.     */
+/* ------------------------------------------------------------------ */
+
+const RECIPES: RecipeSpec[] = RIVER_TERRACE_PACK.recipes ?? [];
+export function recipeById(id: string): RecipeSpec | undefined { return RECIPES.find((r) => r.id === id); }
+
+/** The maker's own carried, whole, unlent items for each input, or what is missing. */
+function recipeInputs(world: WorldView, actorId: string, recipe: RecipeSpec): { ids: string[]; missing: string } {
+  const held = world.listRelations({ type: ObjectRelations.heldBy, to: actorId }).map((r) => r.from).sort();
+  const ids: string[] = [];
+  for (const input of recipe.inputs) {
+    const own = held.filter((id) => !ids.includes(id) && tradeReady(world, id, actorId, input.resourceId));
+    const minAge = input.minAgeDays ?? 0;
+    const found = own.filter((id) => world.tick - Number(readObject(world.getEntity(id)!.components[ObjectComponents.object]).madeAt ?? -Infinity) >= minAge)
+      .slice(0, input.count);
+    if (found.length < input.count) {
+      const label = RIVER_TERRACE_PACK.resourceLabels[input.resourceId] ?? input.resourceId;
+      return { ids, missing: own.length >= input.count ? `${label}还没晾干，要放过一夜` : `缺少${input.count}份自己的${label}` };
+    }
+    ids.push(...found);
+  }
+  return { ids, missing: "" };
+}
+
+/** A tool in hand (yours or borrowed), or one lying at the workplace. */
+function recipeTool(world: WorldView, actorId: string, recipe: RecipeSpec): string {
+  if (!recipe.tool) return "";
+  const usable = (id: string) => {
+    const e = world.getEntity(id);
+    return Boolean(e && e.archivedAt === undefined && prototypeOf(world, id).prototypeId === recipe.tool);
+  };
+  const inHand = world.listRelations({ type: ObjectRelations.heldBy, to: actorId }).map((r) => r.from).filter(usable).sort();
+  if (inHand[0]) return inHand[0];
+  const here = world.listRelations({ type: ObjectRelations.containedIn, to: recipe.spaceId }).map((r) => r.from).filter(usable).sort();
+  return here[0] ?? "";
+}
+
+export function recipeBlocker(world: WorldView, actorId: string, recipe: RecipeSpec): string {
+  if (recipe.spaceId === "@home") {
+    if (!HOME_SPACES.includes(occupiedSpaceId(world, actorId))) return "要在住处的屋里做";
+  } else if (occupiedSpaceId(world, actorId) !== recipe.spaceId) {
+    const place = PLACES.find((p) => p.spaces.some((sp) => sp.id === recipe.spaceId));
+    const space = place?.spaces.find((sp) => sp.id === recipe.spaceId);
+    return `要到${place?.name ?? ""}的${space?.name ?? "工作处"}去做`;
+  }
+  if (recipe.seasons && !recipe.seasons.includes(seasonOf(world.tick))) return `${seasonOf(world.tick)}天做不了，要等${recipe.seasons.join("、")}`;
+  if (recipe.dryOnly && isWet(world.tick)) return `今天${skyOn(world.tick)}，${recipe.repairs ? "上不了屋顶" : "窑火点不起来"}`;
+  if (recipe.repairs === "roof" && roofState(world, occupiedSpaceId(world, actorId)).condition >= ROOF_MAX) return "屋顶完好，不用修";
+  const { missing } = recipeInputs(world, actorId, recipe);
+  if (missing) return missing;
+  if (recipe.tool && !recipeTool(world, actorId, recipe)) {
+    return `手边没有${PROTOTYPES.find((p) => p.id === recipe.tool)?.name ?? "合适的工具"}`;
+  }
+  const out = recipe.output && PROTOTYPES.find((p) => p.id === recipe.output!.prototypeId);
+  // Inputs leave the hands as the output arrives; only a recipe with no inputs needs a free hand.
+  if (out?.capabilities.includes("carryable") && recipe.inputs.length === 0 &&
+      !canCarryPrototype(world, actorId, recipe.output!.prototypeId)) {
+    return "手里拿不下成品，先放下些东西";
+  }
+  const remaining = dailyActivity(world, actorId).remaining;
+  if (remaining < recipe.activity) return `今天只剩 ${remaining} 格活动时间`;
+  return "";
+}
+
+/** Recipes shown at the actor's current workplace. */
+export function recipesHere(world: WorldView, actorId: string) {
+  const placeId = occupiedPlaceId(world, actorId);
+  const place = PLACES.find((p) => p.id === placeId);
+  const spaces = new Set(place?.spaces.map((sp) => sp.id) ?? []);
+  return RECIPES.filter((r) => r.spaceId === "@home"
+    ? [...spaces].some((sp) => HOME_SPACES.includes(sp)) : spaces.has(r.spaceId)).map((r) => ({ recipe: r, blocker: recipeBlocker(world, actorId, r) }));
+}
+
+function registerCraft(ctx: Registration): void {
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.craft}.allowed`,
+    commandType: SettlementCommands.craft,
+    evaluate: (c) => {
+      const actorId = c.command.actorId ?? "";
+      if (!c.world.hasEntity(actorId)) return refuse(SettlementRejection.NoSuchResident, "需要一位正在生活的人。");
+      const recipe = recipeById(String(c.command.payload.recipeId ?? ""));
+      if (!recipe) return refuse(SettlementRejection.Empty, "没有这样的做法。");
+      const blocker = recipeBlocker(c.world, actorId, recipe);
+      if (!blocker) return { ok: true };
+      const code = blocker.startsWith("要到") ? SettlementRejection.WrongPlace
+        : blocker.startsWith("今天只剩") ? SettlementRejection.Exhausted : SettlementRejection.Empty;
+      return refuse(code, `${recipe.label}：${blocker}。`);
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.craft}.resolve`,
+    commandType: SettlementCommands.craft,
+    resolve: (c) => craftEffects(c.world, c.command.actorId as string,
+      recipeById(String(c.command.payload.recipeId))!, true),
+  });
+}
+
+
+function fill(template: string | number, ctx: Record<string, JsonValue>): JsonValue {
+  return typeof template === "string" && template.startsWith("$") && template in ctx ? ctx[template]! : template;
+}
+
+/**
+ * One recipe as one transaction: inputs leave the hands and are archived, the
+ * outputs appear owned by the maker (in hand, or at the workplace when they
+ * cannot be carried), with provenance and an event. The older dedicated
+ * commands pay their time through the activity budget, so they pass charge=false.
+ */
+function craftEffects(world: WorldView, actorId: string, recipe: RecipeSpec, charge: boolean): Effect[] {
+  const { ids } = recipeInputs(world, actorId, recipe);
+  const toolId = recipeTool(world, actorId, recipe);
+  const before = dailyActivity(world, actorId);
+  if (recipe.repairs === "roof") return roofMendEffects(world, actorId, recipe, ids, before.used, charge);
+  const out = recipe.output!;
+  const count = out.perInput ? ids.length : Math.max(1, out.count ?? 1);
+  const outputIds = Array.from({ length: count }, (_, i) => out.idPrefix
+    ? `${out.idPrefix}${out.perInput ? ids[i] : ids[0]}${!out.perInput && i > 0 ? `:${i}` : ""}`
+    : `settlement-locations:craft:${recipe.id.replace("recipe:", "")}:${actorId.split(":").pop()}:${world.tick}:${before.used}${i ? `:${i}` : ""}`);
+  const carryable = PROTOTYPES.find((p) => p.id === out.prototypeId)?.capabilities.includes("carryable");
+  const effects: Effect[] = [];
+  for (const id of ids) {
+    effects.push({ kind: "removeRelation", type: ObjectRelations.heldBy, from: id, to: actorId,
+      reason: `used up: ${recipe.label}`, announce: false },
+    { kind: "archiveEntity", entityId: id, reason: `used up: ${recipe.label}`, announce: false });
+  }
+  outputIds.forEach((made, i) => {
+    const ctx: Record<string, JsonValue> = { "$inputs": ids, "$input": ids[i] ?? ids[0] ?? null };
+    const provenance: Record<string, JsonValue> = recipe.provenance
+      ? Object.fromEntries(Object.entries(recipe.provenance).map(([k, v]) => [k, fill(v, ctx)]))
+      : { recipeId: recipe.id, inputIds: ids, toolId: toolId || null, spaceId: recipe.spaceId };
+    provenance.at = world.tick;
+    effects.push({
+      kind: "spawnEntity", localId: `crafted-${i}`, id: made, entityKind: ObjectKinds.item, announce: false,
+      components: { [ObjectComponents.object]: {
+        prototypeId: out.prototypeId, name: out.name, condition: out.condition ?? "made",
+        quantity: 1, durability: out.durability, madeAt: world.tick, provenance, visibleFromOutside: true,
+      } as unknown as Record<string, never> },
+    }, { kind: "addRelation", type: ObjectRelations.instanceOf, from: made, to: out.prototypeId, announce: false },
+    { kind: "addRelation", type: ObjectRelations.ownedBy, from: made, to: actorId, announce: false },
+    carryable
+      ? { kind: "addRelation", type: ObjectRelations.heldBy, from: made, to: actorId, announce: false }
+      : { kind: "addRelation", type: ObjectRelations.containedIn, from: made, to: recipe.spaceId, announce: false });
+  });
+  if (charge) effects.push({ kind: "modifyComponent", entityId: actorId, component: SettlementComponents.holding,
+    patch: { activityDay: world.tick, activityUsed: before.used + recipe.activity },
+    reason: "activity capacity spent on a recipe" });
+  const ctx: Record<string, JsonValue> = { "$inputs": ids, "$output": outputIds[0]!, "$outputs": outputIds, "$count": outputIds.length };
+  effects.push({ kind: "emitEvent", eventType: recipe.event?.type ?? "settlement-locations.crafted", actorId,
+    targetId: outputIds[0],
+    data: recipe.event?.data
+      ? Object.fromEntries(Object.entries(recipe.event.data).map(([k, v]) => [k, fill(v, ctx)]))
+      : { recipeId: recipe.id, label: recipe.label, objectId: outputIds[0]!, objectIds: outputIds, inputIds: ids, toolId: toolId || null },
+    historicalSignificance: recipe.event?.significance ?? 0.02 });
+  return effects;
+}
+
+/** The recipe a dedicated older command runs. */
+function recipeForCommand(command: string): RecipeSpec {
+  const r = RECIPES.find((x) => x.command === command);
+  if (!r) throw new Error(`settlement pack has no recipe for ${command}`);
+  return r;
+}
+
+
+// ---------------------------------------------------------------------------
+// Homes: roofs wear in rain and snow and are mended with reed, rope and clay.
+// ---------------------------------------------------------------------------
+
+export const ROOF_MAX = 10;
+/** At or below this the roof leaks: a wet night at home gives no rest bonus. */
+export const ROOF_LEAKS_AT = 3;
+/** Wet days of wear per lost level (snow counts double). */
+const ROOF_WEAR_PER_LEVEL = 4;
+
+/** Lazy roof state: computed from the last mending and the deterministic weather since. */
+export function roofState(world: WorldView, spaceId: string) {
+  const raw = world.hasEntity(spaceId) ? world.getComponent(spaceId, SettlementComponents.roof) : undefined;
+  const level = Math.max(0, Math.min(ROOF_MAX, Number(raw?.level ?? ROOF_MAX)));
+  const since = Math.max(0, Math.floor(Number(raw?.mendedAt ?? 0)));
+  let wear = 0;
+  for (let d = Math.max(since + 1, world.tick - 720); d <= world.tick; d++) {
+    const sky = skyOn(d);
+    wear += sky === "雪" ? 2 : sky === "雨" ? 1 : 0;
+  }
+  const condition = Math.max(0, level - Math.floor(wear / ROOF_WEAR_PER_LEVEL));
+  return { condition, max: ROOF_MAX, leaking: condition <= ROOF_LEAKS_AT, mendedAt: since };
+}
+
+function roofMendEffects(world: WorldView, actorId: string, recipe: RecipeSpec, ids: string[], used: number, charge: boolean): Effect[] {
+  const spaceId = occupiedSpaceId(world, actorId);
+  const before = roofState(world, spaceId).condition;
+  const effects: Effect[] = [];
+  for (const id of ids) {
+    effects.push({ kind: "removeRelation", type: ObjectRelations.heldBy, from: id, to: actorId,
+      reason: `used up: ${recipe.label}`, announce: false },
+    { kind: "archiveEntity", entityId: id, reason: `used up: ${recipe.label}`, announce: false });
+  }
+  effects.push({ kind: "setComponent", entityId: spaceId, component: SettlementComponents.roof,
+    value: { level: ROOF_MAX, mendedAt: world.tick, mendedBy: actorId, inputIds: ids }, reason: "roof mended" });
+  if (charge) effects.push({ kind: "modifyComponent", entityId: actorId, component: SettlementComponents.holding,
+    patch: { activityDay: world.tick, activityUsed: used + recipe.activity }, reason: "activity capacity spent on a recipe" });
+  effects.push({ kind: "emitEvent", eventType: "settlement-locations.roof_mended", actorId, targetId: spaceId,
+    data: { recipeId: recipe.id, label: recipe.label, spaceId, before, after: ROOF_MAX, inputIds: ids },
+    historicalSignificance: 0.02 });
+  return effects;
+}
+
+// ---------------------------------------------------------------------------
+// 见闻、人情与村民主动开口（social.ts 是纯数据，这里是经过校验的世界命令）
+// ---------------------------------------------------------------------------
+
+export interface PlayerRequestView {
+  requesterId: string; name: string; kind: "borrow" | "trade" | "collect";
+  resourceId: string; label: string; give: string[]; reason: string; at: number;
+  /** 对方此刻就在你身边，能当面答应。 */
+  here: boolean; whereName: string;
+}
+
+interface RequestRecord {
+  status: string; to: string; at: number; resourceId: string; give: string[];
+  kind: "borrow" | "trade" | "collect"; placeId: string; reason: string;
+}
+
+const activeId = (world: WorldView) =>
+  String(world.getComponent("modern:world", "modern.world_state")?.activeCharacterId ?? "");
+
+export function socialOf(world: WorldView, personId: string): SocialMemory {
+  return readSocial(world.getComponent(personId, SettlementComponents.resident)?.social);
+}
+
+function requestOf(world: WorldView, residentId: string): RequestRecord | null {
+  const raw = world.getComponent(residentId, SettlementComponents.resident)?.request;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const r = raw as Record<string, JsonValue>;
+  const kind = r.kind === "trade" || r.kind === "collect" ? r.kind : "borrow";
+  return {
+    status: String(r.status ?? ""), to: String(r.to ?? ""), at: Number(r.at ?? -100),
+    resourceId: String(r.resourceId ?? ""), give: Array.isArray(r.give) ? r.give.map(String) : [],
+    kind, placeId: String(r.placeId ?? ""), reason: String(r.reason ?? ""),
+  };
+}
+
+/** A request still waiting for the person it was made to. */
+export function openRequest(world: WorldView, residentId: string): RequestRecord | null {
+  const r = requestOf(world, residentId);
+  return r && r.status === "pending" && world.tick - r.at <= REQUEST_DAYS ? r : null;
+}
+
+function worth(resourceId: string): number { return EXCHANGE_VALUES[resourceId] ?? 0; }
+
+function handover(itemId: string, from: string, to: string, reason: string): Effect[] {
+  return [
+    { kind: "removeRelation", type: ObjectRelations.heldBy, from: itemId, to: from, reason, announce: false },
+    { kind: "removeRelation", type: ObjectRelations.ownedBy, from: itemId, to: from, reason, announce: false },
+    { kind: "addRelation", type: ObjectRelations.heldBy, from: itemId, to, announce: false },
+    { kind: "addRelation", type: ObjectRelations.ownedBy, from: itemId, to, announce: false },
+  ];
+}
+
+/** Set what `debtorId` owes `creditorId` (the ledger lives on the creditor). */
+function setFavour(world: WorldView, creditorId: string, debtorId: string, value: number, reason: string): Effect[] {
+  const component = world.getComponent(creditorId, SettlementComponents.resident) ? SettlementComponents.resident
+    : world.getComponent(creditorId, SettlementComponents.holding) ? SettlementComponents.holding : "";
+  if (!component) return [];
+  const raw = world.getComponent(creditorId, component)?.favours;
+  const favours = { ...(raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, JsonValue> : {}) };
+  const v = Math.round(value * 10) / 10;
+  if (v > 0) favours[debtorId] = v; else delete favours[debtorId];
+  return [{ kind: "modifyComponent", entityId: creditorId, component, patch: { favours }, reason }];
+}
+
+function saveSocial(residentIdValue: string, memory: SocialMemory, reason: string): Effect {
+  return { kind: "modifyComponent", entityId: residentIdValue, component: SettlementComponents.resident,
+    patch: { social: toJson(memory) }, reason };
+}
+
+/** How close the counterpart feels to the proposer: talk counts, and so do their own memories. */
+function feltCloseness(world: WorldView, proposerId: string, targetId: string): Closeness {
+  const base = contactLevel(world, proposerId, targetId) as Closeness;
+  if (!world.getComponent(targetId, SettlementComponents.resident)) return base;
+  const bond = bondOf(socialOf(world, targetId), proposerId);
+  if (bond.grudge >= 3) return "陌生";
+  if (base === "陌生" && bond.familiarity >= 4) return bond.trust >= 7 ? "相识" : "见过";
+  if (base === "见过" && (bond.trust >= 8 || bond.familiarity >= 6)) return "相识";
+  return base;
+}
+
+/** What a resident feels about you, in a few words. */
+function regardWord(world: WorldView, npcId: string, playerId: string): string {
+  if (!playerId || npcId === playerId) return "";
+  const bond = bondOf(socialOf(world, npcId), playerId);
+  const words: string[] = [];
+  if (bond.grudge >= 3) words.push("对你有怨气");
+  else if (bond.trust >= 8) words.push("信得过你");
+  else if (bond.trust <= 3) words.push("不太信你");
+  if (favourOwed(world, playerId, npcId) > 0) words.push("欠你人情");
+  if (favourOwed(world, npcId, playerId) > 0) words.push("你欠着人情");
+  return words.join("、");
+}
+
+function playerRequests(world: WorldView, playerId: string): PlayerRequestView[] {
+  if (!playerId) return [];
+  const here = occupiedPlaceId(world, playerId);
+  return RESIDENTS.map((r) => residentId(r.key)).flatMap((id) => {
+    const req = openRequest(world, id);
+    if (!req || req.to !== playerId) return [];
+    const at = occupiedPlaceId(world, id);
+    return [{
+      requesterId: id, name: personName(world, id), kind: req.kind, resourceId: req.resourceId,
+      label: RESOURCE_LABELS[req.resourceId] ?? req.resourceId,
+      give: req.give.filter((g) => world.getEntity(g)).map((g) => RESOURCE_LABELS[prototypeOf(world, g).resourceId ?? ""] ?? "东西"),
+      reason: req.reason, at: req.at, here: Boolean(here) && here === at,
+      whereName: String(world.getComponent(at, SpaceComponents.place)?.name ?? PLACES.find((p) => p.id === at)?.name ?? "别处"),
+    }];
+  });
+}
+
+function registerSocial(ctx: Registration): void {
+  const isResident = (world: WorldView, id: string) => Boolean(world.getComponent(id, SettlementComponents.resident));
+
+  // ---- 看一看身边：记下谁在、带着什么；听别人说起旁人；过期的请求算作没回音。
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.npcNotice}.allowed`, commandType: SettlementCommands.npcNotice,
+    evaluate: (c) => c.command.source === "ai" && isResident(c.world, c.command.actorId ?? "")
+      ? { ok: true } : refuse(SettlementRejection.NotYours, "只有村民自己会留意身边的人。"),
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.npcNotice}.resolve`, commandType: SettlementCommands.npcNotice,
+    resolve: (c): Effect[] => {
+      const me = c.command.actorId as string, tick = c.world.tick;
+      const here = occupiedPlaceId(c.world, me);
+      let memory = socialOf(c.world, me);
+      const effects: Effect[] = [];
+      if (here) {
+        const others = c.world.listEntities({ kind: "modern.character" })
+          .filter((e) => e.id !== me && e.archivedAt === undefined && occupiedPlaceId(c.world, e.id) === here)
+          .map((e) => e.id).sort();
+        // 记得在这儿的人眼下不在：只知道他不在这儿了，手上有什么还记着。
+        for (const [id, seen] of Object.entries(memory.seen))
+          if (seen.placeId === here && !others.includes(id)) memory = { ...memory, seen: { ...memory.seen, [id]: { ...seen, placeId: "" } } };
+        for (const id of others) {
+          const goods = Object.fromEntries(Object.entries(tradeableGoods(c.world, id)).map(([r, ids]) => [r, ids.length]));
+          memory = { ...memory, seen: { ...memory.seen, [id]: { placeId: here, at: tick, goods } } };
+          // 同处一地的时间多了，自然就熟一些（每天每人最多一次）。
+          // 光是常碰面只能熟到「见过」；再深要靠说话、帮忙。
+          const bond = bondOf(memory, id);
+          if (bond.lastAt !== tick && bond.familiarity < 4) memory = withBond(memory, id, { familiarity: 0.25 }, tick);
+          if (isResident(c.world, id)) memory = mergeHeard(memory, socialOf(c.world, id), me, id);
+        }
+      }
+      const req = requestOf(c.world, me);
+      if (req && req.status === "pending" && tick - req.at > REQUEST_DAYS) {
+        memory = withBond(memory, req.to, { trust: -1, grudge: 0.5 }, tick);
+        effects.push({ kind: "modifyComponent", entityId: me, component: SettlementComponents.resident,
+          patch: { request: { ...req, status: "lapsed", resolvedAt: tick } as unknown as JsonValue },
+          reason: "a request nobody answered" });
+      }
+      effects.unshift(saveSocial(me, memory, "a resident notices who is around and what they carry"));
+      return effects;
+    },
+  });
+
+  // ---- 当面开口求玩家：借、换、或讨回人情。答不答应由玩家决定。
+  const readRequest = (p: Record<string, unknown>) => ({
+    targetId: String(p.targetId ?? ""), resourceId: String(p.resourceId ?? ""),
+    give: Array.isArray(p.give) ? p.give.map(String) : [], reason: String(p.reason ?? "").slice(0, 40),
+  });
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.npcRequest}.allowed`, commandType: SettlementCommands.npcRequest,
+    evaluate: (c) => {
+      const me = c.command.actorId ?? "";
+      const p = readRequest(c.command.payload ?? {});
+      if (c.command.source !== "ai" || !isResident(c.world, me)) return refuse(SettlementRejection.NotYours, "只有村民会自己开口求人。");
+      if (!p.targetId || p.targetId !== activeId(c.world)) return refuse(SettlementRejection.NotYours, "村民之间直接当面交换；这里是向玩家开口。");
+      const here = occupiedPlaceId(c.world, me);
+      if (!here || here !== occupiedPlaceId(c.world, p.targetId)) return refuse(SettlementRejection.WrongPlace, "要走到对方面前才能开口。");
+      if (!(p.resourceId in EXCHANGE_VALUES)) return refuse(SettlementRejection.Empty, "这样东西在村里还没有约定的价值。");
+      if (!(tradeableGoods(c.world, p.targetId)[p.resourceId]?.length)) return refuse(SettlementRejection.Empty, "对方手上并没有这样东西。");
+      if (openRequest(c.world, me)) return refuse(SettlementRejection.Busy, "还在等对方回话。");
+      if (c.world.tick - (socialOf(c.world, me).asked[p.targetId] ?? -100) < ASK_COOLDOWN) return refuse(SettlementRejection.Busy, "前两天刚开过口，不好再去。");
+      if (p.give.length > 2 || new Set(p.give).size !== p.give.length) return refuse(SettlementRejection.NotYours, "最多拿出两件东西。");
+      for (const id of p.give) {
+        const r = prototypeOf(c.world, id).resourceId ?? "";
+        if (r === p.resourceId || !tradeReady(c.world, id, me, r)) return refuse(SettlementRejection.NotYours, "拿出来的东西得是自己手里的。");
+      }
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.npcRequest}.resolve`, commandType: SettlementCommands.npcRequest,
+    resolve: (c): Effect[] => {
+      const me = c.command.actorId as string, tick = c.world.tick;
+      const p = readRequest(c.command.payload ?? {});
+      const kind = favourOwed(c.world, me, p.targetId) > 0 ? "collect" : p.give.length ? "trade" : "borrow";
+      const memory = socialOf(c.world, me);
+      const record = { status: "pending", to: p.targetId, at: tick, resourceId: p.resourceId, give: p.give,
+        kind, placeId: occupiedPlaceId(c.world, me), reason: p.reason };
+      return [
+        { kind: "modifyComponent", entityId: me, component: SettlementComponents.resident,
+          patch: { request: record as unknown as JsonValue }, reason: "a resident asks the player face to face" },
+        saveSocial(me, { ...memory, asked: { ...memory.asked, [p.targetId]: tick } }, "remember having asked"),
+        { kind: "emitEvent", eventType: "settlement-locations.npc_requested", actorId: me, targetId: p.targetId,
+          data: { resourceId: p.resourceId, kind, give: p.give, reason: p.reason }, historicalSignificance: 0.05 },
+      ];
+    },
+  });
+
+  // ---- 玩家回话。答应要当面把东西递过去；拒绝随时都可以。
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.requestAnswer}.allowed`, commandType: SettlementCommands.requestAnswer,
+    evaluate: (c) => {
+      const me = c.command.actorId ?? "";
+      const from = String(c.command.payload.requesterId ?? "");
+      if (c.command.source !== "player" || !me || me !== activeId(c.world)) return refuse(SettlementRejection.NotYours, "只能由你自己回话。");
+      if (typeof c.command.payload.accept !== "boolean") return refuse(SettlementRejection.NotYours, "要说答应还是不答应。");
+      const req = openRequest(c.world, from);
+      if (!req || req.to !== me) return refuse(SettlementRejection.Busy, "没有等你回话的请求。");
+      if (c.command.payload.accept !== true) return { ok: true };
+      if (occupiedPlaceId(c.world, me) !== occupiedPlaceId(c.world, from))
+        return refuse(SettlementRejection.WrongPlace, `要当面把东西交给${personName(c.world, from)}，先走到对方那里。`);
+      const item = (tradeableGoods(c.world, me)[req.resourceId] ?? [])[0];
+      if (!item) return refuse(SettlementRejection.Empty, `你手上已经没有${RESOURCE_LABELS[req.resourceId] ?? "这样东西"}了。`);
+      if (!canCarryObject(c.world, from, item)) return refuse(SettlementRejection.NoRoom, `${personName(c.world, from)}手上拿不下了。`);
+      for (const g of req.give.filter((g) => tradeReady(c.world, g, from, prototypeOf(c.world, g).resourceId ?? "")))
+        if (!canCarryObject(c.world, me, g, item)) return refuse(SettlementRejection.NoRoom, "你拿不下对方给的东西，先放下些。");
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.requestAnswer}.resolve`, commandType: SettlementCommands.requestAnswer,
+    resolve: (c): Effect[] => {
+      const me = c.command.actorId as string, tick = c.world.tick;
+      const from = String(c.command.payload.requesterId);
+      const req = openRequest(c.world, from)!;
+      const accepted = c.command.payload.accept === true;
+      let memory = socialOf(c.world, from);
+      const effects: Effect[] = [];
+      let note = "";
+      if (accepted) {
+        const item = (tradeableGoods(c.world, me)[req.resourceId] ?? [])[0]!;
+        const gifts = req.give.filter((g) => tradeReady(c.world, g, from, prototypeOf(c.world, g).resourceId ?? ""));
+        effects.push(...handover(item, me, from, "the player agreed to a resident's request"));
+        for (const g of gifts) effects.push(...handover(g, from, me, "what the resident offered in return"));
+        const value = worth(req.resourceId);
+        const back = gifts.reduce((n, g) => n + worth(prototypeOf(c.world, g).resourceId ?? ""), 0);
+        const playerOwed = favourOwed(c.world, from, me);
+        const paid = Math.min(playerOwed, Math.max(0, value - back));
+        if (paid > 0) effects.push(...setFavour(c.world, from, me, playerOwed - paid, "the player paid back a favour"));
+        const left = value - back - paid;
+        if (left > 0) effects.push(...setFavour(c.world, me, from, favourOwed(c.world, me, from) + left, "a resident now owes the player"));
+        memory = withBond(memory, me, { trust: back >= value ? 1 : 1.5, familiarity: 1, grudge: -1 }, tick);
+        note = paid > 0 ? "抵了你欠的人情" : left > 0 ? "对方记下了这份人情" : "两清";
+      } else {
+        memory = withBond(memory, me, { trust: -0.5, grudge: req.kind === "collect" ? 2 : 1 }, tick);
+      }
+      effects.push(
+        saveSocial(from, memory, accepted ? "remember being helped" : "remember being turned down"),
+        { kind: "modifyComponent", entityId: from, component: SettlementComponents.resident,
+          patch: { request: { ...req, status: accepted ? "accepted" : "declined", resolvedAt: tick } as unknown as JsonValue },
+          reason: "the player's answer" },
+        { kind: "emitEvent", eventType: accepted ? "settlement-locations.request_granted" : "settlement-locations.request_refused",
+          actorId: me, targetId: from, data: { resourceId: req.resourceId, kind: req.kind, note },
+          historicalSignificance: accepted ? 0.08 : 0.04 },
+      );
+      return effects;
+    },
+  });
+
+  // ---- 把自己的东西送给某人：还人情、道谢。
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.npcGive}.allowed`, commandType: SettlementCommands.npcGive,
+    evaluate: (c) => {
+      const me = c.command.actorId ?? "";
+      const to = String(c.command.payload.targetId ?? "");
+      const item = String(c.command.payload.itemId ?? "");
+      if (c.command.source !== "ai" || !isResident(c.world, me)) return refuse(SettlementRejection.NotYours, "只有村民自己会送出东西。");
+      if (!to || to === me || !isPerson(c.world, to)) return refuse(SettlementRejection.NoSuchResident, "要送给一个具体的人。");
+      const here = occupiedPlaceId(c.world, me);
+      if (!here || here !== occupiedPlaceId(c.world, to)) return refuse(SettlementRejection.WrongPlace, "要当面交到对方手里。");
+      if (!tradeReady(c.world, item, me, prototypeOf(c.world, item).resourceId ?? "")) return refuse(SettlementRejection.NotYours, "只能送自己手里的东西。");
+      if (!canCarryObject(c.world, to, item)) return refuse(SettlementRejection.NoRoom, "对方拿不下了。");
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.npcGive}.resolve`, commandType: SettlementCommands.npcGive,
+    resolve: (c): Effect[] => {
+      const me = c.command.actorId as string;
+      const to = String(c.command.payload.targetId), item = String(c.command.payload.itemId);
+      const resourceId = prototypeOf(c.world, item).resourceId ?? "";
+      const debt = favourOwed(c.world, to, me);
+      const repaid = Math.min(debt, worth(resourceId));
+      return [
+        ...handover(item, me, to, "a resident hands over something of their own"),
+        ...(repaid > 0 ? setFavour(c.world, to, me, debt - repaid, "favour repaid with a gift") : []),
+        { kind: "emitEvent", eventType: "settlement-locations.gift_given", actorId: me, targetId: to,
+          data: { resourceId, repaid }, historicalSignificance: 0.05 },
+      ];
+    },
+  });
+}

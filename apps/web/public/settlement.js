@@ -3,7 +3,12 @@
  * first; only that target's meaningful commands are offered. This is a UI
  * projection over the same authoritative actions, never a parallel inventory.
  */
+import { icon, actionIconName, placeIconName } from "/icons.js";
+import { renderSceneFx, daypartOf } from "/scene-fx.js";
+import { setAudioScene } from "/audio.js";
 import { renderFigure } from "./character-appearance.js";
+import { layoutDepth, installParallax } from "./scene-depth.js";
+import { isTextMode } from "./view-mode.js";
 import { objectKind, resourceKind, fillRatio, propSvg, slotFor } from "./scene-props.js";
 import { openDetail, closeDetail } from "./detail-navigation.js";
 const $ = (id) => document.getElementById(id);
@@ -26,23 +31,29 @@ const cookOf = (s) => s?.roles?.cook ?? { id: "settlement-locations:resident:coo
 
 
 const SCENE_ART = {
- "place:hearth-yard":"/art/scene-hearth.svg",
- "place:reedbed":"/art/scene-reedbed.svg",
- "place:field":"/art/scene-field.svg",
- "place:yard":"/art/scene-yard.svg",
- "place:river":"/art/scene-river.svg",
- "place:kiln":"/art/scene-kiln.svg",
- "place:claypits":"/art/scene-claypits.svg",
- "place:ford":"/art/scene-ford.svg"
+ "place:hearth-yard":"/art/scene-hearth.webp",
+ "place:reedbed":"/art/scene-reedbed.webp",
+ "place:field":"/art/scene-field.webp",
+ "place:yard":"/art/scene-yard.webp",
+ "place:river":"/art/scene-river.webp",
+ "place:kiln":"/art/scene-kiln.webp",
+ "place:claypits":"/art/scene-claypits.webp",
+ "place:ford":"/art/scene-ford.webp"
 };
 const propPriority={cistern:0,jar:1,hearth:2,kiln:3,pot:4,fuel:5,basket:6,tool:7,reed:8,grain:9,mat:10,default:11};
 function renderPaintedStage(s) {
  const art=$("sceneBackdrop");
  if(!art)return;
- const src=SCENE_ART[s.placeId]||"/art/scene-yard.svg";
+ const src=SCENE_ART[s.placeId]||"/art/scene-yard.webp";
  if(!art.src.endsWith(src))art.src=src;
  const theater=$("sceneTheater");
  theater.dataset.location=s.placeId==="place:hearth-yard"?"hearth":s.placeId.replace("place:","");
+ const daypart=daypartOf(s.dailyActivity), season=String(s.season||"春").slice(0,1);
+ theater.dataset.daypart=daypart; theater.dataset.season=season;
+ theater.dataset.sky=s.weather?.sky||"晴";
+ if(isTextMode()){ const ledger=$("sceneLedger"); if(ledger) ledger.open=true; return; }
+ renderSceneFx($("sceneFx"),{location:theater.dataset.location,daypart,season,sky:theater.dataset.sky});
+ setAudioScene({placeId:s.placeId,season,daypart,sky:theater.dataset.sky});
  $("sceneStageName").textContent=s.placeName||"河岸聚落";
  $("sceneStageSeason").textContent=s.season+" · 第 "+s.day+"日";
  const residents=s.neighbours.slice(0,4).map((person,i)=>
@@ -80,7 +91,7 @@ function renderPaintedStage(s) {
   const exits=s.exits.filter(e=>e.placeId!==s.placeId)
     .sort((a,b)=>Number(b.placeId===previousScenePlace)-Number(a.placeId===previousScenePlace)).slice(0,2)   .map((e,i)=>'<button type="button" class="painted-exit painted-exit--'+i+'"'+
      ' data-stage-go="'+esc(e.placeId)+'" aria-label="前往'+esc(e.name)+'">'+
-     '<span aria-hidden="true">➜</span><span>'+esc(e.name)+'</span></button>').join("");
+     '<span class="exit-icon">'+icon(placeIconName(e.placeId,e.name))+'</span><span class="exit-name">'+esc(e.name)+'</span></button>').join("");
  const landmark=(s.placeId==="place:hearth-yard"||s.placeId==="place:yard"||
    s.placeId==="place:field"||s.placeId==="place:reedbed")?
    '<button type="button" class="scene-landmark" data-stage-work aria-label="观察身边的劳动设施" title="观察设施">'+
@@ -89,7 +100,11 @@ function renderPaintedStage(s) {
    '<span class="scene-prop-tooltip">观察设施</span></button>':'';
  $("sceneHotspots").innerHTML=
    '<div class="painted-avatar" aria-label="你的角色">'+renderFigure(s.characterId,"player")+'</div>'+
-   residents+objects+resources+landmark+exits;
+   residents+objects+resources+landmark+exits+
+   '<div class="scene-foreground" aria-hidden="true"><img src="/art/fg-bush.webp" alt="" class="fg-bush fg-bush--l"><img src="/art/fg-bush.webp" alt="" class="fg-bush fg-bush--r"></div>';
+ theater.dataset.placeId=s.placeId;
+ layoutDepth(theater,s.placeId);
+ installParallax(theater);
  $("sceneStageHint").textContent="观察眼前物品与村民，轻触即可互动";
 }
 let previousScenePlace = "";
@@ -114,8 +129,15 @@ function renderInSceneMenu(s, heading, candidates, onAction) {
     const why = action.enabled === false ? (action.reason || "当前条件不允许") : "";
     const cost = Number(action.activityCost || 0);
     const primary = !why && selected.type !== "walk" && i === shown.findIndex(a => a.enabled !== false);
+    if (selected.type === "walk") {
+      const name = String(action.label || "").replace(/^(走到|前往|去)/, "");
+      return '<button type="button" class="scene-go-tile" data-scene-quick="' + i + '"' +
+        (why ? ' disabled aria-disabled="true" title="' + esc(why) + '"' : '') + ' aria-label="' + esc(action.label) + (why ? '（' + esc(why) + '）' : '') + '">' +
+        '<span class="go-icon">' + icon(actionIconName(action)) + '</span><span class="go-name">' + esc(name) + '</span>' +
+        (cost ? '<small>' + cost + ' 格</small>' : '<small>屋内</small>') + '</button>';
+    }
     return '<button type="button" class="scene-quick-choice' + (primary ? ' is-primary' : '') + '" data-scene-quick="' + i + '"' +
-      (why ? ' disabled aria-disabled="true"' : '') + '><span>' + esc(action.label) + '</span>' +
+      (why ? ' disabled aria-disabled="true"' : '') + '><span class="choice-main">' + icon(actionIconName(action)) + '<span>' + esc(action.label) + '</span></span>' +
       (cost ? '<small>' + cost + ' 格活动</small>' : Number(action.days) > 0 ? '<small>' + Number(action.days) + ' 天</small>' : '') +
       (why ? '<small class="quick-blocker">' + esc(why) + '</small>' : '') + '</button>';
   };
@@ -126,8 +148,10 @@ function renderInSceneMenu(s, heading, candidates, onAction) {
     '<button type="button" data-scene-close aria-label="关闭操作">×</button></div>' +
     (!activeCount && selected.type !== "walk"
       ? '<p class="scene-quick-help">暂时没有能完成的操作。你可以换一件物品，或打开地点地图。</p>' : '') +
-    '<div class="scene-quick-list">' + shown.slice(0, 3).map(btn).join("") + '</div>' +
-    (shown.length > 3 ? '<details class="quick-more"><summary>更多操作（' + (shown.length - 3) + '）</summary><div class="scene-quick-list">' + shown.slice(3).map((a, i) => btn(a, i + 3)).join("") + '</div></details>' : '');
+    (selected.type === "walk"
+      ? '<div class="scene-go-grid">' + shown.map(btn).join("") + '</div>'
+      : '<div class="scene-quick-list">' + shown.slice(0, 3).map(btn).join("") + '</div>') +
+    (selected.type !== "walk" && shown.length > 3 ? '<details class="quick-more"><summary>更多操作（' + (shown.length - 3) + '）</summary><div class="scene-quick-list">' + shown.slice(3).map((a, i) => btn(a, i + 3)).join("") + '</div></details>' : '');
   // Every target uses the same action area below the painting.
   box.querySelector("[data-scene-close]").onclick = () => closeDetail("scene");
   box.querySelectorAll("[data-scene-quick]").forEach(button => button.onclick = () => {
@@ -175,6 +199,7 @@ export function renderSettlement(state, onAction) {
     <span class="hud" aria-hidden="true">
       ${hudMeter("饥饿", s.hunger ?? 0, 10, (s.hunger ?? 0) >= 7 ? "warn" : "")}
       <span class="hud-item"><span class="hud-label">今天</span><span class="hud-pips">${pips}</span><b>剩 ${act.remaining ?? 0} 格</b></span>
+      ${s.roof ? hudMeter(s.roof.leaking ? "屋顶漏" : "屋顶", s.roof.condition, s.roof.max, s.roof.leaking ? "warn" : "") : ""}
       ${load ? hudMeter("负重", Number(load.mass.toFixed(1)), load.maxMass, load.mass >= load.maxMass ? "warn" : "") : ""}
     </span>${extra.length ? `<span class="hud-note">${esc(extra.join(" · "))}</span>` : ""}`;
   renderPaintedStage(s);
@@ -187,7 +212,10 @@ export function renderSettlement(state, onAction) {
       <p>${esc(situation.note || "村民会自行寻找物资、劳动、求助或拒绝。")}</p>
       ${situation.recentHelp ? `<div class="hearth-story-foot">${esc(situation.recentHelp)}</div>` : ""}
       ${situation.fuelStock !== null && situation.fuelStock !== undefined
-        ? `<div class="hearth-story-foot">芦苇滩现有柴草 ${Number(situation.fuelStock)} 捆</div>` : ""}`;
+        ? `<div class="hearth-story-foot">芦苇滩现有柴草 ${Number(situation.fuelStock)} 捆</div>` : ""}
+      ${requestsBox(s)}`;
+    story.querySelectorAll("[data-answer]").forEach(button => button.addEventListener("click", () =>
+      onAction("settlement-locations.request.answer", { requesterId: button.dataset.answer, accept: button.dataset.accept === "1" })));
     const available = s.actions || [];
     const options = [];
     const offer = (label, action) => { if (action?.enabled) options.push({ label, action }); };
@@ -223,7 +251,7 @@ export function renderSettlement(state, onAction) {
   people.innerHTML = s.neighbours.length
     ? s.neighbours.map((person) => `<button class="scene-person scene-target" type="button" data-person="${esc(person.id)}" aria-pressed="${selected?.type === "person" && selected.id === person.id}">
        <span class="scene-person-head"><span class="scene-avatar">${esc(person.name.slice(0, 1))}</span>
-       <span><strong>${esc(person.name)}</strong><small>${esc(person.contact || "陌生")} · ${esc(person.role)}</small></span></span>
+       <span><strong>${esc(person.name)}</strong><small>${esc(person.contact || "陌生")} · ${esc(person.role)}${person.temperament?.length ? ` · ${esc(person.temperament.join("、"))}` : ""}${person.regard ? ` · ${esc(person.regard)}` : ""}</small></span></span>
        <small>${esc(person.dailyNote || (person.atWork ? "正忙着自己的事" : "在这里休息"))}${person.tradeCount > 0 ? ` · 实物交换 ${Number(person.tradeCount)} 次` : ""}</small>
       </button>`).join("")
     : '<p class="scene-empty">眼前没有其他村民。</p>';
@@ -348,7 +376,22 @@ export function renderSettlement(state, onAction) {
                 ? `<details class="scene-extra"><summary>其他操作（${candidates.length - 4}）</summary><div class="scene-action-grid">${candidates.slice(4).map(actionButton).join("")}</div></details>` : ""}`
             : '<p class="scene-empty">当前没有可用操作，试试别的对象或地点。</p>'}
         </section>`
-      : '<p class="scene-empty">先点选眼前的人、原料或物品，再决定要做什么。不会再同时摆出所有制作按钮。</p>'}`;
+      : '<p class="scene-empty">先点选眼前的人、原料或物品，再决定要做什么。不会再同时摆出所有制作按钮。</p>'}
+    ${selected?.type === "person" ? exchangeForm(s, selected.id) : ""}`;
+  actions.querySelector("[data-exchange]")?.addEventListener("click", () => {
+    const form = actions.querySelector(".exchange-box");
+    const give = [];
+    form.querySelectorAll("[data-give]").forEach((input) => {
+      const n = Math.max(0, Math.min(Number(input.max), Number(input.value) || 0));
+      give.push(...(s.exchange.mine[input.dataset.give] || []).slice(0, n));
+    });
+    onAction("settlement-locations.exchange", {
+      targetId: selected.id, give,
+      askResource: form.querySelector("[data-ask]").value,
+      askAmount: Number(form.querySelector("[data-ask-amount]").value) || 1,
+      credit: form.querySelector("[data-credit]").checked,
+    });
+  });
 
   const pick = (query, type, key) => panel.querySelectorAll(query).forEach((button) =>
     button.addEventListener("click", () => {
@@ -431,6 +474,50 @@ export function commandsForTarget(s, target) {
   return result.sort((a, b) => Number(b.enabled !== false) - Number(a.enabled !== false));
 }
 
+/** 村民自己找上门的请求：答应要当面递过去，拒绝随时可以。 */
+function requestsBox(s) {
+  const list = s.requests || [];
+  if (!list.length) return "";
+  const kindWord = { borrow: "想借", trade: "想换", collect: "来讨人情，想要" };
+  return `<div class="village-requests" aria-label="村民来找你">${list.map((r) => `<div class="village-request">
+    <p><strong>${esc(r.name)}</strong>${esc(kindWord[r.kind] || "想要")}一份${esc(r.label)}${r.give.length ? `，拿出${esc(r.give.join("、"))}作交换` : r.kind === "borrow" ? "，说往后再还" : ""}。<small>${esc(r.reason)}</small></p>
+    <div class="hearth-story-actions">
+      <button type="button" data-answer="${esc(r.requesterId)}" data-accept="1" ${r.here ? "" : "disabled"}>${r.here ? "答应，递给对方" : `去${esc(r.whereName)}当面给`}</button>
+      <button type="button" data-answer="${esc(r.requesterId)}" data-accept="0">婉拒</button>
+    </div></div>`).join("")}</div>`;
+}
+
+/** General exchange with the person in focus: what you offer, what you ask for. */
+function exchangeForm(s, personId) {
+  const ex = s.exchange;
+  const partner = ex?.partners?.find((p) => p.id === personId);
+  if (!partner) return "";
+  const label = (r) => ex.labels[r] || r;
+  const theirs = Object.entries(partner.goods);
+  const mine = Object.entries(ex.mine || {});
+  const status = [partner.closeness, partner.owed > 0 ? `你欠${partner.name} ${partner.owed} 份人情` : ""].filter(Boolean).join(" · ");
+  const wants = partner.wants.length ? `<p class="exchange-hint">${esc(partner.name)}正缺：${partner.wants.map((r) => esc(label(r))).join("、")}</p>` : "";
+  if (!theirs.length) return `<section class="scene-action-group exchange-box"><h4>交换</h4>
+    <p class="scene-empty">${esc(partner.name)}手上暂时没有能换的东西。</p>${wants}</section>`;
+  return `<section class="scene-action-group exchange-box" aria-label="交换"><h4>和${esc(partner.name)}交换 <small>${esc(status)}</small></h4>
+    ${wants}
+    <div class="exchange-grid">
+      <div><span class="exchange-label">你拿出</span>
+        ${mine.length ? mine.map(([r, ids]) => `<label class="exchange-row">${esc(label(r))}
+          <input type="number" inputmode="numeric" min="0" max="${Math.min(4, ids.length)}" value="0" data-give="${esc(r)}">
+          <small>/ ${ids.length}</small></label>`).join("") : '<p class="exchange-hint">你手上没有可换的东西，只能请对方赊给你。</p>'}
+      </div>
+      <div><span class="exchange-label">想要</span>
+        <label class="exchange-row"><select data-ask>${theirs.map(([r, n]) =>
+          `<option value="${esc(r)}">${esc(label(r))}（有 ${n}）</option>`).join("")}</select>
+          <input type="number" inputmode="numeric" min="1" max="4" value="1" data-ask-amount></label>
+      </div>
+    </div>
+    <label class="exchange-credit"><input type="checkbox" data-credit> 不够的部分记作人情，往后再还</label>
+    <button type="button" class="scene-action exchange-go" data-exchange><span class="scene-action-head">提出交换</span></button>
+  </section>`;
+}
+
 function actionButton(action) {
   const cost = Number(action.activityCost ?? 0);
   const time = cost ? `${cost} 格活动` : Number(action.days ?? 0) > 0 ? `${action.days} 天` : "";
@@ -455,8 +542,12 @@ window.addEventListener("openlife:select-person", (event) => {
   }
 });
 
-export function describeSettlementResult(actionId, result) {
+export function describeSettlementResult(actionId, result, state) {
   if (result?.ok === false) return result.errors?.[0]?.message ?? "这件事现在做不了。";
+  if (actionId === "settlement-locations.exchange") {
+    const last = state?.settlement?.exchange?.last;
+    if (last) return last.accepted ? `换成了。${last.reason}。` : `没换成：${last.reason}。`;
+  }
   const labels = {
     "settlement-locations.arrive": "你走到了新的地方。",
     "world-space.move_within": "你在院子里换了个位置。",
@@ -481,6 +572,9 @@ export function describeSettlementResult(actionId, result) {
     "world-objects.store": "物品装进提袋里了，可以随身带走。",
     "world-objects.retrieve": "从提袋中取出了原来的物品。",
     "settlement-locations.rest": "你歇了一会儿。",
+    "settlement-locations.exchange": "交换已经处理。",
+    "settlement-locations.craft": "做好了，成品在你手里。",
+    "settlement-locations.request.answer": "你给了对方答复，这件事对方会记在心里。",
     "settlement-locations.end_day": "这一天过去了。",
   };
   return labels[actionId] ?? "世界发生了一点变化。";
