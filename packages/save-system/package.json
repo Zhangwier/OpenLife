@@ -9,6 +9,7 @@
   "dependencies": {
     "@openlife/contracts": "*",
     "@openlife/history-runtime": "*",
-    "@openlife/kernel": "*"
+    "@openlife/kernel": "*",
+    "@openlife/world-model": "*"
   }
 }

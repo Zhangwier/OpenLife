@@ -22,6 +22,7 @@
     "@openlife/module-world-clock": "*",
     "@openlife/module-world-space": "*",
     "@openlife/module-world-objects": "*",
-    "@openlife/module-settlement-locations": "*"
+    "@openlife/module-settlement-locations": "*",
+    "@openlife/life-contracts": "*"
   }
 }

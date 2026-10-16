@@ -17,6 +17,7 @@ npm run demo       # 现代世界脚本演示
 npm run demo:magic # 魔法测试世界演示（验证 Core 不绑定世界观）
 npm run cli        # 交互式调试控制台
 npm run web        # Web 客户端 http://127.0.0.1:4173 （PORT 可改端口；默认只监听本机，HOST=0.0.0.0 可让局域网设备访问）
+npm run catalog    # 重新生成 docs/MODULES.md（新增/改动模块后运行）
 ```
 
 > 不先 `npm install` 直接跑测试，会报 `Cannot find package '@openlife/kernel'`。
@@ -45,15 +46,16 @@ packages/            引擎核心（不含任何具体世界观）
   autonomy-runtime/  AutoSim 与决策提供者
   simulation/        把以上组装成可运行的模拟
   life-contracts/    人生类模块共享的契约（教育、经济、现代世界）
-modules/             World / System / Content Pack
-  modern-world/      现代世界（含夏纪年历）
-  modern-science/    现代科学知识包
-  education/ career/ family/ economy/ basic-autonomy/
-  magic-test-world/  魔法世界，用于验证 Core 的世界观中立
+modules/             World / System / Content Pack（36 个，完整清单见 docs/MODULES.md）
+  modern-world/ magic-test-world/ robot-test-world/ world-clock/   World Pack
+  world-*/ education/ career/ family/ economy/ ...                  System Pack
+  settlement-locations/ settlement-life/ craft-pottery/ ...         Content Pack
 apps/
   debug-console/     CLI 与脚本化演示
   web/               简易 Web 客户端
-tests/unit/          单元测试（node --test）
+scripts/             workspace-graph.ts（依赖图）/ gen-module-catalog.ts（生成目录）/ 验证脚本
+docs/                文档索引 docs/README.md；rfc/ reviews/ notes/（带日期的工作记录）
+tests/unit/          单元测试（node --test），含 workspace-structure 分层守卫
 ```
 
 ## 架构不变量

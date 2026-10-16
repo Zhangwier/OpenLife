@@ -8,6 +8,8 @@
   },
   "dependencies": {
     "@openlife/contracts": "*",
-    "@openlife/module-practice-runtime": "*"
+    "@openlife/module-practice-runtime": "*",
+    "@openlife/module-world-objects": "*",
+    "@openlife/module-world-space": "*"
   }
 }

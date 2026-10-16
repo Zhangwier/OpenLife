@@ -10,6 +10,10 @@
     "@openlife/module-family": "*",
     "@openlife/module-magic-test-world": "*",
     "@openlife/module-modern-world": "*",
-    "@openlife/simulation": "*"
+    "@openlife/simulation": "*",
+    "@openlife/module-map-pack": "*",
+    "@openlife/module-world-geography": "*",
+    "@openlife/module-runtime": "*",
+    "@openlife/rule-engine": "*"
   }
 }
