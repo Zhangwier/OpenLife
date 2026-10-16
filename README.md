@@ -6,6 +6,8 @@ OpenLife 是一个具有持续世界历史、人物认知、家族传承、可�
 
 完整设计见 [`需求书.txt`](./需求书.txt)。
 
+AI 协作者拉取后先读 [`AGENTS.md`](./AGENTS.md) 与 [AI 分工与协作指南](docs/AI_COLLABORATION.md)，确认模型默认职责、首轮任务、修改边界和交接要求。
+
 ## 快速开始
 
 需要 Node.js ≥ 24（原生运行 TypeScript，无需编译）。

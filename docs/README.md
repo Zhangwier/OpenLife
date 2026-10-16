@@ -1,5 +1,7 @@
 # OpenLife 文档索引
 
+- AI 协作者入口：[模型分工、首轮任务与协作交接](AI_COLLABORATION.md)。
+
 根目录只保留长期有效的需求与计划文档；带日期的工作记录统一放在 `docs/notes/`
 （`tests/unit/workspace-structure.test.ts` 会拒绝根目录出现 `*_YYYY-MM-DD.md`）。
 
