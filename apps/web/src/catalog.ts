@@ -40,6 +40,13 @@ const LABELS: Record<string, [string, string]> = {
   "robot-test-world": ["机器人测试世界", "用于验证不同实体和世界规则的测试内容。"],
 };
 
+/** Map packs shown on the map page, in display order. */
+const MAP_PACK_LABELS: Record<string, string> = {
+  xia_starter_v0_1: "初始地理包",
+  xia_east_extension_v0_1: "东部扩展地理包",
+  xia_south_hills_v0_1: "南丘与盐泉",
+};
+
 export async function worldCatalog(simulation: Simulation) {
   const loaded = new Map(simulation.modules.list().map(module => [module.id, module]));
   const dirs = await readdir(join(ROOT, "modules"), { withFileTypes: true });
@@ -49,9 +56,9 @@ export async function worldCatalog(simulation: Simulation) {
     return { id: dir.name, label: LABELS[dir.name]?.[0] ?? dir.name, description: LABELS[dir.name]?.[1] ?? "本地内容模块。", version: entry?.version ?? pkg.version, loaded: entry?.state === "active", state: entry?.state ?? "available", requires: entry?.requires ?? [] };
   }));
   modules.sort((a, b) => Number(b.loaded) - Number(a.loaded) || a.id.localeCompare(b.id));
-  const maps = ["xia_starter_v0_1", "xia_east_extension_v0_1"].map(id => {
+  const maps = Object.entries(MAP_PACK_LABELS).map(([id, label]) => {
     const result = loadMapPack(join(ROOT, "packs", id), { dryRun: true });
-    return { id, label: id === "xia_starter_v0_1" ? "初始地理包" : "东部扩展地理包", ok: result.ok, regions: result.pack?.regions ?? [], locations: result.pack?.locations ?? [], edges: result.pack?.edges.length ?? 0, boundaryAnchors: result.pack?.boundaryAnchors.length ?? 0 };
+    return { id, label, ok: result.ok, regions: result.pack?.regions ?? [], locations: result.pack?.locations ?? [], edges: result.pack?.edges.length ?? 0, boundaryAnchors: result.pack?.boundaryAnchors.length ?? 0, eventPoints: result.pack?.eventPoints ?? [] };
   });
   return { modules, maps };
 }

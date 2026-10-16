@@ -1,0 +1,72 @@
+# 事件点：地点上的可写内容（地标、季节采集点、遭遇、险情、征兆、节庆）。
+# 由 map-pack 加载器校验 location_id / kind / season；注册地图包不会自动触发它们。
+event_points:
+  - id: EP_OAK_ACORNS
+    name: 秋栎落果
+    location_id: S0102
+    kind: gathering
+    season: autumn
+    text: 栎树坡的橡子在霜后落满一地。浸水去涩、捣碎晒干，是荒年里最可靠的存粮。
+
+  - id: EP_RIDGE_VIEW
+    name: 望河脊远眺
+    location_id: S0103
+    kind: landmark
+    season: any
+    text: 站在脊上能看见北边大河的反光。走远路的人在这里回头，认准回家的方向。
+
+  - id: EP_CAVE_BONES
+    name: 洞中旧骨
+    location_id: S0104
+    kind: omen
+    season: any
+    text: 石灰岩洞深处有烧过的兽骨和一圈黑灰，比任何人记得的都早。老人说这是先来者的火塘，不该动。
+
+  - id: EP_BAMBOO_SHOOTS
+    name: 春笋
+    location_id: S0201
+    kind: gathering
+    season: spring
+    text: 雨后一夜，竹林口冒出成片的笋尖。要赶在长老之前挖，晚三天就硬得咬不动。
+
+  - id: EP_FORD_FLOOD
+    name: 夏汛涨溪
+    location_id: S0202
+    kind: hazard
+    season: summer
+    text: 上游下过大雨，清溪浅滩会在半天内涨到齐腰。浑水里看不见石头，这几天最好绕到竹林口等水退。
+
+  - id: EP_FIELD_STRANGERS
+    name: 谷底的陌生人家
+    location_id: S0203
+    kind: encounter
+    season: any
+    text: 谷底台田住着三户种稻的人家，说话口音不同。他们愿意用稻谷换陶器，却从没见过黑陶。
+
+  - id: EP_POOL_FISH
+    name: 深潭鱼群
+    location_id: S0204
+    kind: gathering
+    season: summer
+    text: 瀑布下的深潭水凉鱼肥。带骨鱼钩和草绳来，耐心坐一个下午，够一家吃两天。
+
+  - id: EP_SALT_SPRING
+    name: 咸泉涌出
+    location_id: S0301
+    kind: landmark
+    season: any
+    text: 泉眼周围的石头结着白霜，舔一口是咸的。附近几个聚落的人都会走几天路来这里背盐。
+
+  - id: EP_SALT_BOILING
+    name: 秋日晒盐
+    location_id: S0302
+    kind: festival
+    season: autumn
+    text: 秋天雨少，各处来的人在白滩上摊开咸水晒盐，晚上围着火交换陶器、皮子和消息。这是一年里人最多的几天。
+
+  - id: EP_PASS_WIND
+    name: 垭口寒风
+    location_id: S0304
+    kind: hazard
+    season: winter
+    text: 冬天的南垭口风能把人吹倒。没有兽皮披的人，最好别在这个季节往南走。

@@ -8,3 +8,4 @@ export { chooseNpcIntent, shortagePressure, type NpcIntent } from "./autonomy/np
 export * from "./content.ts";
 export { villageRoles, ROLES as VillageRoles } from "./autonomy/roles.ts";
 export { fuelHelpReply } from "./autonomy/npc-reed.ts";
+export { CRAFT_COMMAND, CRAFTED_EVENT, craftOptions, planCraft, recipeById } from "./crafting.ts";

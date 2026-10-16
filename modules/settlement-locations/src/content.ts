@@ -135,3 +135,73 @@ export function loadSettlementPack(url: URL): SettlementPack {
 /** The authored River Terrace village shipped with this module. */
 export const RIVER_TERRACE_PACK: SettlementPack =
   loadSettlementPack(new URL("../data/river-terrace.json", import.meta.url));
+
+// ---------------------------------------------------------------------------
+// Recipes: what a resident can make from what they hold, and where.
+
+export interface RecipeSpec {
+  id: string;
+  name: string;
+  /** The place and the exact space the maker must stand in. */
+  placeId: string;
+  spaceId: string;
+  /** Consumed: owned, held, live single objects of these prototypes. */
+  inputs: { prototypeId: string; count: number }[];
+  /** Kept: the maker must hold one of each. */
+  tools: string[];
+  /** Made: new objects owned and held by the maker. */
+  outputs: { prototypeId: string; count: number }[];
+  skill: string;
+  description: string;
+}
+
+export interface RecipeBook {
+  id: string;
+  packId: string;
+  formatVersion: number;
+  recipes: RecipeSpec[];
+}
+
+export const RECIPE_BOOK_FORMAT = 1;
+
+/** Every problem in a recipe book, checked against the pack it cooks for. */
+export function validateRecipeBook(book: RecipeBook, pack: SettlementPack): string[] {
+  const problems: string[] = [];
+  if (book.formatVersion !== RECIPE_BOOK_FORMAT) problems.push(`recipe format ${book.formatVersion} is not ${RECIPE_BOOK_FORMAT}`);
+  if (book.packId !== pack.id) problems.push(`recipe book is for pack ${book.packId}, not ${pack.id}`);
+  if (!Array.isArray(book.recipes)) return [...problems, "recipes must be a list"];
+  const prototypes = new Set(pack.prototypes.map((p) => p.id));
+  const seen = new Set<string>();
+  for (const r of book.recipes) {
+    if (!r.id?.startsWith("recipe:")) problems.push(`recipe ${r.id}: id must start with recipe:`);
+    if (seen.has(r.id)) problems.push(`duplicate recipe: ${r.id}`);
+    seen.add(r.id);
+    const place = pack.places.find((p) => p.id === r.placeId);
+    if (!place) problems.push(`recipe ${r.id}: unknown place ${r.placeId}`);
+    else if (!place.spaces.some((s) => s.id === r.spaceId)) problems.push(`recipe ${r.id}: space ${r.spaceId} is not in ${r.placeId}`);
+    if (!Array.isArray(r.inputs) || r.inputs.length === 0) problems.push(`recipe ${r.id}: needs at least one input`);
+    if (!Array.isArray(r.outputs) || r.outputs.length === 0) problems.push(`recipe ${r.id}: needs at least one output`);
+    for (const part of [...(r.inputs ?? []), ...(r.outputs ?? [])]) {
+      if (!prototypes.has(part.prototypeId)) problems.push(`recipe ${r.id}: unknown prototype ${part.prototypeId}`);
+      if (!Number.isInteger(part.count) || part.count < 1 || part.count > 4) problems.push(`recipe ${r.id}: count of ${part.prototypeId} must be 1..4`);
+    }
+    for (const tool of r.tools ?? []) {
+      if (!prototypes.has(tool)) problems.push(`recipe ${r.id}: unknown tool ${tool}`);
+    }
+    if (!r.name || !r.description) problems.push(`recipe ${r.id}: name and description are required`);
+  }
+  return problems;
+}
+
+export function loadRecipeBook(url: URL, pack: SettlementPack): RecipeBook {
+  const book = JSON.parse(readFileSync(url, "utf8")) as RecipeBook;
+  const problems = validateRecipeBook(book, pack);
+  if (problems.length > 0) {
+    throw new Error(`recipe book ${url.pathname} is invalid:\n  ${problems.join("\n  ")}`);
+  }
+  return book;
+}
+
+/** The River Terrace recipes shipped with this module. */
+export const RIVER_TERRACE_RECIPES: RecipeBook =
+  loadRecipeBook(new URL("../data/river-terrace-recipes.json", import.meta.url), RIVER_TERRACE_PACK);

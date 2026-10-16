@@ -482,6 +482,7 @@ export function describeSettlementResult(actionId, result) {
     "world-objects.retrieve": "从提袋中取出了原来的物品。",
     "settlement-locations.rest": "你歇了一会儿。",
     "settlement-locations.end_day": "这一天过去了。",
+    "settlement-locations.craft": "做好了。用掉的材料已经没了，新做的东西拿在你手上。",
   };
   return labels[actionId] ?? "世界发生了一点变化。";
 }
