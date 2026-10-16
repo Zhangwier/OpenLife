@@ -18,6 +18,7 @@ import type {
   RelationDefinition,
   ResolutionRule,
   TaskDefinition,
+  AgentDefinition,
   KnowledgeDefinition,
   ResourceDefinition,
   ProcessDefinition,
@@ -141,6 +142,7 @@ export class DefinitionSet {
   readonly relations = new DefinitionRegistry<RelationDefinition>("relation");
   readonly commands = new DefinitionRegistry<CommandDefinition>("command");
   readonly tasks = new DefinitionRegistry<TaskDefinition>("task");
+  readonly agents = new DefinitionRegistry<AgentDefinition>("agent");
   readonly knowledge = new DefinitionRegistry<KnowledgeDefinition>("knowledge");
   readonly resources = new DefinitionRegistry<ResourceDefinition>("resource");
   readonly processes = new DefinitionRegistry<ProcessDefinition>("process");
@@ -157,6 +159,7 @@ export class DefinitionSet {
       this.relations,
       this.commands,
       this.tasks,
+      this.agents,
       this.knowledge,
       this.resources,
       this.processes,

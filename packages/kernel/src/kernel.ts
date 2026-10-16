@@ -10,6 +10,7 @@
  */
 
 import type {
+  AgentHost,
   Command,
   CommandIntent,
   CommandResult,
@@ -37,6 +38,16 @@ import {
 import type { KernelInternals, KernelOptions } from "./types.ts";
 
 const MAX_TASK_STEPS_PER_ADVANCE = 100_000;
+const DEFAULT_AGENT_CATCH_UP_LIMIT = 31;
+
+/** What an agent returned for the last tick it ran (runtime only, never saved). */
+export interface AgentReport {
+  agentId: string;
+  owner: string;
+  tick: number;
+  report?: unknown;
+  error?: string;
+}
 
 export interface KernelState {
   worldId: string;
@@ -71,6 +82,8 @@ export class Kernel {
   /** Traces for the last N commands, for the debug console. */
   #traces: DecisionTrace[] = [];
   #traceLimit = 50;
+  #agentCatchUpLimit: number;
+  #agentReports = new Map<string, AgentReport>();
 
   constructor(options: KernelOptions) {
     this.worldId = options.worldId ?? "world:local";
@@ -85,6 +98,7 @@ export class Kernel {
         ? { maxEventsPerTransaction: options.maxEventsPerTransaction }
         : {}),
     };
+    this.#agentCatchUpLimit = options.agentCatchUpLimit ?? DEFAULT_AGENT_CATCH_UP_LIMIT;
     this.#transaction = this.#buildTransaction();
   }
 
@@ -97,15 +111,49 @@ export class Kernel {
   }
 
   get internals(): KernelInternals {
-    return {
-      store: this.#store,
-      clock: this.#clock,
-      rng: this.#rng,
-      scheduler: this.#scheduler,
-      eventLog: this.#eventLog,
-      facts: this.#facts,
+    const kernel = this;
+    const store = () => kernel.#store;
+    const log = () => kernel.#eventLog;
+    const scheduler = () => kernel.#scheduler;
+    const facts = () => kernel.#facts;
+    return Object.freeze({
+      store: Object.freeze({
+        get entityCount() { return store().entityCount; },
+        get relationCount() { return store().relationCount; },
+        getEntity: (...a: Parameters<WorldStore["getEntity"]>) => structuredClone(store().getEntity(...a)),
+        hasEntity: (...a: Parameters<WorldStore["hasEntity"]>) => store().hasEntity(...a),
+        listEntities: (...a: Parameters<WorldStore["listEntities"]>) => structuredClone(store().listEntities(...a)),
+        countEntities: (...a: Parameters<WorldStore["countEntities"]>) => store().countEntities(...a),
+        getComponent: (...a: Parameters<WorldStore["getComponent"]>) => structuredClone(store().getComponent(...a)),
+        getRelation: (...a: Parameters<WorldStore["getRelation"]>) => structuredClone(store().getRelation(...a)),
+        serialize: () => store().serialize(),
+        fingerprint: () => store().fingerprint(),
+      }),
+      get clock() { return Object.freeze({ ...kernel.#clock }); },
+      rng: Object.freeze({ snapshot: () => kernel.#rng.snapshot() }),
+      scheduler: Object.freeze({
+        get size() { return scheduler().size; },
+        list: () => structuredClone(scheduler().list()),
+        nextDueTick: () => scheduler().nextDueTick(),
+        serialize: () => scheduler().serialize(),
+      }),
+      eventLog: Object.freeze({
+        get length() { return log().length; },
+        get nextSeq() { return log().nextSeq; },
+        all: () => Object.freeze(structuredClone([...log().all()])),
+        since: (...a: Parameters<EventLog["since"]>) => structuredClone(log().since(...a)),
+        list: (...a: Parameters<EventLog["list"]>) => structuredClone(log().list(...a)),
+        get: (...a: Parameters<EventLog["get"]>) => structuredClone(log().get(...a)),
+        serialize: () => log().serialize(),
+      }),
+      facts: Object.freeze({
+        get size() { return facts().size; },
+        all: () => structuredClone(facts().all()),
+        list: (...a: Parameters<FactStore["list"]>) => structuredClone(facts().list(...a)),
+        serialize: () => facts().serialize(),
+      }),
       definitions: this.#definitions,
-    };
+    }) as KernelInternals;
   }
 
   /** Read-only world view. Rules, modules and projections only ever see this. */
@@ -245,15 +293,39 @@ export class Kernel {
         `cannot advance backwards: ${this.#clock.tick} -> ${targetTick}`,
       );
     }
-    let steps = 0;
+    const budget = { steps: 0 };
+    const span = targetTick - this.#clock.tick;
+    const livesThrough = Number.isInteger(targetTick) && span > 0 &&
+      span <= this.#agentCatchUpLimit && this.#definitions.agents.active().length > 0;
+    if (livesThrough) {
+      // Day by day: every stepped tick runs its due tasks, then every agent.
+      while (this.#clock.tick < targetTick) {
+        const fromTick = this.#clock.tick;
+        this.#runDueThrough(fromTick + 1, budget);
+        this.#clock.tick = fromTick + 1;
+        this.#runAgents(fromTick);
+      }
+    } else {
+      this.#runDueThrough(targetTick, budget);
+      this.#clock.tick = targetTick;
+    }
+    this.#clock.advances += 1;
+  }
+
+  /** Last report of each agent, for the debug console, Web and tests. */
+  agentReport(agentId: string): AgentReport | undefined {
+    return this.#agentReports.get(agentId);
+  }
+
+  #runDueThrough(targetTick: number, budget: { steps: number }): void {
     for (;;) {
       const next = this.#scheduler.nextDueTick();
       if (next === undefined || next > targetTick) break;
       this.#clock.tick = Math.max(this.#clock.tick, next);
       const due = this.#scheduler.peekDue(this.#clock.tick);
       for (const task of due) {
-        steps += 1;
-        if (steps > MAX_TASK_STEPS_PER_ADVANCE) {
+        budget.steps += 1;
+        if (budget.steps > MAX_TASK_STEPS_PER_ADVANCE) {
           throw new OpenLifeErrorException(
             ErrorCode.EventStorm,
             `scheduler did not settle after ${MAX_TASK_STEPS_PER_ADVANCE} task runs`,
@@ -263,8 +335,34 @@ export class Kernel {
         this.#scheduler.complete(task.id, this.#clock.tick);
       }
     }
-    this.#clock.tick = targetTick;
-    this.#clock.advances += 1;
+  }
+
+  #runAgents(fromTick: number): void {
+    const kernel = this;
+    const host: AgentHost = {
+      get tick() { return kernel.tick; },
+      worldView: () => kernel.worldView(),
+      dispatch: (intent) => kernel.dispatch({ ...intent, source: "ai" }),
+    };
+    const agents = this.#definitions.agents.active()
+      .sort((a, b) => a.id.localeCompare(b.id));
+    for (const agent of agents) {
+      const tick = this.#clock.tick;
+      try {
+        const report = agent.run(host, { fromTick, tick });
+        this.#agentReports.set(agent.id, {
+          agentId: agent.id, owner: agent.owner, tick,
+          ...(report !== undefined ? { report } : {}),
+        });
+      } catch (error) {
+        // One faulty agent never stalls the clock or the other agents; the
+        // fault is visible to the debug console instead of being swallowed.
+        this.#agentReports.set(agent.id, {
+          agentId: agent.id, owner: agent.owner, tick,
+          error: (error as Error)?.message ?? String(error),
+        });
+      }
+    }
   }
 
   advanceBy(ticks: number): void {

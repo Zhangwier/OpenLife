@@ -71,6 +71,17 @@ export class EventLog {
     return this.#events.find((event) => event.id === id);
   }
 
+  /** A cheap rollback point: the journal is append-only, so its length is enough. */
+  mark(): { length: number; seq: number } {
+    return { length: this.#events.length, seq: this.#seq };
+  }
+
+  /** Drops everything appended after `mark` (transaction rollback). */
+  rollback(mark: { length: number; seq: number }): void {
+    this.#events.length = Math.min(this.#events.length, mark.length);
+    this.#seq = mark.seq;
+  }
+
   serialize(): EventLogState {
     return { events: this.#events.map((event) => ({ ...event, data: { ...event.data } })), seq: this.#seq };
   }

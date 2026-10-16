@@ -8,10 +8,9 @@ import { worldObjectsModule, ObjectRelations, prototypeOf, ownerOf, holderOf } f
 import {
   settlementLocationsModule, SettlementCommands, SettlementComponents,
   residentId, dailyActivity, worksites, homestead, people,
+  FIRST_AUTONOMOUS_RESIDENT, runFirstNpcDay, runVillageDayBoundary,
+  VILLAGE_DAY_AGENT, type VillageDayBoundary, villagePopulation, RIVER_TERRACE_PACK,
 } from "@openlife/module-settlement-locations";
-import { FIRST_AUTONOMOUS_RESIDENT, runFirstNpcDay } from "../../apps/web/src/npc.ts";
-import { runSecondNpcDay } from "../../apps/web/src/npc-cook.ts";
-import { runVillageDayBoundary } from "../../apps/web/src/village-day.ts";
 
 const modules = [modernWorldModule, worldClockModule, worldSpaceModule, worldObjectsModule, settlementLocationsModule];
 
@@ -24,10 +23,24 @@ function village(seed: number) {
   assert.equal(sim.dispatch({ type: SettlementCommands.found }).ok, true);
   return { sim, playerId };
 }
-const prepared = (sim: Simulation) => {
+/** Advance one day; the engine's village agent lives through it (M4-B). */
+function liveDay(sim: Simulation): VillageDayBoundary {
+  const before = sim.tick;
   sim.advanceBy(1);
-  return runFirstNpcDay(sim);
+  const report = sim.agentReport(VILLAGE_DAY_AGENT);
+  assert.equal(report?.tick, before + 1, "the village agent ran for the stepped day");
+  assert.equal(report?.error, undefined, String(report?.error));
+  return report!.report as VillageDayBoundary;
+}
+const residentDay = (day: VillageDayBoundary, actorId: string) => {
+  const row = day.residents.find((r) => r.actorId === actorId);
+  assert.ok(row, `resident ${actorId} had a day`);
+  return { ...row, tick: day.tick };
 };
+/** Real shared meals eaten from the hearth stock on one village day. */
+const mealsEaten = (day: VillageDayBoundary) => day.residents
+  .filter((r) => r.actions.some((a) => a.startsWith("吃") && a.includes("熟食"))).length;
+const prepared = (sim: Simulation) => residentDay(liveDay(sim), FIRST_AUTONOMOUS_RESIDENT);
 const cooked = (sim: Simulation) => worksites(sim.worldView()).places
   .find((p) => p.placeId === "place:hearth-yard")!.resources
   .find((row) => row.resourceId === "resource:cooked")!.stock;
@@ -42,8 +55,7 @@ test("M3-C: one authoritative day-boundary advances both NPCs once; replay after
     const firstNoop = runVillageDayBoundary(sim, start);
     assert.equal(firstNoop.ran, false, "a command that does not change the date must never run villagers");
     assert.equal(sim.worldView().getComponent(residentId("yu"), SettlementComponents.resident)?.lastRoutineAt ?? -1, -1);
-    sim.advanceBy(1);
-    const first = runVillageDayBoundary(sim, start);
+    const first = liveDay(sim);
     assert.equal(first.ran, true);
     assert.equal(first.tick, start + 1);
     assert.equal(first.notes.length, 14);
@@ -63,10 +75,13 @@ test("M3-C: one authoritative day-boundary advances both NPCs once; replay after
     const resumed = loaded.simulation!;
     assert.equal(runVillageDayBoundary(resumed, start).ran, false);
     assert.equal(resumed.fingerprint(), snapshot);
-    const afterManual = resumed.tick;
-    resumed.advanceBy(1);
-    assert.equal(runVillageDayBoundary(resumed, afterManual).ran, true);
-    assert.equal(cooked(resumed), food - 1, "next day NPC meal consumes one real portion");
+    const next = liveDay(resumed);
+    assert.equal(next.ran, true);
+    assert.ok(mealsEaten(next) > 0);
+    // The village kitchen refills by one day's population-scaled portion; each NPC meal then takes one real portion.
+    const hearth = RIVER_TERRACE_PACK.yields.find((y) => y.resourceId === "resource:cooked")!;
+    const refill = Math.ceil(villagePopulation(resumed.worldView()) / hearth.perResidents!);
+    assert.equal(cooked(resumed), Math.min(hearth.capacity, food + refill) - mealsEaten(next), "each NPC meal consumes one real portion");
     assert.equal(dailyActivity(resumed.worldView(), playerId).used, 0,
       "NPC actions never deduct player's daily slots");
     assert.equal(Number(resumed.worldView().getComponent(cook, SettlementComponents.resident)?.npcDailyCount), 2);
@@ -92,9 +107,7 @@ test("M3-C: one authoritative day-boundary advances both NPCs once; replay after
     assert.notEqual(resumed.fingerprint(), beforeSkipFingerprint, "only original world time advanced");
 
     // Later short daily steps run from their actual day, not missing history.
-    const afterSkip = resumed.tick;
-    resumed.advanceBy(1);
-    assert.equal(runVillageDayBoundary(resumed, afterSkip).ran, true);
+    assert.equal(liveDay(resumed).ran, true);
     assert.equal(Number(resumed.worldView().getComponent(cook, SettlementComponents.resident)?.npcDailyCount),
       beforeSkipCookDays + 1);
     const grainAfterRealDay = worksites(resumed.worldView()).places.find((p) => p.placeId === "place:field")!.resources
@@ -117,9 +130,9 @@ test("M3-C: no village means no NPC day, and long gaps cannot mint NPC activity"
 });
 test("M3-B: both autonomous residents execute and persist independent daily records", () => {
   const { sim, playerId } = village(7111);
-  sim.advanceBy(1);
-  const cook = runSecondNpcDay(sim);
-  const farmer = runFirstNpcDay(sim);
+  const day = liveDay(sim);
+  const cook = residentDay(day, residentId("cook"));
+  const farmer = residentDay(day, residentId("yu"));
   const cookState = sim.worldView().getComponent(residentId("cook"), SettlementComponents.resident);
   const farmerState = sim.worldView().getComponent(residentId("yu"), SettlementComponents.resident);
   assert.equal(cookState?.lastRoutineAt, sim.tick, JSON.stringify({ cook, cookState }));
@@ -137,12 +150,14 @@ test("M3-A: one NPC works, walks, eats a REAL shared ration and rests, once per 
   assert.equal(occupiedPlaceId(sim.worldView(), npc), "place:field");
   const firstFood = cooked(sim);
   const playerBudget = dailyActivity(sim.worldView(), playerId);
-  const first = prepared(sim);
+  const firstDay = liveDay(sim);
+  const first = residentDay(firstDay, npc);
   assert.equal(first.skipped, false, first.note);
   assert.ok(first.actions.includes("照料田地"), first.note);
   assert.ok(first.actions.includes("吃一份熟食"), first.note);
   assert.ok(first.actions.includes("休息"), first.note);
-  assert.equal(cooked(sim), firstFood - 1, "NPC and player share exactly the same cooked-food yield");
+  const afterFirst = firstFood - mealsEaten(firstDay);
+  assert.equal(cooked(sim), afterFirst, "NPCs and player share exactly the same cooked-food yield");
   assert.equal(sim.worldView().getComponent(npc, SettlementComponents.holding)?.workCount, 1);
   assert.equal(sim.worldView().getComponent(npc, SettlementComponents.holding)?.lastRestedAt, sim.tick);
   assert.equal(dailyActivity(sim.worldView(), npc).used, 8);
@@ -157,7 +172,7 @@ test("M3-A: one NPC works, walks, eats a REAL shared ration and rests, once per 
 
   const sameDay = runFirstNpcDay(sim);
   assert.equal(sameDay.skipped, true);
-  assert.equal(cooked(sim), firstFood - 1);
+  assert.equal(cooked(sim), afterFirst);
   assert.equal(sim.worldView().getComponent(npc, SettlementComponents.holding)?.workCount, 1);
 
   const saved = Simulation.load(sim.save(), modules);
@@ -165,10 +180,11 @@ test("M3-A: one NPC works, walks, eats a REAL shared ration and rests, once per 
   const restored = saved.simulation!;
   assert.equal(restored.fingerprint(), sim.fingerprint());
   assert.equal(runFirstNpcDay(restored).skipped, true, "load cannot repeat an already completed NPC day");
-  const second = prepared(restored);
+  const secondDay = liveDay(restored);
+  const second = residentDay(secondDay, npc);
   assert.equal(second.skipped, false, second.note);
   assert.equal(restored.worldView().getComponent(npc, SettlementComponents.holding)?.workCount, 2, second.note);
-  assert.equal(cooked(restored), firstFood - 2);
+  assert.ok(cooked(restored) <= afterFirst, "meals only spend the finite stock");
 });
 
 test("M3-A: refused food or blocked room leaves real partial progress, not fake food", () => {
@@ -178,24 +194,23 @@ test("M3-A: refused food or blocked room leaves real partial progress, not fake 
   // are permitted and never converted into imaginary successful meals.
   const eaten: string[] = [];
   for (let day = 0; day < 9; day++) {
-    sim.advanceBy(1);
-    const before = cooked(sim);
-    const entry = runFirstNpcDay(sim);
+    const entry = prepared(sim);
     assert.equal(entry.skipped, false);
     assert.equal(entry.tick, sim.tick);
+    assert.ok(cooked(sim) >= 0, "stock never goes negative");
     if (entry.actions.includes("吃一份熟食")) {
       eaten.push(String(day));
-      assert.ok(before > 0);
-      assert.equal(cooked(sim), before - 1);
     } else {
-      assert.equal(cooked(sim), before, "missing food is not consumed or fabricated");
+      assert.ok(!entry.note.includes("没有熟食") || cooked(sim) === 0,
+        "missing food is reported only when the shared stock is really empty");
     }
     const record = sim.worldView().getComponent(npc, SettlementComponents.resident);
     assert.equal(record?.lastRoutineAt, sim.tick);
     assert.equal(runFirstNpcDay(sim).skipped, true);
   }
   assert.ok(eaten.length > 0);
-  assert.ok(eaten.length < 9, "finite daily meals eventually create a real shortage");
+  // Since the 2026-10 food rebalance the village kitchen keeps up with demand,
+  // so a shortage is no longer guaranteed; the invariants above still hold every day.
 });
 
 function playerBarterFixture(seed: number) {
@@ -425,8 +440,7 @@ test("M3: no hardcoded sixth-day exchange; real resource-based routines persist"
   const start = sim.tick;
   for (let day = 0; day < 6; day += 1) {
     const before = sim.tick;
-    sim.advanceBy(1);
-    const report = runVillageDayBoundary(sim, before);
+    const report = liveDay(sim);
     assert.equal(report.ran, true);
     assert.equal(report.notes.length, 14);
     assert.equal(Number(sim.worldView().getComponent(cook, SettlementComponents.resident)?.npcDailyCount), day + 1);

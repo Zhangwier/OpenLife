@@ -4,16 +4,18 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>OpenLife · 开放人生</title>
-  <link rel="stylesheet" href="/styles.css" />
-  <link rel="stylesheet" href="/shell.css" />
-  <link rel="stylesheet" href="/scene.css" />
-  <link rel="stylesheet" href="/mobile-ui.css" />
+  <link rel="stylesheet" href="/stage.css" />
+  <link rel="stylesheet" href="/theme.css" />
+  <link rel="icon" href="data:," />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#f2ece1" />
+  <script>try{var t=localStorage.getItem("openlife-theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t;}catch(e){}</script>
 </head>
 <body data-screen="home">
   <div class="grain"></div>
   <main class="game-shell">
     <section id="homeScreen" class="home-screen" aria-labelledby="homeTitle">
-      <div class="home-landscape" aria-hidden="true"><div class="home-sun"></div><div class="home-hill hill-back"></div><div class="home-hill hill-front"></div><div class="home-river"></div><div class="home-house house-one"></div><div class="home-house house-two"></div><div class="home-reeds"></div></div>
+      <div class="home-landscape" aria-hidden="true"><div class="home-sun"></div><div class="home-hill hill-back"></div><div class="home-hill hill-front"></div><div class="home-river"></div><div class="home-house house-one"></div><div class="home-house house-two"></div><div class="home-reeds"></div><div class="scene-fx home-fx" id="homeFx"></div></div>
       <div class="home-content">
         <span class="home-kicker">一个世界，许多种人生</span>
         <h1 id="homeTitle">开放人生<span>OpenLife</span></h1>
@@ -28,6 +30,8 @@
         <p id="homeStatus" class="home-status" role="status">读取中的世界不会自动推进时间。</p>
       </div>
       <div class="home-caption"><span>河岸 · 聚落 · 旷野</span><p>世界在你到来之前存在，<br>也会在你之后继续。</p></div>
+      <button class="icon-button home-sound" id="homeSoundButton" type="button" aria-label="声音" aria-haspopup="dialog"></button>
+      <button class="icon-button home-theme" id="homeThemeButton" type="button" aria-label="切换深色或亮色模式" title="深色 / 亮色"></button>
       <footer class="home-footer"><span>OPENLIFE / 开放人生</span><span>早期聚落 · 开发中的世界</span></footer>
     </section>
     <header class="topbar">
@@ -45,6 +49,8 @@
         <button class="icon-button" id="resetButton" aria-label="开始新人生" title="开始新人生">↺</button>
         <button class="ghost-button" id="autoButton">时间与日程</button>
         <button class="ghost-button" id="pauseAutoButton" hidden aria-label="暂停持续模拟">暂停生活</button>
+        <button class="icon-button" id="soundButton" type="button" aria-label="声音" aria-haspopup="dialog" aria-expanded="false"></button>
+        <button class="icon-button" id="themeButton" type="button" aria-label="切换深色或亮色模式" title="深色 / 亮色"></button>
         <button class="ghost-button" id="menuButton" aria-label="打开菜单">☰</button>
       </div>
     </header>
@@ -70,6 +76,7 @@
         <div class="eyebrow">这一生</div>
         <div class="portrait"><span id="portraitInitial">启</span><div class="portrait-figure"></div></div>
         <div class="identity"><h1 id="characterName">启 禾</h1><p id="characterMeta">0 岁 · 北岸聚落</p></div>
+        <div id="originCard" class="origin-card" hidden></div>
         <div class="life-line">
           <div class="life-line-track"><div class="life-line-progress" id="lifeProgress"></div></div>
           <div class="life-line-labels"><span>出生</span><span>此刻</span><span>未知</span></div>
@@ -109,8 +116,20 @@
           </div>
           <p class="scene-summary" id="sceneSummary"></p>
           <div class="scene-theater" id="sceneTheater" aria-label="可互动的聚落生活场景">
-            <img id="sceneBackdrop" class="scene-backdrop" src="/art/scene-yard.svg" alt="" draggable="false" />
+            <svg class="svg-defs" width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+              <filter id="toyLight" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="b"/>
+                <feSpecularLighting in="b" surfaceScale="5" specularConstant=".55" specularExponent="16" lighting-color="#fff4dc" result="spec"><feDistantLight azimuth="225" elevation="42"/></feSpecularLighting>
+                <feComposite in="spec" in2="SourceAlpha" operator="in" result="specIn"/>
+                <feDiffuseLighting in="b" surfaceScale="5" diffuseConstant="1.08" lighting-color="#ffffff" result="diff"><feDistantLight azimuth="225" elevation="62"/></feDiffuseLighting>
+                <feBlend in="SourceGraphic" in2="diff" mode="multiply" result="shaded"/>
+                <feComposite in="shaded" in2="specIn" operator="arithmetic" k1="0" k2="1" k3=".8" k4="0" result="lit"/>
+                <feComposite in="lit" in2="SourceAlpha" operator="in"/>
+              </filter></defs></svg>
+            <img id="sceneBackdrop" class="scene-backdrop" src="/art/scene-yard.webp" alt="" draggable="false" />
             <div class="scene-shimmer" aria-hidden="true"></div>
+            <div class="scene-fx" id="sceneFx" aria-hidden="true"></div>
+            <div class="scene-light" aria-hidden="true"></div>
             <div class="scene-stage-top">
               <div><span class="scene-stage-kicker">OPENLIFE · 河岸聚落</span>
                 <strong id="sceneStageName">眼前的世界</strong></div>
@@ -120,13 +139,15 @@
             <div class="scene-stage-foot"><span>◈ 这里的一切都会留下真实痕迹</span>
               <span id="sceneStageHint">点击人物或场景物件互动</span></div>
           </div>
+          <section id="lifeLog" class="life-log" aria-label="人生纪事" hidden></section>
+          <section id="hopes" class="hopes" aria-label="心里记着的事" hidden></section>
           <section class="interaction-dock" id="interactionDock" aria-label="当前操作">
             <p id="actionFeedback" class="action-feedback" role="status" aria-live="polite">轻触人物或物件，看看可以做什么。</p>
             <div id="sceneQuickActions" class="scene-quick-actions" role="region" aria-label="场景操作" hidden></div>
             <div class="dock-tools" id="dockTools">
-              <button id="sceneMapButton" type="button">地点 <span aria-hidden="true">↗</span></button>
-              <button id="sceneWorkButton" type="button">劳动与休息</button>
-              <button id="sceneTimeButton" type="button">时间安排</button>
+              <button id="sceneMapButton" type="button" aria-label="移动到别的地点"><svg class="ol-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.3"/></svg><span>移动</span><small class="dock-sub">去别处</small></button>
+              <button id="sceneWorkButton" type="button" aria-label="劳动与休息"><svg class="ol-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6 4 4"/><path d="m11.5 8.5 6-6 4 4-6 6Z"/><path d="m13 11-9.5 9.5"/></svg><span>劳动</span><small class="dock-sub">做活与歇息</small></button>
+              <button id="sceneTimeButton" type="button" aria-label="时间安排"><svg class="ol-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>时间</span><small class="dock-sub">日程与过日子</small></button>
             </div>
           </section>
           <section id="communityFeed" class="hearth-story" aria-label="眼前聚落动态"></section>
@@ -352,6 +373,15 @@
           </select>
         </label>
         <label>
+          <span>出身</span>
+          <select id="newOrigin" name="originId"><option value="random">随缘（按人生编号抽取出身与天赋）</option></select>
+          <small id="newOriginStory">你从哪里来，决定了手里带着什么、村里谁已经认得你。</small>
+        </label>
+        <fieldset id="newTalents" class="new-talents">
+          <legend>天赋 <small>选一到两个；选「随缘」时由人生编号决定</small></legend>
+          <div id="newTalentList" class="talent-list"></div>
+        </fieldset>
+        <label>
             <span>这段人生的编号</span>
           <input id="newSeed" name="seed" type="number" min="0" max="4294967295" value="104" />
           <small>相同种子与相同选择，会得到可复现的世界。</small>
@@ -364,4 +394,14 @@
     </section>
   </div>
   <script type="module" src="/app.js"></script>
+
+  <div class="sound-panel" id="soundPanel" role="dialog" aria-label="声音设置" hidden>
+    <div class="sound-head"><strong>声音</strong><span id="soundStatus">关闭</span></div>
+    <div class="sound-modes" role="radiogroup" aria-label="声音模式">
+      <button type="button" role="radio" data-sound-mode="music"><span class="sm-icon"></span><b>舒缓音乐</b><small>笛声与当地环境声</small></button>
+      <button type="button" role="radio" data-sound-mode="noise"><span class="sm-icon"></span><b>白噪音</b><small>像远处的细雨</small></button>
+      <button type="button" role="radio" data-sound-mode="off"><span class="sm-icon"></span><b>关闭</b><small>保持安静</small></button>
+    </div>
+    <label class="sound-volume"><span>音量</span><input id="soundVolume" type="range" min="0" max="100" step="1" /></label>
+  </div>
 </body></html>

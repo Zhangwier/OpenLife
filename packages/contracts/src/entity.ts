@@ -57,6 +57,11 @@ export interface ComponentDefinition {
   persist: boolean;
   /** Human readable purpose, used by the debug console. */
   description?: string;
+  /**
+   * Other modules the owner explicitly lets write this component (§INV-007).
+   * Omitted or empty: only the owning module's rules may set or modify it.
+   */
+  writableBy?: string[];
 }
 
 export interface RelationDefinition {

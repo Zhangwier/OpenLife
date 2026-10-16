@@ -1,6 +1,10 @@
 import { renderPlayer, renderActionButtons, installModalAccess, selectView } from "/player.js";
 import { installShell, renderShell, enterLife } from "/shell.js";
 import { renderSettlement, describeSettlementResult } from "/settlement.js";
+import { renderFigure } from "/character-appearance.js";
+import { playActionFx } from "/action-fx.js";
+import { isTextMode } from "/view-mode.js";
+import { renderLifeLog, renderHopes, logAction, diffSettlement, chipText } from "/life-log.js";
 const $ = (id) => document.getElementById(id);
 let state;
 let busy = false;
@@ -33,16 +37,28 @@ function render(s, animate = false) {
     setTimeout(() => document.body.classList.remove("is-transitioning"), 750);
   }
   const c = s.character;
-  $("timeRibbon").querySelector(".time-year").textContent = s.era ?? String(s.year);
+  // 统一时间文案：玩家过的是「冬 · 第 N 天」，公元纪年作为副标题。
+  $("timeRibbon").querySelector(".time-year").textContent = s.settlement?.exists
+    ? `${s.settlement.season} · 第 ${s.settlement.origin?.daysHere ?? s.settlement.day} 天${s.settlement.weather ? ` · ${s.settlement.weather.sky}` : ""}` : (s.era ?? String(s.year));
+  $("timeRibbon").title = s.settlement?.weather?.note ?? "";
+  $("timeRibbon").dataset.era = s.era ?? "";
   $("timeRibbon").querySelector(".time-copy").textContent = continuousRunning
-    ? `${s.month} 月 · ${s.settlement?.season || seasonForMonth(s.month)} · 推进中` : `${s.month} 月 · ${s.settlement?.season || seasonForMonth(s.month)} · 已暂停`;
+    ? `${s.era ?? ""} · ${s.month} 月 · 推进中` : `${s.era ?? ""} · ${s.month} 月 · 已暂停`;
   $("generationPill").textContent = numberGeneration(s.generation);
   $("lineageLabel").textContent = numberGeneration(s.generation);
 
   if (c) {
     $("characterName").textContent = c.name;
+    renderOriginCard(s);
     $("characterMeta").textContent = `${c.age} 岁 · ${c.city}`;
     $("portraitInitial").textContent = c.name.slice(0, 1);
+    // 人物页头像与生活场景里的角色用同一套手绘形象。
+    const figureId = s.settlement?.characterId ?? c.id ?? c.name;
+    const portrait = document.querySelector(".portrait-figure");
+    if (portrait && !isTextMode() && portrait.dataset.figure !== figureId) {
+      portrait.dataset.figure = figureId; portrait.classList.add("has-figure");
+      portrait.innerHTML = renderFigure(figureId, "player");
+    }
     $("healthWord").textContent = c.healthWord;
     $("educationWord").textContent = c.learning;
     $("occupationWord").textContent = c.role;
@@ -61,6 +77,7 @@ function render(s, animate = false) {
   renderWorld(s.world);
   renderPlayer(s, performAction);
   renderSettlement(s, performSettlementAction);
+  if (isTextMode()) { renderLifeLog(s); renderHopes(s); }
   updatePlanStatus(s);
   renderShell(s);
 }
@@ -322,9 +339,16 @@ async function performSettlementAction(action, payload) {
       }),
     });
     if (!data.result.ok) throw new Error(data.result.errors?.[0]?.message || "这件事现在还不能发生");
+    const before = state.settlement;
     state = data.state;
+    const target = payload?.targetId ? (before?.neighbours || []).find((n) => n.id === payload.targetId) : null;
+    const told = data.narrative?.length ? data.narrative.join("")
+      : describeSettlementResult(action, data.result, state).replace("眼前的村民", target?.name || "眼前的村民");
+    const chips = diffSettlement(before, state.settlement);
+    if (isTextMode()) logAction(state, told, chips);
     render(state, true);
-    showToast(describeSettlementResult(action, data.result));
+    if (!isTextMode()) playActionFx({ action, payload: payload ?? {}, before, after: state.settlement });
+    showToast(isTextMode() && chips.length ? `${told}（${chipText(chips)}）` : told);
     await autoRemember();
   } catch (error) {
     showToast(error.message);
@@ -447,7 +471,7 @@ function updateContinuousControls(message = "") {
   $("autoButton").textContent = continuousRunning ? "时间设置" : "时间与日程";
   $("autoRunStatus").textContent = message || (continuousRunning ? "持续推进中，可随时暂停" : "当前已暂停");
   $("timeRibbon").querySelector(".time-copy").textContent =
-    continuousRunning ? "自动推进中 · 可暂停" : `${state?.month ?? 1} 月 · ${state?.settlement?.season || ""} · 已暂停`;
+    continuousRunning ? "自动推进中 · 可暂停" : `${state?.era ?? ""} · ${state?.month ?? 1} 月 · 已暂停`;
 }
 function pauseContinuousLife() {
   if (!continuousRunning) return;
@@ -664,9 +688,47 @@ document.querySelectorAll("[data-load-slot]").forEach((button) => {
 });
 
 $("resetButton").addEventListener("click", () => {
+  fillOriginChoices(state?.originCatalog);
   $("newLifeModal").hidden = false;
   $("newGivenName").focus();
 });
+
+/** 新人生表单：出身下拉与天赋勾选，来自服务器的数据包目录。 */
+function fillOriginChoices(catalog) {
+  const select = $("newOrigin"), list = $("newTalentList");
+  if (!catalog || !select || select.dataset.filled) return;
+  select.dataset.filled = "1";
+  for (const o of catalog.origins) select.insertAdjacentHTML("beforeend", `<option value="${escapeHtml(o.id)}">${escapeHtml(o.name)}</option>`);
+  list.innerHTML = catalog.talents.map((t) => `<label class="talent-choice"><input type="checkbox" value="${escapeHtml(t.id)}" />
+    <b>${escapeHtml(t.name)}</b><small>${escapeHtml(t.blurb)}</small></label>`).join("");
+  const sync = () => {
+    const random = select.value === "random";
+    const o = catalog.origins.find((x) => x.id === select.value);
+    $("newOriginStory").textContent = o ? `${o.story}（心里的念想：${o.aspiration}）` : "出身与两个天赋由人生编号决定，同一个编号总是同一种开局。";
+    const checked = list.querySelectorAll("input:checked").length;
+    for (const box of list.querySelectorAll("input")) box.disabled = random || (!box.checked && checked >= catalog.maxTalents);
+  };
+  select.addEventListener("change", sync);
+  list.addEventListener("change", sync);
+  sync();
+}
+
+function escapeHtml(v) {
+  return String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
+/** 人物卡上的出身与天赋。 */
+function renderOriginCard(s) {
+  const card = $("originCard");
+  const o = s?.settlement?.origin;
+  if (!card) return;
+  if (!o || o.id === "none") { card.hidden = true; card.innerHTML = ""; return; }
+  card.hidden = false;
+  card.innerHTML = `<div class="origin-head"><span>出身</span><strong>${escapeHtml(o.name)}</strong></div>
+    <p class="origin-story">${escapeHtml(o.story)}</p>
+    <p class="origin-wish">心里的念想：${escapeHtml(o.aspiration)}</p>
+    <ul class="origin-talents">${o.talents.map((t) => `<li><b>${escapeHtml(t.name)}</b> ${escapeHtml(t.blurb)}</li>`).join("")}</ul>`;
+}
 $("closeNewLife").addEventListener("click", () => $("newLifeModal").hidden = true);
 $("newLifeForm").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -683,6 +745,8 @@ $("newLifeForm").addEventListener("submit", async (event) => {
         givenName: $("newGivenName").value,
         familyName: $("newFamilyName").value,
         cityId: $("newCity").value,
+        originId: $("newOrigin")?.value || "random",
+        talents: [...document.querySelectorAll("#newTalentList input:checked")].map((box) => box.value),
       }),
     });
     state = data.state;

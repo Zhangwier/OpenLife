@@ -5,10 +5,20 @@ import { modernWorldModule } from "@openlife/module-modern-world";
 import { worldClockModule } from "@openlife/module-world-clock";
 import { worldSpaceModule } from "@openlife/module-world-space";
 import { worldObjectsModule, ObjectRelations, ownerOf, holderOf, prototypeOf } from "@openlife/module-world-objects";
-import { settlementLocationsModule, SettlementComponents, SettlementCommands, residentId, people } from "@openlife/module-settlement-locations";
-import { runVillageDayBoundary } from "../../apps/web/src/village-day.ts";
+import { settlementLocationsModule, SettlementComponents, SettlementCommands, residentId, people,
+  VILLAGE_DAY_AGENT, type VillageDayBoundary } from "@openlife/module-settlement-locations";
 
 const modules = [modernWorldModule, worldClockModule, worldSpaceModule, worldObjectsModule, settlementLocationsModule];
+
+/** Advance one day; the engine's village agent lives through it (M4-B). */
+function liveDay(sim: Simulation): VillageDayBoundary {
+  const before = sim.tick;
+  sim.advanceBy(1);
+  const report = sim.agentReport(VILLAGE_DAY_AGENT);
+  assert.equal(report?.tick, before + 1, "the village agent ran for the stepped day");
+  assert.equal(report?.error, undefined, String(report?.error));
+  return report!.report as VillageDayBoundary;
+}
 function make(seed: number) {
   const sim = new Simulation({ worldSeed: seed, modules });
   assert.equal(sim.dispatch({ type: "modern.initialize_world" }).ok, true);
@@ -21,9 +31,7 @@ function run30(seed: number, resumeAt = -1) {
   const cook = residentId("cook"), reed = residentId("reed-worker"), yu = residentId("yu");
   const observed: { day: number; need: string; replied: string; supply: number; fire: boolean; notes: string[] }[] = [];
   for (let day = 1; day <= 30; day++) {
-    const before = sim.tick;
-    sim.advanceBy(1);
-    const boundary = runVillageDayBoundary(sim, before);
+    const boundary = liveDay(sim);
     assert.equal(boundary.ran, true);
     assert.equal(boundary.notes.length, 14, "all authored villagers have a daily decision");
     const state = sim.worldView();
@@ -73,8 +81,15 @@ test("30 days: all 14 residents act, scarcity creates distinct outcomes, and rep
   assert.ok(control.observed.some(row => row.fire), "hearth actually consumes real fuel");
   assert.ok(needs.length > 0, "shortage causes an NPC-owned request without player involvement");
   assert.ok(replies.length > 0, "a second NPC independently responds");
-  assert.ok(control.observed.some(row => row.replied === "shared"), "aid is actually given when there is a spare item");
-  assert.ok(control.observed.some(row => row.replied === "declined"), "the same resident can later refuse when reserves are gone");
+  // Aid is given only from a real spare. When the reed worker's spare bundle has
+  // already gone to a neighbour in an ordinary exchange, he honestly has none left
+  // to share (the sharing path itself is covered against real holdings below).
+  assert.ok(control.observed.some(row => row.replied === "shared") ||
+    control.observed.some(row => row.notes.some(note => /向阿苇换了一份柴草/.test(note))),
+    "aid is given when there is a spare item, or the spare visibly went elsewhere first");
+  // Refusal is no longer forced by the old renewal bug (every draw restarted
+  // the regrowth clock, so the reed flat never recovered under daily use). The
+  // decision itself is covered below against real holdings.
   assert.ok(control.observed.some(row => row.notes.some(note => note.includes("照料田地"))),
     "farmer continues working instead of joining a scripted quest");
 });
@@ -87,4 +102,12 @@ test("NPC help rejects impersonation, remote agreement and fabricated item trans
   assert.equal(sim.dispatch({ type: SettlementCommands.npcAnswerHelp, actorId: reed, source: "ai",
     payload: { requesterId: cook, accept: true, itemId: "fake" } }).ok, false);
   assert.equal(sim.worldView().getComponent(cook, SettlementComponents.resident)?.helpRequest, undefined);
+});
+
+test("the fuel gatherer refuses once his own reserve is gone, and shares when he has a spare", async () => {
+  const { fuelHelpReply } = await import("@openlife/module-settlement-locations");
+  assert.equal(fuelHelpReply(3, 5, 10), "share");
+  assert.equal(fuelHelpReply(2, 5, 6), "share");
+  assert.equal(fuelHelpReply(1, 9, 14), "refuse", "never gives away his last bundle");
+  assert.equal(fuelHelpReply(0, 9, 14), "refuse");
 });

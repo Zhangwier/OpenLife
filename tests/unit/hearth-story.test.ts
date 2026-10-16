@@ -6,7 +6,6 @@ import { worldClockModule } from "@openlife/module-world-clock";
 import { worldSpaceModule } from "@openlife/module-world-space";
 import { worldObjectsModule, ObjectRelations, ownerOf, holderOf, prototypeOf } from "@openlife/module-world-objects";
 import { settlementLocationsModule, SettlementCommands, SettlementComponents, homestead, residentId } from "@openlife/module-settlement-locations";
-import { runVillageDayBoundary } from "../../apps/web/src/village-day.ts";
 const modules = [modernWorldModule, worldClockModule, worldSpaceModule, worldObjectsModule, settlementLocationsModule];
 
 function village() {
@@ -53,9 +52,8 @@ for (const [resourceId, place] of [
     assert.equal(act(SettlementCommands.helpHearth, { objectId: itemId }).ok, false,
       "cannot give away another person's now-owned object a second time");
     assert.equal(Number(sim.worldView().getComponent(cook, SettlementComponents.resident)?.giftCount), 1);
-    const tick = sim.tick;
+    // The cook's next day runs inside the engine as the clock advances.
     sim.advanceBy(1);
-    runVillageDayBoundary(sim, tick);
     if (resourceId === "resource:fuel") {
       assert.equal(sim.worldView().getEntity(itemId)?.archivedAt !== undefined, true,
         "the cook later burns the donated real fuel, not a story-only counter");

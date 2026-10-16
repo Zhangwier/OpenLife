@@ -82,8 +82,8 @@ export class TransactionEngine {
    */
   applyEffects(effects: TaggedEffect[], ctx: TransactionContext): WorldEvent[] {
     const checkpoint = {
-      store: this.#deps.store.serialize(),
-      eventLog: this.#deps.eventLog.serialize(),
+      store: this.#deps.store.checkpoint(),
+      eventLog: this.#deps.eventLog.mark(),
       scheduler: this.#deps.scheduler.serialize(),
       facts: this.#deps.facts.serialize(),
     };
@@ -95,12 +95,13 @@ export class TransactionEngine {
     try {
       const emitted = this.#applyBatch(effects, ctx, state);
       this.#cascade(emitted, ctx, state);
+      this.#deps.store.commit(checkpoint.store);
       return emitted;
     } catch (error) {
       // A transaction is all-or-nothing. Reactions may fail after earlier
       // effects have already touched the store, journal, scheduler or facts.
-      this.#deps.store.restore(checkpoint.store);
-      this.#deps.eventLog.restore(checkpoint.eventLog);
+      this.#deps.store.rollback(checkpoint.store);
+      this.#deps.eventLog.rollback(checkpoint.eventLog);
       this.#deps.scheduler.restore(checkpoint.scheduler);
       this.#deps.facts.restore(checkpoint.facts);
       throw error;
@@ -141,8 +142,31 @@ export class TransactionEngine {
     }
   }
 
+  /**
+   * INV-007: module data belongs to its owner. A rule may write a component
+   * only when its module owns that component or the owner granted it in
+   * `writableBy`. A violation aborts the whole transaction.
+   */
+  #assertMayWrite(writer: string, component: string): void {
+    const definition = this.#deps.definitions.components.get(component);
+    if (!definition) {
+      fail(ErrorCode.UnknownComponent, `effect writes an unregistered component: ${component}`,
+        { component, writer });
+    }
+    if (definition.owner === writer) return;
+    if (definition.writableBy?.includes(writer)) return;
+    fail(
+      ErrorCode.PermissionDenied,
+      `module "${writer}" may not write component "${component}" owned by "${definition.owner}"`,
+      { component, writer, owner: definition.owner },
+    );
+  }
+
   #applyOne(tagged: TaggedEffect, ctx: TransactionContext, state: TxnState): WorldEvent[] {
     const { effect, owner } = tagged;
+    if (effect.kind === "setComponent" || effect.kind === "modifyComponent") {
+      this.#assertMayWrite(owner, effect.component);
+    }
     switch (effect.kind) {
       case "setComponent": {
         const id = this.#ref(effect.entityId, state);

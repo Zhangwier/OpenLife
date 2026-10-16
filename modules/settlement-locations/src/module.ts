@@ -21,6 +21,9 @@
 
 import type { ComponentData, Effect, JsonValue, OpenLifeModule, WorldView } from "@openlife/contracts";
 import { DAYS_PER_MONTH, DAY_TICKS_PER_YEAR } from "@openlife/life-contracts";
+import { feastOn, feastSoon, illnessOn, illnessSpec, isIll, calendarDate } from "./happenings.ts";
+import { appraise, type CounterpartView, type Closeness } from "./exchange.ts";
+import { skyOn, isWet, OUTDOOR_PLACES, SKY_NOTE } from "./weather.ts";
 import {
   ObjectCommands,
   ObjectComponents,
@@ -48,6 +51,12 @@ import {
   readPlace,
   readSpace,
 } from "@openlife/module-world-space";
+import { VILLAGE_DAY_AGENT, runVillageAgent } from "./autonomy/village-day.ts";
+import { residentMind, temperamentWords } from "./autonomy/mind.ts";
+import { personOf, heartsOf, tasteOf, isBirthday, birthdayWords, nextHeartEvent, keyOfResident, tieWarmth, type Taste } from "./people.ts";
+import { readSocial, bondOf, withBond, mergeHeard, withNews, freshNews, toJson, ASK_COOLDOWN, REQUEST_DAYS, type SocialMemory } from "./social.ts";
+import { readOrigin, mergedEffects, originById, talentById, originProblem, type PlayerOrigin } from "./origin.ts";
+import { RIVER_TERRACE_PACK, type ResidentSpec, type PlaceSpec, type YieldSpec, type PrototypeSpec, type RecipeSpec } from "./content.ts";
 
 const OWNER = "settlement-locations";
 const WORLD = "modern:world";
@@ -65,6 +74,8 @@ export const SettlementComponents = {
   /** Crop state on the existing field place; absent for old saves means fallow. */
   cropPlot: "settlement-locations.crop-plot",
   dailyPlan: "settlement-locations.daily-plan",
+  /** A home's roof, on the home space: level after the last mending and the day it was mended. */
+  roof: "settlement-locations.roof",
 } as const;
 
 export const SettlementCommands = {
@@ -92,10 +103,40 @@ export const SettlementCommands = {
   cookBarterQuote: "settlement-locations.barter.cook_quote",
   playerBarterAccept: "settlement-locations.barter.accept",
   playerBarterDecline: "settlement-locations.barter.decline",
+  /** General exchange between any two people in the same place. */
+  exchange: "settlement-locations.exchange",
+  craft: "settlement-locations.craft",
   helpHearth: "settlement-locations.hearth.help",
   npcAskHelp: "settlement-locations.npc.ask_help",
   npcAnswerHelp: "settlement-locations.npc.answer_help",
   npcFire: "settlement-locations.npc.fire",
+  /** A resident looks around: who is here, what they carry; old requests are settled. */
+  npcNotice: "settlement-locations.npc.notice",
+  /** A resident, face to face, asks the player for something (borrow, trade or collect a favour). */
+  npcRequest: "settlement-locations.npc.request",
+  /** The player answers a resident's request. */
+  requestAnswer: "settlement-locations.request.answer",
+  /** A resident hands someone one of their own things (repaying a favour, thanks). */
+  npcGive: "settlement-locations.npc.give",
+  /** A new life picks where it comes from and one or two talents (once). */
+  chooseOrigin: "settlement-locations.choose_origin",
+  /** The player gives one of their own things to a villager standing with them. */
+  gift: "settlement-locations.gift",
+  learn: "settlement-locations.learn",
+  /** 把这一季交给日子：记下心思放在哪儿（时间由调用方一口气推过去）。 */
+  beginSeason: "settlement-locations.season.begin",
+  /** 一季过完，结算这段日子：口粮、交情、手艺、收获。 */
+  settleSeason: "settlement-locations.season.settle",
+  /** 向一个人表明心意（交情满 8 颗心才开得了口）。 */
+  court: "settlement-locations.court",
+  /** 定亲几天后，当着全村成亲。 */
+  wed: "settlement-locations.wed",
+  /** 一家人的日子往前走：添丁、出生、孩子长到能帮家里干活（村里每天看一眼）。 */
+  familyTick: "settlement-locations.family.tick",
+  /** 人走了以后，由一个长大成人的孩子接过这一生。 */
+  handoff: "settlement-locations.handoff",
+  /** 换季那天，村里这一季的大事（村里每天看一眼，一季只发生一次）。 */
+  seasonTurn: "settlement-locations.village.season_turn",
 } as const;
 
 export const SettlementProjections = {
@@ -120,19 +161,6 @@ export const SettlementRejection = {
 /** The authored settlement: one terrace village beside the central river. */
 export const SettlementId = "settlement-locations:settlement:river-terrace";
 
-interface ResidentSpec {
-  key: string;
-  name: string;
-  age: number;
-  role: string;
-  trait: string;
-  wish: string;
-  /** Which place this person works in during the day. */
-  workPlace: string;
-  /** Which space they sleep in at night. */
-  homeSpace: string;
-  household: string;
-}
 
 /**
  * Fourteen residents across six households.
@@ -142,169 +170,34 @@ interface ResidentSpec {
  * the honest label for a 2070 BCE village (see the content policy in
  * `OPEN_WORLD_REQUIREMENTS.md` 搂3).
  */
-const RESIDENTS: ResidentSpec[] = [
-  { key: "elder", name: "陶叔", age: 52, role: "看火的老人", trait: "慢，但记得每一次火候", wish: "想在还看得见的时候，把这套看火的经验讲给一个人。", workPlace: "place:kiln", homeSpace: "space:main-sleep", household: "陶家" },
-  { key: "elder-wife", name: "陶婶", age: 49, role: "操持家事的妇人", trait: "把每件陶器都记得属于谁", wish: "今年想把储粮补到够吃到来年。", workPlace: "place:yard", homeSpace: "space:main-sleep", household: "陶家" },
-  { key: "yu", name: "阿予", age: 19, role: "照看旱地的邻居", trait: "务实，也记得别人帮过的事", wish: "新屋还缺一个能装水的罐子，最近也缺柴火。", workPlace: "place:field", homeSpace: "space:yu-sleep", household: "予家" },
-  { key: "yu-brother", name: "阿石", age: 16, role: "跟着阿予下地的人", trait: "话少，做事稳", wish: "想学会分辨什么样的土能烧成器。", workPlace: "place:field", homeSpace: "space:yu-sleep", household: "予家" },
-  { key: "lan", name: "阿岚", age: 21, role: "往返两岸的交换者", trait: "好奇，愿意试新东西", wish: "想带一件轻巧的陶器去南岸，让更多人认识这里的手艺。", workPlace: "place:ford", homeSpace: "space:lan-sleep", household: "岚家" },
-  { key: "lan-mother", name: "岚母", age: 44, role: "织席与编绳的人", trait: "手上的活比嘴上多", wish: "芦苇够用的话，今年想多编几张席子。", workPlace: "place:reedbed", homeSpace: "space:lan-sleep", household: "岚家" },
-  { key: "reed-worker", name: "阿苇", age: 27, role: "割芦苇的人", trait: "知道哪片滩一年比一年薄", wish: "想和人说清楚，芦苇地不能再这样割下去。", workPlace: "place:reedbed", homeSpace: "space:reed-sleep", household: "苇家" },
-  { key: "clay-digger", name: "阿埴", age: 33, role: "取黏土的人", trait: "认得河岸每一段土的颜色", wish: "想找一个愿意一起去更远的河湾取土的人。", workPlace: "place:claypits", homeSpace: "space:clay-sleep", household: "埴家" },
-  { key: "clay-child", name: "小满", age: 9, role: "跟着大人捡东西的孩子", trait: "什么都想捡回来看", wish: "想有一个属于自己的小罐子。", workPlace: "place:claypits", homeSpace: "space:clay-sleep", household: "埴家" },
-  { key: "water-carrier", name: "阿汲", age: 24, role: "每天来回取水的人", trait: "走得快，也知道水什么时候浑", wish: "想攒够力气换一个更大一点的罐子。", workPlace: "place:river", homeSpace: "space:water-sleep", household: "汲家" },
-  { key: "water-child", name: "小汲", age: 12, role: "帮着提水的孩子", trait: "喜欢看河里的倒影", wish: "想知道河另一头是什么样子。", workPlace: "place:river", homeSpace: "space:water-sleep", household: "汲家" },
-  { key: "cook", name: "阿灶", age: 38, role: "管公共灶火的人", trait: "记得谁家最近没粮", wish: "想让公用灶台一直有柴火可用。", workPlace: "place:hearth-yard", homeSpace: "space:hearth-sleep", household: "灶家" },
-  { key: "cook-helper", name: "阿稷", age: 17, role: "在灶边帮忙的人", trait: "学什么都快", wish: "想独立做一次全家的饭。", workPlace: "place:hearth-yard", homeSpace: "space:hearth-sleep", household: "灶家" },
-  { key: "trader-elder", name: "埴公", age: 61, role: "带过几次远路的人", trait: "讲的路线比走过的多", wish: "想在走不动之前，把渡口那条路教给别人。", workPlace: "place:ford", homeSpace: "space:ford-sleep", household: "埴公家" },
-];
+const RESIDENTS: ResidentSpec[] = RIVER_TERRACE_PACK.residents;
 
 /** Places of the settlement, each with a purpose and a cost to reach. */
 // Open outdoor arrival spots allow villagers and visitors to pass; 0 is the
 // shared world-space convention for unbounded open areas. Indoor rooms remain
 // capacity-limited. The main household accommodates its two adults + guests.
-const PLACES: {
-  id: string; name: string; type: string; costDays: number;
-  /** Where someone arriving here actually stands: the room or spot they enter. */
-  entrySpace: string;
-  spaces: { id: string; name: string; type: string; capacity: number; visible?: boolean }[];
-}[] = [
-  {
-    id: "place:yard", name: "陶家庭院", type: "yard", costDays: 0, entrySpace: "space:main-sleep",
-    spaces: [
-      { id: "space:main-sleep", name: "主屋寝处", type: "sleep", capacity: 4 },
-      { id: "space:store", name: "储粮处", type: "storage", capacity: 2 },
-      { id: "space:drying-rack", name: "晾坯架下", type: "work", capacity: 3, visible: true },
-    ],
-  },
-  {
-    id: "place:hearth-yard", name: "公用灶台", type: "kitchen", costDays: 1, entrySpace: "space:hearth",
-    spaces: [
-      { id: "space:hearth", name: "灶边", type: "work", capacity: 0, visible: true },
-      { id: "space:hearth-sleep", name: "灶家铺位", type: "sleep", capacity: 3 },
-    ],
-  },
-  {
-    id: "place:river", name: "河边取水点", type: "water", costDays: 1, entrySpace: "space:bank",
-    spaces: [
-      { id: "space:bank", name: "河岸浅滩", type: "water", capacity: 0, visible: true },
-    ],
-  },
-  {
-    id: "place:field", name: "河岸旱地", type: "field", costDays: 2, entrySpace: "space:field-edge",
-    spaces: [
-      { id: "space:field-edge", name: "田头", type: "work", capacity: 0, visible: true },
-      { id: "space:yu-sleep", name: "予家棚屋", type: "sleep", capacity: 3 },
-    ],
-  },
-  {
-    id: "place:kiln", name: "共用陶窑", type: "kiln", costDays: 2, entrySpace: "space:kiln-mouth",
-    spaces: [
-      { id: "space:kiln-mouth", name: "窑口", type: "work", capacity: 0, visible: true },
-      { id: "space:kiln-shed", name: "窑棚", type: "work", capacity: 3 },
-    ],
-  },
-  {
-    id: "place:claypits", name: "河湾黏土坑", type: "clay-pit", costDays: 2, entrySpace: "space:pit-edge",
-    spaces: [
-      { id: "space:pit-edge", name: "坑边", type: "work", capacity: 0, visible: true },
-      { id: "space:clay-sleep", name: "埴家窝棚", type: "sleep", capacity: 3 },
-    ],
-  },
-  {
-    id: "place:reedbed", name: "芦苇滩", type: "reed-flat", costDays: 3, entrySpace: "space:reed-cut",
-    spaces: [
-      { id: "space:reed-cut", name: "割苇处", type: "work", capacity: 0, visible: true },
-      { id: "space:reed-sleep", name: "苇家窝棚", type: "sleep", capacity: 2 },
-      { id: "space:lan-sleep", name: "岚家屋舍", type: "sleep", capacity: 3 },
-    ],
-  },
-  {
-    id: "place:ford", name: "渡口", type: "crossing", costDays: 2, entrySpace: "space:ford-landing",
-    spaces: [
-      { id: "space:ford-landing", name: "渡口岸边", type: "work", capacity: 0, visible: true },
-      { id: "space:water-sleep", name: "汲家棚屋", type: "sleep", capacity: 3 },
-      { id: "space:ford-sleep", name: "埴公落脚处", type: "sleep", capacity: 2 },
-    ],
-  },
-];
+const PLACES: PlaceSpec[] = RIVER_TERRACE_PACK.places;
 
 /** Renewing resources. Each has one authoritative owner: this module. */
-const YIELDS: { placeId: string; resourceId: string; label: string; capacity: number; renewDays: number; unit: string }[] = [
-  { placeId: "place:river", resourceId: "resource:water", label: "河水", capacity: 40, renewDays: 1, unit: "份" },
-  { placeId: "place:claypits", resourceId: "resource:clay", label: "黏土", capacity: 12, renewDays: 20, unit: "份" },
-  { placeId: "place:reedbed", resourceId: "resource:reed", label: "芦苇", capacity: 10, renewDays: 45, unit: "捆" },
-  { placeId: "place:field", resourceId: "resource:grain", label: "粟", capacity: 16, renewDays: 90, unit: "份" },
-  { placeId: "place:reedbed", resourceId: "resource:fuel", label: "柴草", capacity: 14, renewDays: 12, unit: "捆" },
-  { placeId: "place:kiln", resourceId: "resource:fuel", label: "窑边柴火", capacity: 8, renewDays: 20, unit: "捆" },
-  { placeId: "place:hearth-yard", resourceId: "resource:cooked", label: "熟食", capacity: 6, renewDays: 3, unit: "份" },
-];
+const YIELDS: YieldSpec[] = RIVER_TERRACE_PACK.yields;
 
 /**
  * Object prototypes. Capabilities decide what can be done with a thing, so a
  * new vessel never needs a new button (OBJ-001).
  */
-const PROTOTYPES: {
-  id: string; name: string; material: string; resourceId: string; unit: string;
-  mass: number; capacity: number; capabilities: string[]; durability: number; visible?: boolean;
-}[] = [
-  { id: "prototype:water-jar", name: "储水陶罐", material: "fired-clay", resourceId: "resource:jar", unit: "个", mass: 2.6, capacity: 4, capabilities: ["carryable", "container", "liquid-holder", "storage"], durability: 70 },
-  { id: "prototype:small-jar", name: "小陶罐", material: "fired-clay", resourceId: "resource:jar", unit: "个", mass: 0.9, capacity: 1, capabilities: ["carryable", "container", "liquid-holder"], durability: 45 },
-  { id: "prototype:grain-jar", name: "储粮陶瓮", material: "fired-clay", resourceId: "resource:jar", unit: "个", mass: 6.2, capacity: 8, capabilities: ["container", "storage"], durability: 90, visible: true },
-  { id: "prototype:cooking-pot", name: "炊煮陶釜", material: "fired-clay", resourceId: "resource:cookware", unit: "个", mass: 3.4, capacity: 3, capabilities: ["carryable", "container", "liquid-holder"], durability: 55, visible: true },
-  { id: "prototype:bowl", name: "陶碗", material: "fired-clay", resourceId: "resource:bowl", unit: "个", mass: 0.5, capacity: 1, capabilities: ["carryable", "container"], durability: 35 },
-  { id: "prototype:water", name: "水", material: "water", resourceId: "resource:water", unit: "份", mass: 1, capacity: 0, capabilities: ["carryable", "edible", "liquid-holder"], durability: 0 },
-  { id: "prototype:grain", name: "粟", material: "grain", resourceId: "resource:grain", unit: "份", mass: 0.6, capacity: 0, capabilities: ["carryable", "edible", "storage"], durability: 0 },
-  { id: "prototype:cooked-food", name: "熟食", material: "cooked-grain", resourceId: "resource:cooked", unit: "份", mass: 0.7, capacity: 0, capabilities: ["carryable", "edible"], durability: 0 },
-  { id: "prototype:clay-batch", name: "黏土", material: "raw-clay", resourceId: "resource:clay", unit: "份", mass: 1.4, capacity: 0, capabilities: ["carryable", "workable", "storage"], durability: 0 },
-  { id: "prototype:fuel-bundle", name: "柴捆", material: "dry-reed", resourceId: "resource:fuel", unit: "捆", mass: 1.8, capacity: 0, capabilities: ["carryable", "burnable", "storage"], durability: 0 },
-  { id: "prototype:reed-bundle", name: "芦苇捆", material: "reed", resourceId: "resource:reed", unit: "捆", mass: 1.6, capacity: 0, capabilities: ["carryable", "workable", "storage"], durability: 0 },
-  { id: "prototype:mat", name: "苇席", material: "woven-reed", resourceId: "resource:mat", unit: "张", mass: 1.2, capacity: 0, capabilities: ["carryable", "fixture", "sleep-on"], durability: 40, visible: true },
-  { id: "prototype:rope", name: "草绳", material: "twisted-fiber", resourceId: "resource:rope", unit: "根", mass: 0.3, capacity: 0, capabilities: ["carryable", "tool", "workable"], durability: 30 },
-  { id: "prototype:fiber-bundle", name: "纤维束", material: "plant-fiber", resourceId: "resource:fiber", unit: "束", mass: 0.4, capacity: 0, capabilities: ["carryable", "workable", "storage"], durability: 0 },
-  { id: "prototype:digging-stick", name: "木耒", material: "wood", resourceId: "resource:tool", unit: "根", mass: 1.9, capacity: 0, capabilities: ["carryable", "tool"], durability: 50, visible: true },
-  { id: "prototype:paddle", name: "木桨", material: "wood", resourceId: "resource:tool", unit: "支", mass: 2.2, capacity: 0, capabilities: ["carryable", "tool"], durability: 45 },
-  { id: "prototype:bone-needle", name: "骨针", material: "bone", resourceId: "resource:tool", unit: "根", mass: 0.02, capacity: 0, capabilities: ["carryable", "tool"], durability: 20 },
-  { id: "prototype:stone-knife", name: "石刀", material: "stone", resourceId: "resource:tool", unit: "把", mass: 0.3, capacity: 0, capabilities: ["carryable", "tool"], durability: 40 },
-  { id: "prototype:sieve", name: "陶筛", material: "fired-clay", resourceId: "resource:tool", unit: "个", mass: 0.7, capacity: 0, capabilities: ["carryable", "tool"], durability: 35 },
-  { id: "prototype:hide-cloak", name: "兽皮披", material: "hide", resourceId: "resource:cloth", unit: "件", mass: 1.5, capacity: 0, capabilities: ["carryable", "wearable", "warm"], durability: 40 },
-  { id: "prototype:fiber-wrap", name: "纤维裹身", material: "woven-fiber", resourceId: "resource:cloth", unit: "件", mass: 0.8, capacity: 0, capabilities: ["carryable", "wearable"], durability: 25 },
-  { id: "prototype:carrying-bag", name: "编织袋", material: "woven-fiber", resourceId: "resource:bag", unit: "个", mass: 0.5, capacity: 3, capabilities: ["carryable", "container", "storage"], durability: 28 },
-  { id: "prototype:fish-trap", name: "渔篓", material: "woven-reed", resourceId: "resource:trap", unit: "个", mass: 1.4, capacity: 2, capabilities: ["carryable", "container", "tool"], durability: 30 },
-  { id: "prototype:net", name: "网", material: "twisted-fiber", resourceId: "resource:net", unit: "张", mass: 0.9, capacity: 0, capabilities: ["carryable", "tool"], durability: 22 },
-  { id: "prototype:fish", name: "鱼", material: "fish", resourceId: "resource:fish", unit: "条", mass: 0.8, capacity: 0, capabilities: ["carryable", "edible"], durability: 0 },
-  { id: "prototype:shared-kiln", name: "共用陶窑", material: "earth", resourceId: "resource:kiln", unit: "座", mass: 0, capacity: 0, capabilities: ["fixture", "workable"], durability: 0, visible: true },
-  { id: "prototype:hearth", name: "公用灶塘", material: "earth", resourceId: "resource:hearth", unit: "处", mass: 0, capacity: 0, capabilities: ["fixture", "workable"], durability: 0, visible: true },
-  { id: "prototype:grinding-stone", name: "石磨盘", material: "stone", resourceId: "resource:millstone", unit: "套", mass: 0, capacity: 0, capabilities: ["fixture", "tool", "workable"], durability: 0, visible: true },
-  { id: "prototype:water-cache", name: "储水坑", material: "earth", resourceId: "resource:cistern", unit: "处", mass: 0, capacity: 12, capabilities: ["fixture", "container", "liquid-holder"], durability: 0 },
-  { id: "prototype:fence-post", name: "围栏木桩", material: "wood", resourceId: "resource:fence", unit: "根", mass: 2.4, capacity: 0, capabilities: ["fixture"], durability: 60 },
-  { id: "prototype:grain-basket", name: "竹编粮囤", material: "woven-reed", resourceId: "resource:basket", unit: "个", mass: 1.1, capacity: 5, capabilities: ["container", "storage"], durability: 26, visible: true },
-  { id: "prototype:sleep-mat", name: "寝席", material: "woven-reed", resourceId: "resource:mat", unit: "张", mass: 1.1, capacity: 0, capabilities: ["fixture", "sleep-on"], durability: 35, visible: true },
-];
+const PROTOTYPES: PrototypeSpec[] = RIVER_TERRACE_PACK.prototypes;
 
-const RESOURCE_LABELS: Record<string, string> = {
-  "resource:water": "水",
-  "resource:clay": "黏土",
-  "resource:reed": "芦苇",
-  "resource:grain": "粟",
-  "resource:fuel": "柴草",
-  "resource:cooked": "熟食",
-  "resource:fish": "鱼",
-  "resource:jar": "陶罐",
-  "resource:bowl": "陶碗",
-  "resource:cookware": "炊具",
-  "resource:fiber": "纤维",
-  "resource:rope": "草绳",
-  "resource:mat": "席",
-  "resource:tool": "工具",
-  "resource:cloth": "衣料",
-  "resource:bag": "编织袋",
-};
+const RESOURCE_LABELS: Record<string, string> = RIVER_TERRACE_PACK.resourceLabels;
+/** Named routine holders, sent to clients so they never hardcode a villager. */
+const ROLE_VIEW = Object.fromEntries(Object.entries(RIVER_TERRACE_PACK.autonomy).map(([role, key]) => {
+  const resident = RIVER_TERRACE_PACK.residents.find((r) => r.key === key)!;
+  return [role, { id: `settlement-locations:resident:${key}`, name: resident.name, workPlace: resident.workPlace }];
+})) as Record<"farmer" | "cook" | "fuelGatherer", { id: string; name: string; workPlace: string }>;
 
 export const settlementLocationsModule: OpenLifeModule = {
   manifest: {
     id: OWNER,
-    version: "0.1.0",
+    version: "0.2.0",
     engineRange: "^0.1.0",
     type: "content-pack",
     name: "Settlement Locations",
@@ -322,7 +215,25 @@ export const settlementLocationsModule: OpenLifeModule = {
     ],
   },
 
+  migrations: [{
+    from: "0.1.0", to: "0.2.0",
+    migrate: (state) => state,
+    // 0.2.0 adds 出身与天赋. A life saved before that simply had none.
+    migrateWorld: (world) => {
+      for (const entity of world.entities()) {
+        const holding = world.getComponent(entity.id, SettlementComponents.holding);
+        if (!holding || holding.origin || world.getComponent(entity.id, SettlementComponents.resident)) continue;
+        world.setComponent(entity.id, SettlementComponents.holding, { ...holding, origin: { id: "none", talents: [], chosenAt: -1 } });
+      }
+    },
+  }],
+
   register(ctx) {
+    ctx.registerAgent({
+      id: VILLAGE_DAY_AGENT,
+      description: "村民每天按真实需求与物资自主生活（只通过经过校验的命令行动）",
+      run: runVillageAgent,
+    });
     for (const id of Object.values(SettlementComponents)) {
       ctx.registerComponent({ id, persist: true, description: `settlement-locations component ${id}` });
     }
@@ -353,9 +264,20 @@ export const settlementLocationsModule: OpenLifeModule = {
     registerNpcDayMarker(ctx);
     registerNpcBarter(ctx);
     registerPlayerBarter(ctx);
+    registerExchange(ctx);
+    registerCraft(ctx);
     registerHearthRelief(ctx);
     registerNpcHelp(ctx);
     registerNpcFire(ctx);
+    registerSocial(ctx);
+    registerOrigin(ctx);
+    registerGift(ctx);
+    registerSeasonLife(ctx);
+    registerMarriage(ctx);
+    registerFamilyLife(ctx);
+    registerPassing(ctx);
+    registerStoryteller(ctx);
+    registerLearn(ctx);
 
     ctx.registerProjection({
       id: SettlementProjections.homestead,
@@ -638,7 +560,7 @@ function registerArrive(ctx: Registration): void {
         if (!c.world.getEntity(SettlementId) || !PLACES.some((place) => place.id === origin)) {
           return refuse(SettlementRejection.WrongPlace, "只有在本聚落内才能使用短途步行。");
         }
-        if (dailyActivity(c.world, actorId).remaining < 1) {
+        if (dailyActivity(c.world, actorId).remaining < walkCost(c.world, actorId)) {
           return refuse(SettlementRejection.Exhausted, "今天已没有步行时间，请先结束这一天。");
         }
       } else if (c.command.payload.travelMode !== undefined) {
@@ -665,10 +587,13 @@ function registerArrive(ctx: Registration): void {
       const effects = moveEffects(c.world, actorId, placeId, authored.entrySpace, c.world.tick);
       if (c.command.payload.travelMode === "local") {
         const budget = dailyActivity(c.world, actorId);
+        const holding = c.world.getComponent(actorId, SettlementComponents.holding);
+        const walks = Number(holding?.walkDay ?? -1) === c.world.tick ? Number(holding?.walks ?? 0) : 0;
         effects.push({
           kind: "modifyComponent", entityId: actorId,
           component: SettlementComponents.holding,
-          patch: { activityDay: c.world.tick, activityUsed: budget.used + 1 },
+          patch: { activityDay: c.world.tick, activityUsed: budget.used + walkCost(c.world, actorId),
+            ...(talentFx(c.world, actorId).freeWalks ? { walkDay: c.world.tick, walks: walks + 1 } : {}) },
           reason: "walk within the same settlement",
         });
       }
@@ -701,6 +626,8 @@ interface YieldState {
 }
 
 /** Every yield point, with the stock that has regenerated since it was last drawn. */
+/** Cheap read of every gathering point's current stock (no object counting). */
+export function currentYields(world: WorldView): YieldState[] { return yieldPoints(world); }
 function yieldPoints(world: WorldView): YieldState[] {
   return world
     .listEntities({ kind: "settlement-locations.yield-point" })
@@ -717,7 +644,11 @@ function yieldPoints(world: WorldView): YieldState[] {
         renewDays: Math.max(1, Number(raw.renewDays ?? 30)),
         lastRenewedAt: Math.max(0, Number(raw.lastRenewedAt ?? 0)),
       };
-      return { ...state, stock: renewedStock(state, world.tick) };
+      // Capacity and pace come from the content pack, so a rebalanced pack
+      // also applies to worlds founded before it (the stored values are a cache).
+      const spec = yieldSpecFor(state.placeId, state.resourceId);
+      if (spec) { state.capacity = spec.capacity; state.renewDays = spec.renewDays; }
+      return { ...state, stock: renewedStock(state, world.tick, renewalPerCycle(world, spec), spec?.seasons) };
     })
     .sort((a, b) => (a.placeId + a.resourceId).localeCompare(b.placeId + b.resourceId));
 }
@@ -730,13 +661,51 @@ function yieldPoints(world: WorldView): YieldState[] {
  * is only written back when someone actually draws, which keeps the number of
  * transactions proportional to player actions.
  */
-function renewedStock(state: YieldState, tick: number): number {
+/**
+ * Clock anchor to store after a draw: keeps the partial renewal cycle already
+ * under way, so drawing on day 2 of a 3-day cycle does not restart the wait.
+ * A full point has nothing in progress, so its clock starts now.
+ */
+function renewalAnchor(point: YieldState, tick: number): number {
+  if (point.stock >= point.capacity) return tick;
+  const cycles = Math.floor(Math.max(0, tick - point.lastRenewedAt) / point.renewDays);
+  return point.lastRenewedAt + cycles * point.renewDays;
+}
+
+function renewedStock(state: YieldState, tick: number, perCycle: number, seasons?: string[]): number {
   const elapsed = Math.max(0, tick - state.lastRenewedAt);
   const cycles = Math.floor(elapsed / state.renewDays);
-  // The initial grain stock is finite seed grain; only sowing and harvest
-  // produce new grain. Other natural yield points retain their renewal cycles.
-  if (state.resourceId === "resource:grain") return state.stock;
-  return Math.min(state.capacity, state.stock + cycles);
+  // perCycle 0 means the point never renews on its own (e.g. finite seed grain
+  // in a pack that does not model other households' fields).
+  if (!seasons?.length || perCycle <= 0) return Math.min(state.capacity, state.stock + cycles * perCycle);
+  // Seasonal points only grow back in cycles that end in one of their seasons.
+  let stock = state.stock;
+  for (let k = 1; k <= cycles && stock < state.capacity; k += 1) {
+    if (seasons.includes(seasonOf(state.lastRenewedAt + k * state.renewDays))) stock += perCycle;
+  }
+  return Math.min(state.capacity, stock);
+}
+
+function yieldSpecFor(placeId: string, resourceId: string): YieldSpec | undefined {
+  return YIELDS.find((y) => y.placeId === placeId && y.resourceId === resourceId);
+}
+
+/** Living villagers (residents and the player alike) who eat from shared stores. */
+export function villagePopulation(world: WorldView): number {
+  return world.listEntities({ kind: "modern.character" })
+    .filter((e) => e.archivedAt === undefined && e.components["modern.vitals"]?.alive !== false)
+    .length;
+}
+
+/**
+ * Units a point regains per renewal cycle. Points with `perResidents` represent
+ * the whole village's off-screen work (other households cooking, other fields),
+ * so they scale with how many people live here: one unit per `perResidents`
+ * people, rounded up. Grain without `perResidents` stays finite seed stock.
+ */
+function renewalPerCycle(world: WorldView, spec: YieldSpec | undefined): number {
+  if (spec?.perResidents) return Math.max(1, Math.ceil(villagePopulation(world) / spec.perResidents));
+  return spec?.resourceId === "resource:grain" ? 0 : 1;
 }
 
 function readResident(world: WorldView, residentId: string) {
@@ -758,6 +727,11 @@ function readResident(world: WorldView, residentId: string) {
   };
 }
 
+/** 给界面看的性格词（来自数据包里的性格数值）。 */
+export function residentTemperament(id: string): string[] {
+  const mind = residentMind(id);
+  return mind ? temperamentWords(mind) : [];
+}
 export function residentId(key: string): string {
   return `settlement-locations:resident:${key}`;
 }
@@ -768,31 +742,121 @@ function hungerLevel(world: WorldView, actorId: string): number {
   const settlementStart = world.getComponent(SettlementId, SettlementComponents.settlement)?.foundedAt;
   const since = Number(state?.hungerAt ?? settlementStart ?? world.tick);
   const base = Number(state?.hunger ?? 0);
-  return Math.max(0, Math.min(10, base + Math.max(0, world.tick - since)));
+  return hungerAt(base, since, world.tick, talentFx(world, actorId).hungerDaysPerPoint || HUNGER_DAYS_PER_POINT);
+}
+
+/** The player's 出身与天赋 (none for villagers and for lives saved before 0.2.0). */
+export function originOf(world: WorldView, actorId: string): PlayerOrigin {
+  return readOrigin(world.getComponent(actorId, SettlementComponents.holding)?.origin);
+}
+export function talentFx(world: WorldView, actorId: string) { return mergedEffects(originOf(world, actorId)); }
+/** A walk inside the village costs one unit; 腿脚快 makes the first few each day free. */
+export function walkCost(world: WorldView, actorId: string): number {
+  const free = talentFx(world, actorId).freeWalks;
+  if (!free) return 1;
+  const holding = world.getComponent(actorId, SettlementComponents.holding);
+  const walks = Number(holding?.walkDay ?? -1) === world.tick ? Number(holding?.walks ?? 0) : 0;
+  return walks < free ? 0 : 1;
+}
+/** Time a recipe takes this maker (巧手 saves a unit, never below one). */
+export function recipeActivity(world: WorldView, actorId: string, recipe: RecipeSpec): number {
+  return Math.max(1, recipe.activity - talentFx(world, actorId).craftActivity - skillCut(world, actorId, recipe.id));
+}
+
+// ---------------------------------------------------------------------------
+// 手艺：跟村里人一课一课学来的本事（陶叔的看火、岚母的编织、阿予的认地）。
+// ---------------------------------------------------------------------------
+type Teacher = { residentId: string; key: string; name: string; teaches: NonNullable<ResidentSpec["teaches"]> };
+const TEACHERS: Teacher[] = RIVER_TERRACE_PACK.residents.filter((r) => r.teaches)
+  .map((r) => ({ residentId: `settlement-locations:resident:${r.key}`, key: r.key, name: r.name, teaches: r.teaches! }));
+export function skillsOf(world: WorldView, actorId: string): string[] {
+  const raw = world.getComponent(actorId, SettlementComponents.holding)?.skills;
+  return Array.isArray(raw) ? raw.map(String) : [];
+}
+function lessonsOf(world: WorldView, actorId: string): Record<string, { n: number; at: number }> {
+  const raw = world.getComponent(actorId, SettlementComponents.holding)?.lessons;
+  const out: Record<string, { n: number; at: number }> = {};
+  if (raw && typeof raw === "object" && !Array.isArray(raw))
+    for (const [k, v] of Object.entries(raw as Record<string, JsonValue>)) {
+      const o = v && typeof v === "object" && !Array.isArray(v) ? v as Record<string, JsonValue> : {};
+      out[k] = { n: Number(o.n ?? 0), at: Number(o.at ?? -1) };
+    }
+  return out;
+}
+function skillCut(world: WorldView, actorId: string, recipeId: string): number {
+  const skills = skillsOf(world, actorId);
+  return TEACHERS.some((t) => skills.includes(t.teaches.skill) && t.teaches.recipes?.includes(recipeId)) ? 1 : 0;
+}
+function skillDrawBonus(world: WorldView, actorId: string, placeId: string, resourceId: string): number {
+  const skills = skillsOf(world, actorId);
+  return TEACHERS.filter((t) => skills.includes(t.teaches.skill) && t.teaches.drawBonus?.includes(`${placeId}|${resourceId}`)).length;
+}
+/** 学会的手艺与正在学的。 */
+export function skillsView(world: WorldView, actorId: string) {
+  const skills = skillsOf(world, actorId), lessons = lessonsOf(world, actorId);
+  return TEACHERS.filter((t) => skills.includes(t.teaches.skill) || (lessons[t.key]?.n ?? 0) > 0).map((t) => ({
+    skill: t.teaches.skill, name: t.teaches.name, blurb: t.teaches.blurb, teacher: t.name,
+    learned: skills.includes(t.teaches.skill), lessons: Math.min(lessons[t.key]?.n ?? 0, t.teaches.lessons), of: t.teaches.lessons,
+  }));
+}
+/** 肯不肯教你：要么熟，要么信得过你。 */
+const TEACH_FAMILIARITY = 2, TEACH_TRUST = 6.5;
+
+/** Hunger grows by one point every HUNGER_DAYS_PER_POINT days since the last meal, capped at 10. */
+export const HUNGER_DAYS_PER_POINT = 2;
+export function hungerAt(base: number, since: number, tick: number, daysPerPoint = HUNGER_DAYS_PER_POINT): number {
+  return Math.max(0, Math.min(10, base + Math.floor(Math.max(0, tick - since) / daysPerPoint)));
 }
 
 /** A carried cooked ration must be a real, owned, live item, not a yield point. */
 function carriedRation(world: WorldView, actorId: string, objectId: string): boolean {
-  const entity = world.getEntity(objectId);
-  if (!entity || entity.kind !== ObjectKinds.item || entity.archivedAt !== undefined) return false;
-  return ownerOf(world, objectId) === actorId
-    && holderOf(world, objectId) === actorId
-    && prototypeOf(world, objectId).resourceId === "resource:cooked"
-    && readObject(entity.components[ObjectComponents.object]).quantity >= 1;
+  return carriedFood(world, actorId, objectId) === "resource:cooked";
 }
 
+/**
+ * What a carried, owned, live food item is: cooked ration or raw grain.
+ * Raw grain is edible anywhere but eases less hunger than a cooked ration,
+ * so a starving player holding grain is never locked out of eating.
+ */
+function carriedFood(world: WorldView, actorId: string, objectId: string): "resource:cooked" | "resource:grain" | "resource:fish" | "" {
+  const entity = world.getEntity(objectId);
+  if (!entity || entity.kind !== ObjectKinds.item || entity.archivedAt !== undefined) return "";
+  if (ownerOf(world, objectId) !== actorId || holderOf(world, objectId) !== actorId) return "";
+  if (readObject(entity.components[ObjectComponents.object]).quantity < 1) return "";
+  const resourceId = prototypeOf(world, objectId).resourceId;
+  return resourceId === "resource:cooked" || resourceId === "resource:grain" || resourceId === "resource:fish" ? resourceId : "";
+}
 
-const CROP_GROW_DAYS = 30;
-const CROP_YIELD = 3;
+/** Hunger eased by one portion: cooked food 4, raw grain 2. */
+const HUNGER_EASED: Record<string, number> = { "resource:cooked": 4, "resource:grain": 2, "resource:fish": 2 };
+
+
+/**
+ * Seasons shape farming. Millet sown in spring or summer ripens in 30 days;
+ * autumn sowing needs 45, winter sowing 60. What a harvest brings depends on
+ * the season it is gathered in: autumn is the true harvest.
+ * The harvester carries three portions home; the rest goes onto the field heap.
+ */
+const CROP_GROW_DAYS: Record<string, number> = { "春": 30, "夏": 30, "秋": 45, "冬": 60 };
+const CROP_YIELD: Record<string, number> = { "春": 8, "夏": 8, "秋": 10, "冬": 5 };
+const HARVEST_IN_HAND = 3;
+export function cropGrowDays(sownAt: number): number { return CROP_GROW_DAYS[seasonOf(sownAt)] ?? 30; }
+export function cropYield(harvestAt: number): number { return CROP_YIELD[seasonOf(harvestAt)] ?? 8; }
 
 /** A plot lives on the existing field place; missing component means fallow (old saves). */
 function fieldCrop(world: WorldView) {
   const raw = world.getComponent("place:field", SettlementComponents.cropPlot);
   const seedId = String(raw?.seedId ?? "");
   const sownAt = Number(raw?.sownAt ?? 0);
-  const tended = Boolean(raw?.tended ?? false);
+  let tended = Boolean(raw?.tended ?? false);
   const harvests = Math.max(0, Number(raw?.harvests ?? 0));
-  const remainingDays = seedId ? Math.max(0, CROP_GROW_DAYS - Math.max(0, world.tick - sownAt)) : 0;
+  const remainingDays = seedId ? Math.max(0, cropGrowDays(sownAt) - Math.max(0, world.tick - sownAt)) : 0;
+  // Rain on the growing field waters it as well as a day of tending would.
+  if (seedId && !tended) {
+    for (let day = sownAt + 1; day <= Math.min(world.tick, sownAt + cropGrowDays(sownAt)); day += 1) {
+      if (skyOn(day) === "雨") { tended = true; break; }
+    }
+  }
   return {
     seedId, sownAt, tended, harvests, remainingDays,
     phase: !seedId ? "fallow" : remainingDays === 0 && tended ? "ready" : "growing",
@@ -802,7 +866,7 @@ function fieldCrop(world: WorldView) {
 function cropSummary(world: WorldView): string {
   const crop = fieldCrop(world);
   if (crop.phase === "fallow") return "田地闲置：带来一份粟作种粮，可开始播种。";
-  if (crop.phase === "ready") return "粟已经成熟，可以收获三份真实粮食。";
+  if (crop.phase === "ready") return `粟已经成熟，${seasonOf(world.tick)}收可得 ${cropYield(world.tick)} 份：三份随身，其余入田边粮堆。`;
   if (!crop.tended) return `粟正在生长，还需要照料；距成熟约 ${crop.remainingDays} 天。`;
   return `粟已经照料，距成熟约 ${crop.remainingDays} 天。`;
 }
@@ -818,6 +882,7 @@ const ACTIVITY_COST: Partial<Record<string, number>> = {
   [SettlementCommands.drink]: 1,
   [SettlementCommands.draw]: 2,
   [SettlementCommands.talk]: 1,
+  [SettlementCommands.learn]: 2,
   [SettlementCommands.cook]: 2,
   [SettlementCommands.weaveBag]: 2,
   [SettlementCommands.weaveMat]: 2,
@@ -830,17 +895,28 @@ const ACTIVITY_COST: Partial<Record<string, number>> = {
 };
 
 /** A single personally owned wrap shields the worker at the field. */
-function wornWrap(world: WorldView, actorId: string): string {
+export function wornWrap(world: WorldView, actorId: string): string {
   const id = wornByActor(world, actorId);
   return id && prototypeOf(world, id).prototypeId === "prototype:fiber-wrap" ? id : "";
 }
-function activityCostFor(world: WorldView, actorId: string, commandType: string): number {
-  const base = ACTIVITY_COST[commandType] ?? 0;
+const CRAFT_COMMANDS = new Set<string>([SettlementCommands.weaveBag, SettlementCommands.weaveMat,
+  SettlementCommands.prepareFiber, SettlementCommands.weaveWrap, SettlementCommands.cook]);
+const OUTDOOR_WORK = new Set<string>([SettlementCommands.draw, SettlementCommands.tend, SettlementCommands.sow, SettlementCommands.harvest]);
+export function activityCostFor(world: WorldView, actorId: string, commandType: string): number {
+  let cost = ACTIVITY_COST[commandType] ?? 0;
+  const fx = talentFx(world, actorId);
+  if (cost && CRAFT_COMMANDS.has(commandType)) {
+    const recipe = (RIVER_TERRACE_PACK.recipes ?? []).find((r) => r.command === commandType);
+    cost = Math.max(1, cost - fx.craftActivity - (recipe ? skillCut(world, actorId, recipe.id) : 0));
+  }
+  // Rain and snow make outdoor labour heavier (unless you are used to hardship).
+  if (cost && OUTDOOR_WORK.has(commandType) && isWet(world.tick) && !fx.ignoreWet &&
+      OUTDOOR_PLACES.has(occupiedPlaceId(world, actorId))) cost += 1;
   if (commandType === SettlementCommands.tend &&
       occupiedSpaceId(world, actorId) === "space:field-edge" && wornWrap(world, actorId)) {
-    return base - 1;
+    cost -= 1;
   }
-  return base;
+  return cost;
 }
 
 export function dailyActivity(world: WorldView, actorId: string) {
@@ -851,7 +927,9 @@ export function dailyActivity(world: WorldView, actorId: string) {
   // Preserve today\'s already earned bonus if the player rests again today.
   const extraToday = day > 0 && (Number(raw?.matRestedAt ?? -1) === day - 1 ||
     Number(raw?.matBonusPreservedAt ?? -1) === day);
-  const capacity = DAILY_ACTIVITY_CAPACITY + (extraToday ? 1 : 0);
+  // A winter night by one's own fire is worth another unit, on top of a mat.
+  const warmToday = day > 0 && Number(raw?.warmNightAt ?? -1) === day - 1;
+  const capacity = DAILY_ACTIVITY_CAPACITY + (extraToday ? 1 : 0) + (warmToday ? 1 : 0) + talentFx(world, actorId).dailyActivity;
   const used = Number(raw?.activityDay ?? -1) === day
     ? Math.max(0, Math.min(capacity, Number(raw?.activityUsed ?? 0)))
     : 0;
@@ -1070,6 +1148,22 @@ function registerPotteryPlanStart(ctx: Registration): void {
 /** M3-A: one selected resident's real daily commands finish with an auditable marker.
  * The daily marker is not a substitute for travel, labor, food or rest.
  */
+/** 连着落空的事：今天又没成的加一天，做成了的（同样产出）就翻篇。 */
+function nextFrustration(raw: unknown, missed: unknown, made: unknown, tick: number): JsonValue {
+  const out: Record<string, { n: number; at: number }> = {};
+  if (raw && typeof raw === "object" && !Array.isArray(raw))
+    for (const [id, v] of Object.entries(raw as Record<string, { n?: number; at?: number }>))
+      if (tick - Number(v?.at ?? -100) <= 5) out[id] = { n: Number(v?.n ?? 0), at: Number(v?.at ?? tick) };
+  for (const id of Array.isArray(missed) ? missed.map(String) : []) out[id] = { n: (out[id]?.n ?? 0) + 1, at: tick };
+  const madeSet = new Set(Array.isArray(made) ? made.map(String) : []);
+  for (const id of Object.keys(out)) {
+    const recipe = (RIVER_TERRACE_PACK.recipes ?? []).find((r) => `craft:${r.id}` === id);
+    const output = id.startsWith("get:") ? id.slice(4) : recipe?.output ? PROTOTYPES.find((p) => p.id === recipe.output!.prototypeId)?.resourceId : "";
+    if (output && madeSet.has(output)) delete out[id];
+  }
+  return out as unknown as JsonValue;
+}
+
 function registerNpcDayMarker(ctx: Registration): void {
   ctx.registerConstraintRule({
     id: `${SettlementCommands.npcMarkDay}.allowed`,
@@ -1088,7 +1182,8 @@ function registerNpcDayMarker(ctx: Registration): void {
       if (!Array.isArray(c.command.payload.actions) ||
           (c.command.payload.actions as unknown[]).length > 12 ||
           !(c.command.payload.actions as unknown[]).every((v) => typeof v === "string") ||
-          typeof c.command.payload.summary !== "string") {
+          typeof c.command.payload.summary !== "string" ||
+          (c.command.payload.missed !== undefined && (!Array.isArray(c.command.payload.missed) || (c.command.payload.missed as unknown[]).length > 8))) {
         return refuse(SettlementRejection.Busy, "NPC 日常记录必须有可核对的执行摘要。");
       }
       return { ok: true };
@@ -1105,6 +1200,8 @@ function registerNpcDayMarker(ctx: Registration): void {
         npcDailyCount: Number(c.world.getComponent(c.command.actorId as string, SettlementComponents.resident)?.npcDailyCount ?? 0) + 1,
         lastRoutineActions: c.command.payload.actions,
         standingRoutine: c.command.payload.summary,
+        frustration: nextFrustration(c.world.getComponent(c.command.actorId as string, SettlementComponents.resident)?.frustration,
+          c.command.payload.missed, c.command.payload.made, c.world.tick),
       },
       reason: "NPC's real daily commands completed or a real obstacle was encountered",
     }, {
@@ -1249,6 +1346,192 @@ function registerNpcBarter(ctx: Registration): void {
         actorId: farmer, targetId: cook,
         data: { fuelId, grainId, cook, farmer, amount: 1 },
         historicalSignificance: 0.08,
+      });
+      return effects;
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// General exchange (any two people, any valued goods, favours owed)
+// ---------------------------------------------------------------------------
+
+const EXCHANGE_VALUES: Record<string, number> = RIVER_TERRACE_PACK.exchange?.values ?? {};
+const EXCHANGE_WANTS: Record<string, string[]> = RIVER_TERRACE_PACK.exchange?.wants ?? {};
+const MAX_EXCHANGE_ITEMS = 4;
+
+function isPerson(world: WorldView, id: string): boolean {
+  const entity = world.getEntity(id);
+  return Boolean(entity && entity.archivedAt === undefined && entity.kind === "modern.character");
+}
+
+/** Items a person holds and owns outright that can change hands, by resource. */
+export function tradeableGoods(world: WorldView, personId: string): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  const held = world.listRelations({ type: ObjectRelations.heldBy, to: personId }).map((r) => r.from).sort();
+  for (const id of held) {
+    const resourceId = prototypeOf(world, id).resourceId ?? "";
+    if (!resourceId || !(resourceId in EXCHANGE_VALUES) || !tradeReady(world, id, personId, resourceId)) continue;
+    (out[resourceId] ??= []).push(id);
+  }
+  return out;
+}
+
+/** Favours: worth units `debtorId` owes `creditorId` (kept on the creditor). */
+export function favourOwed(world: WorldView, creditorId: string, debtorId: string): number {
+  const raw = world.getComponent(creditorId, SettlementComponents.resident)?.favours ??
+    world.getComponent(creditorId, SettlementComponents.holding)?.favours;
+  const map = raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, JsonValue> : {};
+  return Number(map[debtorId] ?? 0);
+}
+
+function wantsOf(world: WorldView, personId: string): string[] {
+  const key = RESIDENTS.find((r) => residentId(r.key) === personId)?.key;
+  return key ? EXCHANGE_WANTS[key] ?? [] : [];
+}
+
+function personName(world: WorldView, personId: string): string {
+  const key = RESIDENTS.find((r) => residentId(r.key) === personId);
+  return key?.name ?? (world.getEntity(personId)?.name || String(world.getComponent(personId, "modern.identity")?.givenName ?? "") || "对方");
+}
+
+export function counterpartView(world: WorldView, proposerId: string, targetId: string): CounterpartView {
+  const goods = tradeableGoods(world, targetId);
+  return {
+    name: personName(world, targetId),
+    hunger: hungerLevel(world, targetId),
+    holds: Object.fromEntries(Object.entries(goods).map(([r, ids]) => [r, ids.length])),
+    wants: wantsOf(world, targetId),
+    closeness: feltCloseness(world, proposerId, targetId),
+    owed: favourOwed(world, targetId, proposerId),
+  };
+}
+
+interface ExchangePayload { targetId: string; give: string[]; askResource: string; askAmount: number; credit: boolean }
+
+function readExchange(payload: Record<string, unknown>): ExchangePayload {
+  return {
+    targetId: String(payload.targetId ?? ""),
+    give: Array.isArray(payload.give) ? payload.give.map(String) : [],
+    askResource: String(payload.askResource ?? ""),
+    askAmount: Number(payload.askAmount ?? 1),
+    credit: payload.credit === true,
+  };
+}
+
+function exchangeProblem(world: WorldView, actorId: string, p: ExchangePayload): string {
+  if (!actorId || !isPerson(world, actorId)) return "只有村里的人才能交换东西。";
+  if (!p.targetId || p.targetId === actorId || !isPerson(world, p.targetId)) return "要和一位具体的村民交换。";
+  const active = String(world.getComponent("modern:world", "modern.world_state")?.activeCharacterId ?? "");
+  if (p.targetId === active) return "玩家的东西只能由玩家自己决定是否交换。";
+  const here = occupiedPlaceId(world, actorId);
+  if (!here || here !== occupiedPlaceId(world, p.targetId)) return "要当面交换：先走到对方所在的地方。";
+  if (new Set(p.give).size !== p.give.length || p.give.length > MAX_EXCHANGE_ITEMS) return "一次最多拿出四件不同的东西。";
+  if (!(p.askResource in EXCHANGE_VALUES)) return "这样东西在村里还没有约定的价值。";
+  if (!Number.isInteger(p.askAmount) || p.askAmount < 1 || p.askAmount > MAX_EXCHANGE_ITEMS) return "一次最多要四份。";
+  if (!p.give.length && !p.credit) return "空手只能请求赊欠。";
+  for (const id of p.give) {
+    const r = prototypeOf(world, id).resourceId ?? "";
+    if (!(r in EXCHANGE_VALUES) || !tradeReady(world, id, actorId, r)) return "拿出的东西必须是你自己手里、完整且没借给别人的。";
+    if (r === p.askResource) return "不能用同一种东西换同一种东西。";
+  }
+  const have = tradeableGoods(world, p.targetId)[p.askResource] ?? [];
+  if (have.length < p.askAmount) return `${personName(world, p.targetId)}手上没有 ${p.askAmount} 份${RESOURCE_LABELS[p.askResource] ?? "这种东西"}。`;
+  // Both sides must be able to carry the result.
+  const asked = have.slice(0, p.askAmount);
+  const mass = (owner: string, ids: string[]) => ids.reduce((sum, id) =>
+    sum + portableLoad(world, owner).mass - portableLoad(world, owner, id).mass, 0);
+  const fits = (who: string, outIds: string[], inIds: string[], inOwner: string) => {
+    const load = portableLoad(world, who);
+    return load.looseSlots - outIds.length + inIds.length <= load.maxSlots &&
+      load.mass - mass(who, outIds) + mass(inOwner, inIds) <= load.maxMass + 0.0001;
+  };
+  if (!fits(actorId, p.give, asked, p.targetId)) return "换完你会拿不下，先放下些东西。";
+  if (!fits(p.targetId, asked, p.give, actorId)) return `换完${personName(world, p.targetId)}会拿不下。`;
+  return "";
+}
+
+function exchangeView(world: WorldView, actorId: string): HomesteadView["exchange"] {
+  const here = occupiedPlaceId(world, actorId);
+  const partners = here ? RESIDENTS.map((r) => residentId(r.key))
+    .filter((id) => id !== actorId && occupiedPlaceId(world, id) === here)
+    .map((id) => {
+      const v = counterpartView(world, actorId, id);
+      return { id, name: v.name, goods: v.holds, wants: v.wants, owed: v.owed, closeness: v.closeness };
+    }) : [];
+  const raw = world.getComponent(actorId, SettlementComponents.holding)?.lastExchange;
+  return {
+    labels: Object.fromEntries(Object.keys(EXCHANGE_VALUES).map((r) => [r, RESOURCE_LABELS[r] ?? r])),
+    mine: tradeableGoods(world, actorId),
+    partners,
+    last: raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, JsonValue> : null,
+  };
+}
+
+function registerExchange(ctx: Registration): void {
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.exchange}.allowed`,
+    commandType: SettlementCommands.exchange,
+    evaluate: (c) => {
+      const problem = exchangeProblem(c.world, c.command.actorId ?? "", readExchange(c.command.payload ?? {}));
+      return problem ? refuse(problem.includes("当面") ? SettlementRejection.WrongPlace
+        : problem.includes("拿不下") ? SettlementRejection.NoRoom : SettlementRejection.NotYours, problem) : { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.exchange}.resolve`,
+    commandType: SettlementCommands.exchange,
+    resolve: (c) => {
+      const actorId = c.command.actorId as string;
+      const p = readExchange(c.command.payload ?? {});
+      const view = counterpartView(c.world, actorId, p.targetId);
+      const decision = appraise(view, EXCHANGE_VALUES,
+        { resources: p.give.map((id) => prototypeOf(c.world, id).resourceId ?? "") },
+        { resourceId: p.askResource, amount: p.askAmount }, p.credit,
+        (r) => RESOURCE_LABELS[r] ?? r);
+      const asked = (tradeableGoods(c.world, p.targetId)[p.askResource] ?? []).slice(0, p.askAmount);
+      const effects: Effect[] = [];
+      if (decision.accept) {
+        const moves: [string, string, string][] = [
+          ...p.give.map((id) => [id, actorId, p.targetId] as [string, string, string]),
+          ...asked.map((id) => [id, p.targetId, actorId] as [string, string, string]),
+        ];
+        for (const [id, from, to] of moves) {
+          effects.push(
+            { kind: "removeRelation", type: ObjectRelations.heldBy, from: id, to: from, reason: "exchange handover", announce: false },
+            { kind: "removeRelation", type: ObjectRelations.ownedBy, from: id, to: from, reason: "exchange ownership", announce: false },
+            { kind: "addRelation", type: ObjectRelations.heldBy, from: id, to, announce: false },
+            { kind: "addRelation", type: ObjectRelations.ownedBy, from: id, to, announce: false },
+          );
+        }
+        const owed = Math.round((view.owed - decision.repaid + decision.onCredit) * 10) / 10;
+        const component = c.world.getComponent(p.targetId, SettlementComponents.resident)
+          ? SettlementComponents.resident
+          : c.world.getComponent(p.targetId, SettlementComponents.holding) ? SettlementComponents.holding : "";
+        if (owed !== view.owed && component) {
+          const raw = c.world.getComponent(p.targetId, component)?.favours;
+          const favours = { ...(raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, JsonValue> : {}) };
+          if (owed > 0) favours[actorId] = owed; else delete favours[actorId];
+          effects.push({ kind: "modifyComponent", entityId: p.targetId, component,
+            patch: { favours }, reason: decision.onCredit ? "favour owed for an uneven exchange" : "favour repaid" });
+        }
+      }
+      const summary = {
+        targetId: p.targetId, accepted: decision.accept, reason: decision.reason, at: c.world.tick,
+        gave: p.give.map((id) => prototypeOf(c.world, id).resourceId ?? ""),
+        got: decision.accept ? asked.map(() => p.askResource) : [],
+        onCredit: decision.onCredit, repaid: decision.repaid,
+      };
+      if (c.world.getComponent(actorId, SettlementComponents.holding)) {
+        effects.push({ kind: "modifyComponent", entityId: actorId, component: SettlementComponents.holding,
+          patch: { lastExchange: summary as unknown as JsonValue }, reason: "remember the last exchange outcome" });
+      }
+      effects.push({
+        kind: "emitEvent",
+        eventType: decision.accept ? "settlement-locations.exchanged" : "settlement-locations.exchange_declined",
+        actorId, targetId: p.targetId,
+        data: { ...summary, received: decision.received, cost: decision.cost } as unknown as Record<string, JsonValue>,
+        historicalSignificance: decision.accept ? 0.03 : 0,
       });
       return effects;
     },
@@ -1656,11 +1939,41 @@ export interface HomesteadView {
   outfit: { objectId: string; name: string; fieldWorkActivityCost: number } | null;
   /** Only the addressed player can see their cook quote at the hearth. */
   barter: { status: string; grainId: string; fuelId: string; offeredAt: number } | null;
+  /** Today's sky and what it means for work. */
+  weather: { sky: string; note: string };
+  /** The roof over the home you stand in (or your household's main room). */
+  roof: { spaceId: string; condition: number; max: number; leaking: boolean };
+  /** General exchange: what you can offer, and what each person here could trade. */
+  exchange: {
+    labels: Record<string, string>;
+    mine: Record<string, string[]>;
+    partners: { id: string; name: string; goods: Record<string, number>; wants: string[]; owed: number; closeness: string }[];
+    last: Record<string, JsonValue> | null;
+  };
   communitySituation: { visible: boolean; urgent: boolean; title: string; note: string; requestStatus: string; recentHelp: string; fuelStock: number | null };
   /** Field status, visible when standing at the field. */
   crop?: { phase: string; remainingDays: number; tended: boolean; summary: string };
+  /** Who carries the village's named routines (from the settlement pack). */
+  roles: Record<"farmer" | "cook" | "fuelGatherer", { id: string; name: string; workPlace: string }>;
   /** People in the same place, with what they are doing right now. */
-  neighbours: { id: string; name: string; role: string; household: string; placeId: string; atWork: boolean; dailyNote: string; tradeCount: number; contact: string; conversations: number }[];
+  neighbours: { id: string; name: string; role: string; household: string; placeId: string; atWork: boolean; dailyNote: string; tradeCount: number; contact: string; conversations: number; temperament: string[]; regard: string;
+    /** 交情（0..10 颗心）、生日、送过才知道的喜好。 */
+    hearts: number; romance: string; birthday: string; birthdayToday: boolean; likes: string[]; dislikes: string[] }[];
+  /** Residents who came to ask the player for something and await an answer. */
+  requests: PlayerRequestView[];
+  /** 出身与天赋 (id "none" for lives saved before they existed). */
+  origin: ReturnType<typeof originView>;
+  /** Neighbours' wishes the player has learned (by talking, or at the ford), and whether they came true. */
+  wishes: ReturnType<typeof wishesView>;
+  /** What is going on in the village today (a feast, a feast coming, someone ill). */
+  happenings: string[];
+  /** 你的家：配偶、孩子、是否要添丁；和你自己的年岁。 */
+  family: ReturnType<typeof familyView>;
+  age: number;
+  /** The origin's own first wish and whether it came true. */
+  aspiration: ReturnType<typeof aspirationView>;
+  /** Crafts learned from villagers, and ones still being learned. */
+  skills: ReturnType<typeof skillsView>;
   /** Objects reachable from here, with the action each allows. */
   objects: { id: string; name: string; prototypeId: string; placement: string; quantity: number; capacity: number; contentsCount: number; canTake: boolean; visible: boolean }[];
   /** Resources this place renews, and what is left. */
@@ -1709,11 +2022,15 @@ export function homestead(world: WorldView, actorId: string): HomesteadView {
         atWork: otherPlace === resident.workPlace,
         dailyNote: resident.lastRoutineAt === world.tick ? resident.standingRoutine : "",
         tradeCount: resident.tradeCount,
-        contact: contactLevel(world, actorId, entity.id),
+        // A chosen origin means some people already know you; otherwise only talk counts.
+        contact: originOf(world, actorId).id !== "none" ? feltCloseness(world, actorId, entity.id) : contactLevel(world, actorId, entity.id),
         conversations: contactConversations(world, actorId, entity.id),
+        temperament: residentTemperament(entity.id),
+        regard: regardWord(world, entity.id, actorId),
+        ...personCard(world, actorId, entity.id),
       };
     })
-    .filter((person) => person.placeId === placeId)
+    .filter((person) => person.placeId === placeId && person.id !== actorId)
     .sort((a, b) => a.id.localeCompare(b.id));
 
   // Objects standing in this place, in the space the player occupies, or in the
@@ -1827,12 +2144,28 @@ export function homestead(world: WorldView, actorId: string): HomesteadView {
     dailyActivity: dailyActivity(world, actorId),
     dailyPlan: dailyPlan(world, actorId),
     barter: ownBarter,
+    exchange: exchangeView(world, actorId),
+    weather: { sky: skyOn(world.tick), note: SKY_NOTE[skyOn(world.tick)] },
+    roof: (() => {
+      const roofSpace = HOME_SPACES.includes(spaceId) ? spaceId : "space:main-sleep";
+      const r = roofState(world, roofSpace);
+      return { spaceId: roofSpace, condition: r.condition, max: r.max, leaking: r.leaking };
+    })(),
     communitySituation,
+    origin: originView(world, actorId),
+    aspiration: aspirationView(world, actorId),
+    skills: skillsView(world, actorId),
+    wishes: wishesView(world, actorId),
+    happenings: happeningsView(world),
+    family: familyView(world, actorId),
+    age: Number(world.getComponent(actorId, "modern.vitals")?.ageYears ?? 0),
+    requests: playerRequests(world, actorId),
     outfit: wornByActor(world, actorId) ? {
       objectId: wornByActor(world, actorId), name: nameOfObject(world, wornByActor(world, actorId)),
       fieldWorkActivityCost: wornWrap(world, actorId) ? 2 : 3,
     } : null,
     ...(placeId === "place:field" ? { crop: { ...fieldCrop(world), summary: cropSummary(world) } } : {}),
+    roles: ROLE_VIEW,
     neighbours,
     objects,
     yields,
@@ -1881,7 +2214,9 @@ function homesteadActions(
     reason: string,
     payload: Record<string, JsonValue> = {},
   ) => {
-    const cost = id === SettlementCommands.arrive && payload.travelMode === "local" ? 1 : activityCostFor(world, actorId, id);
+    const cost = id === SettlementCommands.arrive && payload.travelMode === "local" ? walkCost(world, actorId)
+      : id === SettlementCommands.craft ? (recipeById(String(payload.recipeId)) ? recipeActivity(world, actorId, recipeById(String(payload.recipeId))!) : 0)
+      : activityCostFor(world, actorId, id);
     const remaining = dailyActivity(world, actorId).remaining;
     const enoughTime = remaining >= cost;
     actions.push({ id, label, hint, days: cost ? 0 : days,
@@ -1897,7 +2232,7 @@ function homesteadActions(
 
   for (const resident of RESIDENTS) {
     const id = residentId(resident.key);
-    if (id === actorId || occupiedPlaceId(world, id) !== placeId) continue;
+    if (id === actorId || occupiedPlaceId(world, id) !== placeId || !ALIVE(world, id)) continue;
     const raw = world.getComponent(actorId, SettlementComponents.holding)?.contacts;
     const info = raw && typeof raw === "object" && !Array.isArray(raw)
       ? (raw as Record<string, JsonValue>)[id] : undefined;
@@ -1906,6 +2241,70 @@ function homesteadActions(
     add(SettlementCommands.talk, `与${resident.name}搭话`,
       "当面交流后逐渐相识；搭一次话不会直接成为朋友。",
       0, !talked, talked ? "今天已经聊过，明天再来" : "", { targetId: id });
+  }
+
+  // 心上人：交情到了能表明心意，定了亲过几天就能成亲。
+  if (activeId(world) === actorId) {
+    for (const resident of RESIDENTS) {
+      const id = residentId(resident.key);
+      if (id === actorId || occupiedPlaceId(world, id) !== placeId || !ALIVE(world, id) || !personOf(id)?.court) continue;
+      const romance = romanceOf(world, actorId, id);
+      if (romance === "married" || romance === "taken") continue;
+      if (romance === "engaged") {
+        const why = wedRefusal(world, actorId, id);
+        add(SettlementCommands.wed, `和${resident.name}成亲`, "请全村人来做个见证，往后就是一家人。", 0, !why, why, { targetId: id });
+        continue;
+      }
+      if (heartsOf(bondOf(socialOf(world, id), actorId)) < 6 || engagedTo(world, actorId)) continue;
+      const why = courtRefusal(world, actorId, id);
+      add(SettlementCommands.court, `向${resident.name}表明心意`, "把心里话说出来。对方答不答应，要看交情和对方怎么想。", 0, !why, why, { targetId: id });
+    }
+  }
+
+  // 这一季就这么过：日子不必一天天抠，把心思放在一处，一季过去再看。
+  if (activeId(world) === actorId && SEASON_LIFE) {
+    const left = daysLeftInSeason(world.tick);
+    const why = seasonRefusal(world, actorId);
+    for (const f of SEASON_LIFE.focuses)
+      add(SettlementCommands.beginSeason, f.label, `${f.hint}（余下这一季约 ${left} 天一口气过去）`, left, !why, why, { focus: f.id });
+  }
+
+  // 请教手艺：在场、肯教、还没学会，一天一课。
+  const skillsNow = skillsOf(world, actorId), lessonsNow = lessonsOf(world, actorId);
+  for (const t of TEACHERS) {
+    if (t.residentId === actorId || occupiedPlaceId(world, t.residentId) !== placeId || !ALIVE(world, t.residentId) || skillsNow.includes(t.teaches.skill)) continue;
+    const why = teachRefusal(world, actorId, t, lessonsNow);
+    const done = lessonsNow[t.key]?.n ?? 0;
+    add(SettlementCommands.learn, `跟${t.name}学${t.teaches.name}`,
+      `${t.teaches.blurb.replace(/^跟.+?学的：/, "学会以后：")}（${done}/${t.teaches.lessons} 课）`,
+      0, !why, why, { targetId: t.residentId });
+  }
+
+  // Gifts: offered for things a neighbour here needs or wishes for (any other
+  // gift can be made from the exchange panel). Only your own things, never asked.
+  const mine = tradeableGoods(world, actorId);
+  for (const resident of RESIDENTS) {
+    const id = residentId(resident.key);
+    if (id === actorId || occupiedPlaceId(world, id) !== placeId || !ALIVE(world, id)) continue;
+    const wanted = [...new Set([...(resident.wishItem && !wishFulfilled(world, id) ? [resident.wishItem] : []), ...wantsOf(world, id)])];
+    const known = tastesKnown(world, actorId)[resident.key] ?? {};
+    // 手上的东西都能送；送过才知道对方喜不喜欢（像认识一个人那样慢慢摸清）。
+    const offer = [...new Set([...wanted, ...Object.keys(mine).filter((r) => !["resource:cloth", "resource:bag", "resource:tool", "resource:greenware"].includes(r))])];
+    const gifted = giftedToday(world, actorId, id);
+    for (const r of offer) {
+      const itemId = mine[r]?.[0];
+      if (!itemId) continue;
+      const wish = r === resident.wishItem && !wishFulfilled(world, id) && knownWishes(world, actorId).includes(id);
+      const taste = known[r];
+      const hint = wish ? `${resident.name}心里正惦记着这个。送出去就是对方的了，不求回报。`
+        : taste === "love" ? `${resident.name}最爱这个。`
+        : taste === "dislike" ? `上回送过，${resident.name}不太喜欢。`
+        : wanted.includes(r) ? `${resident.name}正缺这个。送出去就是对方的了，不求回报，对方会记着这份情。`
+        : taste === "like" ? `${resident.name}喜欢这个。` : "送出去就是对方的了，喜不喜欢要送了才知道。";
+      const ok = !gifted && canCarryObject(world, id, itemId);
+      add(SettlementCommands.gift, `送给${resident.name}${RESOURCE_LABELS[r] ?? "东西"}`, hint,
+        0, ok, gifted ? "今天已经送过了" : ok ? "" : `${resident.name}手上拿不下了`, { targetId: id, itemId });
+    }
   }
 
   const available = yieldPoints(world).filter((point) => point.placeId === placeId && point.stock > 0);
@@ -1951,12 +2350,20 @@ function homesteadActions(
     );
   }
 
+  let rawGrainOffered = false;
   for (const relation of world.listRelations({ type: ObjectRelations.heldBy, to: actorId })) {
     const objectId = relation.from;
-    if (!carriedRation(world, actorId, objectId)) continue;
-    add(SettlementCommands.eat, "吃一份随身熟食",
-      "随身的熟食真正减少一份，饥饿程度降低；可在任何聚落地点食用。",
-      1, true, "", { objectId, resourceId: "resource:cooked" });
+    const food = carriedFood(world, actorId, objectId);
+    if (food === "resource:cooked") {
+      add(SettlementCommands.eat, "吃一份随身熟食",
+        "随身的熟食真正减少一份，饥饿程度降低；可在任何聚落地点食用。",
+        1, true, "", { objectId, resourceId: "resource:cooked" });
+    } else if (food === "resource:grain" && !rawGrainOffered) {
+      rawGrainOffered = true;
+      add(SettlementCommands.eat, "生嚼一份随身的粟",
+        "没有熟食时也能充饥，但只缓解一半饥饿；这份粟就不能再播种或烘制了。",
+        1, true, "", { objectId, resourceId: "resource:grain" });
+    }
   }
 
   if (placeId === "place:hearth-yard") {
@@ -2019,28 +2426,6 @@ function homesteadActions(
     }
   }
 
-  if (placeId === "place:reedbed") {
-    const inWeavingArea = spaceId === "space:reed-cut";
-    const reeds = reedInputs(world, actorId);
-    add(SettlementCommands.weaveBag, "编一只芦苇提袋",
-      "用自己持有的两捆芦苇编出一只容量三件的提袋，可装入和取出实物。",
-      0, inWeavingArea && reeds.length >= 2,
-      !inWeavingArea ? "先到芦苇滩编织处" : reeds.length < 2 ? "缺少两捆自己的芦苇" : "");
-    add(SettlementCommands.weaveMat, "编一张苇席",
-      "用自己持有的两捆芦苇编席；带回住处休息，次日活动时间增加一格。",
-      0, inWeavingArea && reeds.length >= 2,
-      !inWeavingArea ? "先到芦苇滩编织处" : reeds.length < 2 ? "缺少两捆自己的芦苇" : "");
-    add(SettlementCommands.prepareFiber, "剥取两束苇纤维",
-      "真实消耗两捆自己持有的芦苇，加工出两束可以编衣的纤维。",
-      0, inWeavingArea && reeds.length >= 2,
-      !inWeavingArea ? "先到编织处" : reeds.length < 2 ? "缺少两捆自己的芦苇" : "");
-    const fibers = fiberInputs(world, actorId);
-    add(SettlementCommands.weaveWrap, "编一件纤维裹身",
-      "消耗自己持有的两束纤维，织成可穿脱的裹身衣；穿着下田劳动节省一格活动。",
-      0, inWeavingArea && fibers.length >= 2,
-      !inWeavingArea ? "先到编织处" : fibers.length < 2 ? "缺少两束自己的纤维" : "");
-  }
-
   const outfitId = wornByActor(world, actorId);
   for (const relation of world.listRelations({ type: ObjectRelations.heldBy, to: actorId })) {
     const id = relation.from;
@@ -2085,21 +2470,39 @@ function homesteadActions(
     const grainId = heldIngredient(world, actorId, "resource:grain");
     const inField = spaceId === "space:field-edge";
     add(SettlementCommands.sow, "播种一份粟粒",
-      "消耗一份随身粟粒作种子，种下后需照料并等待约三十天。",
+      `消耗一份随身粟粒作种子；${seasonOf(world.tick)}天种下约 ${cropGrowDays(world.tick)} 天成熟，需要照料。`,
       1, inField && !crop.seedId && Boolean(grainId),
       !inField ? "先到田头" : crop.seedId ? "这块田已播种" : !grainId ? "缺少一份自己的粟粒" : "");
     add(SettlementCommands.harvest, "收获田里的粟",
-      "成熟且已照料的作物，一次收获三份真实粮食。",
-      1, inField && crop.phase === "ready",
-      !inField ? "先到田头" : !crop.seedId ? "还没有播种" : !crop.tended ? "先照料田地" : crop.remainingDays ? `还需等待 ${crop.remainingDays} 天` : "");
+      `成熟且已照料的作物，${seasonOf(world.tick)}收 ${cropYield(world.tick)} 份：三份随身，其余入田边粮堆。`,
+      1, inField && crop.phase === "ready" && canCarryPrototype(world, actorId, "prototype:grain", "", HARVEST_IN_HAND),
+      !inField ? "先到田头" : !crop.seedId ? "还没有播种" : !crop.tended ? "先照料田地" : crop.remainingDays ? `还需等待 ${crop.remainingDays} 天`
+        : !canCarryPrototype(world, actorId, "prototype:grain", "", HARVEST_IN_HAND) ? "随身要带走三份新粟，先腾出双手或行囊" : "");
   }
 
+  for (const { recipe, blocker } of recipesHere(world, actorId)) {
+    const needs = recipe.inputs.map((i) => `${i.count}份${RIVER_TERRACE_PACK.resourceLabels[i.resourceId] ?? i.resourceId}`).join("、");
+    const tool = recipe.tool ? PROTOTYPES.find((p) => p.id === recipe.tool)?.name : "";
+    add(recipe.command ?? SettlementCommands.craft, recipe.label,
+      recipe.command ? recipe.hint
+        : `${recipe.hint}${needs || tool ? `（需要${[needs, tool].filter(Boolean).join("，工具：")}）` : ""}`,
+      0, !blocker, blocker, recipe.command ? {} : { recipeId: recipe.id });
+  }
   const workSpace = SPACE_WORK[spaceId];
   if (workSpace) {
-    add(SettlementCommands.tend, workSpace.label, workSpace.hint, workSpace.days, true, "", { spaceId });
+    const wetKiln = spaceId === "space:kiln-mouth" && isWet(world.tick);
+    const nothing = worksiteBlocker(world, actorId, spaceId);
+    add(SettlementCommands.tend, workSpace.label, workSpace.hint, workSpace.days, !wetKiln && !nothing,
+      wetKiln ? `今天${skyOn(world.tick)}，窑火点不起来` : nothing, { spaceId });
   }
 
   const homeSpace = HOME_SPACES.includes(spaceId);
+  if (homeSpace && seasonOf(world.tick) === "冬") {
+    const fuelId = heldIngredient(world, actorId, "resource:fuel");
+    add(SettlementCommands.rest, "生一盆火过冬夜",
+      "烧掉手里一捆柴取暖，暖和地睡一夜，次日多一格活动时间；可以和苇席叠加。",
+      0, Boolean(fuelId), fuelId ? "" : "手里没有柴草", { spaceId, ...(fuelId ? { fuelId } : {}) });
+  }
   if (homeSpace) {
     for (const matId of availableRestMats(world, actorId)) {
       add(SettlementCommands.rest, `铺开${nameOfObject(world, matId)}休息`,
@@ -2159,7 +2562,7 @@ const HOME_SPACES = [
   "space:clay-sleep", "space:water-sleep", "space:hearth-sleep", "space:ford-sleep",
 ];
 
-const SPACE_WORK: Record<string, { label: string; hint: string; days: number }> = {
+const LEGACY_SPACE_WORK: Record<string, { label: string; hint: string; days: number }> = {
   "space:hearth": { label: "在灶边做饭", hint: "把粮食做成能吃的熟食，之后可以取用。", days: 1 },
   "space:field-edge": { label: "照看田地", hint: "除草、看水；田地会记得这次照看。", days: 1 },
   "space:kiln-mouth": { label: "看守窑火", hint: "看一次火候，学到的经验会留在手里。", days: 1 },
@@ -2169,6 +2572,126 @@ const SPACE_WORK: Record<string, { label: string; hint: string; days: number }> 
   "space:bank": { label: "在河边洗衣", hint: "把身上的东西洗一洗。", days: 1 },
   "space:ford-landing": { label: "在渡口等船", hint: "听听对岸最近的行情。", days: 1 },
 };
+
+/** Worksite labels and what the work really does come from the pack (falling back to the old wording). */
+const WORKSITES = RIVER_TERRACE_PACK.worksites ?? {};
+const SPACE_WORK: Record<string, { label: string; hint: string; days: number }> = Object.fromEntries(
+  Object.entries(LEGACY_SPACE_WORK).map(([id, w]) => [id, WORKSITES[id] ? { ...w, label: WORKSITES[id]!.label, hint: WORKSITES[id]!.hint } : w]));
+const THANKS = RIVER_TERRACE_PACK.thanks ?? ["{name}向你道了声谢。"];
+
+/** A small stable hash for picking lines deterministically from world state. */
+export function pickIndex(key: string, n: number): number {
+  let h = 2166136261;
+  for (let i = 0; i < key.length; i += 1) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return n > 0 ? h % n : 0;
+}
+
+/** How many of a worksite's gain the player could carry away right now (0 = none). */
+function worksiteGain(world: WorldView, actorId: string, spaceId: string): { resourceId: string; amount: number; stock: number } | null {
+  const gain = WORKSITES[spaceId]?.gain;
+  if (!gain) return null;
+  const placeId = occupiedPlaceId(world, actorId);
+  const stock = yieldPoints(world).find((p) => p.placeId === placeId && p.resourceId === gain.resourceId)?.stock ?? 0;
+  let amount = 0;
+  while (amount < Math.min(gain.count, stock) && canCarryPrototype(world, actorId, prototypeForResource(gain.resourceId), "", amount + 1)) amount += 1;
+  return { resourceId: gain.resourceId, amount, stock };
+}
+
+function wetGreenware(world: WorldView, actorId: string): string[] {
+  return world.listRelations({ type: ObjectRelations.heldBy, to: actorId }).map((r) => r.from).sort()
+    .filter((id) => prototypeOf(world, id).prototypeId === "prototype:greenware" && ownerOf(world, id) === actorId &&
+      world.tick - Number(readObject(world.getEntity(id)?.components[ObjectComponents.object]).madeAt ?? -Infinity) < 1);
+}
+
+/** Why the player's work here would come to nothing (empty: it is worth doing). */
+function worksiteBlocker(world: WorldView, actorId: string, spaceId: string): string {
+  if (actorId !== activeId(world)) return "";
+  const spec = WORKSITES[spaceId];
+  if (!spec) return "";
+  if (spec.gain) {
+    const g = worksiteGain(world, actorId, spaceId)!;
+    if (g.stock <= 0) return `${RESOURCE_LABELS[g.resourceId] ?? "这里的东西"}这一季已经取尽了`;
+    if (g.amount <= 0) return "手上拿不下了，先放下些东西";
+  }
+  if (spec.dries && !wetGreenware(world, actorId).length) return "手上没有还湿着的陶坯";
+  return "";
+}
+
+function knownWishes(world: WorldView, actorId: string): string[] {
+  const raw = world.getComponent(actorId, SettlementComponents.holding)?.knownWishes;
+  return Array.isArray(raw) ? raw.map(String) : [];
+}
+
+/** What a player's turn of work at a worksite truly brings, as effects plus one line of prose. */
+function worksiteEffects(world: WorldView, actorId: string, spaceId: string): { effects: Effect[]; line: string } {
+  const spec = WORKSITES[spaceId];
+  if (!spec || actorId !== activeId(world)) return { effects: [], line: "" };
+  const effects: Effect[] = [];
+  const tick = world.tick;
+  const placeId = occupiedPlaceId(world, actorId);
+  const lines: string[] = [];
+  if (spec.gain) {
+    const g = worksiteGain(world, actorId, spaceId)!;
+    const point = yieldPoints(world).find((p) => p.placeId === placeId && p.resourceId === g.resourceId)!;
+    if (g.amount > 0) {
+      effects.push({ kind: "setComponent", entityId: `yield:${placeId}:${g.resourceId}`, component: SettlementComponents.yieldPoint,
+        value: { placeId, resourceId: g.resourceId, label: point.label, unit: point.unit, capacity: point.capacity,
+          stock: point.stock - g.amount, renewDays: point.renewDays, lastRenewedAt: renewalAnchor(point, tick) } });
+      const prototypeId = prototypeForResource(g.resourceId);
+      for (let i = 0; i < g.amount; i += 1) {
+        const id = `settlement-locations:worked:${tick}:${placeId}:${g.resourceId}:${point.stock - g.amount + i}`;
+        effects.push({ kind: "spawnEntity", localId: `worked:${i}`, id, entityKind: ObjectKinds.item, announce: false,
+          components: { [ObjectComponents.object]: { prototypeId, name: "", condition: "fresh", quantity: 1, durability: 0,
+            madeAt: tick, provenance: { from: placeId, at: tick, worked: spaceId }, visibleFromOutside: true } as unknown as Record<string, never> } },
+        { kind: "addRelation", type: ObjectRelations.instanceOf, from: id, to: prototypeId, announce: false },
+        { kind: "addRelation", type: ObjectRelations.ownedBy, from: id, to: actorId, announce: false },
+        { kind: "addRelation", type: ObjectRelations.heldBy, from: id, to: actorId, announce: false });
+      }
+      lines.push(`你干了大半个上午，带回 ${g.amount} ${point.unit}${point.label}。`);
+    }
+  }
+  if (spec.dries) {
+    const wet = wetGreenware(world, actorId);
+    for (const id of wet) effects.push({ kind: "modifyComponent", entityId: id, component: ObjectComponents.object,
+      patch: { madeAt: tick - 1 }, reason: "greenware turned and dried in the wind" });
+    if (wet.length) lines.push(`你把陶坯翻面挪到风口，摸上去已经干透，可以进窑了。`);
+  }
+  if (spec.helps) {
+    const present = RESIDENTS.map((r) => residentId(r.key)).filter((id) => id !== actorId && occupiedPlaceId(world, id) === placeId);
+    const holding = world.getComponent(actorId, SettlementComponents.holding);
+    const helped = holding?.helpedAt && typeof holding.helpedAt === "object" && !Array.isArray(holding.helpedAt)
+      ? holding.helpedAt as Record<string, JsonValue> : {};
+    if (present.length && Number(helped[placeId] ?? -1) !== tick) {
+      const deed = deedStep(world, actorId, present, "helps");
+      for (const id of present) {
+        const done = deed.fulfilled.includes(id);
+        effects.push(saveSocial(id, withBond(socialOf(world, id), actorId,
+          { familiarity: 0.5 + (done ? WISH_BOND.familiarity : 0), trust: 0.5 + (done ? WISH_BOND.trust : 0) }, tick), "the player lent a hand at work"));
+      }
+      effects.push({ kind: "modifyComponent", entityId: actorId, component: SettlementComponents.holding,
+        patch: { helpedAt: { ...helped, [placeId]: tick }, ...deed.patch }, reason: "remember where you helped today" }, ...deed.effects);
+      const first = present[pickIndex(`${tick}:${placeId}`, present.length)]!;
+      lines.push(THANKS[pickIndex(`${first}:${tick}`, THANKS.length)]!.replace("{name}", personName(world, first)));
+    } else if (!present.length) {
+      lines.push("这会儿没有别人在，你一个人把活做完了。");
+    } else {
+      lines.push("你又帮着干了一阵。");
+    }
+  }
+  if (spec.rumor) {
+    const known = knownWishes(world, actorId);
+    const unknown = RESIDENTS.filter((r) => !known.includes(residentId(r.key)));
+    if (unknown.length) {
+      const r = unknown[pickIndex(`rumor:${tick}`, unknown.length)]!;
+      effects.push({ kind: "modifyComponent", entityId: actorId, component: SettlementComponents.holding,
+        patch: { knownWishes: [...known, residentId(r.key)] }, reason: "heard at the ford what a neighbour longs for" });
+      lines.push(`渡口边有人闲聊：「${r.name}啊，${r.wish}」`);
+    } else {
+      lines.push("渡口边的闲话你都听过了，河水照旧慢慢地流。");
+    }
+  }
+  return { effects, line: lines.join("") };
+}
 
 function occupancyPlaceOf(world: WorldView, actorId: string): string {
   return occupiedPlaceId(world, actorId);
@@ -2295,7 +2818,7 @@ function isStandingIn(world: WorldView, objectId: string, placeId: string): bool
   return container === placeId;
 }
 
-function seasonOf(tick: number): string {
+export function seasonOf(tick: number): string {
   const month = (Math.floor(tick / DAYS_PER_MONTH) % 12) + 1;
   if (month >= 3 && month <= 5) return "春";
   if (month >= 6 && month <= 8) return "夏";
@@ -2351,17 +2874,153 @@ function registerTalk(ctx: Registration): void {
       const conversations = Math.max(0, Number(before.conversations ?? 0)) + 1;
       contacts[targetId] = { firstMetAt: before.firstMetAt ?? c.world.tick,
         lastTalkAt: c.world.tick, conversations };
+      const said0 = talkLine(c.world, actorId, targetId, conversations);
+      // 过节那天在热闹的地方说上话，就算一起过了这个节（一天只算一次）。
+      const feast = feastOn(c.world.tick);
+      const joinedAt = Number(c.world.getComponent(actorId, SettlementComponents.holding)?.feastJoinedAt ?? -1);
+      const joins = Boolean(feast && actorId === activeId(c.world) && occupiedPlaceId(c.world, actorId) === feast.placeId && joinedAt !== c.world.tick);
+      const said = joins ? { ...said0, line: `${feast!.joinLine.replace("{name}", personName(c.world, targetId))}${said0.reveal || said0.newsId || said0.heartId ? said0.line : ""}` } : said0;
+      const known = knownWishes(c.world, actorId);
+      const deed = deedStep(c.world, actorId, [targetId], "talks");
+      const done = deed.fulfilled.includes(targetId);
       return [{
         kind: "modifyComponent", entityId: actorId, component: SettlementComponents.holding,
-        patch: { contacts }, reason: "player truly met and spoke with a present resident",
-      }, {
+        patch: { contacts, ...(said.reveal && !known.includes(targetId) ? { knownWishes: [...known, targetId] } : {}), ...deed.patch,
+          ...(said.newsId ? { newsHeard: [...newsHeard(c.world, actorId), said.newsId].slice(-40) } : {}),
+          ...(said.heartId ? { heartsSeen: [...heartsSeen(c.world, actorId), said.heartId], heartDay: c.world.tick,
+            heartAt: { ...((c.world.getComponent(actorId, SettlementComponents.holding)?.heartAt ?? {}) as Record<string, JsonValue>), [keyOfResident(targetId)]: c.world.tick } } : {}),
+          ...(joins ? { feastJoinedAt: c.world.tick } : {}) },
+        reason: "player truly met and spoke with a present resident",
+      }, saveSocial(targetId, withBond(socialOf(c.world, targetId), actorId, {
+        familiarity: 1 + talentFx(c.world, actorId).talkFamiliarity + (done ? WISH_BOND.familiarity : 0) + (joins ? 2 : 0),
+        trust: (done ? WISH_BOND.trust : 0) + (joins ? 1 : 0) + (said.heartId ? 1 : 0) }, c.world.tick),
+        "the resident remembers the conversation too"), ...deed.effects, {
         kind: "emitEvent", eventType: "settlement-locations.conversation",
         actorId, targetId,
-        data: { conversations, relationship: conversations >= 3 ? "acquaintance" : "met" },
+        data: { conversations, relationship: conversations >= 3 ? "acquaintance" : "met", line: said.line, ...(said.reveal ? { wishRevealed: true } : {}),
+          ...(said.newsId ? { news: said.newsId } : {}), ...(said.heartId ? { heart: said.heartId } : {}),
+          ...(joins ? { feast: feast!.id } : {}) },
         historicalSignificance: 0.02,
       }];
     },
   });
+}
+
+const DIALOGUE = RIVER_TERRACE_PACK.dialogue;
+const RESIDENT_LINES = RIVER_TERRACE_PACK.residentLines ?? {};
+
+/**
+ * What a villager says when you talk to them: a greeting that fits how well
+ * they know you, plus at most one thing on their mind (a wish they finally
+ * tell you, a favour they owe, help they remember, hunger, or their own voice).
+ * Chosen from the pack by a stable hash of the day and the person, so the same
+ * world state always gives the same words.
+ */
+export function talkLine(world: WorldView, actorId: string, targetId: string, conversations: number): { line: string; reveal: boolean; newsId?: string; heartId?: string } {
+  const name = personName(world, targetId);
+  if (!DIALOGUE) return { line: `你和${name}聊了一会。`, reveal: false };
+  const key = targetId.split(":").pop() ?? "";
+  const spec = RESIDENTS.find((r) => residentId(r.key) === targetId);
+  const bond = bondOf(socialOf(world, targetId), actorId);
+  const pick = (list: string[], salt: string) => list[pickIndex(`${world.tick}:${targetId}:${salt}`, list.length)] ?? "";
+  // 天气不是每句都挂在嘴边：有别的话要说、或者今天轮不到，就不提。
+  let saysWeather = pickIndex(`${world.tick}:${targetId}:wx`, 3) === 0;
+  const fill = (t: string) => t.replace("{name}", name).replace("{wish}", spec?.wish ?? "")
+    .replace(/：“\{weather\}”/, saysWeather ? "：“{weather}”" : "。").replace(/([。！？])\{weather\}”/, saysWeather ? "$1{weather}”" : "$1”")
+    .replace("{weather}", saysWeather ? DIALOGUE.weather[skyOn(world.tick)] ?? "" : "");
+  if (bond.grudge >= 3) return { line: fill(pick(DIALOGUE.grudge, "g")), reveal: false };
+  // 交情到了，会讲一段只跟你讲的往事（每段只讲一次）。
+  // 往事不会一口气讲完：同一个人隔几天才再讲一段，一天里最多听一个人讲。
+  const holdingNow = world.getComponent(actorId, SettlementComponents.holding);
+  const heartAt = holdingNow?.heartAt && typeof holdingNow.heartAt === "object" ? holdingNow.heartAt as Record<string, number> : {};
+  const heartReady = Number(holdingNow?.heartDay ?? -9) !== world.tick && world.tick - Number(heartAt[key] ?? -99) >= HEART_GAP_DAYS;
+  const heart = heartReady ? nextHeartEvent(targetId, heartsOf(bond), heartsSeen(world, actorId)) : undefined;
+  if (heart && !isIll(world.tick, targetId)) return { line: heart.text.replace(/\{name\}/g, name), reveal: false, heartId: heart.id };
+  const tier = bond.trust >= 8 && bond.familiarity >= 5 ? DIALOGUE.trusted
+    : conversations >= 3 || bond.familiarity >= 4 ? DIALOGUE.acquainted
+    : conversations >= 2 || bond.familiarity >= 1 ? DIALOGUE.met : DIALOGUE.stranger;
+  const news = newsToTell(world, actorId, targetId);
+  if (news) saysWeather = false;
+  const greeting = fill(pick(tier, "t"));
+  const known = knownWishes(world, actorId).includes(targetId);
+  const helped = world.getComponent(actorId, SettlementComponents.holding)?.helpedAt;
+  const helpedHere = helped && typeof helped === "object" && !Array.isArray(helped)
+    ? Number((helped as Record<string, JsonValue>)[occupiedPlaceId(world, targetId)] ?? -100) : -100;
+  let topic = "", reveal = false;
+  if (spec?.wish && !known && (conversations >= 2 || bond.familiarity >= 4) && !wishFulfilled(world, targetId)) { topic = DIALOGUE.wishReveal; reveal = true; }
+  else if (wishFulfilled(world, targetId) === actorId && DIALOGUE.wishDone && pickIndex(`${world.tick}:${targetId}:w`, 2) === 0) topic = DIALOGUE.wishDone;
+  else if (news) return { line: `${greeting}${news.line}`, reveal: false, newsId: news.id };
+  else if (favourOwed(world, actorId, targetId) > 0) topic = DIALOGUE.owes;
+  else if (helpedHere < world.tick && world.tick - helpedHere <= 3) topic = DIALOGUE.remembersHelp;
+  else if (hungerLevel(world, targetId) >= 6) topic = DIALOGUE.hungry;
+  else if (isBirthday(targetId, world.tick)) topic = `${name}今天过生日，脸上一直带着笑：“你也知道啦？”`;
+  else topic = ownVoice(world, targetId, conversations);
+  return { line: topic ? `${greeting}${fill(topic)}` : greeting, reveal };
+}
+
+export const HEART_GAP_DAYS = 4;
+function heartsSeen(world: WorldView, playerId: string): string[] {
+  const raw = world.getComponent(playerId, SettlementComponents.holding)?.heartsSeen;
+  return Array.isArray(raw) ? raw.map(String) : [];
+}
+
+/** 今天心情：病着、饿得慌、事情连着落空就低落；收到心头好、心愿刚圆、过生日、过节就高兴。 */
+export function moodOf(world: WorldView, rid: string): "happy" | "low" | "plain" {
+  const tick = world.tick;
+  if (isIll(tick, rid) || hungerLevel(world, rid) >= 6) return "low";
+  if (tick - Number(world.getComponent(rid, SettlementComponents.resident)?.mournAt ?? -999) <= 30) return "low";
+  const res = world.getComponent(rid, SettlementComponents.resident);
+  const frus = res?.frustration && typeof res.frustration === "object" ? Object.values(res.frustration as Record<string, { n?: number; at?: number }>) : [];
+  if (frus.some((f) => Number(f?.n ?? 0) >= 2 && tick - Number(f?.at ?? -9) <= 1)) return "low";
+  if (isBirthday(rid, tick) || feastOn(tick) || tick - Number(res?.gladAt ?? -9) <= 1 || tick - Number(res?.wishFulfilledAt ?? -9) <= 3) return "happy";
+  return "plain";
+}
+
+/**
+ * 这个人自己的话：先看心情，再按季节、说起家里人和熟人、平日口头禅轮着说
+ * （按聊过几回轮换，不会天天同一句）。
+ */
+function ownVoice(world: WorldView, rid: string, conversations: number): string {
+  const key = keyOfResident(rid), person = personOf(rid), name = personName(world, rid);
+  const mood = moodOf(world, rid);
+  const moodLines = mood === "happy" ? person?.happy ?? [] : mood === "low" ? person?.low ?? [] : [];
+  const fill = (t: string) => t.replace(/\{name\}/g, name);
+  if (moodLines.length && pickIndex(`${world.tick}:${rid}:m`, 3) !== 0) return fill(moodLines[pickIndex(`${world.tick}:${rid}:ml`, moodLines.length)]!);
+  const season = seasonOf(world.tick) as "春" | "夏" | "秋" | "冬";
+  const pool = [...(person?.seasons?.[season] ?? []), ...Object.values(person?.ties ?? {}).map((t) => t.line ?? "").filter(Boolean), ...(RESIDENT_LINES[key] ?? [])];
+  if (!pool.length) return "";
+  // 一回聊天未必有话题：大约三回里有两回会说点自己的事。
+  if (pickIndex(`${world.tick}:${rid}:quiet`, 3) === 0) return "";
+  return fill(pool[(conversations + pickIndex(key, pool.length)) % pool.length]!);
+}
+
+/** The freshest bit of village news this villager knows that you have not heard from anyone yet. */
+function newsToTell(world: WorldView, playerId: string, speaker: string): { id: string; line: string } | undefined {
+  const heard = new Set(newsHeard(world, playerId));
+  // 你自己做的事，当事人不会再讲给你听；从别人嘴里听来的才有意思。
+  const item = freshNews(socialOf(world, speaker), world.tick).find((n) => !heard.has(n.id) && !(n.about === playerId && !n.heard));
+  if (!item) return undefined;
+  const name = personName(world, speaker), you = personName(world, playerId);
+  const text = item.text.split(name).join("我").split(you).join("你");
+  const by = item.by ? personName(world, item.by) : "";
+  const salt = pickIndex(`${world.tick}:${speaker}:${item.id}`, 2);
+  const line = item.about === playerId && item.heard ? `${name}看着你笑：“听说${text}，这事都传开了。”`
+    : item.heard && by && item.by === item.about ? `${name}笑着说：“${by}跟我念叨了半天，说是${text.replace(by, "")}。”`
+    : item.heard && by && salt === 0 ? `${name}压低了声音：“听${by}说，${text}。”`
+    : item.heard ? `${name}说起村里的事：“你听说了吗？${text}。”`
+    : `${name}说起这两天的事：“${text}。”`;
+  return { id: item.id, line };
+}
+
+function newsHeard(world: WorldView, playerId: string): string[] {
+  const raw = world.getComponent(playerId, SettlementComponents.holding)?.newsHeard;
+  return Array.isArray(raw) ? raw.map(String) : [];
+}
+
+/** Who fulfilled this villager's wish ("" while it is still open). */
+export function wishFulfilled(world: WorldView, residentIdValue: string): string {
+  const raw = world.getComponent(residentIdValue, SettlementComponents.resident)?.wishFulfilledBy;
+  return typeof raw === "string" ? raw : "";
 }
 
 function registerDraw(ctx: Registration): void {
@@ -2396,7 +3055,12 @@ function registerDraw(ctx: Registration): void {
       const point = yieldPoints(c.world).find((candidate) => candidate.placeId === placeId && candidate.resourceId === resourceId)!;
       // How much one draw can take is bounded by what the place holds, never by
       // a fixed 1: a player carrying a basket should be able to carry a basket.
-      const amount = clampInt(c.command.payload.amount, 1, 1, point.stock);
+      const asked = clampInt(c.command.payload.amount, 1, 1, point.stock);
+      // 识草木: someone who knows plants brings back one more, if the place has it and hands are free.
+      const plantBonus = (PLANT_DRAWS.has(`${placeId}|${resourceId}`) ? talentFx(c.world, actorId).plantDrawBonus : 0) + skillDrawBonus(c.world, actorId, placeId, resourceId);
+      let amount = asked;
+      for (let extra = 0; extra < plantBonus; extra += 1)
+        if (amount < point.stock && canCarryPrototype(c.world, actorId, prototypeForResource(resourceId), "", amount + 1)) amount += 1;
       const taken = Math.min(amount, point.stock);
 
       // A draw is one transaction: the place loses exactly what the player
@@ -2408,7 +3072,7 @@ function registerDraw(ctx: Registration): void {
         value: {
           placeId, resourceId, label: point.label, unit: point.unit,
           capacity: point.capacity, stock: point.stock - taken,
-          renewDays: point.renewDays, lastRenewedAt: c.world.tick,
+          renewDays: point.renewDays, lastRenewedAt: renewalAnchor(point, c.world.tick),
         },
       }];
 
@@ -2466,6 +3130,8 @@ function registerDraw(ctx: Registration): void {
   });
 }
 
+const PLANT_DRAWS = new Set(["place:reedbed|resource:reed", "place:reedbed|resource:fuel", "place:field|resource:grain"]);
+
 function registerDrink(ctx: Registration): void {
   ctx.registerConstraintRule({
     id: `${SettlementCommands.drink}.allowed`,
@@ -2507,8 +3173,8 @@ function registerEat(ctx: Registration): void {
       const actorId = c.command.actorId ?? "";
       const objectId = String(c.command.payload.objectId ?? "");
       if (objectId) {
-        if (!carriedRation(c.world, actorId, objectId)) {
-          return refuse(SettlementRejection.NotYours, "要先亲自持有一份可食用的熟食。");
+        if (!carriedFood(c.world, actorId, objectId)) {
+          return refuse(SettlementRejection.NotYours, "要先亲自持有一份可以吃的食物。");
         }
         return { ok: true };
       }
@@ -2530,7 +3196,8 @@ function registerEat(ctx: Registration): void {
       const actorId = c.command.actorId as string;
       const objectId = String(c.command.payload.objectId ?? "");
       const before = hungerLevel(c.world, actorId);
-      const after = Math.max(0, before - 4);
+      const eaten = objectId ? carriedFood(c.world, actorId, objectId) : String(c.command.payload.resourceId ?? "");
+      const after = Math.max(0, before - (HUNGER_EASED[eaten] ?? 4) - talentFx(c.world, actorId).mealBonus);
       const effects: Effect[] = [{
         kind: "modifyComponent",
         entityId: actorId,
@@ -2543,7 +3210,7 @@ function registerEat(ctx: Registration): void {
         if (item.quantity > 1) {
           effects.push({
             kind: "modifyComponent", entityId: objectId, component: ObjectComponents.object,
-            patch: { quantity: item.quantity - 1 }, reason: "one cooked ration eaten",
+            patch: { quantity: item.quantity - 1 }, reason: "one carried portion eaten",
           });
         } else {
           effects.push({
@@ -2556,7 +3223,7 @@ function registerEat(ctx: Registration): void {
         effects.push({
           kind: "emitEvent", eventType: "settlement-locations.ate",
           actorId, targetId: objectId,
-          data: { objectId, resourceId: "resource:cooked", from: "carried", shared: false, hungerBefore: before, hungerAfter: after },
+          data: { objectId, resourceId: eaten, from: "carried", shared: false, hungerBefore: before, hungerAfter: after },
           historicalSignificance: 0,
         });
       } else {
@@ -2570,7 +3237,7 @@ function registerEat(ctx: Registration): void {
           value: {
             placeId, resourceId, label: point.label, unit: point.unit,
             capacity: point.capacity, stock: point.stock - 1,
-            renewDays: point.renewDays, lastRenewedAt: c.world.tick,
+            renewDays: point.renewDays, lastRenewedAt: renewalAnchor(point, c.world.tick),
           },
         }, {
           kind: "emitEvent", eventType: "settlement-locations.ate",
@@ -2712,48 +3379,7 @@ function registerWeaveBag(ctx: Registration): void {
   ctx.registerResolutionRule({
     id: `${SettlementCommands.weaveBag}.resolve`,
     commandType: SettlementCommands.weaveBag,
-    resolve: (c) => {
-      const actorId = c.command.actorId as string;
-      const inputs = reedInputs(c.world, actorId).slice(0, 2);
-      const bagId = `settlement-locations:reed-bag:${inputs[0]}`;
-      const effects: Effect[] = [];
-      for (const id of inputs) {
-        effects.push({
-          kind: "removeRelation", type: ObjectRelations.heldBy,
-          from: id, to: actorId, reason: "reeds woven into a bag", announce: false,
-        }, {
-          kind: "archiveEntity", entityId: id,
-          reason: "reeds woven into a bag", announce: false,
-        });
-      }
-      effects.push({
-        kind: "spawnEntity", localId: "woven-bag", id: bagId,
-        entityKind: ObjectKinds.item, announce: false,
-        components: {
-          [ObjectComponents.object]: {
-            prototypeId: "prototype:carrying-bag", name: "芦苇提袋",
-            condition: "woven", quantity: 1, durability: 28, madeAt: c.world.tick,
-            provenance: { reedIds: inputs, placeId: "place:reedbed", at: c.world.tick },
-            visibleFromOutside: true,
-          } as unknown as Record<string, never>,
-        },
-      }, {
-        kind: "addRelation", type: ObjectRelations.instanceOf,
-        from: bagId, to: "prototype:carrying-bag", announce: false,
-      }, {
-        kind: "addRelation", type: ObjectRelations.ownedBy,
-        from: bagId, to: actorId, announce: false,
-      }, {
-        kind: "addRelation", type: ObjectRelations.heldBy,
-        from: bagId, to: actorId, announce: false,
-      }, {
-        kind: "emitEvent", eventType: "settlement-locations.bag_woven",
-        actorId, targetId: bagId,
-        data: { bagId, reedIds: inputs, capacity: 3 },
-        historicalSignificance: 0.03,
-      });
-      return effects;
-    },
+    resolve: (c) => craftEffects(c.world, c.command.actorId as string, recipeForCommand(SettlementCommands.weaveBag), false),
   });
 }
 
@@ -2796,48 +3422,7 @@ function registerWeaveMat(ctx: Registration): void {
   ctx.registerResolutionRule({
     id: `${SettlementCommands.weaveMat}.resolve`,
     commandType: SettlementCommands.weaveMat,
-    resolve: (c) => {
-      const actorId = c.command.actorId as string;
-      const reedIds = reedInputs(c.world, actorId).slice(0, 2);
-      const matId = `settlement-locations:reed-mat:${reedIds[0]}`;
-      const effects: Effect[] = [];
-      for (const reedId of reedIds) {
-        effects.push({
-          kind: "removeRelation", type: ObjectRelations.heldBy,
-          from: reedId, to: actorId, reason: "reed woven into a sleeping mat", announce: false,
-        }, {
-          kind: "archiveEntity", entityId: reedId,
-          reason: "reed woven into a sleeping mat", announce: false,
-        });
-      }
-      effects.push({
-        kind: "spawnEntity", localId: "woven-mat", id: matId,
-        entityKind: ObjectKinds.item, announce: false,
-        components: {
-          [ObjectComponents.object]: {
-            prototypeId: "prototype:mat", name: "自己编的苇席",
-            condition: "woven", quantity: 1, durability: 40, madeAt: c.world.tick,
-            provenance: { reedIds, placeId: "place:reedbed", at: c.world.tick },
-            visibleFromOutside: true,
-          } as unknown as Record<string, never>,
-        },
-      }, {
-        kind: "addRelation", type: ObjectRelations.instanceOf,
-        from: matId, to: "prototype:mat", announce: false,
-      }, {
-        kind: "addRelation", type: ObjectRelations.ownedBy,
-        from: matId, to: actorId, announce: false,
-      }, {
-        kind: "addRelation", type: ObjectRelations.heldBy,
-        from: matId, to: actorId, announce: false,
-      }, {
-        kind: "emitEvent", eventType: "settlement-locations.mat_woven",
-        actorId, targetId: matId,
-        data: { matId, reedIds },
-        historicalSignificance: 0.03,
-      });
-      return effects;
-    },
+    resolve: (c) => craftEffects(c.world, c.command.actorId as string, recipeForCommand(SettlementCommands.weaveMat), false),
   });
 }
 
@@ -2873,46 +3458,7 @@ function registerPrepareFiber(ctx: Registration): void {
   ctx.registerResolutionRule({
     id: `${SettlementCommands.prepareFiber}.resolve`,
     commandType: SettlementCommands.prepareFiber,
-    resolve: (c) => {
-      const actorId = c.command.actorId as string;
-      const reedIds = reedInputs(c.world, actorId).slice(0, 2);
-      const effects: Effect[] = [];
-      for (const reedId of reedIds) {
-        const fiberId = `settlement-locations:processed-fiber:${reedId}`;
-        effects.push({
-          kind: "removeRelation", type: ObjectRelations.heldBy,
-          from: reedId, to: actorId, reason: "reed stripped for weaving fibers", announce: false,
-        }, {
-          kind: "archiveEntity", entityId: reedId,
-          reason: "converted from reed into fiber", announce: false,
-        }, {
-          kind: "spawnEntity", localId: `fiber-${fiberId}`, id: fiberId,
-          entityKind: ObjectKinds.item, announce: false,
-          components: {
-            [ObjectComponents.object]: {
-              prototypeId: "prototype:fiber-bundle", name: "整理好的苇纤维",
-              condition: "prepared", quantity: 1, durability: 0, madeAt: c.world.tick,
-              provenance: { fromReedId: reedId, placeId: "place:reedbed", at: c.world.tick },
-              visibleFromOutside: false,
-            } as unknown as Record<string, never>,
-          },
-        }, {
-          kind: "addRelation", type: ObjectRelations.instanceOf, from: fiberId,
-          to: "prototype:fiber-bundle", announce: false,
-        }, {
-          kind: "addRelation", type: ObjectRelations.ownedBy, from: fiberId,
-          to: actorId, announce: false,
-        }, {
-          kind: "addRelation", type: ObjectRelations.heldBy, from: fiberId,
-          to: actorId, announce: false,
-        });
-      }
-      effects.push({
-        kind: "emitEvent", eventType: "settlement-locations.fiber_prepared",
-        actorId, data: { reedIds, fiberCount: 2 }, historicalSignificance: 0.02,
-      });
-      return effects;
-    },
+    resolve: (c) => craftEffects(c.world, c.command.actorId as string, recipeForCommand(SettlementCommands.prepareFiber), false),
   });
 }
 
@@ -2935,47 +3481,7 @@ function registerWeaveWrap(ctx: Registration): void {
   ctx.registerResolutionRule({
     id: `${SettlementCommands.weaveWrap}.resolve`,
     commandType: SettlementCommands.weaveWrap,
-    resolve: (c) => {
-      const actorId = c.command.actorId as string;
-      const fiberIds = fiberInputs(c.world, actorId).slice(0, 2);
-      const wrapId = `settlement-locations:fiber-wrap:${fiberIds[0]}`;
-      const effects: Effect[] = [];
-      for (const fiberId of fiberIds) {
-        effects.push({
-          kind: "removeRelation", type: ObjectRelations.heldBy,
-          from: fiberId, to: actorId, reason: "fibers woven into one wrap", announce: false,
-        }, {
-          kind: "archiveEntity", entityId: fiberId,
-          reason: "fiber used in woven clothing", announce: false,
-        });
-      }
-      effects.push({
-        kind: "spawnEntity", localId: "woven-fiber-wrap", id: wrapId,
-        entityKind: ObjectKinds.item, announce: false,
-        components: {
-          [ObjectComponents.object]: {
-            prototypeId: "prototype:fiber-wrap", name: "自己编的纤维裹身",
-            condition: "woven", quantity: 1, durability: 25, madeAt: c.world.tick,
-            provenance: { fromFiberIds: fiberIds, placeId: "place:reedbed", at: c.world.tick },
-            visibleFromOutside: false,
-          } as unknown as Record<string, never>,
-        },
-      }, {
-        kind: "addRelation", type: ObjectRelations.instanceOf, from: wrapId,
-        to: "prototype:fiber-wrap", announce: false,
-      }, {
-        kind: "addRelation", type: ObjectRelations.ownedBy, from: wrapId,
-        to: actorId, announce: false,
-      }, {
-        kind: "addRelation", type: ObjectRelations.heldBy, from: wrapId,
-        to: actorId, announce: false,
-      }, {
-        kind: "emitEvent", eventType: "settlement-locations.wrap_woven",
-        actorId, targetId: wrapId, data: { fiberIds, wrapId },
-        historicalSignificance: 0.03,
-      });
-      return effects;
-    },
+    resolve: (c) => craftEffects(c.world, c.command.actorId as string, recipeForCommand(SettlementCommands.weaveWrap), false),
   });
 }
 
@@ -3017,7 +3523,7 @@ function registerSow(ctx: Registration): void {
         reason: "sow grain in the field",
       }, {
         kind: "emitEvent", eventType: "settlement-locations.sown",
-        actorId, targetId: "place:field", data: { seedId, matureAt: c.world.tick + CROP_GROW_DAYS },
+        actorId, targetId: "place:field", data: { seedId, matureAt: c.world.tick + cropGrowDays(c.world.tick) },
         historicalSignificance: 0.04,
       }];
     },
@@ -3038,8 +3544,8 @@ function registerHarvest(ctx: Registration): void {
       if (!crop.seedId) return refuse(SettlementRejection.Empty, "这块地还没有播种。");
       if (!crop.tended) return refuse(SettlementRejection.Busy, "粟田还没照料，不能收获。");
       if (crop.remainingDays > 0) return refuse(SettlementRejection.Busy, `粟还要生长约 ${crop.remainingDays} 天。`);
-      if (!canCarryPrototype(c.world, actorId, "prototype:grain", "", CROP_YIELD))
-        return refuse(SettlementRejection.NoRoom, "一次收三份粮食，先腾出双手和行囊空间再收获。");
+      if (!canCarryPrototype(c.world, actorId, "prototype:grain", "", HARVEST_IN_HAND))
+        return refuse(SettlementRejection.NoRoom, "随身要带走三份新粟，先腾出双手和行囊空间再收获。");
       return { ok: true };
     },
   });
@@ -3055,7 +3561,7 @@ function registerHarvest(ctx: Registration): void {
         value: { seedId: "", sownAt: 0, tended: false, harvests: crop.harvests + 1 },
         reason: "harvest completed; plot is fallow again",
       }];
-      for (let index = 0; index < CROP_YIELD; index += 1) {
+      for (let index = 0; index < HARVEST_IN_HAND; index += 1) {
         const objectId = `settlement-locations:harvest:${crop.seedId}:${index}`;
         effects.push({
           kind: "spawnEntity", localId: `harvest-${index}`, id: objectId,
@@ -3079,12 +3585,28 @@ function registerHarvest(ctx: Registration): void {
           from: objectId, to: actorId, announce: false,
         });
       }
+      // The rest of the crop goes onto the field's shared grain heap.
+      const heap = yieldPoints(c.world).find((p) => p.placeId === "place:field" && p.resourceId === "resource:grain");
+      if (heap) {
+        effects.push({
+          kind: "setComponent", entityId: `yield:${heap.placeId}:${heap.resourceId}`,
+          component: SettlementComponents.yieldPoint,
+          value: {
+            placeId: heap.placeId, resourceId: heap.resourceId, label: heap.label, unit: heap.unit,
+            capacity: heap.capacity, stock: Math.min(heap.capacity, heap.stock + cropYield(c.world.tick) - HARVEST_IN_HAND),
+            renewDays: heap.renewDays, lastRenewedAt: renewalAnchor(heap, c.world.tick),
+          } as unknown as Record<string, never>,
+          reason: "harvest surplus stored at the field",
+        });
+      }
       effects.push({
         kind: "emitEvent", eventType: "settlement-locations.harvested",
         actorId, targetId: "place:field",
-        data: { seedId: crop.seedId, amount: CROP_YIELD, harvests: crop.harvests + 1 },
+        data: { seedId: crop.seedId, amount: cropYield(c.world.tick), season: seasonOf(c.world.tick), carried: HARVEST_IN_HAND, harvests: crop.harvests + 1 },
         historicalSignificance: 0.07,
       });
+      if (actorId === activeId(c.world)) effects.push({ kind: "modifyComponent", entityId: actorId, component: SettlementComponents.holding,
+        patch: { harvests: Number(c.world.getComponent(actorId, SettlementComponents.holding)?.harvests ?? 0) + 1 }, reason: "the player brought in a harvest" });
       return effects;
     },
   });
@@ -3106,6 +3628,11 @@ function registerTend(ctx: Registration): void {
       if (occupiedSpaceId(c.world, actorId) !== spaceId) {
         return refuse(SettlementRejection.WrongPlace, "要先走到那个位置上。");
       }
+      if (spaceId === "space:kiln-mouth" && isWet(c.world.tick)) {
+        return refuse(SettlementRejection.Busy, `今天${skyOn(c.world.tick)}，窑口潮湿，窑火点不起来。等天晴再来。`);
+      }
+      const nothing = worksiteBlocker(c.world, actorId, spaceId);
+      if (nothing) return refuse(SettlementRejection.Empty, `${SPACE_WORK[spaceId]?.label ?? "劳作"}：${nothing}。`);
       return { ok: true };
     },
   });
@@ -3117,7 +3644,8 @@ function registerTend(ctx: Registration): void {
       const actorId = c.command.actorId as string;
       const spaceId = String(c.command.payload.spaceId ?? occupiedSpaceId(c.world, actorId));
       const work = SPACE_WORK[spaceId];
-      const effects: Effect[] = [{
+      const real = worksiteEffects(c.world, actorId, spaceId);
+      const effects: Effect[] = [...real.effects, {
         kind: "modifyComponent",
         entityId: actorId,
         component: SettlementComponents.holding,
@@ -3132,7 +3660,7 @@ function registerTend(ctx: Registration): void {
         eventType: "settlement-locations.worked",
         actorId,
         targetId: spaceId,
-        data: { spaceId, label: work?.label ?? "劳作" },
+        data: { spaceId, label: work?.label ?? "劳作", ...(real.line ? { line: real.line } : {}) },
         historicalSignificance: 0,
       }];
       const crop = fieldCrop(c.world);
@@ -3162,6 +3690,14 @@ function registerRest(ctx: Registration): void {
       if (matId && !availableRestMats(c.world, actorId).includes(matId)) {
         return refuse(SettlementRejection.NotYours, "只有在住处铺开自己持有或放在身边的苇席才能好好休息。");
       }
+      const fuelId = String(c.command.payload.fuelId ?? "");
+      if (fuelId) {
+        if (seasonOf(c.world.tick) !== "冬") return refuse(SettlementRejection.Busy, "不是冬天，不用生火取暖。");
+        if (!HOME_SPACES.includes(occupiedSpaceId(c.world, actorId)))
+          return refuse(SettlementRejection.WrongPlace, "要在自己的住处才能生火过夜。");
+        if (!tradeReady(c.world, fuelId, actorId, "resource:fuel"))
+          return refuse(SettlementRejection.NotYours, "要烧的必须是你自己手里的一捆柴草。");
+      }
       return { ok: true };
     },
   });
@@ -3170,9 +3706,19 @@ function registerRest(ctx: Registration): void {
     id: `${SettlementCommands.rest}.resolve`,
     commandType: SettlementCommands.rest,
     resolve: (c) => {
-      const matId = String(c.command.payload.matId ?? "");
+      const restSpace = occupiedSpaceId(c.world, c.command.actorId as string);
+      // A leaking roof on a wet night soaks the bedding and puts out the fire: no bonus.
+      const leaked = HOME_SPACES.includes(restSpace) && isWet(c.world.tick) && roofState(c.world, restSpace).leaking;
+      const matId = leaked ? "" : String(c.command.payload.matId ?? "");
+      const fuelId = String(c.command.payload.fuelId ?? "");
       const hadBonusToday = dailyActivity(c.world, c.command.actorId as string).capacity > DAILY_ACTIVITY_CAPACITY;
-      return [{
+      return [...(fuelId ? [{
+        kind: "modifyComponent" as const, entityId: c.command.actorId as string,
+        component: SettlementComponents.holding, patch: leaked ? {} : { warmNightAt: c.world.tick },
+        reason: "a fire kept the winter night warm",
+      }, {
+        kind: "archiveEntity" as const, entityId: fuelId, reason: "burned for warmth on a winter night", announce: false,
+      }] : []), {
         kind: "modifyComponent", entityId: c.command.actorId as string,
         component: SettlementComponents.holding,
         patch: { lastRestedAt: c.world.tick, ...(matId ? {
@@ -3184,7 +3730,8 @@ function registerRest(ctx: Registration): void {
         kind: "emitEvent", eventType: "settlement-locations.rested",
         actorId: c.command.actorId,
         data: { placeId: occupiedPlaceId(c.world, c.command.actorId as string),
-          matId: matId || null, nextDayExtraActivity: matId ? 1 : 0 },
+          matId: matId || null, fuelId: fuelId || null, leaked,
+          nextDayExtraActivity: leaked ? 0 : (matId ? 1 : 0) + (fuelId ? 1 : 0) },
         historicalSignificance: 0,
       }];
     },
@@ -3249,7 +3796,7 @@ export function fillEffects(world: WorldView, actorId: string, containerId: stri
     value: {
       placeId, resourceId, label: point.label, unit: point.unit,
       capacity: point.capacity, stock: point.stock - amount,
-      renewDays: point.renewDays, lastRenewedAt: tick,
+      renewDays: point.renewDays, lastRenewedAt: renewalAnchor(point, tick),
     },
   }];
 
@@ -3346,121 +3893,8 @@ interface InstanceSpec {
  * both a position and an owner; the counts are asserted by the M1 density test.
  */
 function buildInstances(): InstanceSpec[] {
-  const out: InstanceSpec[] = [];
-  const push = (id: string, prototypeId: string, ownerId: string, inId: string, quantity = 0) =>
-    out.push({ id, prototypeId, ownerId, inId, quantity });
-
-  // Household vessels, each in the space it belongs to.
-  const households: { household: string; ownerKey: string; sleepSpace: string; jarCount: number }[] = [
-    { household: "陶家", ownerKey: "elder", sleepSpace: "space:main-sleep", jarCount: 3 },
-    { household: "予家", ownerKey: "yu", sleepSpace: "space:yu-sleep", jarCount: 2 },
-    { household: "岚家", ownerKey: "lan", sleepSpace: "space:lan-sleep", jarCount: 2 },
-    { household: "苇家", ownerKey: "reed-worker", sleepSpace: "space:reed-sleep", jarCount: 2 },
-    { household: "埴家", ownerKey: "clay-digger", sleepSpace: "space:clay-sleep", jarCount: 2 },
-    { household: "汲家", ownerKey: "water-carrier", sleepSpace: "space:water-sleep", jarCount: 3 },
-    { household: "灶家", ownerKey: "cook", sleepSpace: "space:hearth-sleep", jarCount: 2 },
-    { household: "埴公家", ownerKey: "trader-elder", sleepSpace: "space:ford-sleep", jarCount: 1 },
-  ];
-
-  for (const [index, household] of households.entries()) {
-    const owner = residentId(household.ownerKey);
-    for (let n = 0; n < household.jarCount; n += 1) {
-      push(`instance:jar:${index}:${n}`, n === 0 ? "prototype:water-jar" : "prototype:small-jar", owner, household.sleepSpace, 0);
-    }
-    push(`instance:bowl:${index}`, "prototype:bowl", owner, household.sleepSpace);
-    push(`instance:mat:${index}`, "prototype:sleep-mat", owner, household.sleepSpace);
-    push(`instance:mat:${index}:b`, "prototype:mat", owner, household.sleepSpace);
-    push(`instance:bag:${index}`, "prototype:carrying-bag", owner, household.sleepSpace);
-    push(`instance:cloak:${index}`, index % 2 === 0 ? "prototype:hide-cloak" : "prototype:fiber-wrap", owner, household.sleepSpace);
-    push(`instance:knife:${index}`, "prototype:stone-knife", owner, household.sleepSpace);
-    push(`instance:needle:${index}`, "prototype:bone-needle", owner, household.sleepSpace);
-    push(`instance:fiber:${index}`, "prototype:fiber-bundle", owner, household.sleepSpace, 1);
-    push(`instance:rope:${index}`, "prototype:rope", owner, household.sleepSpace);
-    push(`instance:grain-basket:${index}`, "prototype:grain-basket", owner, household.sleepSpace, 0);
-    push(`instance:grain:${index}`, "prototype:grain", owner, `instance:grain-basket:${index}`, 2);
-  }
-
-  // Yard: storage, drying and the household cooking pot.
-  push("instance:grain-urn:0", "prototype:grain-jar", residentId("elder"), "space:store", 0);
-  push("instance:grain-urn:0:grain", "prototype:grain", residentId("elder"), "instance:grain-urn:0", 3);
-  push("instance:grain-urn:1", "prototype:grain-jar", residentId("elder-wife"), "space:store", 0);
-  push("instance:cooking-pot:0", "prototype:cooking-pot", residentId("elder-wife"), "space:hearth", 0);
-  push("instance:sieve:0", "prototype:sieve", residentId("elder"), "space:drying-rack");
-  push("instance:greenware:0", "prototype:small-jar", residentId("elder"), "space:drying-rack");
-  push("instance:greenware:1", "prototype:bowl", residentId("elder"), "space:drying-rack");
-
-  // Hearth yard: shared cooking equipment and firewood.
-  push("instance:hearth-pot", "prototype:cooking-pot", residentId("cook"), "space:hearth");
-  push("instance:hearth-millstone", "prototype:grinding-stone", residentId("cook"), "space:hearth", 0);
-  push("instance:hearth-wood:0", "prototype:fuel-bundle", residentId("cook"), "space:hearth", 0);
-  push("instance:hearth-wood:1", "prototype:fuel-bundle", residentId("cook-helper"), "space:hearth", 0);
-  push("instance:hearth-basket", "prototype:grain-basket", residentId("cook"), "space:hearth", 0);
-  push("instance:hearth-grain", "prototype:grain", residentId("cook"), "instance:hearth-basket", 4);
-
-  // River: the common water jar, kept at the bank.
-  push("instance:bank-jar:0", "prototype:water-jar", residentId("water-carrier"), "space:bank", 0);
-  push("instance:bank-jar:1", "prototype:water-jar", residentId("water-carrier"), "space:bank", 0);
-  push("instance:bank-jar:2", "prototype:small-jar", residentId("water-child"), "space:bank", 0);
-  push("instance:bank-cache", "prototype:water-cache", residentId("water-carrier"), "space:bank", 6);
-  push("instance:bank-net", "prototype:net", residentId("water-carrier"), "space:bank");
-  push("instance:bank-trap", "prototype:fish-trap", residentId("water-child"), "space:bank", 0);
-
-  // Field: tools and the household grain.
-  push("instance:field-dig:0", "prototype:digging-stick", residentId("yu"), "space:field-edge");
-  push("instance:field-dig:1", "prototype:digging-stick", residentId("yu-brother"), "space:field-edge");
-  push("instance:field-knife", "prototype:stone-knife", residentId("yu"), "space:field-edge");
-  push("instance:field-basket:0", "prototype:grain-basket", residentId("yu"), "space:field-edge", 0);
-  push("instance:field-grain:0", "prototype:grain", residentId("yu"), "instance:field-basket:0", 3);
-  push("instance:field-basket:1", "prototype:carrying-bag", residentId("yu-brother"), "space:field-edge", 0);
-  push("instance:field-fence:0", "prototype:fence-post", residentId("yu"), "space:field-edge", 0);
-  push("instance:field-fence:1", "prototype:fence-post", residentId("yu"), "space:field-edge", 0);
-
-  // Kiln: the shared kiln and the potter's working set.
-  push("instance:kiln:0", "prototype:shared-kiln", residentId("elder"), "space:kiln-mouth", 0);
-  push("instance:kiln-wood:0", "prototype:fuel-bundle", residentId("elder"), "space:kiln-shed", 0);
-  push("instance:kiln-wood:1", "prototype:fuel-bundle", residentId("elder"), "space:kiln-shed", 0);
-  push("instance:kiln-wood:2", "prototype:fuel-bundle", residentId("elder-wife"), "space:kiln-shed", 0);
-  push("instance:kiln-sieve", "prototype:sieve", residentId("elder-wife"), "space:kiln-shed");
-  push("instance:kiln-bowl:0", "prototype:bowl", residentId("elder"), "space:kiln-shed");
-  push("instance:kiln-bowl:1", "prototype:bowl", residentId("elder-wife"), "space:kiln-shed");
-
-  // Clay pits: the diggers' tools.
-  push("instance:pit-stick:0", "prototype:digging-stick", residentId("clay-digger"), "space:pit-edge");
-  push("instance:pit-stick:1", "prototype:digging-stick", residentId("clay-child"), "space:pit-edge");
-  push("instance:pit-bag", "prototype:carrying-bag", residentId("clay-digger"), "space:pit-edge", 0);
-  push("instance:pit-clay:0", "prototype:clay-batch", residentId("clay-digger"), "space:pit-edge", 0);
-  push("instance:pit-clay:1", "prototype:clay-batch", residentId("clay-digger"), "space:pit-edge", 0);
-  push("instance:pit-bowl", "prototype:small-jar", residentId("clay-child"), "space:pit-edge", 0);
-
-  // Reed flats: cutting and weaving.
-  push("instance:reed-knife:0", "prototype:stone-knife", residentId("reed-worker"), "space:reed-cut");
-  push("instance:reed-knife:1", "prototype:stone-knife", residentId("lan-mother"), "space:reed-cut");
-  push("instance:reed-bundle:0", "prototype:reed-bundle", residentId("reed-worker"), "space:reed-cut", 0);
-  push("instance:reed-bundle:1", "prototype:reed-bundle", residentId("lan-mother"), "space:reed-cut", 0);
-  push("instance:reed-bundle:2", "prototype:reed-bundle", residentId("lan"), "space:reed-cut", 0);
-  push("instance:reed-rope", "prototype:rope", residentId("lan-mother"), "space:reed-cut");
-  push("instance:reed-fiber", "prototype:fiber-bundle", residentId("lan-mother"), "space:reed-cut", 1);
-  push("instance:reed-mat", "prototype:mat", residentId("reed-worker"), "space:reed-cut");
-  push("instance:reed-bag", "prototype:carrying-bag", residentId("reed-worker"), "space:reed-cut", 0);
-  push("instance:reed-fish", "prototype:fish", residentId("reed-worker"), "space:reed-cut", 1);
-  push("instance:lan-jar", "prototype:small-jar", residentId("lan"), "space:reed-cut", 0);
-  push("instance:lan-bowl", "prototype:bowl", residentId("lan"), "space:reed-cut");
-  push("instance:lan-rope", "prototype:rope", residentId("lan"), "space:reed-cut");
-  push("instance:lan-cloth", "prototype:fiber-wrap", residentId("lan"), "space:reed-cut");
-  push("instance:lane-mat", "prototype:sleep-mat", residentId("lan"), "space:reed-cut");
-
-  // Ford: travel gear and the trader's stock.
-  push("instance:ford-paddle:0", "prototype:paddle", residentId("trader-elder"), "space:ford-landing");
-  push("instance:ford-paddle:1", "prototype:paddle", residentId("lan"), "space:ford-landing");
-  push("instance:ford-rope", "prototype:rope", residentId("trader-elder"), "space:ford-landing");
-  push("instance:ford-bag", "prototype:carrying-bag", residentId("trader-elder"), "space:ford-landing", 0);
-  push("instance:ford-jar:0", "prototype:small-jar", residentId("trader-elder"), "space:ford-landing", 0);
-  push("instance:ford-jar:1", "prototype:small-jar", residentId("lan"), "space:ford-landing", 0);
-  push("instance:ford-grain", "prototype:grain", residentId("trader-elder"), "instance:ford-bag", 2);
-  push("instance:ford-mat", "prototype:mat", residentId("trader-elder"), "space:ford-landing");
-  push("instance:ford-cache", "prototype:water-cache", residentId("water-carrier"), "space:ford-landing", 4);
-
-  return out;
+  return RIVER_TERRACE_PACK.instances.map(({ owner, ...seed }) =>
+    ({ quantity: 0, ...seed, ownerId: residentId(owner) }));
 }
 
 const INSTANCES: InstanceSpec[] = buildInstances();
@@ -3500,3 +3934,1585 @@ export function instanceSpecs(): readonly InstanceSpec[] {
 }
 
 export type { ComponentData };
+
+
+/* ------------------------------------------------------------------ */
+/* Generic recipes: inputs + tool + workplace + time → one output.     */
+/* ------------------------------------------------------------------ */
+
+const RECIPES: RecipeSpec[] = RIVER_TERRACE_PACK.recipes ?? [];
+export function recipeById(id: string): RecipeSpec | undefined { return RECIPES.find((r) => r.id === id); }
+
+/** The maker's own carried, whole, unlent items for each input, or what is missing. */
+function recipeInputs(world: WorldView, actorId: string, recipe: RecipeSpec): { ids: string[]; missing: string } {
+  const held = world.listRelations({ type: ObjectRelations.heldBy, to: actorId }).map((r) => r.from).sort();
+  const ids: string[] = [];
+  for (const input of recipe.inputs) {
+    const own = held.filter((id) => !ids.includes(id) && tradeReady(world, id, actorId, input.resourceId));
+    const minAge = input.minAgeDays ?? 0;
+    const found = own.filter((id) => world.tick - Number(readObject(world.getEntity(id)!.components[ObjectComponents.object]).madeAt ?? -Infinity) >= minAge)
+      .slice(0, input.count);
+    if (found.length < input.count) {
+      const label = RIVER_TERRACE_PACK.resourceLabels[input.resourceId] ?? input.resourceId;
+      return { ids, missing: own.length >= input.count ? `${label}还没晾干，要放过一夜` : `缺少${input.count}份自己的${label}` };
+    }
+    ids.push(...found);
+  }
+  return { ids, missing: "" };
+}
+
+/** A tool in hand (yours or borrowed), or one lying at the workplace. */
+function recipeTool(world: WorldView, actorId: string, recipe: RecipeSpec): string {
+  if (!recipe.tool) return "";
+  const usable = (id: string) => {
+    const e = world.getEntity(id);
+    return Boolean(e && e.archivedAt === undefined && prototypeOf(world, id).prototypeId === recipe.tool);
+  };
+  const inHand = world.listRelations({ type: ObjectRelations.heldBy, to: actorId }).map((r) => r.from).filter(usable).sort();
+  if (inHand[0]) return inHand[0];
+  const here = world.listRelations({ type: ObjectRelations.containedIn, to: recipe.spaceId }).map((r) => r.from).filter(usable).sort();
+  return here[0] ?? "";
+}
+
+export function recipeBlocker(world: WorldView, actorId: string, recipe: RecipeSpec): string {
+  if (recipe.spaceId === "@home") {
+    if (!HOME_SPACES.includes(occupiedSpaceId(world, actorId))) return "要在住处的屋里做";
+  } else if (occupiedSpaceId(world, actorId) !== recipe.spaceId) {
+    const place = PLACES.find((p) => p.spaces.some((sp) => sp.id === recipe.spaceId));
+    const space = place?.spaces.find((sp) => sp.id === recipe.spaceId);
+    return `要到${place?.name ?? ""}的${space?.name ?? "工作处"}去做`;
+  }
+  if (recipe.seasons && !recipe.seasons.includes(seasonOf(world.tick))) return `${seasonOf(world.tick)}天做不了，要等${recipe.seasons.join("、")}`;
+  if (recipe.dryOnly && isWet(world.tick)) return `今天${skyOn(world.tick)}，${recipe.repairs ? "上不了屋顶" : "窑火点不起来"}`;
+  if (recipe.repairs === "roof" && roofState(world, occupiedSpaceId(world, actorId)).condition >= ROOF_MAX) return "屋顶完好，不用修";
+  const { missing } = recipeInputs(world, actorId, recipe);
+  if (missing) return missing;
+  if (recipe.tool && !recipeTool(world, actorId, recipe)) {
+    return `手边没有${PROTOTYPES.find((p) => p.id === recipe.tool)?.name ?? "合适的工具"}`;
+  }
+  const out = recipe.output && PROTOTYPES.find((p) => p.id === recipe.output!.prototypeId);
+  // Inputs leave the hands as the output arrives; only a recipe with no inputs needs a free hand.
+  if (out?.capabilities.includes("carryable") && recipe.inputs.length === 0 &&
+      !canCarryPrototype(world, actorId, recipe.output!.prototypeId)) {
+    return "手里拿不下成品，先放下些东西";
+  }
+  const remaining = dailyActivity(world, actorId).remaining;
+  if (remaining < recipeActivity(world, actorId, recipe)) return `今天只剩 ${remaining} 格活动时间`;
+  return "";
+}
+
+/** Recipes shown at the actor's current workplace. */
+export function recipesHere(world: WorldView, actorId: string) {
+  const placeId = occupiedPlaceId(world, actorId);
+  const place = PLACES.find((p) => p.id === placeId);
+  const spaces = new Set(place?.spaces.map((sp) => sp.id) ?? []);
+  return RECIPES.filter((r) => r.spaceId === "@home"
+    ? [...spaces].some((sp) => HOME_SPACES.includes(sp)) : spaces.has(r.spaceId)).map((r) => ({ recipe: r, blocker: recipeBlocker(world, actorId, r) }));
+}
+
+function registerCraft(ctx: Registration): void {
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.craft}.allowed`,
+    commandType: SettlementCommands.craft,
+    evaluate: (c) => {
+      const actorId = c.command.actorId ?? "";
+      if (!c.world.hasEntity(actorId)) return refuse(SettlementRejection.NoSuchResident, "需要一位正在生活的人。");
+      const recipe = recipeById(String(c.command.payload.recipeId ?? ""));
+      if (!recipe) return refuse(SettlementRejection.Empty, "没有这样的做法。");
+      const blocker = recipeBlocker(c.world, actorId, recipe);
+      if (!blocker) return { ok: true };
+      const code = blocker.startsWith("要到") ? SettlementRejection.WrongPlace
+        : blocker.startsWith("今天只剩") ? SettlementRejection.Exhausted : SettlementRejection.Empty;
+      return refuse(code, `${recipe.label}：${blocker}。`);
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.craft}.resolve`,
+    commandType: SettlementCommands.craft,
+    resolve: (c) => craftEffects(c.world, c.command.actorId as string,
+      recipeById(String(c.command.payload.recipeId))!, true),
+  });
+}
+
+
+function fill(template: string | number, ctx: Record<string, JsonValue>): JsonValue {
+  return typeof template === "string" && template.startsWith("$") && template in ctx ? ctx[template]! : template;
+}
+
+/**
+ * One recipe as one transaction: inputs leave the hands and are archived, the
+ * outputs appear owned by the maker (in hand, or at the workplace when they
+ * cannot be carried), with provenance and an event. The older dedicated
+ * commands pay their time through the activity budget, so they pass charge=false.
+ */
+function craftEffects(world: WorldView, actorId: string, recipe: RecipeSpec, charge: boolean): Effect[] {
+  const { ids } = recipeInputs(world, actorId, recipe);
+  const toolId = recipeTool(world, actorId, recipe);
+  const before = dailyActivity(world, actorId);
+  if (recipe.repairs === "roof") return roofMendEffects(world, actorId, recipe, ids, before.used, charge);
+  const out = recipe.output!;
+  const count = out.perInput ? ids.length : Math.max(1, out.count ?? 1);
+  const outputIds = Array.from({ length: count }, (_, i) => out.idPrefix
+    ? `${out.idPrefix}${out.perInput ? ids[i] : ids[0]}${!out.perInput && i > 0 ? `:${i}` : ""}`
+    : `settlement-locations:craft:${recipe.id.replace("recipe:", "")}:${actorId.split(":").pop()}:${world.tick}:${before.used}${i ? `:${i}` : ""}`);
+  const carryable = PROTOTYPES.find((p) => p.id === out.prototypeId)?.capabilities.includes("carryable");
+  const effects: Effect[] = [];
+  for (const id of ids) {
+    effects.push({ kind: "removeRelation", type: ObjectRelations.heldBy, from: id, to: actorId,
+      reason: `used up: ${recipe.label}`, announce: false },
+    { kind: "archiveEntity", entityId: id, reason: `used up: ${recipe.label}`, announce: false });
+  }
+  outputIds.forEach((made, i) => {
+    const ctx: Record<string, JsonValue> = { "$inputs": ids, "$input": ids[i] ?? ids[0] ?? null };
+    const provenance: Record<string, JsonValue> = recipe.provenance
+      ? Object.fromEntries(Object.entries(recipe.provenance).map(([k, v]) => [k, fill(v, ctx)]))
+      : { recipeId: recipe.id, inputIds: ids, toolId: toolId || null, spaceId: recipe.spaceId };
+    provenance.at = world.tick;
+    effects.push({
+      kind: "spawnEntity", localId: `crafted-${i}`, id: made, entityKind: ObjectKinds.item, announce: false,
+      components: { [ObjectComponents.object]: {
+        prototypeId: out.prototypeId, name: out.name, condition: out.condition ?? "made",
+        quantity: 1, durability: out.durability, madeAt: world.tick, provenance, visibleFromOutside: true,
+      } as unknown as Record<string, never> },
+    }, { kind: "addRelation", type: ObjectRelations.instanceOf, from: made, to: out.prototypeId, announce: false },
+    { kind: "addRelation", type: ObjectRelations.ownedBy, from: made, to: actorId, announce: false },
+    carryable
+      ? { kind: "addRelation", type: ObjectRelations.heldBy, from: made, to: actorId, announce: false }
+      : { kind: "addRelation", type: ObjectRelations.containedIn, from: made, to: recipe.spaceId, announce: false });
+  });
+  if (charge) effects.push({ kind: "modifyComponent", entityId: actorId, component: SettlementComponents.holding,
+    patch: { activityDay: world.tick, activityUsed: before.used + recipeActivity(world, actorId, recipe),
+      ...(actorId === activeId(world) ? { crafted: { ...craftedCounts(world, actorId), [recipe.id]: (craftedCounts(world, actorId)[recipe.id] ?? 0) + 1 } } : {}) },
+    reason: "activity capacity spent on a recipe" });
+  const ctx: Record<string, JsonValue> = { "$inputs": ids, "$output": outputIds[0]!, "$outputs": outputIds, "$count": outputIds.length };
+  effects.push({ kind: "emitEvent", eventType: recipe.event?.type ?? "settlement-locations.crafted", actorId,
+    targetId: outputIds[0],
+    data: recipe.event?.data
+      ? Object.fromEntries(Object.entries(recipe.event.data).map(([k, v]) => [k, fill(v, ctx)]))
+      : { recipeId: recipe.id, label: recipe.label, objectId: outputIds[0]!, objectIds: outputIds, inputIds: ids, toolId: toolId || null },
+    historicalSignificance: recipe.event?.significance ?? 0.02 });
+  return effects;
+}
+
+/** The recipe a dedicated older command runs. */
+function recipeForCommand(command: string): RecipeSpec {
+  const r = RECIPES.find((x) => x.command === command);
+  if (!r) throw new Error(`settlement pack has no recipe for ${command}`);
+  return r;
+}
+
+
+// ---------------------------------------------------------------------------
+// Homes: roofs wear in rain and snow and are mended with reed, rope and clay.
+// ---------------------------------------------------------------------------
+
+export const ROOF_MAX = 10;
+/** At or below this the roof leaks: a wet night at home gives no rest bonus. */
+export const ROOF_LEAKS_AT = 3;
+/** Wet days of wear per lost level (snow counts double). */
+const ROOF_WEAR_PER_LEVEL = 4;
+
+/** Lazy roof state: computed from the last mending and the deterministic weather since. */
+export function roofState(world: WorldView, spaceId: string) {
+  const raw = world.hasEntity(spaceId) ? world.getComponent(spaceId, SettlementComponents.roof) : undefined;
+  const level = Math.max(0, Math.min(ROOF_MAX, Number(raw?.level ?? ROOF_MAX)));
+  const since = Math.max(0, Math.floor(Number(raw?.mendedAt ?? 0)));
+  let wear = 0;
+  for (let d = Math.max(since + 1, world.tick - 720); d <= world.tick; d++) {
+    const sky = skyOn(d);
+    wear += sky === "雪" ? 2 : sky === "雨" ? 1 : 0;
+  }
+  const condition = Math.max(0, level - Math.floor(wear / ROOF_WEAR_PER_LEVEL));
+  return { condition, max: ROOF_MAX, leaking: condition <= ROOF_LEAKS_AT, mendedAt: since };
+}
+
+function roofMendEffects(world: WorldView, actorId: string, recipe: RecipeSpec, ids: string[], used: number, charge: boolean): Effect[] {
+  const spaceId = occupiedSpaceId(world, actorId);
+  const before = roofState(world, spaceId).condition;
+  const effects: Effect[] = [];
+  for (const id of ids) {
+    effects.push({ kind: "removeRelation", type: ObjectRelations.heldBy, from: id, to: actorId,
+      reason: `used up: ${recipe.label}`, announce: false },
+    { kind: "archiveEntity", entityId: id, reason: `used up: ${recipe.label}`, announce: false });
+  }
+  effects.push({ kind: "setComponent", entityId: spaceId, component: SettlementComponents.roof,
+    value: { level: ROOF_MAX, mendedAt: world.tick, mendedBy: actorId, inputIds: ids }, reason: "roof mended" });
+  if (charge) effects.push({ kind: "modifyComponent", entityId: actorId, component: SettlementComponents.holding,
+    patch: { activityDay: world.tick, activityUsed: used + recipeActivity(world, actorId, recipe) }, reason: "activity capacity spent on a recipe" });
+  effects.push({ kind: "emitEvent", eventType: "settlement-locations.roof_mended", actorId, targetId: spaceId,
+    data: { recipeId: recipe.id, label: recipe.label, spaceId, before, after: ROOF_MAX, inputIds: ids },
+    historicalSignificance: 0.02 });
+  return effects;
+}
+
+// ---------------------------------------------------------------------------
+// 见闻、人情与村民主动开口（social.ts 是纯数据，这里是经过校验的世界命令）
+// ---------------------------------------------------------------------------
+
+export interface PlayerRequestView {
+  requesterId: string; name: string; kind: "borrow" | "trade" | "collect";
+  resourceId: string; label: string; give: string[]; reason: string; at: number;
+  /** 对方此刻就在你身边，能当面答应。 */
+  here: boolean; whereName: string;
+}
+
+interface RequestRecord {
+  status: string; to: string; at: number; resourceId: string; give: string[];
+  kind: "borrow" | "trade" | "collect"; placeId: string; reason: string;
+}
+
+const activeId = (world: WorldView) =>
+  String(world.getComponent("modern:world", "modern.world_state")?.activeCharacterId ?? "");
+
+export function socialOf(world: WorldView, personId: string): SocialMemory {
+  return readSocial(world.getComponent(personId, SettlementComponents.resident)?.social);
+}
+
+function requestOf(world: WorldView, residentId: string): RequestRecord | null {
+  const raw = world.getComponent(residentId, SettlementComponents.resident)?.request;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const r = raw as Record<string, JsonValue>;
+  const kind = r.kind === "trade" || r.kind === "collect" ? r.kind : "borrow";
+  return {
+    status: String(r.status ?? ""), to: String(r.to ?? ""), at: Number(r.at ?? -100),
+    resourceId: String(r.resourceId ?? ""), give: Array.isArray(r.give) ? r.give.map(String) : [],
+    kind, placeId: String(r.placeId ?? ""), reason: String(r.reason ?? ""),
+  };
+}
+
+/** A request still waiting for the person it was made to. */
+export function openRequest(world: WorldView, residentId: string): RequestRecord | null {
+  const r = requestOf(world, residentId);
+  return r && r.status === "pending" && world.tick - r.at <= REQUEST_DAYS ? r : null;
+}
+
+function worth(resourceId: string): number { return EXCHANGE_VALUES[resourceId] ?? 0; }
+
+function handover(itemId: string, from: string, to: string, reason: string): Effect[] {
+  return [
+    { kind: "removeRelation", type: ObjectRelations.heldBy, from: itemId, to: from, reason, announce: false },
+    { kind: "removeRelation", type: ObjectRelations.ownedBy, from: itemId, to: from, reason, announce: false },
+    { kind: "addRelation", type: ObjectRelations.heldBy, from: itemId, to, announce: false },
+    { kind: "addRelation", type: ObjectRelations.ownedBy, from: itemId, to, announce: false },
+  ];
+}
+
+/** Set what `debtorId` owes `creditorId` (the ledger lives on the creditor). */
+function setFavour(world: WorldView, creditorId: string, debtorId: string, value: number, reason: string): Effect[] {
+  const component = world.getComponent(creditorId, SettlementComponents.resident) ? SettlementComponents.resident
+    : world.getComponent(creditorId, SettlementComponents.holding) ? SettlementComponents.holding : "";
+  if (!component) return [];
+  const raw = world.getComponent(creditorId, component)?.favours;
+  const favours = { ...(raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, JsonValue> : {}) };
+  const v = Math.round(value * 10) / 10;
+  if (v > 0) favours[debtorId] = v; else delete favours[debtorId];
+  return [{ kind: "modifyComponent", entityId: creditorId, component, patch: { favours }, reason }];
+}
+
+function saveSocial(residentIdValue: string, memory: SocialMemory, reason: string): Effect {
+  return { kind: "modifyComponent", entityId: residentIdValue, component: SettlementComponents.resident,
+    patch: { social: toJson(memory) }, reason };
+}
+
+/** How close the counterpart feels to the proposer: talk counts, and so do their own memories. */
+function feltCloseness(world: WorldView, proposerId: string, targetId: string): Closeness {
+  const base = contactLevel(world, proposerId, targetId) as Closeness;
+  if (!world.getComponent(targetId, SettlementComponents.resident)) return base;
+  const bond = bondOf(socialOf(world, targetId), proposerId);
+  if (bond.grudge >= 3) return "陌生";
+  if (base === "陌生" && bond.familiarity >= 4) return bond.trust >= 7 ? "相识" : "见过";
+  if (base === "见过" && (bond.trust >= 8 || bond.familiarity >= 6)) return "相识";
+  return base;
+}
+
+/** What a resident feels about you, in a few words. */
+function regardWord(world: WorldView, npcId: string, playerId: string): string {
+  if (!playerId || npcId === playerId) return "";
+  const bond = bondOf(socialOf(world, npcId), playerId);
+  const words: string[] = [];
+  if (bond.grudge >= 3) words.push("对你有怨气");
+  else if (bond.trust >= 8) words.push("信得过你");
+  else if (bond.trust <= 3) words.push("不太信你");
+  if (favourOwed(world, playerId, npcId) > 0) words.push("欠你人情");
+  if (favourOwed(world, npcId, playerId) > 0) words.push("你欠着人情");
+  return words.join("、");
+}
+
+function playerRequests(world: WorldView, playerId: string): PlayerRequestView[] {
+  if (!playerId) return [];
+  const here = occupiedPlaceId(world, playerId);
+  return RESIDENTS.map((r) => residentId(r.key)).flatMap((id) => {
+    const req = openRequest(world, id);
+    if (!req || req.to !== playerId) return [];
+    const at = occupiedPlaceId(world, id);
+    return [{
+      requesterId: id, name: personName(world, id), kind: req.kind, resourceId: req.resourceId,
+      label: RESOURCE_LABELS[req.resourceId] ?? req.resourceId,
+      give: req.give.filter((g) => world.getEntity(g)).map((g) => RESOURCE_LABELS[prototypeOf(world, g).resourceId ?? ""] ?? "东西"),
+      reason: req.reason, at: req.at, here: Boolean(here) && here === at,
+      whereName: String(world.getComponent(at, SpaceComponents.place)?.name ?? PLACES.find((p) => p.id === at)?.name ?? "别处"),
+    }];
+  });
+}
+
+function requestLine(world: WorldView, me: string, resourceId: string, kind: string, give: string[], reason: string): string {
+  const label = RESOURCE_LABELS[resourceId] ?? "东西";
+  const offer = give.map((g) => RESOURCE_LABELS[prototypeOf(world, g).resourceId ?? ""] ?? "东西").join("和");
+  const why = reason ? `${reason}，` : "";
+  return kind === "collect" ? `${personName(world, me)}走到你跟前：“${why}上回帮过你的那份情，能拿${label}还我吗？”`
+    : offer ? `${personName(world, me)}走到你跟前：“${why}拿${offer}跟你换${label}，行不行？”`
+    : `${personName(world, me)}走到你跟前，有点不好意思：“${why}你的${label}能先借我用用吗？”`;
+}
+
+function registerSocial(ctx: Registration): void {
+  const isResident = (world: WorldView, id: string) => Boolean(world.getComponent(id, SettlementComponents.resident));
+
+  // ---- 看一看身边：记下谁在、带着什么；听别人说起旁人；过期的请求算作没回音。
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.npcNotice}.allowed`, commandType: SettlementCommands.npcNotice,
+    evaluate: (c) => c.command.source === "ai" && isResident(c.world, c.command.actorId ?? "")
+      ? { ok: true } : refuse(SettlementRejection.NotYours, "只有村民自己会留意身边的人。"),
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.npcNotice}.resolve`, commandType: SettlementCommands.npcNotice,
+    resolve: (c): Effect[] => {
+      const me = c.command.actorId as string, tick = c.world.tick;
+      const here = occupiedPlaceId(c.world, me);
+      let memory = socialOf(c.world, me);
+      const effects: Effect[] = [];
+      if (here) {
+        const others = c.world.listEntities({ kind: "modern.character" })
+          .filter((e) => e.id !== me && e.archivedAt === undefined && occupiedPlaceId(c.world, e.id) === here)
+          .map((e) => e.id).sort();
+        // 记得在这儿的人眼下不在：只知道他不在这儿了，手上有什么还记着。
+        for (const [id, seen] of Object.entries(memory.seen))
+          if (seen.placeId === here && !others.includes(id)) memory = { ...memory, seen: { ...memory.seen, [id]: { ...seen, placeId: "" } } };
+        for (const id of others) {
+          const goods = Object.fromEntries(Object.entries(tradeableGoods(c.world, id)).map(([r, ids]) => [r, ids.length]));
+          memory = { ...memory, seen: { ...memory.seen, [id]: { placeId: here, at: tick, goods } } };
+          // 同处一地的时间多了，自然就熟一些（每天每人最多一次）。
+          // 光是常碰面只能熟到「见过」；再深要靠说话、帮忙。
+          const bond = bondOf(memory, id);
+          if (bond.lastAt !== tick && bond.familiarity < 4) memory = withBond(memory, id, { familiarity: 0.25 }, tick);
+          if (isResident(c.world, id)) memory = mergeHeard(memory, socialOf(c.world, id), me, id);
+        }
+      }
+      // 病了的人：见着了、或者是同屋的家里人，自然就知道。
+      const ill = illnessOn(tick);
+      if (ill && ill.residentId !== me) {
+        const myHome = RESIDENTS.find((r) => residentId(r.key) === me)?.homeSpace;
+        const theirHome = RESIDENTS.find((r) => r.key === ill.key)?.homeSpace;
+        const sawThem = Boolean(here) && occupiedPlaceId(c.world, ill.residentId) === here;
+        if (sawThem || (myHome && myHome === theirHome))
+          memory = withNews(memory, `ill:${ill.key}:${ill.from}`, { about: ill.residentId, text: `${personName(c.world, ill.residentId)}着了凉，在家躺着起不来`, at: ill.from });
+      }
+      // 自己刚碰上的事（头一回做成什么），记下来，碰到人就会说。
+      const own = c.command.payload.news as Record<string, unknown> | undefined;
+      if (own && typeof own.id === "string" && typeof own.text === "string")
+        memory = withNews(memory, own.id.slice(0, 80), { about: me, text: own.text.slice(0, 60), at: tick });
+      const req = requestOf(c.world, me);
+      if (req && req.status === "pending" && tick - req.at > REQUEST_DAYS) {
+        memory = withBond(memory, req.to, { trust: -1, grudge: 0.5 }, tick);
+        effects.push({ kind: "modifyComponent", entityId: me, component: SettlementComponents.resident,
+          patch: { request: { ...req, status: "lapsed", resolvedAt: tick } as unknown as JsonValue },
+          reason: "a request nobody answered" });
+      }
+      effects.unshift(saveSocial(me, memory, "a resident notices who is around and what they carry"));
+      return effects;
+    },
+  });
+
+  // ---- 当面开口求玩家：借、换、或讨回人情。答不答应由玩家决定。
+  const readRequest = (p: Record<string, unknown>) => ({
+    targetId: String(p.targetId ?? ""), resourceId: String(p.resourceId ?? ""),
+    give: Array.isArray(p.give) ? p.give.map(String) : [], reason: String(p.reason ?? "").slice(0, 40),
+  });
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.npcRequest}.allowed`, commandType: SettlementCommands.npcRequest,
+    evaluate: (c) => {
+      const me = c.command.actorId ?? "";
+      const p = readRequest(c.command.payload ?? {});
+      if (c.command.source !== "ai" || !isResident(c.world, me)) return refuse(SettlementRejection.NotYours, "只有村民会自己开口求人。");
+      if (!p.targetId || p.targetId !== activeId(c.world)) return refuse(SettlementRejection.NotYours, "村民之间直接当面交换；这里是向玩家开口。");
+      const here = occupiedPlaceId(c.world, me);
+      if (!here || here !== occupiedPlaceId(c.world, p.targetId)) return refuse(SettlementRejection.WrongPlace, "要走到对方面前才能开口。");
+      if (!(p.resourceId in EXCHANGE_VALUES)) return refuse(SettlementRejection.Empty, "这样东西在村里还没有约定的价值。");
+      if (!(tradeableGoods(c.world, p.targetId)[p.resourceId]?.length)) return refuse(SettlementRejection.Empty, "对方手上并没有这样东西。");
+      if (openRequest(c.world, me)) return refuse(SettlementRejection.Busy, "还在等对方回话。");
+      if (c.world.tick - (socialOf(c.world, me).asked[p.targetId] ?? -100) < ASK_COOLDOWN) return refuse(SettlementRejection.Busy, "前两天刚开过口，不好再去。");
+      if (p.give.length > 2 || new Set(p.give).size !== p.give.length) return refuse(SettlementRejection.NotYours, "最多拿出两件东西。");
+      for (const id of p.give) {
+        const r = prototypeOf(c.world, id).resourceId ?? "";
+        if (r === p.resourceId || !tradeReady(c.world, id, me, r)) return refuse(SettlementRejection.NotYours, "拿出来的东西得是自己手里的。");
+      }
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.npcRequest}.resolve`, commandType: SettlementCommands.npcRequest,
+    resolve: (c): Effect[] => {
+      const me = c.command.actorId as string, tick = c.world.tick;
+      const p = readRequest(c.command.payload ?? {});
+      const kind = favourOwed(c.world, me, p.targetId) > 0 ? "collect" : p.give.length ? "trade" : "borrow";
+      const memory = socialOf(c.world, me);
+      const record = { status: "pending", to: p.targetId, at: tick, resourceId: p.resourceId, give: p.give,
+        kind, placeId: occupiedPlaceId(c.world, me), reason: p.reason };
+      return [
+        { kind: "modifyComponent", entityId: me, component: SettlementComponents.resident,
+          patch: { request: record as unknown as JsonValue }, reason: "a resident asks the player face to face" },
+        saveSocial(me, { ...memory, asked: { ...memory.asked, [p.targetId]: tick } }, "remember having asked"),
+        { kind: "emitEvent", eventType: "settlement-locations.npc_requested", actorId: me, targetId: p.targetId,
+          data: { resourceId: p.resourceId, kind, give: p.give, reason: p.reason,
+            line: requestLine(c.world, me, p.resourceId, kind, p.give, p.reason) }, historicalSignificance: 0.05 },
+      ];
+    },
+  });
+
+  // ---- 玩家回话。答应要当面把东西递过去；拒绝随时都可以。
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.requestAnswer}.allowed`, commandType: SettlementCommands.requestAnswer,
+    evaluate: (c) => {
+      const me = c.command.actorId ?? "";
+      const from = String(c.command.payload.requesterId ?? "");
+      if (c.command.source !== "player" || !me || me !== activeId(c.world)) return refuse(SettlementRejection.NotYours, "只能由你自己回话。");
+      if (typeof c.command.payload.accept !== "boolean") return refuse(SettlementRejection.NotYours, "要说答应还是不答应。");
+      const req = openRequest(c.world, from);
+      if (!req || req.to !== me) return refuse(SettlementRejection.Busy, "没有等你回话的请求。");
+      if (c.command.payload.accept !== true) return { ok: true };
+      if (occupiedPlaceId(c.world, me) !== occupiedPlaceId(c.world, from))
+        return refuse(SettlementRejection.WrongPlace, `要当面把东西交给${personName(c.world, from)}，先走到对方那里。`);
+      const item = (tradeableGoods(c.world, me)[req.resourceId] ?? [])[0];
+      if (!item) return refuse(SettlementRejection.Empty, `你手上已经没有${RESOURCE_LABELS[req.resourceId] ?? "这样东西"}了。`);
+      if (!canCarryObject(c.world, from, item)) return refuse(SettlementRejection.NoRoom, `${personName(c.world, from)}手上拿不下了。`);
+      for (const g of req.give.filter((g) => tradeReady(c.world, g, from, prototypeOf(c.world, g).resourceId ?? "")))
+        if (!canCarryObject(c.world, me, g, item)) return refuse(SettlementRejection.NoRoom, "你拿不下对方给的东西，先放下些。");
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.requestAnswer}.resolve`, commandType: SettlementCommands.requestAnswer,
+    resolve: (c): Effect[] => {
+      const me = c.command.actorId as string, tick = c.world.tick;
+      const from = String(c.command.payload.requesterId);
+      const req = openRequest(c.world, from)!;
+      const accepted = c.command.payload.accept === true;
+      let memory = socialOf(c.world, from);
+      const effects: Effect[] = [];
+      let note = "";
+      if (accepted) {
+        const item = (tradeableGoods(c.world, me)[req.resourceId] ?? [])[0]!;
+        const gifts = req.give.filter((g) => tradeReady(c.world, g, from, prototypeOf(c.world, g).resourceId ?? ""));
+        effects.push(...handover(item, me, from, "the player agreed to a resident's request"));
+        for (const g of gifts) effects.push(...handover(g, from, me, "what the resident offered in return"));
+        const value = worth(req.resourceId);
+        const back = gifts.reduce((n, g) => n + worth(prototypeOf(c.world, g).resourceId ?? ""), 0);
+        const playerOwed = favourOwed(c.world, from, me);
+        const paid = Math.min(playerOwed, Math.max(0, value - back));
+        if (paid > 0) effects.push(...setFavour(c.world, from, me, playerOwed - paid, "the player paid back a favour"));
+        const left = value - back - paid;
+        if (left > 0) effects.push(...setFavour(c.world, me, from, favourOwed(c.world, me, from) + left, "a resident now owes the player"));
+        memory = withBond(memory, me, { trust: back >= value ? 1 : 1.5, familiarity: 1, grudge: -1 }, tick);
+        note = paid > 0 ? "抵了你欠的人情" : left > 0 ? "对方记下了这份人情" : "两清";
+      } else {
+        memory = withBond(memory, me, { trust: -0.5, grudge: req.kind === "collect" ? 2 : 1 }, tick);
+      }
+      effects.push(
+        saveSocial(from, memory, accepted ? "remember being helped" : "remember being turned down"),
+        { kind: "modifyComponent", entityId: from, component: SettlementComponents.resident,
+          patch: { request: { ...req, status: accepted ? "accepted" : "declined", resolvedAt: tick } as unknown as JsonValue },
+          reason: "the player's answer" },
+        { kind: "emitEvent", eventType: accepted ? "settlement-locations.request_granted" : "settlement-locations.request_refused",
+          actorId: me, targetId: from, data: { resourceId: req.resourceId, kind: req.kind, note,
+            line: accepted
+              ? `${personName(c.world, from)}接过${RESOURCE_LABELS[req.resourceId] ?? "东西"}，连声道谢${note === "对方记下了这份人情" ? "：“这份情我记下了。”" : note === "抵了你欠的人情" ? "：“这下咱俩扯平啦。”" : "。"}`
+              : req.kind === "collect" ? `${personName(c.world, from)}沉下脸：“欠的总归要还的。”` : `${personName(c.world, from)}点点头：“那我再想想别的办法。”` },
+          historicalSignificance: accepted ? 0.08 : 0.04 },
+      );
+      return effects;
+    },
+  });
+
+  // ---- 把自己的东西送给某人：还人情、道谢。
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.npcGive}.allowed`, commandType: SettlementCommands.npcGive,
+    evaluate: (c) => {
+      const me = c.command.actorId ?? "";
+      const to = String(c.command.payload.targetId ?? "");
+      const item = String(c.command.payload.itemId ?? "");
+      if (c.command.source !== "ai" || !isResident(c.world, me)) return refuse(SettlementRejection.NotYours, "只有村民自己会送出东西。");
+      if (!to || to === me || !isPerson(c.world, to)) return refuse(SettlementRejection.NoSuchResident, "要送给一个具体的人。");
+      const here = occupiedPlaceId(c.world, me);
+      if (!here || here !== occupiedPlaceId(c.world, to)) return refuse(SettlementRejection.WrongPlace, "要当面交到对方手里。");
+      if (!tradeReady(c.world, item, me, prototypeOf(c.world, item).resourceId ?? "")) return refuse(SettlementRejection.NotYours, "只能送自己手里的东西。");
+      if (!canCarryObject(c.world, to, item)) return refuse(SettlementRejection.NoRoom, "对方拿不下了。");
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.npcGive}.resolve`, commandType: SettlementCommands.npcGive,
+    resolve: (c): Effect[] => {
+      const me = c.command.actorId as string;
+      const to = String(c.command.payload.targetId), item = String(c.command.payload.itemId);
+      const resourceId = prototypeOf(c.world, item).resourceId ?? "";
+      const debt = favourOwed(c.world, to, me);
+      const repaid = Math.min(debt, worth(resourceId));
+      return [
+        ...handover(item, me, to, "a resident hands over something of their own"),
+        ...(repaid > 0 ? setFavour(c.world, to, me, debt - repaid, "favour repaid with a gift") : []),
+        { kind: "emitEvent", eventType: "settlement-locations.gift_given", actorId: me, targetId: to,
+          data: { resourceId, repaid, line: isBirthday(to, c.world.tick)
+            ? `${personName(c.world, me)}把${RESOURCE_LABELS[resourceId] ?? "一样东西"}塞到${to === activeId(c.world) ? "你" : personName(c.world, to)}手里：“今天你生日，拿着！”`
+            : illnessOn(c.world.tick)?.residentId === to
+            ? `${personName(c.world, me)}把${RESOURCE_LABELS[resourceId] ?? "一样东西"}端到病着的${personName(c.world, to)}跟前：“先垫一口，别逞强。”`
+            : `${personName(c.world, me)}把${RESOURCE_LABELS[resourceId] ?? "一样东西"}塞到${to === activeId(c.world) ? "你" : personName(c.world, to)}手里：“${repaid > 0 ? "上回的情，还给你。" : "拿着，别推。"}”` },
+          historicalSignificance: 0.05 },
+      ];
+    },
+  });
+}
+
+
+// ---------------------------------------------------------------------------
+// 出身与天赋：新的人生开始时选一次。起始物品真实生成、归玩家所有；
+// 认得你的村民把这份熟悉记在自己的人情账上（social.ts），之后照常变化。
+// ---------------------------------------------------------------------------
+
+function registerOrigin(ctx: Registration): void {
+  const read = (p: Record<string, unknown>) => ({
+    originId: String(p.originId ?? ""),
+    talents: Array.isArray(p.talents) ? p.talents.map(String) : [],
+  });
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.chooseOrigin}.allowed`, commandType: SettlementCommands.chooseOrigin,
+    evaluate: (c) => {
+      const me = c.command.actorId ?? "";
+      if (!me || me !== activeId(c.world) || (c.command.source !== "player" && c.command.source !== "system"))
+        return refuse(SettlementRejection.NotYours, "出身只能由这段人生自己选择。");
+      if (!occupiedPlaceId(c.world, me)) return refuse(SettlementRejection.NotEntered, "先在聚落里落脚。");
+      if (c.world.getComponent(me, SettlementComponents.holding)?.origin)
+        return refuse(SettlementRejection.Already, "出身在人生开始时就定下了。");
+      const p = read(c.command.payload ?? {});
+      const problem = originProblem(p.originId, p.talents);
+      return problem ? refuse(SettlementRejection.Empty, problem) : { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.chooseOrigin}.resolve`, commandType: SettlementCommands.chooseOrigin,
+    resolve: (c): Effect[] => {
+      const me = c.command.actorId as string, tick = c.world.tick;
+      const p = read(c.command.payload ?? {});
+      const origin = originById(p.originId)!;
+      const fx = mergedEffects({ id: p.originId, talents: p.talents, chosenAt: tick });
+      const effects: Effect[] = [{
+        kind: "modifyComponent", entityId: me, component: SettlementComponents.holding,
+        patch: { origin: { id: p.originId, talents: p.talents, chosenAt: tick } as unknown as JsonValue },
+        reason: "a new life chooses where it comes from",
+      }];
+      const items = [...origin.items, ...p.talents.flatMap((t) => talentById(t)?.items ?? [])];
+      let n = 0;
+      for (const item of items) for (let i = 0; i < item.count; i += 1) {
+        const id = `settlement-locations:origin:${me.split(":").pop()}:${n++}`;
+        const proto = PROTOTYPES.find((x) => x.id === item.prototypeId)!;
+        effects.push({
+          kind: "spawnEntity", localId: `origin-${n}`, id, entityKind: ObjectKinds.item, announce: false,
+          components: { [ObjectComponents.object]: {
+            prototypeId: item.prototypeId, name: "", condition: "brought", quantity: 1, durability: proto.durability,
+            madeAt: tick - 1, provenance: { origin: p.originId, at: tick }, visibleFromOutside: true,
+          } as unknown as Record<string, never> },
+        }, { kind: "addRelation", type: ObjectRelations.instanceOf, from: id, to: item.prototypeId, announce: false },
+        { kind: "addRelation", type: ObjectRelations.ownedBy, from: id, to: me, announce: false },
+        { kind: "addRelation", type: ObjectRelations.heldBy, from: id, to: me, announce: false });
+      }
+      for (const r of RESIDENTS) {
+        const bond = origin.bonds[r.key] ?? {};
+        const familiarity = (bond.familiarity ?? 0) + fx.startFamiliarity;
+        const trust = (bond.trust !== undefined ? bond.trust - NEUTRAL_TRUST_LEVEL : 0) + fx.startTrust;
+        if (!familiarity && !trust) continue;
+        const rid = residentId(r.key);
+        effects.push(saveSocial(rid, withBond(socialOf(c.world, rid), me, { familiarity, trust }, tick), "already knows the newcomer"));
+      }
+      effects.push({ kind: "emitEvent", eventType: "settlement-locations.origin_chosen", actorId: me, targetId: me,
+        data: { originId: p.originId, talents: p.talents, line: origin.story }, historicalSignificance: 0.05 });
+      return effects;
+    },
+  });
+}
+
+const NEUTRAL_TRUST_LEVEL = 5;
+
+/** What the player's character card shows about where they come from. */
+export function originView(world: WorldView, actorId: string) {
+  const o = originOf(world, actorId);
+  const spec = originById(o.id);
+  return {
+    id: o.id, name: spec?.name ?? "", story: spec?.story ?? "", aspiration: spec?.aspiration ?? "",
+    talents: o.talents.map((t) => ({ id: t, name: talentById(t)?.name ?? t, blurb: talentById(t)?.blurb ?? "" })),
+    chosenAt: o.chosenAt,
+    daysHere: o.chosenAt >= 0 ? world.tick - o.chosenAt + 1 : null,
+  };
+}
+
+
+// ---------------------------------------------------------------------------
+// 送礼与心愿：玩家主动把自己的一样东西当面交给村民；正中心愿时心愿了结。
+// 也有些心愿靠「常去搭把手」或「常来听我说说」来圆，进度只在玩家知道心愿后才算。
+// ---------------------------------------------------------------------------
+
+const WISH_BOND = { familiarity: 1, trust: 2 };
+
+function wishProgress(world: WorldView, actorId: string): Record<string, { helps: number; talks: number; learns: number }> {
+  const raw = world.getComponent(actorId, SettlementComponents.holding)?.wishProgress;
+  const out: Record<string, { helps: number; talks: number; learns: number }> = {};
+  if (raw && typeof raw === "object" && !Array.isArray(raw))
+    for (const [id, v] of Object.entries(raw as Record<string, JsonValue>)) {
+      const o = v && typeof v === "object" && !Array.isArray(v) ? v as Record<string, JsonValue> : {};
+      out[id] = { helps: Number(o.helps ?? 0), talks: Number(o.talks ?? 0), learns: Number(o.learns ?? 0) };
+    }
+  return out;
+}
+
+function fulfilEffects(world: WorldView, actorId: string, rid: string, how: string): Effect[] {
+  const name = personName(world, rid);
+  const line = (DIALOGUE?.wishThanks ?? "{name}向你郑重道谢。").replace("{name}", name);
+  return [
+    { kind: "modifyComponent", entityId: rid, component: SettlementComponents.resident,
+      patch: { wishFulfilledBy: actorId, wishFulfilledAt: world.tick }, reason: "a long-held wish came true" },
+    { kind: "emitEvent", eventType: "settlement-locations.wish_fulfilled", actorId, targetId: rid,
+      data: { how, wish: RESIDENTS.find((r) => residentId(r.key) === rid)?.wish ?? "", line }, historicalSignificance: 0.12 },
+  ];
+}
+
+/** One more deed toward the known wishes of these villagers; returns the holding patch and any wishes now fulfilled. */
+function deedStep(world: WorldView, actorId: string, residents: string[], kind: "helps" | "talks" | "learns") {
+  if (actorId !== activeId(world)) return { patch: {}, effects: [] as Effect[], fulfilled: [] as string[] };
+  const known = knownWishes(world, actorId);
+  const progress = wishProgress(world, actorId);
+  let changed = false;
+  const effects: Effect[] = [], fulfilled: string[] = [];
+  for (const rid of residents) {
+    const spec = RESIDENTS.find((r) => residentId(r.key) === rid);
+    const need = spec?.wishDeed?.[kind];
+    if (!need || !known.includes(rid) || wishFulfilled(world, rid)) continue;
+    const p = progress[rid] ?? { helps: 0, talks: 0, learns: 0 };
+    p[kind] += 1; progress[rid] = p; changed = true;
+    if (p[kind] >= need) { fulfilled.push(rid); effects.push(...fulfilEffects(world, actorId, rid, kind)); }
+  }
+  return { patch: changed ? { wishProgress: progress as unknown as JsonValue } : {}, effects, fulfilled };
+}
+
+export function wishesView(world: WorldView, actorId: string) {
+  const progress = wishProgress(world, actorId);
+  return knownWishes(world, actorId).map((rid) => {
+    const spec = RESIDENTS.find((r) => residentId(r.key) === rid);
+    const by = wishFulfilled(world, rid);
+    const deed = spec?.wishDeed;
+    const how = spec?.wishItem ? `也许送${spec.name}一${RESOURCE_LABELS[spec.wishItem] ? "份" : "样"}${RESOURCE_LABELS[spec.wishItem] ?? "东西"}`
+      : deed?.helps ? `常去${spec?.name}干活的地方搭把手（${Math.min(progress[rid]?.helps ?? 0, deed.helps)}/${deed.helps}）`
+      : deed?.learns ? `跟${spec?.name}学${spec?.teaches?.name ?? "手艺"}（${Math.min(lessonsOf(world, actorId)[spec!.key]?.n ?? 0, deed.learns)}/${deed.learns} 课）`
+      : deed?.talks ? `常来听${spec?.name}说说话（${Math.min(progress[rid]?.talks ?? 0, deed.talks)}/${deed.talks}）` : "";
+    return { residentId: rid, name: spec?.name ?? personName(world, rid), wish: spec?.wish ?? "",
+      fulfilled: Boolean(by), byYou: by === actorId, how };
+  });
+}
+
+function teachRefusal(world: WorldView, actorId: string, t: Teacher, lessons = lessonsOf(world, actorId)): string {
+  if ((lessons[t.key]?.at ?? -1) === world.tick) return "今天已经学过一课，明天再来";
+  if (isIll(world.tick, t.residentId)) return `${t.name}病着，教不了`;
+  const bond = bondOf(socialOf(world, t.residentId), actorId);
+  if (bond.grudge >= 3) return `${t.name}心里还有点不痛快`;
+  if (bond.familiarity < TEACH_FAMILIARITY && bond.trust < TEACH_TRUST) return `跟${t.name}还不够熟，开不了这个口`;
+  return "";
+}
+
+function registerLearn(ctx: Registration): void {
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.learn}.allowed`, commandType: SettlementCommands.learn,
+    evaluate: (c) => {
+      const me = c.command.actorId ?? "";
+      const t = TEACHERS.find((x) => x.residentId === String(c.command.payload.targetId ?? ""));
+      if (!me || me !== activeId(c.world) || c.command.source !== "player") return refuse(SettlementRejection.NotYours, "只能由你自己去请教。");
+      if (!t) return refuse(SettlementRejection.NoSuchResident, "这个人没有可以教你的手艺。");
+      const here = occupiedPlaceId(c.world, me);
+      if (!here || here !== occupiedPlaceId(c.world, t.residentId)) return refuse(SettlementRejection.WrongPlace, "要当面请教。");
+      if (skillsOf(c.world, me).includes(t.teaches.skill)) return refuse(SettlementRejection.Already, `${t.teaches.name}你已经学会了。`);
+      const why = teachRefusal(c.world, me, t);
+      return why ? refuse(SettlementRejection.Already, `${why}。`) : { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.learn}.resolve`, commandType: SettlementCommands.learn,
+    resolve: (c): Effect[] => {
+      const me = c.command.actorId as string, tick = c.world.tick;
+      const t = TEACHERS.find((x) => x.residentId === String(c.command.payload.targetId))!;
+      const lessons = lessonsOf(c.world, me);
+      const n = (lessons[t.key]?.n ?? 0) + 1;
+      const learned = n >= t.teaches.lessons;
+      const lines = t.teaches.lines;
+      const line = (lines[Math.min(n - 1, lines.length - 1)] ?? "").replace("{name}", t.name) +
+        (learned ? t.teaches.learned.replace("{name}", t.name) : "");
+      const deed = deedStep(c.world, me, [t.residentId], "learns");
+      // 把手艺传下去本身就是师傅的心愿：学成那天就圆了，不管你先前听没听他说起。
+      const spec = RESIDENTS.find((r) => r.key === t.key);
+      const fulfils = learned && Boolean(spec?.wishDeed?.learns) && !wishFulfilled(c.world, t.residentId) && !deed.fulfilled.includes(t.residentId);
+      const known = knownWishes(c.world, me);
+      let memory = withBond(socialOf(c.world, t.residentId), me, { familiarity: 0.5, trust: 0.5 }, tick);
+      if (learned) memory = withNews(memory, `learned:${t.teaches.skill}:${me}`, { about: me, text: `${personName(c.world, me)}跟${t.name}学会了${t.teaches.name}`, at: tick });
+      return [
+        { kind: "modifyComponent", entityId: me, component: SettlementComponents.holding,
+          patch: { lessons: { ...lessons, [t.key]: { n, at: tick } } as unknown as JsonValue,
+            ...(learned ? { skills: [...skillsOf(c.world, me), t.teaches.skill] } : {}),
+            ...deed.patch, ...(fulfils && !known.includes(t.residentId) ? { knownWishes: [...known, t.residentId] } : {}) },
+          reason: "a lesson from a villager" },
+        saveSocial(t.residentId, memory, "the teacher remembers the lesson"),
+        { kind: "emitEvent", eventType: "settlement-locations.lesson", actorId: me, targetId: t.residentId,
+          data: { skill: t.teaches.skill, lesson: n, of: t.teaches.lessons, learned, line }, historicalSignificance: learned ? 0.08 : 0.02 },
+        ...deed.effects,
+        ...(fulfils ? fulfilEffects(c.world, me, t.residentId, "learns") : []),
+      ];
+    },
+  });
+}
+
+function registerGift(ctx: Registration): void {
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.gift}.allowed`, commandType: SettlementCommands.gift,
+    evaluate: (c) => {
+      const me = c.command.actorId ?? "";
+      const to = String(c.command.payload.targetId ?? "");
+      const item = String(c.command.payload.itemId ?? "");
+      if (c.command.source !== "player" || !me || me !== activeId(c.world)) return refuse(SettlementRejection.NotYours, "只能由你自己决定送出自己的东西。");
+      if (!c.world.getComponent(to, SettlementComponents.resident)) return refuse(SettlementRejection.NoSuchResident, "要送给村里一个具体的人。");
+      const here = occupiedPlaceId(c.world, me);
+      if (!here || here !== occupiedPlaceId(c.world, to)) return refuse(SettlementRejection.WrongPlace, "要当面交到对方手里。");
+      if (!tradeReady(c.world, item, me, prototypeOf(c.world, item).resourceId ?? "")) return refuse(SettlementRejection.NotYours, "只能送你自己手里、不是借来的东西。");
+      if (!canCarryObject(c.world, to, item)) return refuse(SettlementRejection.NoRoom, `${personName(c.world, to)}手上拿不下了。`);
+      if (giftedToday(c.world, me, to)) return refuse(SettlementRejection.Already, `今天已经送过${personName(c.world, to)}东西了，再送对方要不好意思了。`);
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.gift}.resolve`, commandType: SettlementCommands.gift,
+    resolve: (c): Effect[] => {
+      const me = c.command.actorId as string, tick = c.world.tick;
+      const to = String(c.command.payload.targetId), item = String(c.command.payload.itemId);
+      const resourceId = prototypeOf(c.world, item).resourceId ?? "";
+      const spec = RESIDENTS.find((r) => residentId(r.key) === to);
+      const wish = Boolean(spec?.wishItem === resourceId && !wishFulfilled(c.world, to));
+      const taste: Taste = tasteOf(to, resourceId);
+      const wanted = wish || taste === "love" || taste === "like" || wantsOf(c.world, to).includes(resourceId);
+      const label = nameOfObject(c.world, item) || RESOURCE_LABELS[resourceId] || "东西";
+      const name = personName(c.world, to);
+      const lines = wanted ? DIALOGUE?.giftThanks ?? ["{name}收下了{item}。"] : DIALOGUE?.giftPlain ?? ["{name}收下了{item}。"];
+      // 病中送来吃的喝的，是最被记住的那种情。
+      const ill = illnessOn(tick)?.residentId === to && (illnessSpec()?.helps ?? []).includes(resourceId);
+      // 生日那天收到礼物，喜欢的加倍记得，不喜欢的也不会计较。
+      const birthday = isBirthday(to, tick);
+      const own = personOf(to)?.giftLines;
+      const base = ill ? illnessSpec()!.careLine
+        : taste === "love" && own?.love ? own.love
+        : taste === "dislike" && own?.dislike && !birthday ? own.dislike
+        : lines[pickIndex(`${tick}:${to}:${item}`, lines.length)]!;
+      const line = (birthday ? `${name}眼睛一亮：“你记得今天是我生日？”` : "") + base.replace(/\{name\}/g, name).replace(/\{item\}/g, label);
+      const tasteBond = { love: { familiarity: 1, trust: 1.5 }, like: { familiarity: 0.5, trust: 0.5 }, neutral: { familiarity: 0, trust: 0 }, dislike: { familiarity: 0, trust: -1.5 } }[taste];
+      const times = birthday ? (taste === "dislike" ? 0 : 2) : 1;
+      // A gift is not a trade: the giver asks nothing, but the receiver remembers it as a favour.
+      const favour = Math.max(1, Math.round(worth(resourceId) / 2)) + (ill ? 1 : 0);
+      const known = knownWishes(c.world, me);
+      return [
+        ...handover(item, me, to, "the player gave a gift"),
+        ...setFavour(c.world, me, to, favourOwed(c.world, me, to) + favour, "a gift the receiver will remember"),
+        saveSocial(to, giftNews(withBond(socialOf(c.world, to), me, {
+          familiarity: 1 + (wish ? WISH_BOND.familiarity : 0) + (ill ? 1 : 0) + tasteBond.familiarity * times,
+          trust: (wanted ? 1.5 : 1) + (wish ? WISH_BOND.trust : 0) + (ill ? 2 : 0) + tasteBond.trust * times, grudge: taste === "dislike" && !birthday ? 0 : -1 }, tick),
+          c.world, me, to, label, ill, wish), "remember a gift"),
+        { kind: "modifyComponent", entityId: me, component: SettlementComponents.holding,
+          patch: { giftDay: { ...giftDays(c.world, me), [to]: tick } as unknown as JsonValue,
+            tastesKnown: { ...tastesKnown(c.world, me), [keyOfResident(to)]: { ...(tastesKnown(c.world, me)[keyOfResident(to)] ?? {}), [resourceId]: taste } } as unknown as JsonValue },
+          reason: "remember what they thought of the gift" },
+        ...(taste === "love" || birthday ? [{ kind: "modifyComponent" as const, entityId: to, component: SettlementComponents.resident,
+          patch: { gladAt: tick }, reason: "a gift that made their day" }] : []),
+        ...(wish && !known.includes(to) ? [{ kind: "modifyComponent" as const, entityId: me, component: SettlementComponents.holding,
+          patch: { knownWishes: [...known, to] }, reason: "learned the wish by answering it" }] : []),
+        { kind: "emitEvent", eventType: "settlement-locations.gift_received", actorId: me, targetId: to,
+          data: { itemId: item, resourceId, wanted, wish, line, taste, ...(birthday ? { birthday: true } : {}), ...(ill ? { care: true } : {}) }, historicalSignificance: wish || ill ? 0.05 : 0.03 },
+        ...(wish ? fulfilEffects(c.world, me, to, "gift") : []),
+      ];
+    },
+  });
+}
+
+
+function giftDays(world: WorldView, me: string): Record<string, number> {
+  const raw = world.getComponent(me, SettlementComponents.holding)?.giftDay;
+  return raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, number> : {};
+}
+function giftedToday(world: WorldView, me: string, to: string): boolean { return giftDays(world, me)[to] === world.tick; }
+/** 送过以后才知道的喜好：{ 村民 key: { resource: love|like|neutral|dislike } }。 */
+export function tastesKnown(world: WorldView, me: string): Record<string, Record<string, Taste>> {
+  const raw = world.getComponent(me, SettlementComponents.holding)?.tastesKnown;
+  return raw && typeof raw === "object" && !Array.isArray(raw) ? raw as unknown as Record<string, Record<string, Taste>> : {};
+}
+
+/** 收到的这份心意，会被当成一件值得说的事讲给别人听（病中送吃的、圆了心事、贵重的东西）。 */
+function giftNews(memory: SocialMemory, world: WorldView, giver: string, to: string, label: string, ill: boolean, wish: boolean): SocialMemory {
+  const who = personName(world, giver), name = personName(world, to);
+  const text = ill ? `${name}病着的时候，${who}送了${label}过去` : wish ? `${who}送了${name}${label}，正合${name}的心意` : "";
+  return text ? withNews(memory, `gift:${giver}:${to}:${world.tick}`, { about: giver, text, at: world.tick }) : memory;
+}
+
+function craftedCounts(world: WorldView, actorId: string): Record<string, number> {
+  const raw = world.getComponent(actorId, SettlementComponents.holding)?.crafted;
+  return raw && typeof raw === "object" && !Array.isArray(raw)
+    ? Object.fromEntries(Object.entries(raw as Record<string, JsonValue>).map(([k, v]) => [k, Number(v) || 0])) : {};
+}
+
+/** The origin's aspiration, with how far along it is (read from the world, never a checklist). */
+export function aspirationView(world: WorldView, actorId: string) {
+  const spec = originById(originOf(world, actorId).id);
+  if (!spec) return null;
+  const goal = spec.goal;
+  let done = false, progress = "";
+  if (goal?.kind === "crafted") {
+    const n = goal.recipes.reduce((sum, r) => sum + (craftedCounts(world, actorId)[r] ?? 0), 0);
+    done = n > 0; progress = done ? `已经烧成 ${n} 件` : "还没有烧成过";
+  } else if (goal?.kind === "metAll") {
+    const met = RESIDENTS.filter((r) => contactConversations(world, actorId, residentId(r.key)) > 0).length;
+    done = met >= RESIDENTS.length; progress = `认识了 ${met}/${RESIDENTS.length} 人`;
+  } else if (goal?.kind === "harvested") {
+    const n = Number(world.getComponent(actorId, SettlementComponents.holding)?.harvests ?? 0);
+    done = n > 0; progress = done ? `收过 ${n} 季` : "还没收过";
+  } else if (goal?.kind === "trusted") {
+    const best = RESIDENTS.map((r) => ({ name: r.name, trust: bondOf(socialOf(world, residentId(r.key)), actorId).trust }))
+      .sort((a, b) => b.trust - a.trust)[0];
+    done = Boolean(best && best.trust >= goal.trust);
+    progress = done ? `${best!.name}信得过你` : best && best.trust > NEUTRAL_TRUST_LEVEL ? `和${best.name}越来越熟了` : "还没有";
+  }
+  return { text: spec.aspiration, done, progress, line: spec.fulfilled ?? `念想成真：${spec.aspiration}。` };
+}
+
+/** Today's village happenings as plain sentences (from the pack, the same for everyone on the same day). */
+/** 一个村民在你眼里的样子：几颗心、生日、你知道的喜好。 */
+function personCard(world: WorldView, me: string, rid: string) {
+  const known = tastesKnown(world, me)[keyOfResident(rid)] ?? {};
+  const label = (r: string) => RESOURCE_LABELS[r] ?? r;
+  return {
+    hearts: heartsOf(bondOf(socialOf(world, rid), me)),
+    romance: ({ married: "成了亲", engaged: "定了亲", taken: "", "": "" } as const)[romanceOf(world, me, rid)],
+    birthday: birthdayWords(rid), birthdayToday: isBirthday(rid, world.tick),
+    likes: Object.entries(known).filter(([, t]) => t === "love" || t === "like").sort((a, b) => (a[1] === "love" ? 0 : 1) - (b[1] === "love" ? 0 : 1)).map(([r, t]) => t === "love" ? `${label(r)}（最爱）` : label(r)),
+    dislikes: Object.entries(known).filter(([, t]) => t === "dislike").map(([r]) => label(r)),
+  };
+}
+
+export function happeningsView(world: WorldView): string[] {
+  const tick = world.tick, out: string[] = [];
+  for (const r of RESIDENTS) if (isBirthday(residentId(r.key), tick)) out.push(`今天是${r.name}的生日。`);
+  const feast = feastOn(tick);
+  if (feast) out.push(feast.text);
+  else { const soon = feastSoon(tick); if (soon) out.push(soon.feast.soon.replace("{n}", String(soon.inDays))); }
+  const ill = illnessOn(tick);
+  if (ill && illnessSpec()) {
+    const where = PLACES.find((place) => place.id === occupiedPlaceId(world, ill.residentId))?.name;
+    out.push(illnessSpec()!.text.replace("{name}", personName(world, ill.residentId)) + (where ? `（人在${where}）` : ""));
+  }
+  return out;
+}
+
+
+// ---------------------------------------------------------------------------
+// 一季一季地过：人生不能一天天抠，把心思放在一处，一季过去再结算。
+// 时间一口气推过去时村里不逐日模拟（内核把长跳当作略过），所以由这里按
+// 「这一季你多半在干什么、跟谁在一起」结算口粮、交情、手艺与收获。
+// ---------------------------------------------------------------------------
+const SEASON_LIFE = RIVER_TERRACE_PACK.seasonLife;
+type Season = "春" | "夏" | "秋" | "冬";
+
+/** 从今天到这一季结束还剩几天（含今天之后的日子，至少 1 天）。 */
+export function daysLeftInSeason(tick: number): number {
+  const season = seasonOf(tick);
+  let d = 1;
+  while (seasonOf(tick + d) === season && d < 120) d += 1;
+  return d;
+}
+
+function seasonRefusal(world: WorldView, me: string): string {
+  if (isIll(world.tick, me)) return "病着，先把身子养好";
+  if (world.getComponent(me, "practice-runtime.active")) return "手上的手艺还没做完";
+  return "";
+}
+
+function pendingSeason(world: WorldView, me: string): { from: number; focus: string; season: Season; age: number } | null {
+  const raw = world.getComponent(me, SettlementComponents.holding)?.seasonPending;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const r = raw as Record<string, JsonValue>;
+  return { from: Number(r.from), focus: String(r.focus), season: String(r.season) as Season, age: Number(r.age ?? 0) };
+}
+
+/** 一起过日子的人：配偶、孩子，以及出身里就一起住的人（如陶家）。 */
+export function familyOf(world: WorldView, me: string): string[] {
+  const out = new Set<string>();
+  for (const r of world.listRelations({ type: "family.married_to", from: me })) out.add(r.to);
+  for (const r of world.listRelations({ type: "family.parent_of", from: me })) out.add(r.to);
+  for (const r of world.listRelations({ type: "family.parent_of", to: me })) out.add(r.from);
+  const origin = originOf(world, me);
+  const spec = (RIVER_TERRACE_PACK.origins ?? []).find((o) => o.id === origin.id);
+  for (const [key, b] of Object.entries(spec?.bonds ?? {})) if (Number(b.familiarity ?? 0) >= 4) out.add(residentId(key));
+  return [...out].filter((id) => world.getEntity(id) && world.getEntity(id)!.archivedAt === undefined &&
+    world.getComponent(id, "modern.vitals")?.alive !== false);
+}
+
+function registerSeasonLife(ctx: Registration): void {
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.beginSeason}.allowed`, commandType: SettlementCommands.beginSeason,
+    evaluate: (c) => {
+      const me = c.command.actorId ?? "";
+      if (!me || me !== activeId(c.world) || !occupiedPlaceId(c.world, me)) return refuse(SettlementRejection.NotYours, "只有在村里落了脚，才谈得上怎么过日子。");
+      if (!SEASON_LIFE?.focuses.some((f) => f.id === String(c.command.payload.focus))) return refuse(SettlementRejection.Busy, "要先想好这一季把心思放在哪儿。");
+      const why = seasonRefusal(c.world, me);
+      return why ? refuse(SettlementRejection.Busy, `${why}。`) : { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.beginSeason}.resolve`, commandType: SettlementCommands.beginSeason,
+    resolve: (c): Effect[] => {
+      const me = c.command.actorId as string;
+      const seasonPending = { from: c.world.tick, focus: String(c.command.payload.focus), season: seasonOf(c.world.tick),
+        age: Number(c.world.getComponent(me, "modern.vitals")?.ageYears ?? 0) };
+      const holding = c.world.getComponent(me, SettlementComponents.holding);
+      return [holding
+        ? { kind: "modifyComponent", entityId: me, component: SettlementComponents.holding, patch: { seasonPending }, reason: "a season to live through" }
+        : { kind: "setComponent", entityId: me, component: SettlementComponents.holding, value: { seasonPending }, reason: "a season to live through" }];
+    },
+  });
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.settleSeason}.allowed`, commandType: SettlementCommands.settleSeason,
+    evaluate: (c) => pendingSeason(c.world, c.command.actorId ?? "") ? { ok: true } : refuse(SettlementRejection.Busy, "没有正在过的一季。"),
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.settleSeason}.resolve`, commandType: SettlementCommands.settleSeason,
+    resolve: (c): Effect[] => settleSeasonEffects(c.world, c.command.actorId as string),
+  });
+}
+
+/** 一次结算里对同一个人的记忆改好几回时，先在这里攒着，最后一并写回（不互相覆盖）。 */
+type SocialDraft = Map<string, SocialMemory>;
+const draftOf = (draft: SocialDraft, world: WorldView, id: string) => draft.get(id) ?? socialOf(world, id);
+const flushDraft = (draft: SocialDraft, reason: string): Effect[] => [...draft].map(([id, m]) => saveSocial(id, m, reason));
+
+function settleSeasonEffects(world: WorldView, me: string): Effect[] {
+  const draft: SocialDraft = new Map();
+  const pending = pendingSeason(world, me)!;
+  const focus = SEASON_LIFE!.focuses.find((f) => f.id === pending.focus)!;
+  const tick = world.tick, season = pending.season;
+  const effects: Effect[] = [];
+  const lines: string[] = [focus.line[season]];
+  const alive = (id: string) => world.getEntity(id) && world.getEntity(id)!.archivedAt === undefined && world.getComponent(id, "modern.vitals")?.alive !== false;
+  const villagers = RESIDENTS.map((r) => residentId(r.key)).filter(alive);
+  const family = familyOf(world, me);
+  const companions = focus.with === "*" ? villagers : focus.with === "family" ? family : focus.with.map(residentId).filter(alive);
+
+  // 这一季家里有口粮、有火：回来时不饿；村里人也一样过来了。
+  for (const e of world.listEntities()) {
+    const has = Boolean(world.getComponent(e.id, SettlementComponents.holding));
+    if (!has && !world.getComponent(e.id, SettlementComponents.resident)) continue;
+    const patch = { hunger: 0, hungerAt: tick, ...(e.id === me ? { seasonPending: null, lastSeasonAt: tick } : {}) };
+    effects.push(has ? { kind: "modifyComponent", entityId: e.id, component: SettlementComponents.holding, patch, reason: "a season of ordinary meals" }
+      : { kind: "setComponent", entityId: e.id, component: SettlementComponents.holding, value: patch, reason: "a season of ordinary meals" });
+  }
+
+  // 交情：一起过了一季的人更亲；原本要好、这一季却少见的人，有点生分。
+  const closer: string[] = [], missed: string[] = [];
+  const holdingNow = world.getComponent(me, SettlementComponents.holding);
+  const missedSaid = { ...((holdingNow?.missedSaid ?? {}) as Record<string, number>) };
+  for (const id of villagers) {
+    const memory = draftOf(draft, world, id);
+    const bond = bondOf(memory, me);
+    const together = companions.includes(id), kin = family.includes(id);
+    const change = together ? { familiarity: focus.with === "*" ? 1 : 2, trust: focus.with === "*" ? 0.5 : 1 }
+      : kin ? { familiarity: 0.5, trust: 0 }
+      : bond.familiarity >= 4 ? { familiarity: -0.5, trust: 0 } : null;
+    if (!change) continue;
+    if (together && focus.with !== "*") closer.push(personName(world, id));
+    if (change.familiarity < 0 && tick - Number(missedSaid[id] ?? -999) >= 360) { missed.push(personName(world, id)); missedSaid[id] = tick; }
+    draft.set(id, withBond(memory, me, change, tick));
+  }
+  if (focus.with === "*") lines.push("村里人跟你都更熟了。");
+  if (closer.length) lines.push(SEASON_LIFE!.closer.replace("{names}", closer.join("、")));
+  if (missed.length) effects.push({ kind: "modifyComponent", entityId: me, component: SettlementComponents.holding, patch: { missedSaid: missedSaid as unknown as JsonValue }, reason: "said once a year" });
+  if (missed.length) lines.push(SEASON_LIFE!.missed.replace("{names}", missed.slice(0, 3).join("、") + (missed.length > 3 ? "他们" : "")));
+
+  // 手艺：跟着肯教你的人一整季，那门手艺也就摸熟了。
+  const skills = skillsOf(world, me);
+  for (const t of TEACHERS) {
+    if (!companions.includes(t.residentId) || skills.includes(t.teaches.skill) || focus.with === "*" || isIll(tick, t.residentId)) continue;
+    if (bondOf(socialOf(world, t.residentId), me).familiarity < 2) continue;
+    skills.push(t.teaches.skill);
+    lines.push(SEASON_LIFE!.learned.replace("{name}", t.name).replace("{skill}", t.teaches.name));
+  }
+  if (skills.length !== skillsOf(world, me).length)
+    effects.push({ kind: "modifyComponent", entityId: me, component: SettlementComponents.holding, patch: { skills }, reason: "a season of practice" });
+
+  // 收获：这一季攒下的东西（拿得下多少算多少）。
+  let n = 0;
+  const got: string[] = [], left: string[] = [];
+  const keeper = companions.find((id) => id !== me && villagers.includes(id));
+  for (const [resourceId, count] of focus.gains[season] ?? []) {
+    const prototypeId = prototypeForResource(resourceId);
+    for (let k = 0; k < count; k++) {
+      // 手上拿不下的，先存在一起干活的人那儿（还是他的，回头可以去换、去讨）。
+      const mine = canCarryPrototype(world, me, prototypeId, "", got.length + 1);
+      if (!mine && !keeper) break;
+      const holder = mine ? me : keeper!;
+      const objectId = `settlement-locations:season:${tick}:${me}:${n}`;
+      effects.push(
+        { kind: "spawnEntity", localId: `season:${n}`, id: objectId, entityKind: ObjectKinds.item,
+          components: { [ObjectComponents.object]: { prototypeId, name: "", condition: "fresh", quantity: 1, durability: 0, madeAt: tick,
+            provenance: { from: "season", at: tick }, visibleFromOutside: true } as unknown as Record<string, never> }, announce: false },
+        { kind: "addRelation", type: ObjectRelations.instanceOf, from: objectId, to: prototypeId, announce: false },
+        { kind: "addRelation", type: ObjectRelations.ownedBy, from: objectId, to: holder, announce: false },
+        { kind: "addRelation", type: ObjectRelations.heldBy, from: objectId, to: holder, announce: false });
+      n += 1;
+      (mine ? got : left).push(RESOURCE_LABELS[resourceId] ?? "东西");
+    }
+  }
+  const tally = (xs: string[]) => [...new Set(xs)].map((g) => `${g}${xs.filter((x) => x === g).length > 1 ? `×${xs.filter((x) => x === g).length}` : ""}`).join("、");
+  if (got.length) lines.push(`攒下了${tally(got)}，都在手边。`);
+  if (left.length) lines.push(`手上拿不下，${tally(left)}留给了${personName(world, keeper!)}。`);
+  const age = Number(world.getComponent(me, "modern.vitals")?.ageYears ?? 0);
+  if (age > pending.age) lines.push(`不知不觉，你${age}岁了。`);
+
+  const turn = seasonTurnDue(world) ? seasonTurnEffects(world, true, draft) : { effects: [], lines: [] };
+  effects.push(...turn.effects);
+  lines.push(...turn.lines);
+  const fam = familyEffects(world, me, tick - pending.from, true, draft);
+  effects.push(...fam.effects);
+  lines.push(...fam.lines);
+  effects.push(...flushDraft(draft, "a season of village life"));
+  effects.push({ kind: "emitEvent", eventType: "settlement-locations.season_lived", actorId: me,
+    data: { focus: focus.id, season, from: pending.from, days: tick - pending.from, lines, line: lines.join("") }, historicalSignificance: 0.05 });
+  return effects;
+}
+
+/** 过完这一季：记下心思，一口气推到季末，再结算。返回这一季的叙述。 */
+export function liveSeason(sim: { tick: number; dispatch: (c: never) => { ok: boolean; errors?: Array<{ message: string }> }; advanceBy: (n: number) => void; worldView: () => WorldView },
+  actorId: string, focus: string): { ok: boolean; lines: string[]; days: number; error?: string } {
+  const begun = sim.dispatch({ type: SettlementCommands.beginSeason, actorId, source: "player", payload: { focus } } as never);
+  if (!begun.ok) return { ok: false, lines: [], days: 0, error: begun.errors?.[0]?.message };
+  const days = daysLeftInSeason(sim.tick);
+  // 剩下的日子不长，村里照常一天天过；长了，内核按「略过」一口气推过去。
+  sim.advanceBy(days);
+  const settled = sim.dispatch({ type: SettlementCommands.settleSeason, actorId, source: "player", payload: {} } as never);
+  if (!settled.ok) return { ok: false, lines: [], days, error: settled.errors?.[0]?.message };
+  return { ok: true, lines: [], days };
+}
+
+
+// ---------------------------------------------------------------------------
+// 结亲：交情一点点处出来，满 8 颗心才开得了口；对方点了头先定亲，过几天成亲。
+// ---------------------------------------------------------------------------
+export const COURT_HEARTS = 8;
+export const WED_AFTER_DAYS = 3;
+const ageOfEntity = (world: WorldView, id: string) => Number(world.getComponent(id, "modern.vitals")?.ageYears ?? 0);
+export function spouseOf(world: WorldView, id: string): string {
+  return world.listRelations({ type: "family.married_to", from: id })[0]?.to ?? "";
+}
+function engagedTo(world: WorldView, me: string): string {
+  const raw = world.getComponent(me, SettlementComponents.holding)?.engaged;
+  return raw && typeof raw === "object" && !Array.isArray(raw) ? String((raw as Record<string, JsonValue>).to ?? "") : "";
+}
+function engagedAt(world: WorldView, me: string): number {
+  const raw = world.getComponent(me, SettlementComponents.holding)?.engaged;
+  return raw && typeof raw === "object" && !Array.isArray(raw) ? Number((raw as Record<string, JsonValue>).at ?? -99) : -99;
+}
+/** 你和这个人：成了亲、定了亲、对方已有家室、或者都没有。 */
+export function romanceOf(world: WorldView, me: string, id: string): "married" | "engaged" | "taken" | "" {
+  if (spouseOf(world, me) === id) return "married";
+  if (engagedTo(world, me) === id) return "engaged";
+  if (spouseOf(world, id) || PEOPLE_TIES_SPOUSE.has(keyOfResident(id))) return "taken";
+  return "";
+}
+/** 写在人物里的老伴（陶叔陶婶）本来就是一家，不另算。 */
+const PEOPLE_TIES_SPOUSE = new Set(Object.entries(RIVER_TERRACE_PACK.people ?? {})
+  .filter(([, p]) => Object.values(p.ties ?? {}).some((t) => t.relation === "老伴")).map(([k]) => k));
+
+function courtRefusal(world: WorldView, me: string, id: string): string {
+  const name = personName(world, id);
+  if (ageOfEntity(world, me) < 18) return "你还没满十八，这话说早了";
+  if (ageOfEntity(world, id) < 18) return `${name}还没成年`;
+  if (spouseOf(world, me)) return "你已经成了家";
+  if (isIll(world.tick, id)) return `${name}病着，不是说这话的时候`;
+  const hearts = heartsOf(bondOf(socialOf(world, id), me));
+  if (hearts < COURT_HEARTS) return `交情还不够（${hearts}/${COURT_HEARTS} 颗心）`;
+  const holding = world.getComponent(me, SettlementComponents.holding);
+  const last = (holding?.courtAt && typeof holding.courtAt === "object" ? holding.courtAt as Record<string, number> : {})[id];
+  if (last !== undefined && world.tick - last < 7) return `刚跟${name}说过，给对方一点时间`;
+  return "";
+}
+function wedRefusal(world: WorldView, me: string, id: string): string {
+  const left = WED_AFTER_DAYS - (world.tick - engagedAt(world, me));
+  if (left > 0) return `才定亲，再过 ${left} 天成亲`;
+  if (isIll(world.tick, id) || isIll(world.tick, me)) return "等身子好了再办";
+  return "";
+}
+
+function registerMarriage(ctx: Registration): void {
+  const present = (c: { world: WorldView; command: { actorId?: string; payload: Record<string, unknown> } }) => {
+    const me = c.command.actorId ?? "", id = String(c.command.payload.targetId ?? "");
+    if (!me || me !== activeId(c.world)) return { me, id, why: "只有你自己能说这话。" };
+    if (!c.world.getComponent(id, SettlementComponents.resident) || !personOf(id)?.court) return { me, id, why: "要对一个具体的人说。" };
+    if (occupiedPlaceId(c.world, me) !== occupiedPlaceId(c.world, id)) return { me, id, why: "这种话要当面说。" };
+    return { me, id, why: "" };
+  };
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.court}.allowed`, commandType: SettlementCommands.court,
+    evaluate: (c) => {
+      const { me, id, why } = present(c);
+      if (why) return refuse(SettlementRejection.NotYours, why);
+      if (romanceOf(c.world, me, id)) return refuse(SettlementRejection.Already, romanceOf(c.world, me, id) === "taken" ? `${personName(c.world, id)}已经有家了。` : "你们已经说定了。");
+      if (engagedTo(c.world, me)) return refuse(SettlementRejection.Already, "你已经跟别人定了亲。");
+      const no = courtRefusal(c.world, me, id);
+      return no ? refuse(SettlementRejection.Busy, `${no}。`) : { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.court}.resolve`, commandType: SettlementCommands.court,
+    resolve: (c): Effect[] => {
+      const me = c.command.actorId as string, id = String(c.command.payload.targetId), tick = c.world.tick;
+      const bond = bondOf(socialOf(c.world, id), me);
+      const court = personOf(id)!.court!;
+      // 交情够了还得信得过、心里没疙瘩，对方才点头。
+      const yes = bond.trust >= 7 && bond.grudge < 1;
+      const holding = c.world.getComponent(me, SettlementComponents.holding);
+      const courtAt = { ...((holding?.courtAt ?? {}) as Record<string, JsonValue>), [id]: tick };
+      let memory = withBond(socialOf(c.world, id), me, yes ? { familiarity: 1, trust: 1 } : { trust: 0.5 }, tick);
+      if (yes) memory = withNews(memory, `engaged:${me}:${id}`, { about: me, text: `${personName(c.world, me)}和${personName(c.world, id)}定了亲`, at: tick });
+      return [
+        { kind: "modifyComponent", entityId: me, component: SettlementComponents.holding,
+          patch: { courtAt, ...(yes ? { engaged: { to: id, at: tick } } : {}) }, reason: yes ? "betrothed" : "asked, not yet" },
+        saveSocial(id, memory, "heard your heart"),
+        { kind: "emitEvent", eventType: "settlement-locations.courted", actorId: me, targetId: id,
+          data: { accepted: yes, line: court.accept && yes ? court.accept : court.notYet }, historicalSignificance: yes ? 0.2 : 0.03 },
+      ];
+    },
+  });
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.wed}.allowed`, commandType: SettlementCommands.wed,
+    evaluate: (c) => {
+      const { me, id, why } = present(c);
+      if (why) return refuse(SettlementRejection.NotYours, why);
+      if (engagedTo(c.world, me) !== id) return refuse(SettlementRejection.Busy, "你们还没定亲。");
+      const no = wedRefusal(c.world, me, id);
+      return no ? refuse(SettlementRejection.Busy, `${no}。`) : { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.wed}.resolve`, commandType: SettlementCommands.wed,
+    resolve: (c): Effect[] => {
+      const me = c.command.actorId as string, id = String(c.command.payload.targetId), tick = c.world.tick;
+      const mine = personName(c.world, me), theirs = personName(c.world, id);
+      const effects: Effect[] = [
+        { kind: "addRelation", type: "family.married_to", from: me, to: id, components: { "family.marriage": { since: tick, trust: 0.8 } }, announce: false },
+        { kind: "addRelation", type: "family.married_to", from: id, to: me, components: { "family.marriage": { since: tick, trust: 0.8 } }, announce: false },
+        { kind: "modifyComponent", entityId: me, component: SettlementComponents.holding, patch: { engaged: null, marriedAt: tick }, reason: "wed" },
+      ];
+      // 全村都来道喜：人人都记得这一天。
+      for (const r of RESIDENTS) {
+        const rid = residentId(r.key);
+        if (rid === me) continue;
+        let memory = withBond(socialOf(c.world, rid), me, rid === id ? { familiarity: 1, trust: 1 } : { familiarity: 0.5 }, tick);
+        memory = withNews(memory, `wed:${me}:${id}`, { about: me, text: `${mine}和${theirs}成了亲`, at: tick });
+        effects.push(saveSocial(rid, memory, "a wedding in the village"));
+      }
+      effects.push({ kind: "emitEvent", eventType: "family.married", actorId: me, targetId: id,
+        data: { since: tick, line: `这天全村人都来了。陶婶张罗了一锅热粟饭，埴公说了几句吉利话，孩子们围着你们跑。从今往后，你和${theirs}就是一家人了。` },
+        historicalSignificance: 0.55 });
+      return effects;
+    },
+  });
+}
+
+
+// ---------------------------------------------------------------------------
+// 成家以后：添丁、出生、孩子一年年长大。六岁起孩子就是村里的一个人，自己过日子。
+// ---------------------------------------------------------------------------
+const FAMILY = RIVER_TERRACE_PACK.family;
+export const CARRY_DAYS = 270;
+/** 年岁以每年长一岁的 vitals 为准（村民的出生日可能早于世界开始，不能拿来算）。 */
+const AGE_OF = (world: WorldView, id: string) => {
+  const years = world.getComponent(id, "modern.vitals")?.ageYears;
+  if (typeof years === "number") return years;
+  const born = Number(world.getComponent(id, "modern.identity")?.bornAt ?? world.tick);
+  return Math.floor((world.tick - born) / DAY_TICKS_PER_YEAR);
+};
+export function childrenOf(world: WorldView, me: string): string[] {
+  return world.listRelations({ type: "family.parent_of", from: me }).map((r) => r.to)
+    .filter((id) => world.getEntity(id) && world.getEntity(id)!.archivedAt === undefined);
+}
+function expectingAt(world: WorldView, me: string): number {
+  const v = world.getComponent(me, SettlementComponents.holding)?.expectingAt;
+  return typeof v === "number" ? v : -1;
+}
+function stageOf(age: number): string {
+  let out = "";
+  for (const [from, words] of FAMILY?.stages ?? []) if (age >= from) out = words;
+  return out;
+}
+
+/** 这段日子里（days 天）家里发生了什么：怀上、出生、孩子长到六岁。 */
+function familyEffects(world: WorldView, me: string, days: number, inSeason = false, shared?: SocialDraft): { effects: Effect[]; lines: string[] } {
+  const effects: Effect[] = [], lines: string[] = [];
+  const draft: SocialDraft = shared ?? new Map();
+  if (!FAMILY) return { effects, lines };
+  const tick = world.tick, spouse = spouseOf(world, me);
+  const kids = childrenOf(world, me);
+  const expecting = expectingAt(world, me);
+  const fill = (t: string, vars: Record<string, string>) => t.replace(/\{(\w+)\}/g, (_, k: string) => vars[k] ?? "");
+  // 出生：怀上九个月。
+  if (expecting >= 0 && tick - expecting >= CARRY_DAYS) {
+    const bornAt = expecting + CARRY_DAYS;
+    const n = kids.length;
+    const used = new Set(kids.map((k) => personName(world, k)));
+    const pool = FAMILY.names.filter((x) => !used.has(x));
+    const name = (pool.length ? pool[pickIndex(`${me}:${bornAt}:name`, pool.length)] : undefined) ?? `孩子${n + 1}`;
+    const sex = pickIndex(`${me}:${bornAt}:sex`, 2) === 0 ? "female" : "male";
+    const id = `settlement-locations:child:${bornAt}:${n}`;
+    const identity = world.getComponent(me, "modern.identity");
+    effects.push(
+      { kind: "spawnEntity", localId: `child:${n}`, id, entityKind: "modern.character", components: {
+        "modern.identity": { givenName: name, familyName: String(identity?.familyName ?? ""), sex,
+          generation: Number(identity?.generation ?? 1) + 1, lineageId: String(identity?.lineageId ?? "family:lineage:1"), bornAt },
+        "modern.vitals": { alive: true, health: 1, ageYears: 0, lifespan: 78 },
+        "modern.residence": { cityId: "modern:city:north" }, "modern.wealth": { cash: 0, debt: 0 } }, announce: false },
+      { kind: "addRelation", type: "family.parent_of", from: me, to: id, components: { "family.parent": { since: bornAt } }, announce: false },
+      ...(spouse ? [{ kind: "addRelation" as const, type: "family.parent_of", from: spouse, to: id, components: { "family.parent": { since: bornAt } }, announce: false }] : []),
+      { kind: "modifyComponent", entityId: me, component: SettlementComponents.holding, patch: { expectingAt: null, lastBornAt: bornAt }, reason: "a child is born" },
+      { kind: "emitEvent", eventType: "family.child_born", actorId: me, targetId: id,
+        data: { givenName: name, ...(inSeason ? {} : { line: fill(FAMILY.born, { month: String(calendarDate(bornAt).month), sex: sex === "female" ? "女孩" : "男孩", name }) }) }, historicalSignificance: 0.6 });
+    for (const r of RESIDENTS) {
+      const rid = residentId(r.key);
+      if (world.getEntity(rid)?.archivedAt !== undefined) continue;
+      draft.set(rid, withNews(draftOf(draft, world, rid), `born:${id}`, { about: me, text: `${personName(world, me)}家添了个${sex === "female" ? "闺女" : "小子"}，叫${name}`, at: tick }));
+    }
+    lines.push(fill(FAMILY.born, { month: String(calendarDate(bornAt).month), sex: sex === "female" ? "女孩" : "男孩", name }));
+  } else if (expecting < 0 && spouse && world.getComponent(spouse, "modern.vitals")?.alive !== false && kids.length < 4) {
+    // 怀上：成了亲、两人都还年轻、上一个孩子满了一岁半；一季大约三成机会。
+    const ages = [AGE_OF(world, me), AGE_OF(world, spouse)];
+    const lastBorn = Number(world.getComponent(me, SettlementComponents.holding)?.lastBornAt ?? -9999);
+    if (ages.every((a) => a >= 18 && a <= 45) && tick - lastBorn >= 720) {
+      const perDay = 1 / 360;
+      const chance = 1 - Math.pow(1 - perDay, Math.max(1, days));
+      if (pickIndex(`${me}:${tick}:conceive`, 1000) < Math.round(chance * 1000)) {
+        effects.push({ kind: "modifyComponent", entityId: me, component: SettlementComponents.holding, patch: { expectingAt: tick }, reason: "expecting a child" });
+        const line = fill(FAMILY.expecting, { spouse: personName(world, spouse) });
+        effects.push({ kind: "emitEvent", eventType: "settlement-locations.expecting", actorId: me, targetId: spouse, data: inSeason ? {} : { line }, historicalSignificance: 0.1 });
+        lines.push(line);
+      }
+    }
+  }
+  // 长到六岁：成了村里的一个人，跟着家里人过日子。
+  for (const kid of kids) {
+    if (world.getComponent(kid, SettlementComponents.resident) || AGE_OF(world, kid) < 6) continue;
+    const parent = spouse && world.getComponent(spouse, SettlementComponents.resident) ? readResident(world, spouse)! : undefined;
+    const name = personName(world, kid);
+    effects.push(
+      { kind: "setComponent", entityId: kid, component: SettlementComponents.resident, value: {
+        household: parent?.household ?? "你家", role: "孩子", trait: "", wish: "",
+        workPlace: "place:yard", homeSpace: parent?.homeSpace ?? "", hunger: 0, rested: 1, standingRoutine: "",
+        social: toJson(withBond(readSocial(undefined), me, { familiarity: 8, trust: 9 }, tick)) } as unknown as Record<string, never>, reason: "old enough to help at home" },
+      { kind: "setComponent", entityId: kid, component: SettlementComponents.holding, value: { hunger: 0, hungerAt: tick }, reason: "a child's own day" },
+      { kind: "addRelation", type: SpaceRelations.occupancy, from: kid, to: "place:yard",
+        components: { [SpaceComponents.occupancy]: { placeId: "place:yard", spaceId: "", since: tick } }, announce: false },
+      { kind: "emitEvent", eventType: "settlement-locations.child_grew", actorId: me, targetId: kid, data: inSeason ? {} : { line: fill(FAMILY.grows, { name }) }, historicalSignificance: 0.1 });
+    lines.push(fill(FAMILY.grows, { name }));
+  }
+  if (!shared) effects.push(...flushDraft(draft, "family news"));
+  return { effects, lines };
+}
+
+/** 家里的样子：配偶、孩子几岁在做什么、是不是要添丁了。 */
+export function familyView(world: WorldView, me: string) {
+  const spouse = spouseOf(world, me);
+  return {
+    spouse: spouse ? { id: spouse, name: personName(world, spouse) } : null,
+    expecting: expectingAt(world, me) >= 0,
+    children: childrenOf(world, me).map((id) => {
+      const age = AGE_OF(world, id);
+      return { id, name: personName(world, id), age, stage: stageOf(age), alive: world.getComponent(id, "modern.vitals")?.alive !== false };
+    }),
+  };
+}
+
+/** 今天家里有没有要发生的事（没事就不发命令，不占一条记录）。 */
+export function familyDue(world: WorldView, me: string): boolean {
+  return Boolean(me && FAMILY && familyEffects(world, me, 1).effects.length);
+}
+
+function registerFamilyLife(ctx: Registration): void {
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.familyTick}.allowed`, commandType: SettlementCommands.familyTick,
+    evaluate: (c) => {
+      const me = c.command.actorId ?? "";
+      if (!me || me !== activeId(c.world)) return refuse(SettlementRejection.NotYours, "只看你自己家。");
+      // 没有要发生的事就不记一笔。
+      return familyEffects(c.world, me, 1).effects.length ? { ok: true } : refuse(SettlementRejection.Busy, "家里今天一切照常。");
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.familyTick}.resolve`, commandType: SettlementCommands.familyTick,
+    resolve: (c): Effect[] => familyEffects(c.world, c.command.actorId as string, 1).effects,
+  });
+}
+
+
+// ---------------------------------------------------------------------------
+// 人走了：全村都知道，家里人难过一阵；你走了，长大的孩子接过这一生。
+// ---------------------------------------------------------------------------
+export const HEIR_AGE = 16;
+const ALIVE = (world: WorldView, id: string) => world.getEntity(id) !== undefined && world.getEntity(id)!.archivedAt === undefined && world.getComponent(id, "modern.vitals")?.alive !== false;
+
+/** 能接过这一生的孩子：在世、满十六。 */
+export function heirsOf(world: WorldView, me: string): Array<{ id: string; name: string; age: number }> {
+  return world.listRelations({ type: "family.parent_of", from: me }).map((r) => r.to).filter((id) => ALIVE(world, id))
+    .map((id) => ({ id, name: personName(world, id), age: AGE_OF(world, id) })).filter((h) => h.age >= HEIR_AGE);
+}
+
+function registerPassing(ctx: Registration): void {
+  ctx.registerReactionRule({
+    id: "settlement-locations.passing.remembered", eventType: "modern.character_died",
+    react: (c): Effect[] => {
+      const dead = c.event.actorId ?? "";
+      const player = activeId(c.world);
+      if (!dead || !c.world.getComponent(SettlementId, SettlementComponents.settlement)) return [];
+      const isVillager = Boolean(c.world.getComponent(dead, SettlementComponents.resident));
+      if (!isVillager && dead !== player) return [];
+      const name = personName(c.world, dead), age = AGE_OF(c.world, dead), tick = c.world.tick;
+      const effects: Effect[] = [];
+      const kin = new Set([...world_kin(c.world, dead)]);
+      for (const r of c.world.listEntities({ kind: "modern.character" })) {
+        if (r.id === dead || r.archivedAt !== undefined || !c.world.getComponent(r.id, SettlementComponents.resident)) continue;
+        effects.push(saveSocial(r.id, withNews(socialOf(c.world, r.id), `died:${dead}`, { about: dead, text: `${name}走了，${age}岁`, at: tick }), "news of a death"));
+        if (kin.has(r.id)) effects.push({ kind: "modifyComponent", entityId: r.id, component: SettlementComponents.resident, patch: { mournAt: tick }, reason: "mourning" });
+      }
+      if (dead !== player && player) {
+        const close = spouseOf(c.world, player) === dead ? "你的另一半" : childrenOf(c.world, player).includes(dead) ? "你的孩子" : "";
+        const hearts = heartsOf(bondOf(socialOf(c.world, dead), player));
+        const line = close
+          ? `${close}${name}走了，才${age}岁。家里一下子空了许多。`
+          : `${name}走了，${age}岁。${hearts >= 5 ? "你想起和${name}一起的那些日子，心里空落落的。".replace("${name}", name) : "全村人送了最后一程。"}`;
+        effects.push({ kind: "emitEvent", eventType: "settlement-locations.passed_away", actorId: dead, targetId: player, data: { line, age }, historicalSignificance: 0.3 });
+      }
+      return effects;
+    },
+  });
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.handoff}.allowed`, commandType: SettlementCommands.handoff,
+    evaluate: (c) => {
+      const me = c.command.actorId ?? "", to = String(c.command.payload.targetId ?? "");
+      if (!me || me !== activeId(c.world)) return refuse(SettlementRejection.NotYours, "只能交给你自己的孩子。");
+      if (ALIVE(c.world, me)) return refuse(SettlementRejection.Busy, "这一生还没有走完。");
+      if (!heirsOf(c.world, me).some((h) => h.id === to)) return refuse(SettlementRejection.NoSuchResident, `要在世、满${HEIR_AGE}岁的孩子才能接过来。`);
+      return { ok: true };
+    },
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.handoff}.resolve`, commandType: SettlementCommands.handoff,
+    resolve: (c): Effect[] => {
+      const me = c.command.actorId as string, child = String(c.command.payload.targetId), tick = c.world.tick;
+      const parent = personName(c.world, me), name = personName(c.world, child), age = AGE_OF(c.world, child);
+      const parentHolding = c.world.getComponent(me, SettlementComponents.holding);
+      const childHolding = c.world.getComponent(child, SettlementComponents.holding) ?? {};
+      // 家传：手艺、出身（村里人当你是这家的孩子），家里人记着的情分照旧。
+      const skills = [...new Set([...(Array.isArray(childHolding.skills) ? childHolding.skills.map(String) : []), ...skillsOf(c.world, me)])];
+      const effects: Effect[] = [
+        { kind: "modifyComponent", entityId: "modern:world", component: "modern.world_state",
+          patch: { activeCharacterId: child, generation: Number(c.world.getComponent(child, "modern.identity")?.generation ?? 2) }, reason: "the next generation" },
+        { kind: "setComponent", entityId: child, component: SettlementComponents.holding,
+          value: { ...childHolding, hunger: 0, hungerAt: tick, skills, inheritedFrom: me,
+            origin: (parentHolding?.origin ?? { id: "none", talents: [], chosenAt: -1 }) } as unknown as Record<string, never>, reason: "a life handed down" },
+      ];
+      effects.push({ kind: "emitEvent", eventType: "modern.generation_switched", actorId: child,
+        data: { previousCharacterId: me, line: `${parent}走了。你是${name}，${age}岁，从今天起，这个家由你撑起来。${skills.length ? "家里传下来的手艺，你也都会。" : ""}` }, historicalSignificance: 0.6 });
+      return effects;
+    },
+  });
+}
+
+function world_kin(world: WorldView, id: string): string[] {
+  const out = new Set<string>();
+  for (const r of world.listRelations({ type: "family.married_to", from: id })) out.add(r.to);
+  for (const r of world.listRelations({ type: "family.parent_of", from: id })) out.add(r.to);
+  for (const r of world.listRelations({ type: "family.parent_of", to: id })) out.add(r.from);
+  const home = RESIDENTS.find((r) => residentId(r.key) === id)?.homeSpace;
+  if (home) for (const r of RESIDENTS) if (r.homeSpace === home) out.add(residentId(r.key));
+  return [...out];
+}
+
+
+// ---------------------------------------------------------------------------
+// 村里的年景与人事：每到换季，村里总会有点事——年景好坏、天灾来客；
+// 村民之间处得好的会结亲、添丁；人少了，渡口会来落脚的外乡人。
+// 一季只结算一次（记在聚落上），日子一天天过和一季一季过都走这里。
+// ---------------------------------------------------------------------------
+const STORY = RIVER_TERRACE_PACK.storyteller;
+const seasonKey = (tick: number) => `${Math.floor(tick / DAY_TICKS_PER_YEAR)}:${seasonOf(tick)}`;
+function sexOf(world: WorldView, id: string): string {
+  const sex = String(world.getComponent(id, "modern.identity")?.sex ?? "other");
+  return sex !== "other" ? sex : personOf(id)?.sex ?? "other";
+}
+export function seasonTurnDue(world: WorldView): boolean {
+  const s = world.getComponent(SettlementId, SettlementComponents.settlement);
+  return Boolean(STORY && s && String(s.lastSeasonTurn ?? "") !== seasonKey(world.tick) && Number(s.foundedAt ?? 0) < world.tick);
+}
+const villagersAlive = (world: WorldView) => world.listEntities({ kind: "modern.character" })
+  .filter((e) => e.archivedAt === undefined && e.components["modern.vitals"]?.alive !== false && Boolean(e.components[SettlementComponents.resident]))
+  .map((e) => e.id);
+
+export function seasonTurnEffects(world: WorldView, inSeason = false, shared?: SocialDraft): { effects: Effect[]; lines: string[] } {
+  const draft: SocialDraft = shared ?? new Map();
+  const tick = world.tick, key = seasonKey(tick), season = seasonOf(tick);
+  const effects: Effect[] = [{ kind: "modifyComponent", entityId: SettlementId, component: SettlementComponents.settlement, patch: { lastSeasonTurn: key }, reason: "a new season" }];
+  const lines: string[] = [];
+  // 刚落脚的那一季不算「换季」：只记下来，不讲事。
+  if (!STORY || !world.getComponent(SettlementId, SettlementComponents.settlement)?.lastSeasonTurn) return { effects, lines };
+  const fill = (t: string, v: Record<string, string>) => t.replace(/\{(\w+)\}/g, (_, k: string) => v[k] ?? "");
+  const living = villagersAlive(world);
+  const player = activeId(world);
+  const news = (text: string, id: string) => {
+    for (const rid of living) draft.set(rid, withNews(draftOf(draft, world, rid), id, { about: rid, text, at: tick }));
+  };
+  const tell = (line: string) => {
+    lines.push(line);
+    if (!inSeason && player) effects.push({ kind: "emitEvent", eventType: "settlement-locations.village_story", targetId: player, data: { line }, historicalSignificance: 0.05 });
+  };
+
+  // 1. 年景：不是每季都有事。
+  const pool = STORY.events.filter((e) => e.seasons.includes(season));
+  if (pool.length && pickIndex(`story:${key}`, 100) < Math.round(STORY.chance * 100)) {
+    const ev = pool[pickIndex(`story:${key}:which`, pool.length)]!;
+    for (const [where, factor] of Object.entries(ev.yields ?? {})) {
+      const [, placeId, resourceId] = where.match(/^(place:[^:]+):(.+)$/) ?? [];
+      const point = yieldPoints(world).find((y) => y.placeId === placeId && y.resourceId === resourceId);
+      if (!point) continue;
+      effects.push({ kind: "setComponent", entityId: `yield:${placeId}:${resourceId}`, component: SettlementComponents.yieldPoint,
+        value: { placeId, resourceId, label: point.label, unit: point.unit, capacity: point.capacity,
+          stock: Math.min(point.capacity, Math.round(point.stock * factor)), renewDays: point.renewDays, lastRenewedAt: tick } as unknown as Record<string, never>,
+        reason: `season story: ${ev.id}` });
+    }
+    news(ev.text, `story:${key}`);
+    tell(ev.text);
+  }
+
+  // 1b. 一季下来，一起干活的、本来要好的村民彼此更熟一些（一天天过时，碰面本身就会让人更熟）。
+  if (inSeason) for (const a of living) for (const b of living) {
+    if (a === b || b === player) continue;
+    const ra = readResident(world, a), rb = readResident(world, b);
+    const near = (ra?.workPlace && ra.workPlace === rb?.workPlace) || tieWarmth(a, b) > 0 || ra?.homeSpace === rb?.homeSpace;
+    if (near) draft.set(a, withBond(draftOf(draft, world, a), b, { familiarity: 0.5 }, tick));
+  }
+
+  // 2. 结亲：两个都没成家的大人，彼此都熟、都有好感，就有可能。一季最多一对。
+  const age = (id: string) => AGE_OF(world, id);
+  const single = living.filter((id) => !spouseOf(world, id) && !PEOPLE_TIES_SPOUSE.has(keyOfResident(id)) && age(id) >= 18 && age(id) <= 45 && id !== player
+    && engagedTo(world, player) !== id);
+  const kinOfId = (id: string) => new Set(world_kin(world, id));
+  let wed = false;
+  for (let i = 0; i < single.length && !wed; i++) for (let j = i + 1; j < single.length && !wed; j++) {
+    const a = single[i]!, b = single[j]!;
+    if (kinOfId(a).has(b) || Math.abs(age(a) - age(b)) > 16) continue;
+    const ab = bondOf(draftOf(draft, world, a), b), ba = bondOf(draftOf(draft, world, b), a);
+    const warmth = ab.familiarity + ba.familiarity + (tieWarmth(a, b) + tieWarmth(b, a)) * 2;
+    if (warmth < 8 || ab.grudge + ba.grudge > 1) continue;
+    if (pickIndex(`wed:${key}:${a}:${b}`, 100) >= 35) continue;
+    wed = true;
+    effects.push(
+      { kind: "addRelation", type: "family.married_to", from: a, to: b, components: { "family.marriage": { since: tick, trust: 0.8 } }, announce: false },
+      { kind: "addRelation", type: "family.married_to", from: b, to: a, components: { "family.marriage": { since: tick, trust: 0.8 } }, announce: false });
+    const text = fill(STORY.couple, { a: personName(world, a), b: personName(world, b) });
+    news(text, `wed:${a}:${b}`);
+    tell(text);
+  }
+
+  // 3. 添丁：村里成了亲的人家（不算你家，你家自己算）。一季最多一个。
+  const couples = living.filter((id) => spouseOf(world, id) && id < spouseOf(world, id) && spouseOf(world, id) !== player && id !== player);
+  for (const a of couples) {
+    const b = spouseOf(world, a);
+    if (!living.includes(b) || age(a) > 45 || age(b) > 45) continue;
+    if (new Set([sexOf(world, a), sexOf(world, b)]).size !== 2) continue;
+    const kids = world.listRelations({ type: "family.parent_of", from: a }).length;
+    const last = Number(world.getComponent(a, SettlementComponents.resident)?.lastBornAt ?? -9999);
+    if (kids >= 3 || tick - last < 720 || pickIndex(`npcborn:${key}:${a}`, 100) >= 22) continue;
+    const used = new Set(world.listEntities({ kind: "modern.character" }).map((e) => String(e.components["modern.identity"]?.givenName ?? "")));
+    const names = (FAMILY?.names ?? []).filter((x) => !used.has(x));
+    const name = names.length ? names[pickIndex(`npcname:${key}:${a}`, names.length)]! : `${personName(world, a).slice(-1)}娃`;
+    const id = `settlement-locations:child:${tick}:${a}`;
+    const home = readResident(world, a);
+    effects.push(
+      { kind: "spawnEntity", localId: `npc-child:${a}`, id, entityKind: "modern.character", components: {
+        "modern.identity": { givenName: name, familyName: "", sex: pickIndex(`${id}:sex`, 2) ? "male" : "female", generation: 1, lineageId: `npc:${home?.household ?? ""}`, bornAt: tick },
+        "modern.vitals": { alive: true, health: 1, ageYears: 0, lifespan: 78 },
+        "modern.residence": { cityId: "modern:city:north" }, "modern.wealth": { cash: 0, debt: 0 } }, announce: false },
+      { kind: "addRelation", type: "family.parent_of", from: a, to: id, components: { "family.parent": { since: tick } }, announce: false },
+      { kind: "addRelation", type: "family.parent_of", from: b, to: id, components: { "family.parent": { since: tick } }, announce: false },
+      { kind: "modifyComponent", entityId: a, component: SettlementComponents.resident, patch: { lastBornAt: tick }, reason: "a child born" });
+    const text = fill(STORY.npcBirth, { parent: `${personName(world, a)}和${personName(world, b)}`, name });
+    news(text, `born:${id}`);
+    tell(text);
+    break;
+  }
+
+  // 4. 村里的孩子长到六岁，就是村里的一个人了。
+  for (const e of world.listEntities({ kind: "modern.character" })) {
+    if (e.archivedAt !== undefined || e.components[SettlementComponents.resident] || e.id === player) continue;
+    const parents = world.listRelations({ type: "family.parent_of", to: e.id }).map((r) => r.from);
+    if (!parents.length || parents.includes(player) || AGE_OF(world, e.id) < 6) continue;
+    const home = parents.map((p) => readResident(world, p)).find(Boolean);
+    if (!home) continue;
+    effects.push(
+      { kind: "setComponent", entityId: e.id, component: SettlementComponents.resident, value: { household: home.household, role: "孩子", trait: "", wish: "",
+        workPlace: home.workPlace, homeSpace: home.homeSpace, hunger: 0, rested: 1, standingRoutine: "" } as unknown as Record<string, never>, reason: "old enough to help" },
+      { kind: "setComponent", entityId: e.id, component: SettlementComponents.holding, value: { hunger: 0, hungerAt: tick }, reason: "a child's own day" },
+      { kind: "addRelation", type: SpaceRelations.occupancy, from: e.id, to: home.workPlace || "place:yard",
+        components: { [SpaceComponents.occupancy]: { placeId: home.workPlace || "place:yard", spaceId: "", since: tick } }, announce: false });
+  }
+
+  // 5. 人少了：渡口来一个外乡人，住进空出来的屋子。
+  if (living.length < RESIDENTS.length - 2 && pickIndex(`newcomer:${key}`, 100) < 40) {
+    const used = new Set(world.listEntities({ kind: "modern.character" }).map((e) => String(e.components["modern.identity"]?.givenName ?? "")));
+    const names = STORY.newcomerNames.filter((x) => !used.has(x));
+    if (names.length) {
+      const name = names[pickIndex(`newcomer:${key}:name`, names.length)]!;
+      const occupied = new Set(living.map((id) => readResident(world, id)?.homeSpace));
+      const empty = RESIDENTS.find((r) => !occupied.has(r.homeSpace));
+      const homeSpace = empty?.homeSpace ?? "space:ford-sleep";
+      const workPlace = empty?.workPlace ?? "place:ford";
+      const id = `settlement-locations:newcomer:${tick}`;
+      const ageYears = 20 + pickIndex(`${id}:age`, 16);
+      effects.push(
+        { kind: "spawnEntity", localId: "newcomer", id, entityKind: "modern.character", components: {
+          "modern.identity": { givenName: name, familyName: "", sex: pickIndex(`${id}:sex`, 2) ? "male" : "female", generation: 0, lineageId: `npc:${name}`, bornAt: tick - ageYears * DAY_TICKS_PER_YEAR },
+          "modern.vitals": { alive: true, health: 1, ageYears, lifespan: 78 },
+          "modern.residence": { cityId: "modern:city:north" }, "modern.wealth": { cash: 0, debt: 0 },
+          [SettlementComponents.resident]: { household: `${name}家`, role: "新来的外乡人", trait: "", wish: "", workPlace, homeSpace, hunger: 0, rested: 1, standingRoutine: "" } as unknown as Record<string, never>,
+          [SettlementComponents.holding]: { hunger: 0, hungerAt: tick } as unknown as Record<string, never> }, announce: false },
+        { kind: "addRelation", type: SpaceRelations.occupancy, from: id, to: "place:ford",
+          components: { [SpaceComponents.occupancy]: { placeId: "place:ford", spaceId: "", since: tick } }, announce: false });
+      const text = fill(STORY.newcomer, { name, from: STORY.newcomerFrom[pickIndex(`${id}:from`, STORY.newcomerFrom.length)]!,
+        home: String(world.getComponent(homeSpace, SpaceComponents.space)?.name ?? "一间空屋") });
+      news(text, `newcomer:${id}`);
+      tell(text);
+    }
+  }
+  if (!shared) effects.push(...flushDraft(draft, "village news"));
+  return { effects, lines };
+}
+
+function registerStoryteller(ctx: Registration): void {
+  ctx.registerConstraintRule({
+    id: `${SettlementCommands.seasonTurn}.allowed`, commandType: SettlementCommands.seasonTurn,
+    evaluate: (c) => seasonTurnDue(c.world) ? { ok: true } : refuse(SettlementRejection.Busy, "这一季的事已经过去了。"),
+  });
+  ctx.registerResolutionRule({
+    id: `${SettlementCommands.seasonTurn}.resolve`, commandType: SettlementCommands.seasonTurn,
+    resolve: (c): Effect[] => seasonTurnEffects(c.world).effects,
+  });
+}

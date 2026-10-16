@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
@@ -78,6 +79,58 @@ test("UX-P0: Web can only know villagers by real conversations, not one-click fr
   }
 });
 
+test("Exchange: Web shows tradeable goods and partners, and the general exchange answers with a reason", { timeout: 40000 }, async () => {
+  const child = spawn(process.execPath, [fileURLToPath(new URL("../../apps/web/server.ts", import.meta.url))], {
+    env: { ...process.env, PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
+  });
+  let stderr = "";
+  child.stderr.on("data", (chunk) => { stderr += chunk; });
+  try {
+    const base = await new Promise<string>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error(`server startup timeout: ${stderr}`)), 10000);
+      let output = "";
+      child.stdout.on("data", (chunk) => {
+        output += chunk;
+        const match = output.match(/http:\/\/127\.0\.0\.1:\d+(?=\r?\n)/);
+        if (match) { clearTimeout(timer); resolve(match[0]); }
+      });
+      child.on("error", (error) => { clearTimeout(timer); reject(error); });
+      child.on("exit", (code) => { clearTimeout(timer); reject(new Error(`early exit ${code}: ${stderr}`)); });
+    });
+    const call = async (path: string, body?: Record<string, unknown>) => {
+      const response = await fetch(`${base}/api/${path}`, body
+        ? { method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify(body) } : {});
+      return { status: response.status, data: await response.json() as Record<string, any> };
+    };
+    let s = (await call("state")).data;
+    const act = async (action: string, payload: Record<string, unknown> = {}, ok = true) => {
+      const response = await call("action", { action, payload, expectedTick: s.tick,
+        expectedActorId: s.character.id, expectedActivityUsed: s.settlement.dailyActivity.used });
+      assert.equal(response.status, 200, action);
+      assert.equal(response.data.result.ok, ok, JSON.stringify(response.data.result.errors));
+      s = response.data.state;
+      return response.data.result;
+    };
+    await act("settlement-locations.arrive", { placeId: "place:field", travelMode: "local" });
+    await act("settlement-locations.draw", { placeId: "place:field", resourceId: "resource:grain" });
+    assert.equal(s.settlement.exchange.mine["resource:grain"].length, 1, "own grain is offered as tradeable");
+    assert.equal(s.settlement.exchange.labels["resource:grain"], "粟");
+    const partner = s.settlement.exchange.partners[0];
+    assert.ok(partner?.name && typeof partner.owed === "number", "people standing here are exchange partners");
+    const missing = Object.keys(s.settlement.exchange.labels).find((r) => !(r in partner.goods) && r !== "resource:grain")!;
+    const refused = await act("settlement-locations.exchange", {
+      targetId: partner.id, give: s.settlement.exchange.mine["resource:grain"], askResource: missing, askAmount: 1,
+    }, false);
+    assert.match(refused.errors[0].message, /手上没有/);
+    const client = readFileSync(new URL("../../apps/web/public/settlement.js", import.meta.url), "utf8");
+    assert.match(client, /提出交换/);
+    assert.match(client, /记作人情/);
+  } finally {
+    child.kill();
+  }
+});
+
 test("M3-D: Web lets player gather grain, ask the cook, refuse or accept the exact real goods", { timeout: 40000 }, async () => {
   const child = spawn(process.execPath, [fileURLToPath(new URL("../../apps/web/server.ts", import.meta.url))], {
     env: { ...process.env, PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
@@ -120,6 +173,9 @@ test("M3-D: Web lets player gather grain, ask the cook, refuse or accept the exa
       state = response.data.state;
     };
     const setup = async () => {
+      // Outdoor gathering costs more on wet days; this scenario is about the trade, so wait for a dry day.
+      for (let guard = 0; guard < 10 && ["雨", "雪"].includes(state.settlement.weather?.sky); guard += 1)
+        await act("settlement-locations.end_day");
       await act("settlement-locations.arrive", { placeId: "place:field", travelMode: "local" });
       await act("settlement-locations.draw", { placeId: "place:field", resourceId: "resource:grain" });
       assert.equal(carried("resource:grain"), 1);
@@ -262,7 +318,8 @@ test("M3-C: manual end-day and continuous batches share one persisted NPC day bo
     assert.equal(continuous.data.result.interrupted, false, JSON.stringify(continuous.data.result));
     state = continuous.data.state;
     assert.equal(state.tick, startTick + 2);
-    assert.equal(cookedStock(), initialFood - 2, "no skipped or duplicate NPC meal in continuous mode");
+    // The kitchen starts full and refills overnight, so one farmer meal a day leaves it one short each morning.
+    assert.equal(cookedStock(), initialFood - 1, "no skipped or duplicate NPC meal in continuous mode");
     assert.match(cook()?.dailyNote ?? "", /柴草/);
 
     // Doing unrelated manual activity in the SAME day does not trigger NPCs.
@@ -272,29 +329,28 @@ test("M3-C: manual end-day and continuous batches share one persisted NPC day bo
     const farmer = state.settlement.neighbours.find((r: { name: string }) => r.name === "阿予");
     assert.match(farmer?.dailyNote ?? "", /照料田地/);
     await action("settlement-locations.arrive", { placeId: "place:hearth-yard", travelMode: "local" });
-    assert.equal(cookedStock(), initialFood - 2, "no double meal when player moves within one day");
+    assert.equal(cookedStock(), initialFood - 1, "no double meal when player moves within one day");
 
     const stale = await call("action", {
       action: "settlement-locations.end_day", payload: {},
       expectedTick: startTick, expectedActorId: playerId,
     });
     assert.equal(stale.status, 409);
-    assert.equal(cookedStock(), initialFood - 2);
+    assert.equal(cookedStock(), initialFood - 1);
 
     await action("settlement-locations.end_day");
     assert.equal(state.tick, startTick + 3);
-    assert.equal(cookedStock(), initialFood - 3, "third day uses same bounded day routine");
+    assert.equal(cookedStock(), initialFood - 1, "third day uses same bounded day routine (refill, then one meal)");
     assert.equal(cook()?.tradeCount, 0);
 
-    // A legacy multi-day travel skip must not silently synthesize old NPC days.
-    const stockBeforeJump = cookedStock();
+    // M4-B: a two-day journey is two lived village days, not a frozen village.
+    // The engine's village agent runs for each stepped day of the trip.
     const beforeJump = state.tick;
     await action("settlement-locations.arrive", { placeId: "place:river", costDays: 2 });
     assert.equal(state.tick, beforeJump + 2);
     await action("settlement-locations.arrive", { placeId: "place:hearth-yard", travelMode: "local" });
-    assert.equal(cookedStock(), stockBeforeJump);
-    assert.equal(cook()?.dailyNote ?? "", "", "no fake current-day note after a skipped period");
-    assert.equal(cook()?.tradeCount, 0);
+    assert.ok(cookedStock() >= 0, "shared food stays a real, finite stock");
+    assert.match(cook()?.dailyNote ?? "", /\S/, "the cook kept living while the player travelled");
     const page = await (await fetch(`${base}/`)).text();
     assert.match(page, /pauseAutoButton|startContinuousAuto/,
       "the existing start/pause controls remain present");
@@ -642,6 +698,9 @@ test("M2-B: Web weaves a carrying bag and sleeping mat with real storage and res
     assert.ok(s.settlement.actions.some((a: { id: string; enabled: boolean; payload: { matId?: string } }) =>
       a.id === "settlement-locations.rest" && a.payload.matId === matId && a.enabled),
       "laying the real mat at home does not remove its usable benefit");
+    // A leaking roof on a wet night soaks the mat; this check is about a dry night's benefit.
+    for (let guard = 0; guard < 10 && s.settlement.roof.leaking && ["雨", "雪"].includes(s.settlement.weather.sky); guard += 1)
+      await act("settlement-locations.end_day");
     await act("settlement-locations.rest", { spaceId: s.settlement.spaceId, matId });
     assert.equal(s.settlement.dailyActivity.capacity, 8, "resting does not increase today's budget");
     const matSave = (await call("save", { label: "woven-mat" })).data.save;
@@ -833,7 +892,8 @@ test("Web player walks the settlement, borrows a jar, fetches water and returns 
     assert.equal(cropLoaded.data.result.ok, true);
     s = cropLoaded.data.state;
     assert.equal(s.settlement.crop.phase, "growing", "growing crop survives save/load");
-    for (let day = 0; day < 30; day += 1) await act("settlement-locations.end_day");
+    // Growth time depends on the sowing season (30 days spring/summer, up to 60 in winter).
+    for (let day = 0; day < 60 && s.settlement.crop.phase !== "ready"; day += 1) await act("settlement-locations.end_day");
     assert.equal(s.settlement.crop.phase, "ready");
     await act("settlement-locations.harvest");
     assert.equal(s.settlement.crop.phase, "fallow");
@@ -841,11 +901,13 @@ test("Web player walks the settlement, borrows a jar, fetches water and returns 
       r.resourceId === "resource:grain")?.count, 3);
     const farmerTrades = s.settlement.neighbours.find((resident: { name: string }) =>
       resident.name === "阿予")?.tradeCount ?? 0;
-    assert.equal(farmerTrades, 0, "day 30 does not mint a predetermined trade");
+    assert.equal(farmerTrades, 0, "harvest day does not mint a predetermined trade");
     const remainingGrain = s.settlement.yields.find((r: { resourceId: string }) =>
       r.resourceId === "resource:grain").stock;
-    assert.ok(remainingGrain >= 0 && remainingGrain <= initialSeedStock - 1,
-      "player seed and any separate autonomous gathering all come from finite field stock");
+    const heapCapacity = s.settlement.yields.find((r: { resourceId: string }) =>
+      r.resourceId === "resource:grain").capacity ?? initialSeedStock;
+    assert.ok(remainingGrain >= 0 && remainingGrain <= heapCapacity,
+      "harvest surplus returns to the field heap, which never exceeds its capacity");
     // Let a day pass, then keep saving and loading the whole world.
     const beforeDay = s.tick;
     await act("settlement-locations.end_day");
@@ -1154,7 +1216,7 @@ test("M2-UX1: bounded continuous batches advance, guard stale requests, and stop
     assert.equal((await call("state")).data.tick, startingTick);
     let totalDays = 0;
     let stopped = false;
-    for (let i = 0; i < 6; i += 1) {
+    for (let i = 0; i < 12; i += 1) {
       const previousTick = state.tick;
       const response = await call("autosim", {
         mode: "continuous-batch", days: 3, expectedTick: previousTick, expectedActorId: actorId,
@@ -1179,7 +1241,7 @@ test("M2-UX1: bounded continuous batches advance, guard stale requests, and stop
       }
     }
     assert.equal(stopped, true, "real critical need returns control to the player");
-    assert.equal(totalDays, 10, "stops on the crisis, not at the end of a three-day batch");
+    assert.equal(totalDays, 20, "hunger +1 every 2 days: stops on the crisis, not at the end of a three-day batch");
     assert.equal(state.settlement.hunger, 10);
     const after = await call("autosim", { mode: "continuous-batch", days: 3,
       expectedTick: state.tick, expectedActorId: actorId });

@@ -1,7 +1,11 @@
+import { isTextMode } from "/view-mode.js";
 import { html } from "/player.js";
 import { commandsForTarget } from "/settlement.js";
 import { objectKind, propSvg, fillRatio } from "/scene-props.js";
 import { openDetail, closeDetail, leaveDetail } from "/detail-navigation.js";
+import { icon } from "/icons.js";
+import { renderSceneFx } from "/scene-fx.js";
+import { audioState, onAudioChange, setSoundMode, setVolume } from "/audio.js";
 
 const TITLES = { life: "人生概述", character: "人物", activities: "生活", people: "人际", works: "行囊", family: "家族谱", map: "地图与地点", world: "时代与世界", history: "记忆与历史", modules: "模块管理" };
 let active = "home", started = false, currentState, callbacks;
@@ -27,6 +31,9 @@ export function installShell(options) {
   collection.innerHTML = "<summary>亲手留下的作品</summary>";
   $("screen-works").append(collection);
   collection.append(document.querySelector(".works-card"));
+  installTheme();
+  if (!isTextMode()) renderSceneFx($("homeFx"), { location: "yard", daypart: "day", season: "秋" });
+  if (!isTextMode()) installSound();
   $("menuButton").onclick = () => { $("menuModal").hidden = false; };
   $("closeMenu").onclick = () => { $("menuModal").hidden = true; };
   $("sceneTimeButton").onclick = () => $("autoButton").click();
@@ -106,7 +113,7 @@ export function renderShell(state) {
   const inProgress = Boolean(p?.practice);
   $("screen-life").innerHTML = `<section class="life-overview panel"><div class="overview-label">${html(state.era)} · ${state.month} 月 · ${html(c?.city)}</div><h2>${html(c?.name)}，${c?.alive ? "今天想怎样生活？" : "这一生留下了什么？"}</h2><p class="overview-intro">${c?.alive ? "生活里有许多值得停留的地方。照看自己，见一见熟人，或者接着做手中的事。" : "你留下的关系、作品与家人仍在世界里。可以到家族谱寻找接续的人生。"}</p><div class="overview-facts"><span>${c?.age ?? 0} 岁</span><span>第 ${state.generation} 代</span><span>${html(c?.role)}</span></div>${p?.outcome ? `<div class="overview-memory"><span>最近发生的事</span><p>${html(p.outcome)}</p></div>` : ""}</section>
     <div class="destination-grid">
-      <button class="destination-card" data-route="activities"><span class="destination-symbol">◎</span><h3>${inProgress ? "继续制作" : "看看周围"}</h3><p>${inProgress ? "你的手艺仍在进行。" : "遇见的人、手边的原料和附近的地点。"}</p><span class="destination-link">进入周围 →</span></button>
+      <button class="destination-card" data-route="activities"><span class="destination-symbol">◎</span><h3>${inProgress ? "继续制作" : "回到生活"}</h3><p>${inProgress ? "你的手艺仍在进行。" : "遇见的人、手边的原料和附近的地点。"}</p><span class="destination-link">进入生活 →</span></button>
       <button class="destination-card" data-route="character"><span class="destination-symbol">我</span><h3>查看自己</h3><p>身体、经历与正在学习的能力。</p><span class="destination-link">进入人物 →</span></button>
       <button class="destination-card" data-route="works"><span class="destination-symbol">袋</span><h3>整理行囊</h3><p>查看真正携带的东西、负重和存放。</p><span class="destination-link">进入行囊 →</span></button>
       <button class="destination-card" data-route="people"><span class="destination-symbol">人</span><h3>人际关系</h3><p>见过、交谈、相识，关系需要真实经历。</p><span class="destination-link">打开人际 →</span></button>
@@ -133,13 +140,17 @@ export function renderShell(state) {
     $("screen-family").querySelector(".lineage-card").hidden = false; $("familyEmpty")?.remove();
   }
 }
+function bagMeter(label, value, max, unit) {
+  const pct = max ? Math.max(0, Math.min(100, Math.round((value / max) * 100))) : 0;
+  return `<span class="bag-meter"><span>${label}</span><span class="hud-track"><i style="width:${pct}%"></i></span><b>${value}/${max}${unit}</b></span>`;
+}
 function renderBag() {
   const pack = $("portableOverview"), s = currentState?.settlement;
   if (!pack) return;
   const held = s?.objects?.filter(o => o.placement === "在手中") || [];
   const load = s?.portableLoad;
   pack.innerHTML = `<div class="bag-heading"><div><span class="eyebrow">随身携带</span><h2>随身行囊</h2></div><span class="bag-mark" aria-hidden="true">${propSvg("basket")}</span></div>
-    <p class="portable-meter">${load ? `${load.looseSlots}/${load.maxSlots} 件 · 负重 ${load.mass.toFixed(1)}/${load.maxMass}` : "暂无携带记录"}</p>
+    <div class="portable-meter">${load ? `${bagMeter("随身", load.looseSlots, load.maxSlots, "件")}${bagMeter("负重", Number(load.mass.toFixed(1)), load.maxMass, "")}` : "暂无携带记录"}</div>
     <div class="portable-items">${held.length ? held.map(o =>
       `<button class="portable-item" data-bag-id="${html(o.id)}" aria-pressed="${bagSelection === o.id}"><span class="bag-item-art" aria-hidden="true">${propSvg(objectKind(o), fillRatio(o))}</span><strong>${html(o.name)}</strong><small>${html(o.placement)}${o.capacity ? ` · 容量 ${o.contentsCount || o.quantity || 0}/${o.capacity}` : ""}</small></button>`).join("") :
       '<div class="bag-empty"><strong>轻装出发</strong><p>行囊还是空的。到生活场景中，轻触物件或原料，查看能否取用。</p><button data-route="activities">去寻找材料 →</button></div>'}</div>
@@ -185,7 +196,10 @@ async function loadModules() {
   try {
     const response = await fetch("/api/catalog"); if (!response.ok) throw new Error("模块资料读取失败");
     const data = await response.json();
-    screen.innerHTML = `<div class="catalog-intro panel"><h2>这个世界的组成</h2><p>当前人生使用「早期聚落」组合。这里显示真实加载状态与本地可用模块；更换组合与运行中启停将在依赖、存档兼容检查完成后开放。</p><span class="catalog-total">${data.modules.filter(m => m.loaded).length} 个已加载 · ${data.modules.length} 个本地模块</span></div><div class="module-list">${data.modules.map(m => `<article class="module-card panel"><div><h3>${html(m.label)}</h3><span class="module-status ${m.loaded ? "loaded" : ""}">${m.loaded ? "当前世界已加载" : "本地已有 · 当前未接入"}</span></div><p>${html(m.description)}</p><details><summary>模块信息</summary><p>${html(m.id)} · ${html(m.version)}</p><p>${m.loaded ? `依赖能力：${html(m.requires.join("、") || "无")}` : "接入前需核对依赖与世界规则。"}</p></details></article>`).join("")}</div>`;
+    screen.innerHTML = `<div class="catalog-intro panel"><h2>这个世界的组成</h2><p>当前人生使用「早期聚落」组合。这里显示真实加载状态与本地可用模块；更换组合与运行中启停将在依赖、存档兼容检查完成后开放。</p><span class="catalog-total">${data.modules.filter(m => m.loaded).length} 个已加载 · ${data.modules.length} 个本地模块</span></div>${(() => { const card = m => `<article class="module-card panel"><div><h3>${html(m.label)}</h3><span class="module-status ${m.loaded ? "loaded" : ""}">${m.loaded ? "当前世界已加载" : "本地已有 · 当前未接入"}</span></div><p>${html(m.description)}</p><details><summary>模块信息</summary><p>${html(m.id)} · ${html(m.version)}</p><p>${m.loaded ? `依赖能力：${html(m.requires.join("、") || "无")}` : "接入前需核对依赖与世界规则。"}</p></details></article>`;
+      const on = data.modules.filter(m => m.loaded), off = data.modules.filter(m => !m.loaded);
+      return `<h3 class="module-group">当前世界已加载 · ${on.length}</h3><div class="module-list">${on.map(card).join("")}</div>` +
+        (off.length ? `<details class="module-fold"><summary>本地已有、当前未接入 · ${off.length}</summary><div class="module-list">${off.map(card).join("")}</div></details>` : ""); })()}`;
   } catch (error) { screen.innerHTML = `<p class="page-empty panel">${html(error.message)}</p>`; }
 }
 async function loadMap() {
@@ -194,6 +208,78 @@ async function loadMap() {
   try {
     const response = await fetch("/api/catalog"); if (!response.ok) throw new Error("地图资料读取失败");
     const data = await response.json();
-    screen.innerHTML = `<section class="catalog-intro panel"><div class="overview-label">当前位置</div><h2>${html(currentState?.character?.city ?? "尚未进入世界")}</h2><p>河岸聚落已经可以在「周围」真实移动、走进房间和操作物品。更远的地图包仍主要是世界资料，暂不能全部直接前往。</p></section>${data.maps.map(map => `<section class="map-pack panel"><div class="panel-title-row"><div><div class="eyebrow">地图资料</div><h2>${html(map.label)}</h2></div><span class="module-status">${map.ok ? "结构校验通过" : "资料需修复"}</span></div><div class="map-counts"><span>${map.regions.length} 个区域</span><span>${map.locations.length} 个地点</span><span>${map.edges} 条连接</span></div><p class="map-limit">地形与连接已有定义；居民、房屋内部、可交互物体和衣物尚未随地图包填充。</p>${map.regions.map(region => `<details class="region-entry"><summary>${html(region.name)} <small>${html(region.id)}</small></summary><ul>${map.locations.filter(loc => loc.regionId === region.id).map(loc => `<li><strong>${html(loc.name)}</strong><span>${html(loc.type)}</span></li>`).join("")}</ul></details>`).join("")}</section>`).join("")}`;
+    screen.innerHTML = `<section class="catalog-intro panel"><div class="overview-label">当前位置</div><h2>${html(currentState?.character?.city ?? "尚未进入世界")}</h2><p>河岸聚落已经可以在「生活」里真实移动、走进房间和操作物品。更远的地图包仍主要是世界资料，暂不能全部直接前往。</p></section>${data.maps.map(map => `<section class="map-pack panel"><div class="panel-title-row"><div><div class="eyebrow">地图资料</div><h2>${html(map.label)}</h2></div><span class="module-status">${map.ok ? "结构校验通过" : "资料需修复"}</span></div><div class="map-counts"><span>${map.regions.length} 个区域</span><span>${map.locations.length} 个地点</span><span>${map.edges} 条连接</span></div><p class="map-limit">地形与连接已有定义；居民、房屋内部、可交互物体和衣物尚未随地图包填充。</p><details class="region-fold"><summary>查看 ${map.regions.length} 个区域</summary>${map.regions.map(region => `<details class="region-entry"><summary>${html(region.name)} <small>${html(region.id)}</small></summary><ul>${map.locations.filter(loc => loc.regionId === region.id).map(loc => `<li><strong>${html(loc.name)}</strong><span>${html(loc.type)}</span></li>`).join("")}</ul></details>`).join("")}</details></section>`).join("")}`;
   } catch (error) { screen.innerHTML = `<p class="page-empty panel">${html(error.message)}</p>`; }
+}
+
+// Light / dark: follows the system until the player picks one; the choice is remembered.
+const darkQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
+function effectiveTheme() {
+  return document.documentElement.dataset.theme || (darkQuery?.matches ? "dark" : "light");
+}
+function paintThemeButtons() {
+  const dark = effectiveTheme() === "dark";
+  for (const id of ["themeButton", "homeThemeButton"]) {
+    const b = $(id); if (!b) continue;
+    b.innerHTML = icon(dark ? "sun" : "moonTheme");
+    b.setAttribute("aria-label", dark ? "切换到亮色模式" : "切换到深色模式");
+    b.title = dark ? "亮色模式" : "深色模式";
+  }
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = dark ? "#121a17" : "#f2ece1";
+}
+function installTheme() {
+  const toggle = () => {
+    const next = effectiveTheme() === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("openlife-theme", next); } catch { /* private mode */ }
+    paintThemeButtons();
+  };
+  for (const id of ["themeButton", "homeThemeButton"]) { const b = $(id); if (b) b.onclick = toggle; }
+  darkQuery?.addEventListener?.("change", paintThemeButtons);
+  paintThemeButtons();
+}
+
+// 声音：按钮打开小面板，选模式即开始播放（这次点击就是浏览器要求的手势）。
+const MODE_LABEL = { music: "舒缓音乐", noise: "白噪音", off: "关闭" };
+function installSound() {
+  const panel = $("soundPanel"); if (!panel) return;
+  const modeIcons = { music: "music", noise: "rain", off: "soundOff" };
+  panel.querySelectorAll("[data-sound-mode]").forEach(b => {
+    b.querySelector(".sm-icon").innerHTML = icon(modeIcons[b.dataset.soundMode]);
+    b.onclick = () => setSoundMode(b.dataset.soundMode);
+  });
+  const vol = $("soundVolume");
+  vol.oninput = () => setVolume(vol.value / 100);
+  let anchor = null;
+  const close = () => { panel.hidden = true; anchor?.setAttribute("aria-expanded", "false"); };
+  const open = button => {
+    anchor = button; panel.hidden = false; button.setAttribute("aria-expanded", "true");
+    const r = button.getBoundingClientRect(), w = Math.min(300, window.innerWidth - 24);
+    panel.style.width = w + "px";
+    panel.style.top = Math.round(r.bottom + 8) + "px";
+    panel.style.left = Math.round(Math.max(12, Math.min(window.innerWidth - w - 12, r.right - w))) + "px";
+  };
+  for (const id of ["soundButton", "homeSoundButton"]) {
+    const b = $(id); if (!b) continue;
+    b.onclick = event => { event.stopPropagation(); panel.hidden ? open(b) : close(); };
+  }
+  panel.addEventListener("click", e => e.stopPropagation());
+  document.addEventListener("click", () => { if (!panel.hidden) close(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !panel.hidden) close(); });
+  const paint = st => {
+    const on = st.playing;
+    for (const id of ["soundButton", "homeSoundButton"]) {
+      const b = $(id); if (!b) continue;
+      b.innerHTML = icon(on ? "soundOn" : "soundOff");
+      b.classList.toggle("is-on", on);
+      b.setAttribute("aria-label", on ? "声音：" + MODE_LABEL[st.mode] : "声音：关闭");
+      b.title = on ? MODE_LABEL[st.mode] : "声音已关闭";
+    }
+    const active = on ? st.mode : "off";
+    panel.querySelectorAll("[data-sound-mode]").forEach(b => b.setAttribute("aria-checked", String(b.dataset.soundMode === active)));
+    $("soundStatus").textContent = on ? "正在播放 · " + MODE_LABEL[st.mode] : "关闭";
+    vol.value = Math.round(st.volume * 100);
+  };
+  onAudioChange(paint); paint(audioState());
 }

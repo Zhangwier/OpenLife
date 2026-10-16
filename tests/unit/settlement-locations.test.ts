@@ -27,7 +27,7 @@ import {
   ObjectComponents,
 } from "@openlife/module-world-objects";
 import {
-  settlementLocationsModule,
+  settlementLocationsModule, cropGrowDays,
   SettlementCommands,
   SettlementComponents,
   SettlementContent,
@@ -41,8 +41,10 @@ import {
   dailyActivity,
 } from "@openlife/module-settlement-locations";
 import { DAYS_PER_MONTH } from "@openlife/life-contracts";
+import { withoutAgents } from "../helpers/agents.ts";
 
-const modules = [modernWorldModule, worldClockModule, worldSpaceModule, worldObjectsModule, settlementLocationsModule];
+// Mechanics under test here are measured without villagers living their days.
+const modules = [modernWorldModule, worldClockModule, worldSpaceModule, worldObjectsModule, withoutAgents(settlementLocationsModule)];
 
 function world(seed = 4242, locationId = "") {
   const sim = new Simulation({ worldSeed: seed, modules });
@@ -342,7 +344,7 @@ test("renewing resources come back only as fast as their own cycle allows", () =
   assert.equal(read().stock, start - 5, "fuel must not return before its cycle");
   sim.advanceBy(1);
   assert.equal(read().stock, start - 4, "one bundle returns after twelve days");
-  sim.advanceBy(12 * 8);
+  sim.advanceBy(12 * 12);  // dry reed fuel does not grow back in spring, so give it a full year
   assert.equal(read().stock, start, "renewal is capped at the place's capacity");
 });
 
@@ -443,7 +445,7 @@ test("M2-A2: a real carried ration is eaten and eases persistent hunger without 
     .find((p) => p.placeId === "place:hearth-yard")!.resources
     .find((v) => v.resourceId === "resource:cooked")!.stock;
 
-  sim.advanceBy(7);
+  sim.advanceBy(14);  // hunger +1 every 2 days
   assert.equal(homestead(sim.worldView(), actorId).hunger, 7);
   assert.ok(homestead(sim.worldView(), actorId).actions.some((a) =>
     a.id === SettlementCommands.eat && a.payload.objectId === cookedId));
@@ -462,7 +464,7 @@ test("M2-A2: a real carried ration is eaten and eases persistent hunger without 
   assert.equal(worksites(sim.worldView()).places.find((p) => p.placeId === "place:hearth-yard")!
     .resources.find((v) => v.resourceId === "resource:cooked")!.stock, sharedBefore);
   assert.equal(sim.dispatch({ type: SettlementCommands.eat, actorId, payload: { objectId: cookedId } }).ok, false);
-  sim.advanceBy(2);
+  sim.advanceBy(4);
   assert.equal(homestead(sim.worldView(), actorId).hunger, 5, "hunger rises as days pass");
   const loaded = Simulation.load(sim.save(), modules);
   assert.equal(loaded.result.ok, true);
@@ -473,7 +475,7 @@ test("M2-A2: a real carried ration is eaten and eases persistent hunger without 
 test("M2-A2: shared meals still consume their own stock and also ease hunger", () => {
   const { sim, actorId } = world(5332);
   must(sim, { type: SpaceCommands.enter, actorId, payload: { placeId: "place:hearth-yard" } });
-  sim.advanceBy(6);
+  sim.advanceBy(12);
   const before = worksites(sim.worldView()).places.find((p) => p.placeId === "place:hearth-yard")!
     .resources.find((v) => v.resourceId === "resource:cooked")!.stock;
   assert.equal(homestead(sim.worldView(), actorId).hunger, 6);
@@ -504,7 +506,8 @@ test("M2-A3: sowing uses real grain, tending and time produce bounded harvest it
   assert.equal(sim.dispatch({ type: SettlementCommands.harvest, actorId }).ok, false, "cannot harvest untended seed");
   must(sim, { type: SettlementCommands.tend, actorId, payload: { spaceId: "space:field-edge" } });
   assert.equal(homestead(sim.worldView(), actorId).crop?.tended, true);
-  sim.advanceBy(29);
+  const grow = cropGrowDays(Number(homestead(sim.worldView(), actorId).crop?.sownAt));  // season-dependent
+  sim.advanceBy(grow - 1);
   assert.equal(sim.dispatch({ type: SettlementCommands.harvest, actorId }).ok, false, "cannot skip maturity");
   assert.equal(homestead(sim.worldView(), actorId).crop?.remainingDays, 1);
   sim.advanceBy(1);
@@ -542,8 +545,9 @@ test("M2-A3: field growth and harvest replay deterministically, old saves have a
     must(restored, { type: SettlementCommands.draw, actorId,
       payload: { resourceId: "resource:grain", placeId: "place:field" } });
     must(restored, { type: SettlementCommands.sow, actorId });
+    const grow = cropGrowDays(restored.tick);
     must(restored, { type: SettlementCommands.tend, actorId, payload: { spaceId: "space:field-edge" } });
-    restored.advanceBy(30);
+    restored.advanceBy(grow);
     must(restored, { type: SettlementCommands.harvest, actorId });
     return restored.fingerprint();
   };

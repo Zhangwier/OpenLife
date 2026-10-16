@@ -24,8 +24,7 @@ import type {
   WorldEvent,
 } from "@openlife/contracts";
 import { HistorySemanticEvents } from "@openlife/contracts";
-import type { EventLog } from "@openlife/kernel";
-import type { WorldStore } from "@openlife/world-model";
+import type { ReadonlyEventLog as EventLog, ReadonlyWorldStore as WorldStore } from "@openlife/kernel";
 
 export interface HistoryRuntimeOptions {
   eventLog: EventLog;

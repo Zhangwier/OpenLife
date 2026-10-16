@@ -216,7 +216,10 @@ export class ModuleRuntime {
    * Applies module-owned migrations when a save was written by an older version
    * of the module (§61). The core never inspects module data.
    */
-  migrateFrom(saved: { id: ModuleId; version: string }[]): { module: ModuleId; from: string; to: string }[] {
+  migrateFrom(
+    saved: { id: ModuleId; version: string }[],
+    world?: { entities: { id: string; kind: string; components: Record<string, unknown> }[] },
+  ): { module: ModuleId; from: string; to: string }[] {
     const applied: { module: ModuleId; from: string; to: string }[] = [];
     for (const entry of saved) {
       const record = this.#modules.get(entry.id);
@@ -228,6 +231,7 @@ export class ModuleRuntime {
       let state = record.state_;
       for (const migration of migrations) {
         state = migration.migrate(state);
+        if (migration.migrateWorld && world) migration.migrateWorld(this.#worldMigration(entry.id, world));
         version = migration.to;
         applied.push({ module: entry.id, from: migration.from, to: migration.to });
       }
@@ -237,6 +241,41 @@ export class ModuleRuntime {
       }
     }
     return applied;
+  }
+
+  /** A module's write access to the saved world: its own components only. */
+  #worldMigration(
+    owner: ModuleId,
+    world: { entities: { id: string; kind: string; components: Record<string, unknown> }[] },
+  ): import("@openlife/contracts").ModuleWorldMigration {
+    const definitions = this.#options.definitions;
+    const entity = (id: string) => world.entities.find((e) => e.id === id);
+    const own = (componentId: string) => {
+      if (definitions.components.get(componentId)?.owner !== owner) {
+        fail(ErrorCode.PermissionDenied,
+          `migration of "${owner}" may not write component "${componentId}"`, { owner, componentId });
+      }
+    };
+    return {
+      entities: (filter = {}) => world.entities
+        .filter((e) => filter.kind === undefined || e.kind === filter.kind)
+        .map((e) => ({ id: e.id, kind: e.kind })),
+      getComponent: (id, componentId) => {
+        const value = entity(id)?.components[componentId];
+        return value === undefined ? undefined : structuredClone(value as Record<string, unknown>);
+      },
+      setComponent: (id, componentId, value) => {
+        own(componentId);
+        const target = entity(id);
+        if (!target) fail(ErrorCode.UnknownEntity, `no entity ${id} in the saved world`, { id });
+        target.components[componentId] = structuredClone(value);
+      },
+      removeComponent: (id, componentId) => {
+        own(componentId);
+        const target = entity(id);
+        if (target) delete target.components[componentId];
+      },
+    };
   }
 
   #activate(record: InstalledModule): void {
@@ -293,6 +332,8 @@ export class ModuleRuntime {
         definitions.reactions.register(rule.id, { ...rule, kind: "reaction", owner }, owner),
       registerTask: (definition) =>
         definitions.tasks.register(definition.type, { ...definition, owner }, owner),
+      registerAgent: (definition) =>
+        definitions.agents.register(definition.id, { ...definition, owner }, owner),
       registerKnowledge: (definition) =>
         definitions.knowledge.register(definition.id, { ...definition, owner }, owner),
       registerResource: (definition) =>

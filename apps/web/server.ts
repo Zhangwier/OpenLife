@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import type { SavePackage } from "@openlife/contracts";
 import { readFile } from "node:fs/promises";
-import { extname, join, normalize } from "node:path";
+import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Simulation } from "@openlife/simulation";
 import { runAutoSim, untilActorArchived, untilTick, type AutoSimContext } from "@openlife/autonomy-runtime";
@@ -26,7 +26,7 @@ import { worldClockModule } from "@openlife/module-world-clock";
 import { worldSpaceModule } from "@openlife/module-world-space";
 import { worldObjectsModule } from "@openlife/module-world-objects";
 import { settlementLocationsModule, SettlementCommands } from "@openlife/module-settlement-locations";
-import { residentId } from "@openlife/module-settlement-locations";
+import { residentId, rollOrigin, originCatalog } from "@openlife/module-settlement-locations";
 import {
   playerView,
   playerActions,
@@ -36,7 +36,6 @@ import {
   loansHeldBy,
   rejected,
 } from "./src/player.ts";
-import { runVillageDayBoundary } from "./src/village-day.ts";
 import { worldCatalog } from "./src/catalog.ts";
 const PORT = Number(process.env.PORT ?? 4173);
 const PUBLIC_DIR = fileURLToPath(new URL("./public/", import.meta.url));
@@ -66,6 +65,9 @@ interface NewLifeOptions {
   givenName?: string;
   familyName?: string;
   cityId?: string;
+  /** 出身 id, or "random" to let the seed decide; omitted = no origin (older behaviour). */
+  originId?: string;
+  talents?: string[];
 }
 
 export function createGame(options: NewLifeOptions = {}): Simulation {
@@ -108,6 +110,12 @@ export function createGame(options: NewLifeOptions = {}): Simulation {
     payload: { placeId: "place:yard" },
     source: "system",
   }));
+  if (options.originId) {
+    const choice = options.originId === "random" ? rollOrigin(seed)
+      : { originId: options.originId, talents: (options.talents ?? []).slice(0, 2) };
+    const chosen = sim.dispatch({ type: SettlementCommands.chooseOrigin, actorId, source: "player", payload: choice });
+    if (!chosen.ok) throw new HttpError(400, chosen.errors[0]?.message ?? "出身选择无效");
+  }
   return sim;
 }
 
@@ -377,6 +385,7 @@ function gameState() {
       settlementLoans: characterId ? loansHeldBy(simulation, characterId) : [],
     },
     settlement: settlementView(simulation, characterId),
+    originCatalog: originCatalog(),
     clock: clockReading(world),
     actions: world.getComponent(characterId, Life.state)
       ? playerActions(simulation, characterId)
@@ -384,14 +393,29 @@ function gameState() {
   };
 }
 
+/**
+ * The prose lines the world wrote while one action ran (who said what, what the
+ * work brought), limited to events that involve the player. The lines are
+ * stored in the event data by the rules that produced them, so the same state
+ * and command always tell the same story.
+ */
+function narrativeSince(seq: number, playerId: string): string[] {
+  return simulation.kernel.internals.eventLog.since(seq)
+    .filter((event) => (event.actorId === playerId || event.targetId === playerId) && typeof event.data?.line === "string")
+    .map((event) => String(event.data.line))
+    .slice(0, 6);
+}
+
 /** Settlement actions the UI is allowed to send, and how long each takes. */
 const SETTLEMENT_ACTIONS: Record<string, number> = {
   [SettlementCommands.arrive]: 1,
   [SettlementCommands.draw]: 1,
   [SettlementCommands.talk]: 1,
+  [SettlementCommands.exchange]: 1,
   [SettlementCommands.drink]: 1,
   [SettlementCommands.eat]: 1,
   [SettlementCommands.cook]: 1,
+  [SettlementCommands.craft]: 1,
   [SettlementCommands.weaveBag]: 1,
   [SettlementCommands.weaveMat]: 1,
   [SettlementCommands.prepareFiber]: 1,
@@ -406,6 +430,13 @@ const SETTLEMENT_ACTIONS: Record<string, number> = {
   [SettlementCommands.playerBarterAccept]: 0,
   [SettlementCommands.playerBarterDecline]: 0,
   [SettlementCommands.helpHearth]: 0,
+  [SettlementCommands.requestAnswer]: 0,
+  [SettlementCommands.gift]: 0,
+  [SettlementCommands.learn]: 0,
+  [SettlementCommands.beginSeason]: 0,
+  [SettlementCommands.court]: 0,
+  [SettlementCommands.wed]: 0,
+  [SettlementCommands.handoff]: 0,
 };
 
 export function isSettlementAction(action: string): boolean {
@@ -552,6 +583,7 @@ function humanizeEvent(type: string, data: Record<string, unknown> = {}): string
   const labels: Record<string, string> = {
     "modern.character_created": "一个新生命来到世界",
     "modern.world_initialized": "世界开始运转",
+    "settlement-locations.founded": "河岸聚落在这里扎下了根",
     "early-civilization.era_begun": "夏初的聚落开始延续",
     "early-civilization.learning_begun": "开始跟随生活学习",
     "family.married": "两个人决定共同生活",
@@ -824,9 +856,8 @@ function plannedTimeBatch(days: number) {
         });
         if (!started.ok) return fail(`制陶开工失败：${started.errors?.[0]?.message ?? "条件不足"}`);
         actions.push("pottery");
-        const beforePotteryTick = simulation.tick;
+        // The village lives through this day inside the engine (M4-B).
         simulation.advanceBy(1);
-        runVillageDayBoundary(simulation, beforePotteryTick);
         return fail("制陶已开工，泥料处理有重要选择需要你亲自决定。请在手艺面板完成当前工序。");
       } else if (step === "rest") {
         const matRest = view.actions?.find((action: { id: string; enabled: boolean; payload: { matId?: string } }) =>
@@ -887,7 +918,6 @@ function continuousTimeBatch(days: number) {
     projection: ({ tick }) => ({ tick, actorId }),
     advanceTicksPerStep: 1,
     maxCommands: 10,
-    onTickAdvanced: (tick) => { runVillageDayBoundary(simulation, tick - 1); },
     stopConditions: [
       untilActorArchived(actorId),
       {
@@ -1030,11 +1060,35 @@ function saveSummary() {
   };
 }
 
+/** A client error with an HTTP status; anything else is a 500. */
+class HttpError extends Error {
+  readonly status: number;
+  constructor(status: number, message: string) { super(message); this.status = status; }
+}
+
+/** Largest request body accepted (a long life's save is a few MB). */
+const MAX_BODY_BYTES = Number(process.env.OPENLIFE_MAX_BODY_BYTES ?? 32 * 1024 * 1024);
+const API_ROUTES: Record<string, string> = {
+  "/api/catalog": "GET", "/api/state": "GET", "/api/action": "POST", "/api/autosim": "POST",
+  "/api/save": "POST", "/api/load": "POST", "/api/reset": "POST",
+};
+
 const server = createServer(async (req, res) => {
+  res.setHeader("x-content-type-options", "nosniff");
+  res.setHeader("referrer-policy", "no-referrer");
   try {
-    const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+    const url = new URL(req.url ?? "/", "http://localhost");
     if (url.pathname.startsWith("/api/")) {
       res.setHeader("content-type", "application/json; charset=utf-8");
+      res.setHeader("cache-control", "no-store");
+      const method = API_ROUTES[url.pathname];
+      if (method && req.method !== method) {
+        res.setHeader("allow", method);
+        throw new HttpError(405, `${url.pathname} 只接受 ${method}`);
+      }
+      if (req.method === "POST" && !String(req.headers["content-type"] ?? "application/json").includes("json")) {
+        throw new HttpError(415, "请求体必须是 JSON");
+      }
       if (req.method === "GET" && url.pathname === "/api/catalog") {
         res.end(JSON.stringify(await worldCatalog(simulation)));
         return;
@@ -1059,7 +1113,8 @@ const server = createServer(async (req, res) => {
         const action = String(body.action ?? "");
         const manualActorId = activeCharacterId();
         const activePlan = settlementView(simulation, manualActorId)?.dailyPlan;
-        const beforeManualTick = simulation.tick;
+        const seqBefore = simulation.kernel.internals.eventLog.nextSeq - 1;
+        const hopeBefore = settlementView(simulation, manualActorId)?.aspiration?.done;
         const result = runAction(action, payload);
         // Manual action wins over a previously authorized routine. Suspend it
         // only after a successful action, never as a side effect of a refusal.
@@ -1068,9 +1123,12 @@ const server = createServer(async (req, res) => {
             steps: activePlan.steps, repeat: activePlan.repeat, enabled: false,
           });
         }
-        runVillageDayBoundary(simulation, beforeManualTick);
         simulation.syncHistory();
-        res.end(JSON.stringify({ result, state: gameState() }));
+        const narrative = narrativeSince(seqBefore, manualActorId);
+        // 念想是从世界里读出来的；它在这一步刚刚成真时，讲一句话。
+        const hopeAfter = settlementView(simulation, manualActorId)?.aspiration;
+        if (hopeBefore === false && hopeAfter?.done) narrative.push(hopeAfter.line);
+        res.end(JSON.stringify({ result, narrative, state: gameState() }));
         return;
       }
       if (req.method === "POST" && url.pathname === "/api/autosim") {
@@ -1113,7 +1171,9 @@ const server = createServer(async (req, res) => {
           res.end(JSON.stringify({ error: "缺少有效的 OpenLife 存档" }));
           return;
         }
-        const loaded = Simulation.load(body.save as SavePackage, modules);
+        let loaded: ReturnType<typeof Simulation.load>;
+        try { loaded = Simulation.load(body.save as SavePackage, modules); }
+        catch { throw new HttpError(400, "存档已损坏或不是 OpenLife 存档"); }
         if (!loaded.result.ok || !loaded.simulation) {
           res.statusCode = 409;
           res.end(JSON.stringify({
@@ -1128,11 +1188,16 @@ const server = createServer(async (req, res) => {
       }
       if (req.method === "POST" && url.pathname === "/api/reset") {
         const body = await readJson(req);
+        const seed = Number(body.seed ?? 104);
+        if (!Number.isSafeInteger(seed) || seed < 0) throw new HttpError(400, "种子必须是非负整数");
+        const text = (value: unknown) => typeof value === "string" ? value.trim().slice(0, 24) || undefined : undefined;
         simulation = createGame({
-          seed: Number(body.seed ?? 104),
-          givenName: typeof body.givenName === "string" ? body.givenName : undefined,
-          familyName: typeof body.familyName === "string" ? body.familyName : undefined,
-          cityId: typeof body.cityId === "string" ? body.cityId : undefined,
+          seed,
+          givenName: text(body.givenName),
+          familyName: text(body.familyName),
+          cityId: text(body.cityId),
+          originId: text(body.originId),
+          talents: Array.isArray(body.talents) ? body.talents.map(String).slice(0, 2) : undefined,
         });
         res.end(JSON.stringify({ state: gameState() }));
         return;
@@ -1142,28 +1207,54 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    const requested = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
-    const safe = normalize(requested).replace(/^([.][.][/\\])+/, "");
-    const data = await readFile(join(PUBLIC_DIR, safe));
-    res.setHeader("content-type", contentType(extname(safe)));
-    res.end(data);
+    if (req.method !== "GET" && req.method !== "HEAD") throw new HttpError(405, "静态文件只接受 GET");
+    let requested: string;
+    try { requested = decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname); }
+    catch { throw new HttpError(400, "无效的路径"); }
+    // Resolve inside public/ and refuse anything that escapes it.
+    const root = resolve(PUBLIC_DIR);
+    const file = resolve(root, "." + requested);
+    if (requested.includes("\u0000") || (file !== root && !file.startsWith(root + sep))) throw new HttpError(404, "not found");
+    let data: Buffer;
+    try { data = await readFile(file); }
+    catch { throw new HttpError(404, "not found"); }
+    res.setHeader("content-type", contentType(extname(file)));
+    res.end(req.method === "HEAD" ? undefined : data);
   } catch (error) {
-    res.statusCode = 500;
-    res.setHeader("content-type", "application/json; charset=utf-8");
-    res.end(JSON.stringify({ error: (error as Error).message }));
+    const status = error instanceof HttpError ? error.status : 500;
+    if (status === 500) console.error(error);
+    if (!res.headersSent) {
+      res.statusCode = status;
+      res.setHeader("content-type", "application/json; charset=utf-8");
+    }
+    // A 500 never echoes internals (file paths, stack text) to the page.
+    res.end(JSON.stringify({ error: status === 500 ? "服务器内部错误" : (error as Error).message }));
   }
 });
 
-server.listen(PORT, () => {
+// Local by default; set HOST=0.0.0.0 to play from another device on your LAN.
+const HOST = process.env.HOST ?? "127.0.0.1";
+server.listen(PORT, HOST, () => {
   const address = server.address();
-  console.log(`OpenLife web running at http://127.0.0.1:${typeof address === "object" && address ? address.port : PORT}`);
+  console.log(`OpenLife web running at http://${HOST === "0.0.0.0" ? "127.0.0.1" : HOST}:${typeof address === "object" && address ? address.port : PORT}`);
 });
 
 async function readJson(req: import("node:http").IncomingMessage): Promise<Record<string, unknown>> {
+  const declared = Number(req.headers["content-length"] ?? 0);
+  if (declared > MAX_BODY_BYTES) throw new HttpError(413, "请求体过大");
   const chunks: Buffer[] = [];
-  for await (const chunk of req) chunks.push(Buffer.from(chunk));
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > MAX_BODY_BYTES) throw new HttpError(413, "请求体过大");
+    chunks.push(Buffer.from(chunk));
+  }
   if (chunks.length === 0) return {};
-  return JSON.parse(Buffer.concat(chunks).toString("utf8")) as Record<string, unknown>;
+  let parsed: unknown;
+  try { parsed = JSON.parse(Buffer.concat(chunks).toString("utf8")); }
+  catch { throw new HttpError(400, "请求体不是有效的 JSON"); }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new HttpError(400, "请求体必须是 JSON 对象");
+  return parsed as Record<string, unknown>;
 }
 
 function contentType(ext: string): string {
@@ -1171,5 +1262,7 @@ function contentType(ext: string): string {
   if (ext === ".css") return "text/css; charset=utf-8";
   if (ext === ".js") return "text/javascript; charset=utf-8";
   if (ext === ".svg") return "image/svg+xml";
+  if (ext === ".webp") return "image/webp";
+  if (ext === ".png") return "image/png";
   return "application/octet-stream";
 }

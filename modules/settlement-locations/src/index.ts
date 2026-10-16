@@ -1,1 +1,18 @@
 export * from "./module.ts";
+export * from "./autonomy/village-day.ts";
+export { FIRST_AUTONOMOUS_RESIDENT, runFirstNpcDay, type NpcDailyResult } from "./autonomy/npc.ts";
+export { SECOND_AUTONOMOUS_RESIDENT, runSecondNpcDay } from "./autonomy/npc-cook.ts";
+export { runThirdNpcDay } from "./autonomy/npc-reed.ts";
+export { runOtherNpcDays } from "./autonomy/npc-general.ts";
+export { chooseNpcIntent, shortagePressure, type NpcIntent } from "./autonomy/npc-goals.ts";
+export * from "./content.ts";
+export { villageRoles, ROLES as VillageRoles } from "./autonomy/roles.ts";
+export { fuelHelpReply } from "./autonomy/npc-reed.ts";
+export * from "./exchange.ts";
+export { tryNpcExchange } from "./autonomy/npc-exchange.ts";
+export * from "./weather.ts";
+export { runBrainDay, runBrainDays, BrainRun, mindOf, residentMind, temperamentWords, tellGroup, kinOf, type Mind } from "./autonomy/brain.ts";
+export * from "./social.ts";
+export * from "./origin.ts";
+export * from "./happenings.ts";
+export * from "./people.ts";

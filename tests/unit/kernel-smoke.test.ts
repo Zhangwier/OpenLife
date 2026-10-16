@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DefinitionSet } from "@openlife/rule-engine";
 import { Kernel } from "@openlife/kernel";
+import { seedEntities, scheduleThroughCommand } from "../helpers/seed.ts";
 
 /**
  * Wiring smoke test: proves the command pipeline, transaction, scheduler and
@@ -79,13 +80,7 @@ function buildKernel(seed = 1234): Kernel {
   );
 
   const kernel = new Kernel({ worldSeed: seed, definitions });
-  const store = kernel.internals.store;
-  store.createEntity({
-    id: "demo:actor",
-    kind: "demo.actor",
-    components: { "demo.counter": { value: 0 } },
-    createdAt: 0,
-  });
+  seedEntities(kernel, [{ id: "demo:actor", kind: "demo.actor", components: { "demo.counter": { value: 0 } } }]);
   return kernel;
 }
 
@@ -121,12 +116,7 @@ test("constraint rejection leaves world state untouched", () => {
 
 test("scheduler advances time and runs scheduled tasks", () => {
   const kernel = buildKernel();
-  kernel.internals.scheduler.schedule({
-    type: "demo.tick",
-    dueAt: 5,
-    payload: { actorId: "demo:actor" },
-    owner: "demo",
-  });
+  scheduleThroughCommand(kernel, "demo.tick", 5, { actorId: "demo:actor" }, "demo");
   kernel.advanceTo(10);
   assert.equal(kernel.tick, 10);
   assert.deepEqual(
@@ -137,12 +127,7 @@ test("scheduler advances time and runs scheduled tasks", () => {
 
 test("one scheduled task can dispatch an ordered command batch", () => {
   const kernel = buildKernel();
-  kernel.internals.scheduler.schedule({
-    type: "demo.batch_tick",
-    dueAt: 5,
-    payload: { actorId: "demo:actor" },
-    owner: "demo",
-  });
+  scheduleThroughCommand(kernel, "demo.batch_tick", 5, { actorId: "demo:actor" }, "demo");
   kernel.advanceTo(5);
   assert.deepEqual(
     kernel.worldView().getComponent("demo:actor", "demo.counter"),
