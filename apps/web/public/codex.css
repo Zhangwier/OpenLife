@@ -1,0 +1,65 @@
+/* 图鉴（codex）与背景音乐开关 */
+.codex { padding: 24px; }
+.codex-intro p { font-size: 13px; line-height: 1.8; color: var(--muted); margin: 8px 0 18px; }
+.codex-tabs { display: flex; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 18px; }
+.codex-tabs button { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 8px 16px; cursor: pointer; font-size: 13px; }
+.codex-tabs button[aria-selected="true"] { background: #34434a; color: #fff; border-color: #34434a; }
+
+.codex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.codex-card { border: 1px solid var(--line); border-radius: 16px; padding: 16px; background: rgba(255,255,255,.35); display: flex; flex-direction: column; gap: 8px; }
+.codex-card.is-ready { border-color: rgba(119,135,118,.6); box-shadow: 0 0 0 3px rgba(119,135,118,.10); }
+.codex-card header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.codex-card h3 { margin: 0; font: 600 17px "Noto Serif SC", serif; }
+.codex-tag { font-size: 10px; padding: 3px 8px; border-radius: 999px; background: rgba(183,139,69,.12); color: #6f6049; white-space: nowrap; }
+.codex-where { margin: 0; font-size: 12px; color: var(--muted); }
+.codex-parts { display: grid; grid-template-columns: 40px 1fr; gap: 4px 8px; margin: 4px 0; font-size: 12px; }
+.codex-parts dt { color: var(--muted); }
+.codex-parts dd { margin: 0; }
+.codex-text { font-size: 12px; line-height: 1.75; margin: 0; color: #4c5550; }
+.codex-blocker { font-size: 11px; line-height: 1.6; color: #8a6a4a; margin: 4px 0 0; }
+.codex-card .action-button { margin-top: auto; }
+.codex-card .action-button small { margin-left: 8px; opacity: .7; font-size: 11px; }
+
+.codex-table-wrap { overflow-x: auto; }
+.codex-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.codex-table th, .codex-table td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.codex-table thead th { font-size: 11px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+.codex-table tbody th { font-weight: 600; white-space: nowrap; }
+.codex-table tbody th small { margin-left: 6px; color: var(--muted); font-weight: 400; }
+
+.codex-people { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.codex-person { display: grid; grid-template-columns: 96px 1fr; gap: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,255,255,.35); }
+.codex-portrait { width: 96px; height: 128px; object-fit: cover; border-radius: 12px; background: #e8e0d3; }
+.codex-portrait-empty { display: grid; place-items: center; font: 600 34px "Noto Serif SC", serif; color: #8a7c66; }
+.codex-person h3 { margin: 0 0 4px; font: 600 16px "Noto Serif SC", serif; }
+.codex-person h3 small { font: 400 11px system-ui, sans-serif; color: var(--muted); margin-left: 6px; }
+.codex-person p { margin: 4px 0; font-size: 12px; line-height: 1.65; }
+.codex-role { color: var(--gold); }
+.codex-wish { color: var(--muted); }
+
+.codex-lore { max-width: 760px; }
+.codex-lore h3 { font: 600 19px "Noto Serif SC", serif; margin: 22px 0 8px; }
+.codex-lore section:first-child h3 { margin-top: 0; }
+.codex-lore p { font: 15px/2 "Noto Serif SC", serif; margin: 0 0 12px; text-indent: 2em; }
+
+.codex-music > p { font-size: 13px; line-height: 1.8; color: var(--muted); margin-top: 0; }
+.codex-track { display: grid; grid-template-columns: 1fr minmax(220px, 320px) auto; gap: 14px; align-items: center; padding: 14px 0; border-top: 1px solid var(--line); }
+.codex-track h3 { margin: 0; font: 600 16px "Noto Serif SC", serif; }
+.codex-track p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+.codex-track audio { width: 100%; }
+.codex-track.is-playing h3::after { content: " ♪"; color: var(--gold); }
+
+#musicToggle[aria-pressed="true"] { background: #34434a; color: #fff; }
+
+.event-points { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 10px; }
+.event-points li { padding: 12px 14px; border-radius: 12px; background: rgba(228,233,217,.55); }
+.event-points li > div { display: flex; gap: 10px; align-items: baseline; }
+.event-points small { color: #89947b; font-size: 11px; }
+.event-points p { margin: 6px 0 0; font-size: 12px; line-height: 1.75; }
+
+@media (max-width: 720px) {
+  .codex { padding: 16px; }
+  .codex-track { grid-template-columns: 1fr; }
+  .codex-person { grid-template-columns: 72px 1fr; }
+  .codex-portrait { width: 72px; height: 96px; }
+}

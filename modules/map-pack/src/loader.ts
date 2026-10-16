@@ -24,6 +24,10 @@ import { GeographyComponents, GeographyKinds, GeographyRelations } from "@openli
 import { YamlError, parseYamlDocument, type YamlValue } from "./yaml.ts";
 import {
   MAP_PACK_FILES,
+  MAP_PACK_OPTIONAL_FILES,
+  EVENT_POINT_KINDS,
+  EVENT_POINT_SEASONS,
+  type MapPackEventPoint,
   MAP_PACK_SCHEMA_VERSION,
   MAP_PACK_TYPE,
   MapPackIssueCode,
@@ -83,6 +87,7 @@ export function loadMapPack(packPath: string, options: LoadMapPackOptions = {}):
   const boundaryAnchors = parseBoundaryAnchors(files.boundaryAnchors, issues);
 
   validateReferences(regions, locations, edges, boundaryAnchors, issues);
+  const eventPoints = parseEventPoints(directory, locations, issues);
 
   const checks = buildChecks(issues, regions, locations, edges, boundaryAnchors);
   const validation: MapPackValidation = {
@@ -103,13 +108,13 @@ export function loadMapPack(packPath: string, options: LoadMapPackOptions = {}):
       directory,
       ...(manifest ? { manifest } : {}),
       ...(manifest && validation.ok
-        ? { pack: { manifest, regions, locations, edges, boundaryAnchors } satisfies MapPackContents }
+        ? { pack: { manifest, regions, locations, edges, boundaryAnchors, ...(eventPoints ? { eventPoints } : {}) } satisfies MapPackContents }
         : {}),
       validation,
     };
   }
 
-  const pack: MapPackContents = { manifest, regions, locations, edges, boundaryAnchors };
+  const pack: MapPackContents = { manifest, regions, locations, edges, boundaryAnchors, ...(eventPoints ? { eventPoints } : {}) };
   return { ok: true, directory, manifest, pack, validation };
 }
 
@@ -385,6 +390,61 @@ function parseCollection<T>(
     }
     const parsed = parseEntry(raw, index);
     if (parsed !== undefined) out.push(parsed);
+  });
+  return out;
+}
+
+// --- optional: event points -------------------------------------------------
+
+/** Parses map/event_points.yaml when present; undefined when the pack has none. */
+function parseEventPoints(directory: string, locations: MapPackLocation[], issues: MapPackIssue[]): MapPackEventPoint[] | undefined {
+  const path = resolve(directory, MAP_PACK_OPTIONAL_FILES.eventPoints);
+  if (!existsSync(path)) return undefined;
+  let value: YamlValue | undefined;
+  const file: StagedFile = { path, present: true, value: undefined };
+  try {
+    value = parseYamlDocument(readFileSync(path, "utf8"), path);
+  } catch (error) {
+    issues.push(fileIssue(file, MapPackIssueCode.FileMalformed, (error as Error).message));
+    return [];
+  }
+  const list = isObject(value) ? value.event_points : undefined;
+  if (!Array.isArray(list)) {
+    issues.push(fileIssue(file, MapPackIssueCode.RootShape, `${MAP_PACK_OPTIONAL_FILES.eventPoints} must contain an "event_points:" list`));
+    return [];
+  }
+  const known = new Set(locations.map((location) => location.id));
+  const seen = new Set<string>();
+  const out: MapPackEventPoint[] = [];
+  list.forEach((raw, offset) => {
+    const index = offset + 1;
+    if (!isObject(raw)) {
+      issues.push(fileIssue(file, MapPackIssueCode.NonObjectEntry, `event_points[${index}] must be a mapping`, { index }));
+      return;
+    }
+    const id = requireString(raw, "id", file, issues, index);
+    const name = requireString(raw, "name", file, issues, index);
+    const locationId = requireString(raw, "location_id", file, issues, index);
+    const kind = requireString(raw, "kind", file, issues, index);
+    const text = requireString(raw, "text", file, issues, index);
+    const season = raw.season === undefined ? "any" : requireString(raw, "season", file, issues, index);
+    if (id !== undefined) {
+      if (seen.has(id)) issues.push(fileIssue(file, MapPackIssueCode.DuplicateId, `event_points[${index}] repeats id "${id}"`, { index, objectId: id }));
+      seen.add(id);
+    }
+    if (locationId !== undefined && !known.has(locationId)) {
+      issues.push(fileIssue(file, MapPackIssueCode.UnknownLocation, `event point "${id}" references unknown location "${locationId}"`, { index, field: "location_id", ...(id ? { objectId: id } : {}) }));
+    }
+    if (kind !== undefined && !(EVENT_POINT_KINDS as readonly string[]).includes(kind)) {
+      issues.push(fileIssue(file, MapPackIssueCode.InvalidField, `event point kind must be one of ${EVENT_POINT_KINDS.join("/")}, received "${kind}"`, { index, field: "kind" }));
+      return;
+    }
+    if (season !== undefined && !(EVENT_POINT_SEASONS as readonly string[]).includes(season)) {
+      issues.push(fileIssue(file, MapPackIssueCode.InvalidField, `event point season must be one of ${EVENT_POINT_SEASONS.join("/")}, received "${season}"`, { index, field: "season" }));
+      return;
+    }
+    if (id === undefined || name === undefined || locationId === undefined || kind === undefined || text === undefined || season === undefined) return;
+    out.push({ id, name, locationId, kind: kind as MapPackEventPoint["kind"], season: season as MapPackEventPoint["season"], text });
   });
   return out;
 }

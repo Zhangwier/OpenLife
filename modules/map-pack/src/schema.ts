@@ -22,6 +22,18 @@ export const MAP_PACK_FILES = {
 
 export type MapPackFileKey = keyof typeof MAP_PACK_FILES;
 
+/**
+ * Optional content files. A pack without them is still a valid v0.1 pack, and
+ * loading it produces exactly the same contents as before.
+ */
+export const MAP_PACK_OPTIONAL_FILES = {
+  eventPoints: "map/event_points.yaml",
+} as const;
+
+/** What kind of moment an event point offers; consumers switch on these. */
+export const EVENT_POINT_KINDS = ["landmark", "gathering", "encounter", "hazard", "omen", "festival"] as const;
+export const EVENT_POINT_SEASONS = ["any", "spring", "summer", "autumn", "winter"] as const;
+
 export interface MapPackManifest {
   id: string;
   name: string;
@@ -66,12 +78,28 @@ export interface MapPackBoundaryAnchor {
   acceptsTypes: string[];
 }
 
+/**
+ * An authored point of interest at a location: a landmark, a seasonal
+ * gathering spot, a danger, an omen. Pure content - registering a pack does
+ * not schedule anything; later systems read these to stage moments.
+ */
+export interface MapPackEventPoint {
+  id: string;
+  name: string;
+  locationId: string;
+  kind: (typeof EVENT_POINT_KINDS)[number];
+  season: (typeof EVENT_POINT_SEASONS)[number];
+  text: string;
+}
+
 export interface MapPackContents {
   manifest: MapPackManifest;
   regions: MapPackRegion[];
   locations: MapPackLocation[];
   edges: MapPackEdge[];
   boundaryAnchors: MapPackBoundaryAnchor[];
+  /** Present only when the pack ships map/event_points.yaml. */
+  eventPoints?: MapPackEventPoint[];
 }
 
 /** Machine-readable validation codes. Callers switch on these, not on text. */

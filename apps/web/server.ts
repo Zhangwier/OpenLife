@@ -37,6 +37,7 @@ import {
   rejected,
 } from "./src/player.ts";
 import { worldCatalog } from "./src/catalog.ts";
+import { codex } from "./src/codex.ts";
 const PORT = Number(process.env.PORT ?? 4173);
 const PUBLIC_DIR = fileURLToPath(new URL("./public/", import.meta.url));
 /** Which opening a brand-new life uses: the M1 settlement, or the older slice. */
@@ -557,6 +558,7 @@ const SETTLEMENT_ACTIONS: Record<string, number> = {
   [SettlementCommands.court]: 0,
   [SettlementCommands.wed]: 0,
   [SettlementCommands.handoff]: 0,
+  [SettlementCommands.craft]: 1,
 };
 
 export function isSettlementAction(action: string): boolean {
@@ -1189,7 +1191,7 @@ class HttpError extends Error {
 /** Largest request body accepted (a long life's save is a few MB). */
 const MAX_BODY_BYTES = Number(process.env.OPENLIFE_MAX_BODY_BYTES ?? 32 * 1024 * 1024);
 const API_ROUTES: Record<string, string> = {
-  "/api/catalog": "GET", "/api/state": "GET", "/api/action": "POST", "/api/autosim": "POST",
+  "/api/catalog": "GET", "/api/codex": "GET", "/api/state": "GET", "/api/action": "POST", "/api/autosim": "POST",
   "/api/save": "POST", "/api/load": "POST", "/api/reset": "POST",
 };
 
@@ -1211,6 +1213,10 @@ const server = createServer(async (req, res) => {
       }
       if (req.method === "GET" && url.pathname === "/api/catalog") {
         res.end(JSON.stringify(await worldCatalog(simulation)));
+        return;
+      }
+      if (req.method === "GET" && url.pathname === "/api/codex") {
+        res.end(JSON.stringify(codex(simulation, activeCharacterId())));
         return;
       }
       if (req.method === "GET" && url.pathname === "/api/state") {
@@ -1388,5 +1394,7 @@ function contentType(ext: string): string {
   if (ext === ".svg") return "image/svg+xml";
   if (ext === ".webp") return "image/webp";
   if (ext === ".png") return "image/png";
+  if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
+  if (ext === ".ogg") return "audio/ogg";
   return "application/octet-stream";
 }

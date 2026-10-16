@@ -596,6 +596,7 @@ export function describeSettlementResult(actionId, result, state) {
     "settlement-locations.court": "你把心里话说了出来。",
     "settlement-locations.wed": "你们成了亲。",
     "settlement-locations.end_day": "这一天过去了。",
+    "settlement-locations.craft": "做好了。用掉的材料已经没了，新做的东西拿在你手上。",
   };
   return labels[actionId] ?? "世界发生了一点变化。";
 }

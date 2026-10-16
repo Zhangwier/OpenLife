@@ -1,0 +1,24 @@
+# 北缘的陆路走廊，接夏境南部盆地的 SOUTH_LAND_CORRIDOR（L0504，south）。
+# 南垭口留作再往南扩展的接口。
+boundary_anchors:
+  - id: NORTH_LAND_GATE
+    type: land_corridor
+    location_id: S0101
+    edge: north
+    compatibility_tags:
+      - land
+      - corridor
+      - overland
+    accepts_types:
+      - land_corridor
+
+  - id: SOUTH_PASS_ONWARD
+    type: mountain_pass
+    location_id: S0304
+    edge: south
+    compatibility_tags:
+      - land
+      - highland
+      - pass
+    accepts_types:
+      - mountain_pass

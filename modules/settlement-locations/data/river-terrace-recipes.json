@@ -1,0 +1,16 @@
+{
+  "id": "river-terrace-recipes",
+  "packId": "river-terrace",
+  "formatVersion": 1,
+  "note": "Recipes of the River Terrace village. Loaded and validated by src/content.ts against river-terrace.json; executed by the settlement-locations.craft command (src/crafting.ts). Inputs are consumed, tools must be held and are kept, outputs are new objects owned and held by the maker.",
+  "recipes": [
+    {"id": "recipe:dried-fish", "name": "晾鱼干", "placeId": "place:yard", "spaceId": "space:drying-rack", "inputs": [{"prototypeId": "prototype:fish", "count": 1}], "tools": ["prototype:stone-knife"], "outputs": [{"prototypeId": "prototype:dried-fish", "count": 1}], "skill": "储食", "description": "剖开、去脏，挂在晾坯架下风干。鲜鱼放不过两天，鱼干能留到冬天。"},
+    {"id": "recipe:millet-cake", "name": "烙粟饼", "placeId": "place:hearth-yard", "spaceId": "space:hearth", "inputs": [{"prototypeId": "prototype:grain", "count": 2}, {"prototypeId": "prototype:fuel-bundle", "count": 1}], "tools": [], "outputs": [{"prototypeId": "prototype:millet-cake", "count": 2}], "skill": "炊事", "description": "粟磨碎和水，贴在烧热的灶壁上烙干。比熟食耐放，适合带上远路。"},
+    {"id": "recipe:spindle-whorl", "name": "烧陶纺轮", "placeId": "place:kiln", "spaceId": "space:kiln-mouth", "inputs": [{"prototypeId": "prototype:clay-batch", "count": 1}, {"prototypeId": "prototype:fuel-bundle", "count": 1}], "tools": [], "outputs": [{"prototypeId": "prototype:spindle-whorl", "count": 2}], "skill": "制陶", "description": "一团泥捏成两个扁圆饼，中间穿孔，随窑一起烧。纺线的人离不开它。"},
+    {"id": "recipe:clay-xun", "name": "烧陶埙", "placeId": "place:kiln", "spaceId": "space:kiln-mouth", "inputs": [{"prototypeId": "prototype:clay-batch", "count": 1}, {"prototypeId": "prototype:fuel-bundle", "count": 1}], "tools": ["prototype:bone-needle"], "outputs": [{"prototypeId": "prototype:clay-xun", "count": 1}], "skill": "制陶", "description": "捏成中空的蛋形，用骨针钻出吹孔和音孔再入窑。吹得准不准，全看孔开得匀不匀。"},
+    {"id": "recipe:bone-hook", "name": "磨骨鱼钩", "placeId": "place:river", "spaceId": "space:bank", "inputs": [{"prototypeId": "prototype:fish", "count": 1}], "tools": ["prototype:stone-knife"], "outputs": [{"prototypeId": "prototype:bone-hook", "count": 2}], "skill": "捕鱼", "description": "取大鱼的硬骨，在河边砂石上磨出倒刺。一条鱼的骨头能磨两枚钩。"},
+    {"id": "recipe:hemp-cloth", "name": "纺麻织布", "placeId": "place:yard", "spaceId": "space:drying-rack", "inputs": [{"prototypeId": "prototype:fiber-bundle", "count": 2}], "tools": ["prototype:spindle-whorl"], "outputs": [{"prototypeId": "prototype:hemp-cloth", "count": 1}], "skill": "纺织", "description": "用陶纺轮把纤维捻成线，再在腰机上织成一小匹布。比纤维裹身结实得多。"},
+    {"id": "recipe:reed-screen", "name": "编苇帘", "placeId": "place:reedbed", "spaceId": "space:reed-cut", "inputs": [{"prototypeId": "prototype:reed-bundle", "count": 2}, {"prototypeId": "prototype:rope", "count": 1}], "tools": [], "outputs": [{"prototypeId": "prototype:reed-screen", "count": 1}], "skill": "编织", "description": "苇秆排齐，用草绳一道道绞紧。挂在门口挡风，也能隔出一处寝处。"},
+    {"id": "recipe:herb-bundle", "name": "扎药草", "placeId": "place:reedbed", "spaceId": "space:reed-cut", "inputs": [{"prototypeId": "prototype:fiber-bundle", "count": 1}], "tools": ["prototype:stone-knife"], "outputs": [{"prototypeId": "prototype:herb-bundle", "count": 1}], "skill": "采集", "description": "在滩边割下艾与蒿，用纤维扎成一束倒挂阴干。陶婶说伤口和受寒都用得上。"}
+  ]
+}

@@ -1,0 +1,6 @@
+id: xia_south_hills_v0_1
+name: 南丘与盐泉
+version: 0.1.0
+schema_version: "0.1"
+type: map_pack
+description: 夏境以南的丘陵扩展包。从南部盆地的陆路走廊南下，经过南丘坡地、竹溪谷，抵达出产盐块的盐泉台地。附带可选的事件点文件 map/event_points.yaml。
