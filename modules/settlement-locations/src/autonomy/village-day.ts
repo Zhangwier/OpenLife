@@ -10,7 +10,7 @@
  */
 import type { AgentHost, AgentStep } from "@openlife/contracts";
 import { scaleIn } from "@openlife/life-contracts";
-import { SettlementId } from "../module.ts";
+import { SettlementId, SettlementCommands, familyDue, seasonTurnDue } from "../module.ts";
 import { runFirstNpcDay, type NpcDailyResult } from "./npc.ts";
 import { runSecondNpcDay } from "./npc-cook.ts";
 import { runThirdNpcDay } from "./npc-reed.ts";
@@ -41,6 +41,11 @@ export function runVillageDayBoundary(sim: AgentHost, fromTick: number): Village
       scaleIn(world) !== "day" || !world.getEntity(SettlementId)) {
     return { ran: false, fromTick, tick, notes: [], residents: [] };
   }
+  // 你家的日子也往前走一天：添丁、出生、孩子长大（没事就什么也不记）。
+  const player = String(world.getComponent("modern:world", "modern.world_state")?.activeCharacterId ?? "");
+  // 换季那天，村里这一季的大事。
+  if (seasonTurnDue(world)) sim.dispatch({ type: SettlementCommands.seasonTurn, payload: {} });
+  if (player && familyDue(world, player)) sim.dispatch({ type: SettlementCommands.familyTick, actorId: player, payload: {} });
   const cook = runSecondNpcDay(sim);
   const reed = runThirdNpcDay(sim);
   const farmer = runFirstNpcDay(sim);

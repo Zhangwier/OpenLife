@@ -1,7 +1,11 @@
+import { isTextMode } from "/view-mode.js";
 import { html } from "/player.js";
 import { commandsForTarget } from "/settlement.js";
 import { objectKind, propSvg, fillRatio } from "/scene-props.js";
 import { openDetail, closeDetail, leaveDetail } from "/detail-navigation.js";
+import { icon } from "/icons.js";
+import { renderSceneFx } from "/scene-fx.js";
+import { audioState, onAudioChange, setSoundMode, setVolume } from "/audio.js";
 
 const TITLES = { life: "人生概述", character: "人物", activities: "生活", people: "人际", works: "行囊", family: "家族谱", map: "地图与地点", world: "时代与世界", history: "记忆与历史", modules: "模块管理" };
 let active = "home", started = false, currentState, callbacks;
@@ -27,6 +31,9 @@ export function installShell(options) {
   collection.innerHTML = "<summary>亲手留下的作品</summary>";
   $("screen-works").append(collection);
   collection.append(document.querySelector(".works-card"));
+  installTheme();
+  if (!isTextMode()) renderSceneFx($("homeFx"), { location: "yard", daypart: "day", season: "秋" });
+  if (!isTextMode()) installSound();
   $("menuButton").onclick = () => { $("menuModal").hidden = false; };
   $("closeMenu").onclick = () => { $("menuModal").hidden = true; };
   $("sceneTimeButton").onclick = () => $("autoButton").click();
@@ -203,4 +210,76 @@ async function loadMap() {
     const data = await response.json();
     screen.innerHTML = `<section class="catalog-intro panel"><div class="overview-label">当前位置</div><h2>${html(currentState?.character?.city ?? "尚未进入世界")}</h2><p>河岸聚落已经可以在「生活」里真实移动、走进房间和操作物品。更远的地图包仍主要是世界资料，暂不能全部直接前往。</p></section>${data.maps.map(map => `<section class="map-pack panel"><div class="panel-title-row"><div><div class="eyebrow">地图资料</div><h2>${html(map.label)}</h2></div><span class="module-status">${map.ok ? "结构校验通过" : "资料需修复"}</span></div><div class="map-counts"><span>${map.regions.length} 个区域</span><span>${map.locations.length} 个地点</span><span>${map.edges} 条连接</span></div><p class="map-limit">地形与连接已有定义；居民、房屋内部、可交互物体和衣物尚未随地图包填充。</p><details class="region-fold"><summary>查看 ${map.regions.length} 个区域</summary>${map.regions.map(region => `<details class="region-entry"><summary>${html(region.name)} <small>${html(region.id)}</small></summary><ul>${map.locations.filter(loc => loc.regionId === region.id).map(loc => `<li><strong>${html(loc.name)}</strong><span>${html(loc.type)}</span></li>`).join("")}</ul></details>`).join("")}</details></section>`).join("")}`;
   } catch (error) { screen.innerHTML = `<p class="page-empty panel">${html(error.message)}</p>`; }
+}
+
+// Light / dark: follows the system until the player picks one; the choice is remembered.
+const darkQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
+function effectiveTheme() {
+  return document.documentElement.dataset.theme || (darkQuery?.matches ? "dark" : "light");
+}
+function paintThemeButtons() {
+  const dark = effectiveTheme() === "dark";
+  for (const id of ["themeButton", "homeThemeButton"]) {
+    const b = $(id); if (!b) continue;
+    b.innerHTML = icon(dark ? "sun" : "moonTheme");
+    b.setAttribute("aria-label", dark ? "切换到亮色模式" : "切换到深色模式");
+    b.title = dark ? "亮色模式" : "深色模式";
+  }
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = dark ? "#121a17" : "#f2ece1";
+}
+function installTheme() {
+  const toggle = () => {
+    const next = effectiveTheme() === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("openlife-theme", next); } catch { /* private mode */ }
+    paintThemeButtons();
+  };
+  for (const id of ["themeButton", "homeThemeButton"]) { const b = $(id); if (b) b.onclick = toggle; }
+  darkQuery?.addEventListener?.("change", paintThemeButtons);
+  paintThemeButtons();
+}
+
+// 声音：按钮打开小面板，选模式即开始播放（这次点击就是浏览器要求的手势）。
+const MODE_LABEL = { music: "舒缓音乐", noise: "白噪音", off: "关闭" };
+function installSound() {
+  const panel = $("soundPanel"); if (!panel) return;
+  const modeIcons = { music: "music", noise: "rain", off: "soundOff" };
+  panel.querySelectorAll("[data-sound-mode]").forEach(b => {
+    b.querySelector(".sm-icon").innerHTML = icon(modeIcons[b.dataset.soundMode]);
+    b.onclick = () => setSoundMode(b.dataset.soundMode);
+  });
+  const vol = $("soundVolume");
+  vol.oninput = () => setVolume(vol.value / 100);
+  let anchor = null;
+  const close = () => { panel.hidden = true; anchor?.setAttribute("aria-expanded", "false"); };
+  const open = button => {
+    anchor = button; panel.hidden = false; button.setAttribute("aria-expanded", "true");
+    const r = button.getBoundingClientRect(), w = Math.min(300, window.innerWidth - 24);
+    panel.style.width = w + "px";
+    panel.style.top = Math.round(r.bottom + 8) + "px";
+    panel.style.left = Math.round(Math.max(12, Math.min(window.innerWidth - w - 12, r.right - w))) + "px";
+  };
+  for (const id of ["soundButton", "homeSoundButton"]) {
+    const b = $(id); if (!b) continue;
+    b.onclick = event => { event.stopPropagation(); panel.hidden ? open(b) : close(); };
+  }
+  panel.addEventListener("click", e => e.stopPropagation());
+  document.addEventListener("click", () => { if (!panel.hidden) close(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !panel.hidden) close(); });
+  const paint = st => {
+    const on = st.playing;
+    for (const id of ["soundButton", "homeSoundButton"]) {
+      const b = $(id); if (!b) continue;
+      b.innerHTML = icon(on ? "soundOn" : "soundOff");
+      b.classList.toggle("is-on", on);
+      b.setAttribute("aria-label", on ? "声音：" + MODE_LABEL[st.mode] : "声音：关闭");
+      b.title = on ? MODE_LABEL[st.mode] : "声音已关闭";
+    }
+    const active = on ? st.mode : "off";
+    panel.querySelectorAll("[data-sound-mode]").forEach(b => b.setAttribute("aria-checked", String(b.dataset.soundMode === active)));
+    $("soundStatus").textContent = on ? "正在播放 · " + MODE_LABEL[st.mode] : "关闭";
+    vol.value = Math.round(st.volume * 100);
+  };
+  onAudioChange(paint); paint(audioState());
 }

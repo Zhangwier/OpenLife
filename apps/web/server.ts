@@ -26,7 +26,7 @@ import { worldClockModule } from "@openlife/module-world-clock";
 import { worldSpaceModule } from "@openlife/module-world-space";
 import { worldObjectsModule } from "@openlife/module-world-objects";
 import { settlementLocationsModule, SettlementCommands } from "@openlife/module-settlement-locations";
-import { residentId } from "@openlife/module-settlement-locations";
+import { residentId, rollOrigin, originCatalog } from "@openlife/module-settlement-locations";
 import {
   playerView,
   playerActions,
@@ -65,6 +65,9 @@ interface NewLifeOptions {
   givenName?: string;
   familyName?: string;
   cityId?: string;
+  /** 出身 id, or "random" to let the seed decide; omitted = no origin (older behaviour). */
+  originId?: string;
+  talents?: string[];
 }
 
 export function createGame(options: NewLifeOptions = {}): Simulation {
@@ -107,6 +110,12 @@ export function createGame(options: NewLifeOptions = {}): Simulation {
     payload: { placeId: "place:yard" },
     source: "system",
   }));
+  if (options.originId) {
+    const choice = options.originId === "random" ? rollOrigin(seed)
+      : { originId: options.originId, talents: (options.talents ?? []).slice(0, 2) };
+    const chosen = sim.dispatch({ type: SettlementCommands.chooseOrigin, actorId, source: "player", payload: choice });
+    if (!chosen.ok) throw new HttpError(400, chosen.errors[0]?.message ?? "出身选择无效");
+  }
   return sim;
 }
 
@@ -376,6 +385,7 @@ function gameState() {
       settlementLoans: characterId ? loansHeldBy(simulation, characterId) : [],
     },
     settlement: settlementView(simulation, characterId),
+    originCatalog: originCatalog(),
     clock: clockReading(world),
     actions: world.getComponent(characterId, Life.state)
       ? playerActions(simulation, characterId)
@@ -383,14 +393,29 @@ function gameState() {
   };
 }
 
+/**
+ * The prose lines the world wrote while one action ran (who said what, what the
+ * work brought), limited to events that involve the player. The lines are
+ * stored in the event data by the rules that produced them, so the same state
+ * and command always tell the same story.
+ */
+function narrativeSince(seq: number, playerId: string): string[] {
+  return simulation.kernel.internals.eventLog.since(seq)
+    .filter((event) => (event.actorId === playerId || event.targetId === playerId) && typeof event.data?.line === "string")
+    .map((event) => String(event.data.line))
+    .slice(0, 6);
+}
+
 /** Settlement actions the UI is allowed to send, and how long each takes. */
 const SETTLEMENT_ACTIONS: Record<string, number> = {
   [SettlementCommands.arrive]: 1,
   [SettlementCommands.draw]: 1,
   [SettlementCommands.talk]: 1,
+  [SettlementCommands.exchange]: 1,
   [SettlementCommands.drink]: 1,
   [SettlementCommands.eat]: 1,
   [SettlementCommands.cook]: 1,
+  [SettlementCommands.craft]: 1,
   [SettlementCommands.weaveBag]: 1,
   [SettlementCommands.weaveMat]: 1,
   [SettlementCommands.prepareFiber]: 1,
@@ -405,6 +430,13 @@ const SETTLEMENT_ACTIONS: Record<string, number> = {
   [SettlementCommands.playerBarterAccept]: 0,
   [SettlementCommands.playerBarterDecline]: 0,
   [SettlementCommands.helpHearth]: 0,
+  [SettlementCommands.requestAnswer]: 0,
+  [SettlementCommands.gift]: 0,
+  [SettlementCommands.learn]: 0,
+  [SettlementCommands.beginSeason]: 0,
+  [SettlementCommands.court]: 0,
+  [SettlementCommands.wed]: 0,
+  [SettlementCommands.handoff]: 0,
 };
 
 export function isSettlementAction(action: string): boolean {
@@ -1081,6 +1113,8 @@ const server = createServer(async (req, res) => {
         const action = String(body.action ?? "");
         const manualActorId = activeCharacterId();
         const activePlan = settlementView(simulation, manualActorId)?.dailyPlan;
+        const seqBefore = simulation.kernel.internals.eventLog.nextSeq - 1;
+        const hopeBefore = settlementView(simulation, manualActorId)?.aspiration?.done;
         const result = runAction(action, payload);
         // Manual action wins over a previously authorized routine. Suspend it
         // only after a successful action, never as a side effect of a refusal.
@@ -1090,7 +1124,11 @@ const server = createServer(async (req, res) => {
           });
         }
         simulation.syncHistory();
-        res.end(JSON.stringify({ result, state: gameState() }));
+        const narrative = narrativeSince(seqBefore, manualActorId);
+        // 念想是从世界里读出来的；它在这一步刚刚成真时，讲一句话。
+        const hopeAfter = settlementView(simulation, manualActorId)?.aspiration;
+        if (hopeBefore === false && hopeAfter?.done) narrative.push(hopeAfter.line);
+        res.end(JSON.stringify({ result, narrative, state: gameState() }));
         return;
       }
       if (req.method === "POST" && url.pathname === "/api/autosim") {
@@ -1158,6 +1196,8 @@ const server = createServer(async (req, res) => {
           givenName: text(body.givenName),
           familyName: text(body.familyName),
           cityId: text(body.cityId),
+          originId: text(body.originId),
+          talents: Array.isArray(body.talents) ? body.talents.map(String).slice(0, 2) : undefined,
         });
         res.end(JSON.stringify({ state: gameState() }));
         return;
@@ -1222,5 +1262,7 @@ function contentType(ext: string): string {
   if (ext === ".css") return "text/css; charset=utf-8";
   if (ext === ".js") return "text/javascript; charset=utf-8";
   if (ext === ".svg") return "image/svg+xml";
+  if (ext === ".webp") return "image/webp";
+  if (ext === ".png") return "image/png";
   return "application/octet-stream";
 }

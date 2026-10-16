@@ -7,10 +7,10 @@
  * resident's persisted lastRoutineAt marker.
  */
 import type { AgentHost as NpcHost } from "@openlife/contracts";
-import { SettlementCommands, SettlementComponents, residentId, dailyActivity } from "../module.ts";
+import { SettlementCommands, SettlementComponents, residentId, dailyActivity, worksites } from "../module.ts";
 import { SpaceCommands, occupiedPlaceId, occupiedSpaceId } from "@openlife/module-world-space";
 import { ObjectRelations, holderOf, ownerOf, prototypeOf } from "@openlife/module-world-objects";
-import { ROLES, yieldId } from "./roles.ts";
+import { ROLES, yieldId, stockAt, roleNote } from "./roles.ts";
 
 export const FIRST_AUTONOMOUS_RESIDENT = ROLES.farmer.id;
 
@@ -73,12 +73,11 @@ export function runFirstNpcDay(sim: NpcHost): NpcDailyResult {
     .map((r) => r.from).sort()
     .find((id) => ownerOf(sim.worldView(), id) === cookId &&
       prototypeOf(sim.worldView(), id).resourceId === "resource:fuel");
-  const fieldGrain = sim.worldView().getComponent(yieldId(ROLES.farmer.workPlace, "resource:grain"),
-    SettlementComponents.yieldPoint);
+  const fieldGrain = stockAt(sim.worldView(), ROLES.farmer.workPlace, "resource:grain");
   // Trade is now an opportunity derived from concrete supplies and available
   // activity, not a scripted event on a chosen day.
   const wantsBarter = Number(cook?.tradeCount ?? 0) === 0 &&
-    Boolean(cookFuel) && Number(fieldGrain?.stock ?? 0) > 0 &&
+    Boolean(cookFuel) && fieldGrain > 0 &&
     dailyActivity(sim.worldView(), actorId).remaining >= 4;
   if (wantsBarter && !act(SettlementCommands.draw,
       { placeId: ROLES.farmer.workPlace, resourceId: "resource:grain" }, "为交换采集一份粟")) {
@@ -104,9 +103,10 @@ export function runFirstNpcDay(sim: NpcHost): NpcDailyResult {
     }
   }
   // The shared cooked-food stock is finite and the same stock players use.
-  const food = sim.worldView().getComponent(yieldId(ROLES.cook.workPlace, "resource:cooked"),
-    SettlementComponents.yieldPoint);
-  if (Number(food?.stock ?? 0) > 0) {
+  // Read the renewed stock (what anyone standing there would see), not the stored cache.
+  const food = worksites(sim.worldView()).places.find(p => p.placeId === ROLES.cook.workPlace)
+    ?.resources.find(p => p.resourceId === "resource:cooked")?.stock ?? 0;
+  if (food > 0) {
     // Never simulate the meal without the original validated eating command.
     act(SettlementCommands.eat,
       { placeId: ROLES.cook.workPlace, resourceId: "resource:cooked" }, "吃一份熟食");
@@ -129,9 +129,7 @@ export function runFirstNpcDay(sim: NpcHost): NpcDailyResult {
   return finish();
 
   function finish(): NpcDailyResult {
-    const note = obstacle
-      ? `${ROLES.farmer.name}：${actions.join("、") || "未能行动"}；${obstacle}`
-      : `${ROLES.farmer.name}今天${actions.join("、")}`;
+    const note = roleNote(ROLES.farmer.name, actions, obstacle);
     const marker = sim.dispatch({
       type: SettlementCommands.npcMarkDay, actorId, source: "ai",
       payload: { actions, summary: note },

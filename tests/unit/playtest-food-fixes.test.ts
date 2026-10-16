@@ -9,7 +9,7 @@ import { modernWorldModule } from "@openlife/module-modern-world";
 import { worldClockModule } from "@openlife/module-world-clock";
 import { worldSpaceModule } from "@openlife/module-world-space";
 import { worldObjectsModule } from "@openlife/module-world-objects";
-import { settlementLocationsModule, SettlementCommands, SettlementComponents, homestead } from "@openlife/module-settlement-locations";
+import { settlementLocationsModule, SettlementCommands, SettlementComponents, homestead, worksites } from "@openlife/module-settlement-locations";
 import { withoutAgents } from "../helpers/agents.ts";
 
 function life() {
@@ -28,17 +28,21 @@ function life() {
 const cooked = (sim: Simulation) => sim.worldView().getComponent("yield:place:hearth-yard:resource:cooked", SettlementComponents.yieldPoint) as Record<string, number>;
 
 test("a draw keeps the regrowth already under way", () => {
-  const { sim, act } = life();
-  act("走到公用灶台");
-  for (let i = 0; i < 6; i++) act("吃熟食");      // hearth empty at its start tick
-  const emptiedAt = sim.tick;
-  assert.equal(cooked(sim).stock, 0);
-  sim.advanceBy(3);                                // one 3-day cycle: one portion back
-  sim.advanceBy(2);                                // and 2 days into the next cycle
-  assert.equal(act("吃熟食").result?.ok, true);
-  assert.equal(cooked(sim).lastRenewedAt, emptiedAt + 3, "the 2 days of the next cycle are not thrown away");
-  sim.advanceBy(1);
-  assert.equal(act("吃熟食").result?.ok, true, "the next portion is ready one day later, not three");
+  const { sim, id } = life();
+  const must = (type: string, payload: Record<string, unknown>) =>
+    assert.equal(sim.dispatch({ type, actorId: id, payload: payload as never }).ok, true, type);
+  const point = () => sim.worldView().getComponent("yield:place:claypits:resource:clay", SettlementComponents.yieldPoint) as Record<string, number>;
+  const clay = () => worksites(sim.worldView()).places.find((p) => p.placeId === "place:claypits")!
+    .resources.find((r) => r.resourceId === "resource:clay")!.stock;
+  must(SettlementCommands.arrive, { placeId: "place:claypits" });
+  must(SettlementCommands.draw, { placeId: "place:claypits", resourceId: "resource:clay" });   // full pit: 20-day clock starts now
+  const startedAt = point().lastRenewedAt;
+  const full = clay() + 1;
+  sim.advanceBy(15);
+  must(SettlementCommands.draw, { placeId: "place:claypits", resourceId: "resource:clay" });
+  assert.equal(point().lastRenewedAt, startedAt, "15 days of the cycle already under way are not thrown away");
+  sim.advanceBy(5);
+  assert.equal(clay(), full - 1, "a portion returns 5 days after the second draw, not 20");
 });
 
 test("carried raw grain can be eaten anywhere, easing less hunger than cooked food", () => {
@@ -46,7 +50,7 @@ test("carried raw grain can be eaten anywhere, easing less hunger than cooked fo
   act("走到河岸旱地");
   assert.equal(act("取粟").result?.ok, true);
   act("走到渡口");
-  sim.advanceBy(6);
+  sim.advanceBy(12);
   const before = view().hunger;
   assert.ok(before >= 4);
   const eat = act("生嚼一份随身的粟");
@@ -62,7 +66,7 @@ test("harvest is shown disabled with a reason when hands are full", () => {
   act("取粟");
   assert.equal(act("播种一份粟粒").result?.ok, true);
   act("照看田地");
-  sim.advanceBy(31);
+  sim.advanceBy(61);  // sown in winter: 60 days to ripen
   assert.equal(act("取粟").result?.ok, true);
   assert.equal(act("取粟").result?.ok, true);
   const harvest = view().actions.find((a) => a.label.startsWith("收获"))!;

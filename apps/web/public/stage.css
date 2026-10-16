@@ -1,0 +1,466 @@
+/* OpenLife 场景画面内部：人物、物件、热点的位置与动效（由旧 scene.css / mobile-ui.css 提取）。外观见 theme.css。 */
+.scene-theater .scene-backdrop {position: absolute; width: 100%; height: 100%; object-fit: cover;
+  object-position: center 48%; pointer-events: none;}
+.scene-theater .scene-shimmer {position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, #14262063, transparent 33%, transparent 76%, #13251c38),
+    linear-gradient(0deg, #081915d9 0%, transparent 28%, transparent 75%, #091e228e 100%);}
+.scene-theater .scene-shimmer::after {content: ""; position: absolute; inset: 0;
+  opacity: .22; background: radial-gradient(ellipse at 64% 53%, #f4b75c78, transparent 42%);
+  animation: scene-breath 6s ease-in-out infinite;}
+.scene-theater[data-location="reed"] .scene-shimmer::after {background: radial-gradient(ellipse at 50% 50%, #a5cfc78a, transparent 57%);}
+.scene-theater[data-location="field"] .scene-shimmer::after {background: radial-gradient(ellipse at 53% 35%, #ebdc9580, transparent 58%);}
+.scene-theater .scene-stage-top {position: absolute; z-index: 4; top: 0; left: 0; right: 0;
+  padding: 19px 26px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  color: #fff1d6; pointer-events: none;}
+.scene-stage-top>div {display: grid; gap: 4px;}
+.scene-stage-kicker {font-size: 10px; font-weight: 650; letter-spacing: .18em; color: #d9d8bb;}
+.scene-stage-top strong {font: 500 clamp(26px, 3.1vw, 39px)/1.2 "Noto Serif SC","SimSun",serif; letter-spacing: .09em; text-shadow: 0 2px 18px #081d19;}
+.scene-stage-season {font-size: 11px; white-space: nowrap; border: 1px solid #f5e4c761; border-radius: 30px; background: #0e261f75; padding: 7px 11px;}
+.scene-theater .scene-stage-foot {position: absolute; z-index: 5; bottom: 0; left: 0; right: 0;
+  display: flex; justify-content: space-between; align-items: flex-end; gap: 8px;
+  padding: 24px 19px 16px; font-size: 11px; letter-spacing: .06em; color: #efe9d1; pointer-events: none;}
+.scene-stage-foot span:first-child {opacity: .79;}
+.scene-theater .scene-hotspots {position: absolute; z-index: 3; inset: 0;}
+.painted-actor, .painted-avatar, .painted-item, .painted-resource, .painted-exit, .painted-feature {position: absolute; z-index: 2; appearance: none; font: inherit;}
+.painted-actor, .painted-item, .painted-resource, .painted-exit, .painted-feature {cursor: pointer;}
+.painted-actor, .painted-avatar {--skin: #d6aa7e; --fabric: #6e8767; --fabric-deep: #345344;
+  width: clamp(83px, 10vw, 128px); height: 38%; min-height: 140px;
+  display: flex; align-items: center; justify-content: end; flex-direction: column;
+  border: 0; background: transparent; color: #fff2d9; padding: 0 0 4px;}
+.painted-actor {bottom: 18%; transition: transform .2s ease;}
+.painted-actor[aria-pressed="true"] {filter: drop-shadow(0 0 9px #fbe3a8);}
+.painted-actor:hover, .painted-actor:focus-visible {transform: translateY(-7px);}
+.painted-actor svg, .painted-avatar svg {width: 100%; flex: 1; min-height: 0; filter: drop-shadow(0 7px 6px #1e261677);}
+.painted-avatar {left: 16%; bottom: 14%; --skin: #e0bb8f; --fabric: #9d8068; --fabric-deep: #6a6254; pointer-events: none;}
+.painted-person--cook {--fabric: #7b6451; --fabric-deep: #4e483f; --skin: #ba946d;}
+.painted-person--reed {--fabric: #6f8a77; --fabric-deep: #4b625c; --skin: #d4a77c;}
+.actor-pos-0 {left: 69%;}
+.actor-pos-1 {left: 43%; bottom: 22%;}
+.actor-pos-2 {left: 82%; bottom: 26%;}
+.actor-pos-3 {left: 30%; bottom: 27%;}
+.painted-actor-name, .painted-avatar-name {background: #182922d9; color: #faf0d4; border: 1px solid #e3cb8b7a;
+  border-radius: 40px; padding: 4px 11px; white-space: nowrap;
+  font-size: 12px; font-weight: 650; line-height: 1.3; box-shadow: 0 3px 14px #13251c75;}
+.painted-actor-hint {color: #ecedd5; font-size: 9px; white-space: nowrap; text-shadow: 0 2px 4px #172518;}
+.painted-item, .painted-resource, .painted-exit, .painted-feature {display: flex; gap: 5px; align-items: center; border: 1px solid #f0deaa72;
+  border-radius: 40px; background: #142c23cd; color: #fdf2d6;
+  padding: 8px 12px; font-size: 11px; white-space: nowrap;
+  backdrop-filter: blur(4px); box-shadow: 0 3px 16px #08130a70;
+  transition: transform .2s ease, background .2s ease;}
+.painted-item:hover, .painted-resource:hover, .painted-exit:hover, .painted-feature:hover, .painted-item:focus-visible, .painted-resource:focus-visible, .painted-exit:focus-visible, .painted-feature:focus-visible {transform: translateY(-4px); background: #46624a; outline: 2px solid #f1d58c; outline-offset: 2px;}
+.painted-item[aria-pressed="true"], .painted-resource[aria-pressed="true"] {border-color: #fce3a7; background: #775b36;}
+.painted-item-symbol, .resource-mark {color: #dcb475; font-size: 16px;}
+.painted-resource small {color: #d3d3a7;}
+.painted-item--0 {left: 44%; bottom: 17%;}
+.painted-item--1 {left: 52%; bottom: 12%;}
+.painted-resource--0 {left: 43%; bottom: 40%;}
+.painted-resource--1 {left: 60%; bottom: 34%;}
+.painted-exit {bottom: 7%; border-color: #e1e7c168; background: #27473dcd; z-index: 4;}
+.painted-exit--0 {right: 3%;}
+.painted-exit--1 {right: 20%;}
+.painted-exit span {font-size: 15px; color: #d7c488;}
+.painted-feature {left: 52%; top: 50%; transform: translate(-50%, -50%); background: #382b22c9;}
+.painted-feature:hover, .painted-feature:focus-visible {transform: translate(-50%,-55%);}
+@keyframes scene-breath { 0%,100% { opacity: .16; } 50% { opacity: .35; } }
+@media (prefers-reduced-motion:reduce) {
+  .scene-shimmer::after {animation: none!important;}
+  .painted-actor {transition: none;}
+}
+@media (max-width:900px) {
+  .scene-theater .scene-stage-top {padding: 15px 16px;}
+}
+@media (max-width:600px) {
+  .scene-theater .scene-backdrop {object-position: 53% center;}
+  .scene-stage-top strong {font-size: 27px;}
+  .scene-theater .scene-stage-top {padding: 18px 17px;}
+  .scene-stage-season {font-size: 10px; padding: 7px;}
+  .scene-theater .scene-stage-foot {padding: 20px 12px 13px; font-size: 9px;}
+  .scene-theater .scene-stage-foot span:first-child {display: none;}
+  .scene-theater .scene-stage-foot span:last-child {width: 100%; text-align: center;}
+  .painted-actor, .painted-avatar {width: 100px; min-height: 122px; height: 33%;}
+  .painted-avatar {left: 8%; bottom: 17%;}
+  .actor-pos-0 {left: 63%; bottom: 24%;}
+  .actor-pos-1 {left: 38%; bottom: 22%;}
+  .actor-pos-2 {left: 75%; bottom: 36%;}
+  .actor-pos-3 {left: 23%; bottom: 32%;}
+  .painted-actor-name, .painted-avatar-name {font-size: 11px; padding: 3px 8px;}
+  .painted-item {left: 40%;}
+  .painted-item--0 {bottom: 12%;}
+  .painted-item--1 {bottom: 22%; left: 31%;}
+  .painted-resource--0 {left: 40%; bottom: 45%;}
+  .painted-resource--1 {left: 56%; bottom: 37%;}
+  .painted-exit {font-size: 10px; bottom: 7%; padding: 7px 9px;}
+  .painted-exit--0 {right: 4%;}
+  .painted-exit--1 {right: 32%;}
+  .painted-feature {left: 54%; top: 52%; font-size: 10px;}
+}
+.scene-theater[data-location="hearth"]::after {content: ""; z-index: 1; position: absolute; left: 43%; top: 43%;
+  width: 260px; height: 230px; pointer-events: none;
+  background: radial-gradient(ellipse, #e9a54a3f, #ffcc7130 28%, transparent 70%);
+  mix-blend-mode: screen; animation: hearth-flutter 3.4s ease-in-out infinite;}
+.painted-actor .painted-person {transform-origin: 50% 93%; animation: person-idle 4.5s ease-in-out infinite;}
+.actor-pos-1 .painted-person {animation-delay: -1.7s;}
+.actor-pos-2 .painted-person {animation-delay: -3s;}
+@keyframes person-idle { 0%,100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-2px) rotate(.55deg); } }
+@keyframes hearth-flutter { 0%,100% { opacity: .66; transform: scale(.96); } 50% { opacity: 1; transform: scale(1.04); } }
+@media (max-width:600px) {
+  .painted-feature {width: 44px; height: 44px; left: 54%; top: 63%;
+    justify-content: center; border-radius: 50%; background: #372c20af;}
+  .painted-feature span {display: none;}
+  .painted-feature::before {content: "✦"; color: #ffe2a0; font-size: 21px;}
+  .painted-item--1, .painted-resource--1 {display: none;}
+  .painted-item--0 {left: 38%; bottom: 15%;}
+}
+@media (prefers-reduced-motion:reduce) {
+  .scene-theater[data-location="hearth"]::after, .painted-actor .painted-person {animation: none;}
+}
+.scene-theater .scene-prop {position:absolute;z-index:3;left:var(--sx);top:var(--sy);transform:translate(-50%,-50%);
+ width:clamp(96px,10.5vw,148px);height:clamp(91px,10vw,140px);
+ background:transparent;border:0;padding:3px;color:#f7ebd2;
+ cursor:pointer;touch-action:manipulation;outline-offset:4px;
+ -webkit-tap-highlight-color:transparent;}
+.scene-prop .prop-illustration {width:100%;height:100%;
+ filter:drop-shadow(0 8px 9px #17251d80);
+ transition:filter .2s ease,transform .2s ease;}
+.scene-prop:hover .prop-illustration, .scene-prop:focus-visible .prop-illustration, .scene-prop[aria-pressed="true"] .prop-illustration {transform:translateY(-5px) scale(1.06);
+ filter:drop-shadow(0 0 11px #ffe7a5b0) drop-shadow(0 7px 6px #101b13a0);}
+.scene-prop:focus-visible {outline:2px solid #f2d697;border-radius:48%;}
+.scene-prop .scene-prop-tooltip, .scene-landmark .scene-prop-tooltip {position:absolute;left:50%;top:-17px;transform:translate(-50%,-3px);
+ z-index:6;pointer-events:none;
+ max-width:180px;min-width:max-content;white-space:nowrap;
+ padding:7px 11px;border:1px solid #efd8a49a;border-radius:7px;
+ background:#1b3027e8;color:#fff0d1;font-size:11px;
+ opacity:0;visibility:hidden;transition:opacity .2s,transform .2s;
+ box-shadow:0 5px 14px #091914b0;}
+.scene-prop:hover .scene-prop-tooltip, .scene-prop:focus-visible .scene-prop-tooltip, .scene-prop[aria-pressed="true"] .scene-prop-tooltip, .scene-landmark:hover .scene-prop-tooltip, .scene-landmark:focus-visible .scene-prop-tooltip {opacity:1;visibility:visible;transform:translate(-50%,0);}
+.scene-theater .scene-landmark {position:absolute;z-index:2;left:54%;top:52%;
+ width:58px;height:58px;transform:translate(-50%,-50%);
+ background:transparent;border:none;cursor:pointer;opacity:.62;transition:opacity .18s,scale .18s;}
+.scene-theater .scene-landmark svg {width:100%;height:100%;}
+.scene-landmark:hover, .scene-landmark:focus-visible {opacity:1;scale:1.06;outline:2px solid #ebd4a2;border-radius:50%;}
+.scene-theater .painted-actor-name {position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);
+ opacity:0;visibility:hidden;pointer-events:none;
+ transition:opacity .18s;box-shadow:0 3px 12px #09150a8a;}
+.scene-theater .painted-actor:hover .painted-actor-name, .scene-theater .painted-actor:focus-visible .painted-actor-name, .scene-theater .painted-actor[aria-pressed="true"] .painted-actor-name {opacity:1;visibility:visible;}
+.scene-theater .painted-avatar {bottom:15%;}
+.scene-theater .painted-actor {bottom:19%;}
+.scene-theater .painted-actor:focus-visible {outline:2px solid #f7d998;border-radius:18px;}
+.scene-theater .painted-actor .painted-person:hover {filter:drop-shadow(0 0 7px #f6d99b77);}
+.scene-theater .painted-exit {bottom:5%;}
+.scene-theater[data-location="river"] .scene-backdrop {object-position:center 57%;}
+.scene-theater[data-location="kiln"] .scene-shimmer::after {background:radial-gradient(ellipse at 55% 53%,#ea9b5c9b,transparent 62%);}
+.scene-theater[data-location="reedbed"] .scene-shimmer::after {background:radial-gradient(ellipse at 52% 70%,#bddccc74,transparent 57%);}
+.scene-theater[data-location="claypits"] .scene-shimmer::after {background:radial-gradient(ellipse at 53% 65%,#d0a77b62,transparent 56%);}
+@media (max-width:600px) {
+  .scene-theater .scene-prop {width:94px;height:101px;}
+  .scene-theater .scene-prop--cistern {width:121px;height:108px;}
+  .scene-theater .scene-prop--source {width:107px;height:112px;}
+  .scene-theater .painted-actor-name {font-size:11px;}
+  .scene-theater .scene-landmark {width:46px;height:46px;left:52%;top:53%;}
+  .scene-theater .scene-prop-tooltip {font-size:10px;max-width:155px;}
+  .scene-theater .scene-prop:focus-visible {outline-width:2px;}
+  .scene-theater .scene-prop--jar {top:calc(var(--sy) - 5%);}
+}
+.scene-theater .scene-hotspots .scene-prop--river .prop-illustration {opacity:.56;}
+.scene-theater .scene-hotspots .scene-prop--river:hover .prop-illustration, .scene-theater .scene-hotspots .scene-prop--river[aria-pressed="true"] .prop-illustration {opacity:1;}
+.scene-theater[data-location="river"] .scene-prop--river {left:52%!important;top:79%!important;width:148px;height:75px;z-index:2;}
+.scene-theater[data-location="river"] .scene-prop--cistern {left:76%!important;top:85%!important;width:134px;height:111px;z-index:4;}
+.scene-theater[data-location="river"] .scene-prop--jar {left:39%!important;top:83%!important;width:92px;height:106px;z-index:4;}
+.scene-theater[data-location="river"] .painted-avatar {left:7%;bottom:23%;}
+.scene-theater[data-location="river"] .actor-pos-0 {left:58%;bottom:33%;}
+.scene-theater[data-location="river"] .actor-pos-1 {left:84%;bottom:35%;}
+.scene-theater[data-location="river"] .scene-stage-foot {opacity:.75;}
+@media (max-width:600px) {
+  .scene-theater[data-location="river"] .scene-prop--river {left:49%!important;top:79%!important;width:99px;height:70px;}
+  .scene-theater[data-location="river"] .scene-prop--cistern {left:76%!important;top:80%!important;width:100px;height:94px;}
+  .scene-theater[data-location="river"] .scene-prop--jar {left:39%!important;top:82%!important;width:72px;height:94px;}
+  .scene-theater[data-location="river"] .actor-pos-0 {left:53%;bottom:35%;}
+  .scene-theater[data-location="river"] .actor-pos-1 {left:75%;bottom:36%;}
+  .scene-theater[data-location="river"] .painted-avatar {left:1%;bottom:24%;}
+}
+@media (prefers-reduced-motion:reduce) {
+  .scene-prop .prop-illustration, .scene-prop .scene-prop-tooltip {transition:none;}
+}
+.scene-theater .painted-actor-name {opacity: 1; visibility: visible; font-size: 13px;}
+.scene-theater .painted-actor[aria-pressed="true"] {outline: 2px solid #edcf93; outline-offset: 3px; border-radius: 18px;}
+.scene-prop::after {content: ""; position: absolute; width: 9px; height: 9px; right: 15%; top: 15%; background: #f2d7a2; border: 2px solid #354c39; border-radius: 50%; pointer-events: none;}
+.scene-theater .scene-prop-tooltip {font-size: 13px;}
+@media (max-width:600px) {
+  .scene-theater .scene-stage-top {padding: 14px 16px;}
+  .scene-theater .painted-exit {min-height: 48px; font-size: 13px; bottom: 2%; padding: 8px 10px;}
+  .scene-theater .painted-exit--0 {right: 3%;}
+  .scene-theater .painted-exit--1 {right: auto; left: 3%;}
+  .scene-theater .painted-actor {bottom: 25%;}
+  .scene-theater .painted-avatar {bottom: 23%;}
+  .scene-theater .painted-actor-name {font-size: 13px;}
+  .scene-theater .scene-prop-tooltip {font-size: 13px; min-width: 0; white-space: normal; width: max-content; max-width: 132px; padding: 5px 7px;}
+}
+
+/* ================= 氛围层（scene-fx.js） ================= */
+.scene-theater .scene-backdrop { animation: scene-drift 60s ease-in-out infinite alternate; transform-origin: 50% 60%; }
+@keyframes scene-drift { from { transform: scale(1.015) translateX(0); } to { transform: scale(1.06) translateX(-1.2%); } }
+.scene-theater .scene-fx { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+.scene-theater .scene-shimmer { z-index: 1; }
+.fx-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.fx-svg * { transform-box: fill-box; transform-origin: center; }
+.fx-smoke { fill: #ece6d8; opacity: 0; filter: url(#fxBlur); animation: fx-smoke 8.5s linear infinite var(--d); }
+@keyframes fx-smoke {
+  0% { opacity: 0; transform: translate(0, 0) scale(.5); }
+  12% { opacity: .22; }
+  45% { opacity: .16; transform: translate(var(--dx2), -90px) scale(1.5); }
+  100% { opacity: 0; transform: translate(var(--dx), -210px) scale(2.8); }
+}
+.fx-ember { fill: #ffcf7a; opacity: 0; animation: fx-ember var(--t) ease-out infinite var(--d); }
+@keyframes fx-ember { 0% { opacity: 0; transform: translate(0, 0); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx), -120px); } }
+.fx-glow { fill: url(#fxGlow); mix-blend-mode: screen; animation: fx-flicker 2.3s ease-in-out infinite; }
+@keyframes fx-flicker { 0%, 100% { opacity: .75; transform: scale(1); } 40% { opacity: 1; transform: scale(1.06); } 70% { opacity: .82; transform: scale(.97); } }
+.fx-glint { stroke: #eaf6f1; stroke-width: 2.4; stroke-linecap: round; fill: none; opacity: 0; animation: fx-glint var(--t) ease-in-out infinite var(--d); }
+@keyframes fx-glint { 0%, 100% { opacity: 0; transform: translateX(-14px) scaleX(.6); } 50% { opacity: .55; transform: translateX(14px) scaleX(1); } }
+.fx-bird { animation: fx-bird var(--t) linear infinite var(--d); opacity: 0; }
+.fx-bird path { fill: none; stroke: #23332d; stroke-width: 2.2; stroke-linecap: round; animation: fx-flap .55s ease-in-out infinite alternate; transform-origin: 12px 0; transform-box: view-box; }
+@keyframes fx-bird { 0% { opacity: 0; transform: translate(-60px, var(--y)); } 6% { opacity: .75; } 94% { opacity: .75; } 100% { opacity: 0; transform: translate(1260px, calc(var(--y) - 60px)); } }
+@keyframes fx-flap { from { transform: scaleY(1); } to { transform: scaleY(-.5); } }
+.fx-firefly { fill: #f6f0a0; opacity: 0; filter: drop-shadow(0 0 6px #f4ea7a); animation: fx-firefly var(--t) ease-in-out infinite var(--d); }
+@keyframes fx-firefly { 0%, 100% { opacity: 0; transform: translate(0, 0); } 30% { opacity: .95; } 60% { opacity: .3; transform: translate(var(--dx), var(--dy)); } 80% { opacity: .9; } }
+.fx-star { fill: #fdf6dc; animation: fx-twinkle 3.5s ease-in-out infinite var(--d); }
+@keyframes fx-twinkle { 0%, 100% { opacity: .25; } 50% { opacity: .95; } }
+.fx-fall-layer { position: absolute; inset: 0; }
+.fx-fall { position: absolute; top: -6%; display: block; animation: fx-fall var(--t) linear infinite var(--d); }
+.fx-fall--snow { width: 5px; height: 5px; border-radius: 50%; background: #fbfaf5; opacity: .85; filter: blur(.3px); }
+.fx-fall--leaf { width: 9px; height: 6px; border-radius: 0 70% 0 70%; background: #c9853f; opacity: .85; }
+.fx-fall--petal { width: 7px; height: 5px; border-radius: 60% 0 60% 0; background: #f3c6c8; opacity: .85; }
+@keyframes fx-fall { from { transform: translate(0, 0) rotate(0) scale(var(--s)); } to { transform: translate(var(--dx), 380px) rotate(540deg) scale(var(--s)); } }
+@media (min-width: 861px) { @keyframes fx-fall { from { transform: translate(0, 0) rotate(0) scale(var(--s)); } to { transform: translate(var(--dx), 560px) rotate(540deg) scale(var(--s)); } } }
+
+/* 昼夜光线 */
+.scene-theater .scene-light { position: absolute; inset: 0; z-index: 2; pointer-events: none; transition: background 1.2s ease, opacity 1.2s ease; }
+.scene-theater[data-daypart="dawn"] .scene-light { background: linear-gradient(180deg, rgba(255, 170, 160, .34), rgba(255, 210, 170, .16) 50%, rgba(255, 230, 200, .04)); mix-blend-mode: soft-light; }
+.scene-theater[data-daypart="day"] .scene-light { background: radial-gradient(ellipse at 74% 18%, rgba(255, 236, 190, .22), transparent 55%); }
+.scene-theater[data-daypart="dusk"] .scene-light { background: linear-gradient(180deg, rgba(186, 84, 92, .5), rgba(236, 140, 72, .34) 45%, rgba(70, 44, 80, .4)); mix-blend-mode: multiply; }
+.scene-theater[data-daypart="night"] .scene-light { background: linear-gradient(180deg, rgba(8, 18, 42, .72), rgba(14, 26, 48, .55) 60%, rgba(6, 12, 22, .7)); mix-blend-mode: multiply; }
+.scene-theater[data-daypart="night"] .scene-backdrop { filter: saturate(.7) !important; }
+.scene-theater[data-daypart="dusk"] .painted-actor, .scene-theater[data-daypart="dusk"] .painted-avatar { filter: sepia(.18) saturate(1.05) brightness(.95); }
+.scene-theater[data-daypart="night"] .painted-actor, .scene-theater[data-daypart="night"] .painted-avatar { filter: brightness(.66) saturate(.75) hue-rotate(-8deg); }
+.scene-theater[data-daypart="night"] .painted-actor[aria-pressed="true"] { filter: brightness(.85) drop-shadow(0 0 9px #fbe3a8); }
+.scene-theater[data-daypart="night"] .fx-glow { opacity: 1; }
+/* 底部渐暗与暗角，让人物和按钮更立体 */
+.scene-theater::after { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: radial-gradient(ellipse 120% 90% at 50% 45%, transparent 55%, rgba(6, 14, 11, .45)); }
+
+/* ================= 人物 ================= */
+.painted-person .fig-upper { transform-box: view-box; transform-origin: 58px 112px; animation: fig-breathe 4.2s ease-in-out infinite var(--bd, 0s); }
+.painted-person .fig-head { transform-box: view-box; transform-origin: 58px 46px; animation: fig-look 9s ease-in-out infinite var(--hd, 0s); }
+.painted-person .fig-eyes { transform-box: view-box; transform-origin: 58px 31px; animation: fig-blink 5.5s infinite var(--kd, 0s); }
+.painted-person .fig-shadow { transform-box: fill-box; transform-origin: center; animation: fig-shadow 4.2s ease-in-out infinite var(--bd, 0s); }
+@keyframes fig-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.012, 1.022) translateY(-.8px); } }
+@keyframes fig-look { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-2deg); } 55% { transform: rotate(1.5deg); } 70% { transform: rotate(0); } }
+@keyframes fig-blink { 0%, 93%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } 97% { transform: scaleY(1); } }
+@keyframes fig-shadow { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(.97); } }
+.painted-actor { transition: transform .25s cubic-bezier(.2, .8, .3, 1.2), filter .3s; }
+.painted-actor[aria-pressed="true"]::before { content: ""; position: absolute; left: 50%; bottom: 2px; width: 74%; height: 16px; transform: translateX(-50%);
+  border-radius: 50%; border: 2px solid rgba(251, 227, 168, .85); box-shadow: 0 0 14px rgba(251, 227, 168, .55); animation: fig-ring 1.8s ease-in-out infinite; }
+@keyframes fig-ring { 0%, 100% { opacity: .9; transform: translateX(-50%) scale(1); } 50% { opacity: .5; transform: translateX(-50%) scale(1.08); } }
+.scene-prop { transition: transform .2s cubic-bezier(.2, .8, .3, 1.2), filter .2s; }
+.scene-prop:hover { filter: brightness(1.08) drop-shadow(0 0 8px rgba(251, 227, 168, .45)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-theater .scene-backdrop, .fx-svg *, .fx-fall, .painted-person *, .painted-actor::before { animation: none !important; }
+  .fx-fall-layer, .fx-smoke, .fx-ember, .fx-bird { display: none; }
+}
+
+/* ================= 绘本风画面（2026-10-14 起背景为水彩插画） ================= */
+.scene-theater .scene-shimmer {
+  background: linear-gradient(180deg, rgba(30, 50, 44, .42) 0%, transparent 24%, transparent 78%, rgba(30, 40, 30, .38) 100%);
+}
+.scene-theater .scene-shimmer::after { opacity: .18; background: radial-gradient(ellipse at 80% 14%, rgba(255, 228, 170, .8), transparent 40%); mix-blend-mode: screen; }
+.scene-theater::after { background: radial-gradient(ellipse 125% 95% at 50% 45%, transparent 60%, rgba(60, 42, 24, .28)); }
+.scene-theater::before {
+  content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; mix-blend-mode: multiply; opacity: .55;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .45 0 0 0 0 .32 0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23p)'/%3E%3C/svg%3E");
+}
+/* 白天的光束 */
+.scene-theater[data-daypart="day"] .scene-light, .scene-theater[data-daypart="dawn"] .scene-light { overflow: hidden; }
+.scene-theater[data-daypart="day"] .scene-light::after, .scene-theater[data-daypart="dawn"] .scene-light::after {
+  content: ""; position: absolute; top: -20%; right: 4%; width: 60%; height: 140%;
+  background: repeating-linear-gradient(105deg, rgba(255, 240, 200, 0) 0 40px, rgba(255, 240, 200, .13) 40px 70px, rgba(255, 240, 200, 0) 70px 120px);
+  transform: rotate(8deg); filter: blur(6px); animation: rays 9s ease-in-out infinite alternate; mix-blend-mode: screen;
+}
+@keyframes rays { from { opacity: .4; transform: rotate(8deg) translateX(0); } to { opacity: .9; transform: rotate(10deg) translateX(-20px); } }
+/* 人物：绘本风描边已画在 SVG 里，阴影更柔 */
+.painted-actor svg.ink-person, .painted-avatar svg.ink-person { filter: none; }
+.painted-actor, .painted-avatar { height: 34%; min-height: 128px; }
+.fx-smoke { fill: #f6f1e6; }
+
+/* ================= 水墨淡彩：物件与人物融入画面 ================= */
+/* 场景光线变量：白天原色；清晨/黄昏偏暖；夜晚压暗偏冷。物件、人物统一跟随 */
+.scene-theater { --lit: brightness(1); --prop-lit: brightness(1); }
+.scene-theater[data-daypart="dawn"] { --lit: sepia(.12) brightness(.98); --prop-lit: sepia(.14) brightness(.96); }
+.scene-theater[data-daypart="dusk"] { --lit: sepia(.22) saturate(1.05) brightness(.9) hue-rotate(-6deg); --prop-lit: sepia(.28) brightness(.82) hue-rotate(-8deg); }
+.scene-theater[data-daypart="night"] { --lit: brightness(.6) saturate(.6) hue-rotate(-12deg); --prop-lit: brightness(.5) saturate(.5) hue-rotate(-14deg) contrast(.92); }
+/* 物件：去掉硬投影，正片叠底让纸纹与光线透上来，像画在同一张纸上 */
+.scene-theater .scene-prop { width: clamp(78px, 8.6vw, 122px); height: clamp(74px, 8.2vw, 116px); }
+.scene-prop .prop-illustration { filter: var(--prop-lit) !important; opacity: .95; }
+.scene-prop:hover .prop-illustration, .scene-prop:focus-visible .prop-illustration, .scene-prop[aria-pressed="true"] .prop-illustration { filter: var(--prop-lit) brightness(1.06) !important; }
+.scene-theater .painted-actor, .scene-theater .painted-avatar { filter: var(--lit) !important; }
+.scene-theater[data-daypart="night"] .painted-actor[aria-pressed="true"] { filter: brightness(.78) saturate(.7) drop-shadow(0 0 7px #f3dca2) !important; }
+.scene-theater[data-daypart="night"] .scene-prop[aria-pressed="true"] .prop-illustration { filter: brightness(.72) saturate(.6) !important; }
+.scene-theater .scene-landmark { filter: var(--prop-lit); }
+/* 人物：水墨人物更修长，略增高 */
+.painted-actor, .painted-avatar { height: 38%; min-height: 140px; }
+/* 黑暗模式：整幅画面压暗一档，物件人物同样跟随 */
+:root[data-theme="dark"] .scene-theater .scene-backdrop { filter: brightness(.72) saturate(.85); }
+:root[data-theme="dark"] .scene-theater { --lit: brightness(.8) saturate(.85); --prop-lit: brightness(.72) saturate(.8); }
+:root[data-theme="dark"] .scene-theater[data-daypart="dusk"] { --lit: sepia(.2) brightness(.74); --prop-lit: sepia(.26) brightness(.66); }
+:root[data-theme="dark"] .scene-theater[data-daypart="night"] { --lit: brightness(.5) saturate(.55) hue-rotate(-12deg); --prop-lit: brightness(.42) saturate(.45) hue-rotate(-14deg); }
+:root[data-theme="dark"] .scene-theater[data-daypart="night"] .scene-backdrop { filter: brightness(.62) saturate(.6) !important; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .scene-theater .scene-backdrop { filter: brightness(.72) saturate(.85); }
+  :root:not([data-theme="light"]) .scene-theater { --lit: brightness(.8) saturate(.85); --prop-lit: brightness(.72) saturate(.8); }
+  :root:not([data-theme="light"]) .scene-theater[data-daypart="dusk"] { --lit: sepia(.2) brightness(.74); --prop-lit: sepia(.26) brightness(.66); }
+  :root:not([data-theme="light"]) .scene-theater[data-daypart="night"] { --lit: brightness(.5) saturate(.55) hue-rotate(-12deg); --prop-lit: brightness(.42) saturate(.45) hue-rotate(-14deg); }
+}
+/* 水墨画面本身偏亮，顶部/底部压暗只为文字可读，减轻 */
+.scene-theater .scene-shimmer { background: linear-gradient(180deg, rgba(40, 36, 32, .38) 0%, transparent 22%, transparent 80%, rgba(40, 36, 32, .3) 100%); }
+.scene-theater .scene-light::after { mix-blend-mode: soft-light !important; }
+.fx-smoke { fill: #ece6da; }
+.scene-theater::before { z-index: 4 !important; opacity: .7; }
+@media (max-width: 640px) {
+  .painted-actor, .painted-avatar { min-height: 116px; height: 36%; }
+  .scene-theater .scene-prop { width: 68px; height: 64px; }
+  .scene-theater .scene-prop--cistern, .scene-theater .scene-prop--source { width: 88px; height: 78px; }
+}
+
+/* Weather: a soft ink wash over the scene on wet days. Purely decorative. */
+.scene-theater[data-sky="阴"] .scene-light { box-shadow: inset 0 0 0 999px rgba(110, 118, 124, .12); }
+.scene-theater[data-sky="雨"] .scene-light,
+.scene-theater[data-sky="雪"] .scene-light { box-shadow: inset 0 0 0 999px rgba(96, 106, 116, .2); }
+.scene-theater[data-sky="雨"]::after,
+.scene-theater[data-sky="雪"]::after {
+  opacity: 1;
+  background-image: radial-gradient(ellipse 125% 95% at 50% 45%, transparent 60%, rgba(60, 42, 24, .28));
+}
+/* Rain: long thin ink strokes falling at a slant, rings opening on the ground and water. */
+.fx-rain-layer, .fx-snow-layer { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.fx-drop { position: absolute; top: -12%; width: 1.8px; height: var(--h); border-radius: 1px; opacity: var(--o);
+  background: linear-gradient(to bottom, rgba(70, 82, 92, 0), rgba(58, 68, 78, 1));
+  transform: rotate(14deg); animation: fx-drop var(--t) linear infinite var(--d); }
+@keyframes fx-drop { from { transform: translate(0, 0) rotate(14deg); } to { transform: translate(-120px, 115vh) rotate(14deg); } }
+.fx-ripple { fill: none; stroke: rgba(236, 242, 244, .9); stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center;
+  animation: fx-ripple var(--t) ease-out infinite var(--d); }
+@keyframes fx-ripple { 0% { transform: scale(.15); opacity: 0; } 15% { opacity: .9; } 100% { transform: scale(1.6); opacity: 0; } }
+.fx-cloud { fill: #3d4248; opacity: .1; filter: url(#fxBlur); animation: fx-cloud var(--t) linear infinite var(--d); }
+@keyframes fx-cloud { to { transform: translateX(2200px); } }
+/* Snow: flakes of different sizes drifting side to side; a pale wash settles on the ground. */
+.fx-flake { position: absolute; top: -5%; width: var(--sz); height: var(--sz); border-radius: 50%; background: #fbfaf5; opacity: var(--o);
+  box-shadow: 0 0 3px rgba(255, 255, 255, .6); animation: fx-flake var(--t) linear infinite var(--d); }
+@keyframes fx-flake { 0% { transform: translate(0, 0); } 25% { transform: translate(var(--sway), 28vh); } 50% { transform: translate(0, 56vh); }
+  75% { transform: translate(calc(var(--sway) * -1), 84vh); } 100% { transform: translate(0, 112vh); } }
+.fx-snow-ground { position: absolute; left: 0; right: 0; bottom: 0; height: 22%; pointer-events: none;
+  background: linear-gradient(to top, rgba(250, 250, 246, .55), rgba(250, 250, 246, 0)); }
+@media (prefers-reduced-motion: reduce) {
+  .scene-theater[data-sky="雨"]::after, .scene-theater[data-sky="雪"]::after { animation: none; }
+  .fx-rain-layer, .fx-snow-layer, .fx-ripple, .fx-cloud { display: none; }
+}
+
+/* Action animations (action-fx.js): a short scene effect for what was just done, then gains fly to the bag. */
+.action-fx { position: absolute; inset: 0; z-index: 6; pointer-events: none; overflow: hidden; }
+.action-fx i { position: absolute; display: block; }
+.afx-svg { position: absolute; left: 50%; top: 50%; width: min(70%, 520px); transform: translate(-50%, -50%); overflow: visible; }
+.afx-net { fill: none; stroke: #5c4a33; stroke-width: 3; stroke-dasharray: 6 5; stroke-dashoffset: 420; animation: afx-draw .7s ease-out forwards; }
+.afx-leap { animation: afx-leap 1.1s .5s ease-in-out both; transform: translate(240px, 230px); }
+@keyframes afx-leap { 0% { transform: translate(240px, 235px) rotate(0); opacity: 0; } 15% { opacity: 1; }
+  50% { transform: translate(200px, 120px) rotate(-30deg); } 100% { transform: translate(150px, 240px) rotate(-120deg); opacity: 0; } }
+.afx-ring { fill: none; stroke: #e8f0f2; stroke-width: 2.5; opacity: 0; transform-box: fill-box; transform-origin: center; animation: afx-ring 1s var(--d) ease-out both; }
+@keyframes afx-ring { 0% { transform: scale(.2); opacity: 0; } 20% { opacity: 1; } 100% { transform: scale(1.8); opacity: 0; } }
+@keyframes afx-draw { to { stroke-dashoffset: 0; } }
+.afx-flames { position: absolute; left: 50%; bottom: 26%; width: 140px; height: 120px; transform: translateX(-50%); }
+.afx-flames--big { width: 220px; height: 170px; }
+.afx-flames i { bottom: 0; width: 26px; height: 60px; margin-left: -13px; border-radius: 50% 50% 40% 40% / 70% 70% 30% 30%;
+  background: radial-gradient(ellipse at 50% 80%, #fff1b8, #ffb34a 45%, rgba(214, 84, 32, .85) 70%, transparent 72%);
+  transform-origin: 50% 100%; animation: afx-flame 1.6s var(--d) ease-out both; mix-blend-mode: screen; }
+@keyframes afx-flame { 0% { transform: scale(0); opacity: 0; } 20% { transform: scale(var(--s), calc(var(--s) * 1.3)); opacity: 1; }
+  60% { transform: scale(calc(var(--s) * .9), calc(var(--s) * 1.6)); opacity: .9; } 100% { transform: scale(.3, .2); opacity: 0; } }
+.afx-spark { bottom: 40%; width: 4px; height: 4px; border-radius: 50%; background: #ffd27a; box-shadow: 0 0 6px #ffb347; animation: afx-burst 1.2s var(--d) ease-out both; }
+.afx-chip { bottom: 42%; width: 7px; height: 4px; background: #b39470; border: 1px solid #5c4a33; animation: afx-burst 1s var(--d) ease-out both; }
+@keyframes afx-burst { from { transform: translate(0, 0); opacity: 1; } to { transform: translate(var(--dx), var(--dy)) rotate(200deg); opacity: 0; } }
+.afx-smoke, .afx-steam { bottom: 40%; width: 34px; height: 34px; border-radius: 50%; background: rgba(236, 230, 218, .75); filter: blur(4px); animation: afx-rise 2s var(--d) ease-out both; }
+.afx-steam { width: 16px; height: 40px; background: rgba(250, 248, 240, .7); }
+@keyframes afx-rise { from { transform: translate(0, 0) scale(.5); opacity: 0; } 25% { opacity: .9; } to { transform: translate(var(--dx, 10px), -160px) scale(1.8); opacity: 0; } }
+.afx-spin { position: absolute; left: 50%; top: 50%; width: 120px; height: 115px; margin: -58px 0 0 -60px; animation: afx-spin 1.4s ease-in-out both; }
+@keyframes afx-spin { 0% { transform: scale(.3, .1); opacity: 0; } 30% { transform: scale(1, .5); opacity: 1; } 70% { transform: scale(.9, 1.05); } 100% { transform: scale(1); opacity: 0; } }
+.afx-hammer { position: absolute; left: 52%; top: 26%; width: 10px; height: 70px; background: #8f714f; border: 2px solid #4a3426; border-radius: 3px;
+  transform-origin: 50% 100%; animation: afx-hammer .35s 4 ease-in alternate; }
+.afx-hammer::before { content: ""; position: absolute; top: -8px; left: -16px; width: 38px; height: 20px; background: #a7a296; border: 2px solid #4a3426; border-radius: 6px; }
+@keyframes afx-hammer { from { transform: rotate(-40deg); } to { transform: rotate(15deg); } }
+.afx-thatch { position: absolute; left: 38%; top: 40%; width: 24%; height: 10px; background: repeating-linear-gradient(90deg, #cbb07e 0 6px, #a88c5e 6px 9px);
+  border-radius: 4px; transform: scaleX(0); transform-origin: left; animation: afx-grow 1.2s .4s ease-out forwards; }
+@keyframes afx-grow { to { transform: scaleX(1); } }
+.afx-dust { bottom: 52%; width: 10px; height: 10px; border-radius: 50%; background: rgba(190, 170, 140, .8); filter: blur(1px); --dy: -50px; animation: afx-burst 1s var(--d) ease-out both; }
+.afx-strand { fill: none; stroke: #b9ad86; stroke-width: 5; stroke-linecap: round; stroke-dasharray: 260; stroke-dashoffset: 260; animation: afx-draw .9s var(--d) ease-out forwards; }
+.afx-drop { top: 40%; width: 8px; height: 12px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; background: #9ccbd6; border: 1px solid #4b6a72; --dy: 90px; animation: afx-burst 1s var(--d) ease-in both; }
+.afx-leaf { top: 46%; width: 12px; height: 7px; border-radius: 0 70% 0 70%; background: #8fa06c; --dy: -80px; animation: afx-burst 1.2s var(--d) ease-out both; }
+.afx-seed { top: 38%; width: 6px; height: 6px; border-radius: 50%; background: #c9b07a; border: 1px solid #6a5a3a; animation: afx-sow .9s var(--d) ease-in both; }
+@keyframes afx-sow { from { transform: translateY(0); opacity: 0; } 20% { opacity: 1; } to { transform: translateY(140px); opacity: 0; } }
+.afx-stalk { fill: none; stroke: #c4b37a; stroke-width: 4; stroke-linecap: round; transform-box: fill-box; transform-origin: 50% 100%; animation: afx-reap 1s var(--d) ease-in both; }
+@keyframes afx-reap { 0% { transform: rotate(0); } 60% { transform: rotate(-12deg); } 100% { transform: rotate(-80deg); opacity: 0; } }
+.afx-night { position: absolute; inset: 0; background: #1b1f2a; animation: afx-night 2.4s ease-in-out both; }
+@keyframes afx-night { 0%, 100% { opacity: 0; } 40%, 60% { opacity: .55; } }
+.afx-zzz { position: absolute; left: 55%; top: 34%; font: italic 700 28px serif; color: #f4efe4; }
+.afx-zzz i { position: relative; animation: afx-rise 2s ease-out both; }
+.afx-zzz i:nth-child(2) { animation-delay: .4s; } .afx-zzz i:nth-child(3) { animation-delay: .8s; }
+.afx-badge { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); padding: 4px 12px; border-radius: 999px; background: rgba(250, 246, 236, .92);
+  color: #4a3426; font-size: 14px; animation: afx-gain-in 1.6s ease-out both; }
+.afx-swap { position: absolute; top: 46%; width: 36px; height: 36px; border-radius: 50%; background: #c7b088; border: 2px solid #4a3426; }
+.afx-swap--a { left: 30%; animation: afx-swap-a 1.2s ease-in-out both; }
+.afx-swap--b { left: 64%; background: #b98f6c; animation: afx-swap-b 1.2s ease-in-out both; }
+@keyframes afx-swap-a { 50% { transform: translate(17vw, -40px); } 100% { transform: translate(34vw, 0); opacity: 0; } }
+@keyframes afx-swap-b { 50% { transform: translate(-17vw, 40px); } 100% { transform: translate(-34vw, 0); opacity: 0; } }
+/* Gains: pop up in the middle, then fly to the top-right where the bag lives. */
+.afx-gain { position: absolute; left: 50%; top: 44%; width: 86px; margin-left: -43px; text-align: center; animation: afx-gain 1.5s var(--d) ease-in both; }
+.afx-gain svg { width: 86px; height: 82px; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, .25)); }
+.afx-gain b { display: inline-block; margin-top: 2px; padding: 2px 8px; border-radius: 999px; background: rgba(250, 246, 236, .92); color: #3c5a3a; font-size: 13px; white-space: nowrap; }
+@keyframes afx-gain { 0% { transform: translateY(30px) scale(.4); opacity: 0; } 20% { transform: translateY(-10px) scale(1.1); opacity: 1; }
+  55% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translate(38vw, -42vh) scale(.25); opacity: 0; } }
+@keyframes afx-gain-in { 0% { opacity: 0; transform: translate(-50%, 10px); } 20%, 80% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .action-fx { display: none; } }
+
+/* ================= 2.5D 立体场景（scene-depth.js） =================
+   人物/物件按插画地面锚点站位：--gx/--gy 是脚底位置，--ds 近大远小，--dz 前后遮挡。 */
+.scene-theater[data-depth] .scene-backdrop { object-position: center center !important; animation: none;
+  transform: translate(calc(var(--px, 0) * -10px), calc(var(--py, 0) * -6px)) scale(1.02); transition: transform .6s ease-out; }
+.scene-theater[data-depth] .painted-actor, .scene-theater[data-depth] .painted-avatar {
+  left: var(--gx) !important; top: var(--gy) !important; bottom: auto !important; right: auto !important;
+  translate: -50% -96%; scale: var(--ds, 1); transform-origin: 50% 100%; z-index: var(--dz, 20) !important;
+  height: clamp(132px, 31%, 220px) !important; min-height: 0 !important; width: clamp(84px, 9.2vw, 136px) !important; }
+.scene-theater[data-depth] .painted-actor svg, .scene-theater[data-depth] .painted-avatar svg { filter: url(#toyLight); overflow: visible; }
+.scene-theater[data-depth] .scene-prop {
+  left: var(--gx) !important; top: var(--gy) !important; transform: none !important;
+  translate: -50% -88%; scale: var(--ds, 1); transform-origin: 50% 88%; z-index: var(--dz, 20) !important;
+  width: clamp(58px, 6vw, 88px) !important; height: clamp(55px, 5.7vw, 84px) !important; }
+.scene-theater[data-depth] .scene-prop--source { width: clamp(84px, 9vw, 128px) !important; height: clamp(76px, 8vw, 116px) !important; }
+/* 远处的人和物带一点空气感 */
+.scene-theater[data-depth] [style*="--haze: 1"] .prop-illustration,
+.scene-theater[data-depth] .painted-actor[style*="--haze: 1"] svg { opacity: .94; }
+/* 玩偶质感：物件去掉墨线，换成同色系的柔和描边和体积光 */
+.scene-theater[data-depth] .prop-illustration [stroke="#2f2a26"] { stroke: #5b3f2a; stroke-opacity: .35; stroke-width: 1.4; }
+.scene-theater[data-depth] .prop-illustration { filter: url(#toyLight) var(--prop-lit) !important; }
+.scene-theater[data-depth] .scene-prop:hover .prop-illustration, .scene-theater[data-depth] .scene-prop[aria-pressed="true"] .prop-illustration {
+  filter: url(#toyLight) var(--prop-lit) drop-shadow(0 0 8px #fff2c0) !important; }
+/* 前景草丛：最靠近镜头，轻微虚化（移轴景深），随指针反向漂移 */
+.scene-theater .scene-foreground { position: absolute; inset: 0; z-index: 120; pointer-events: none; }
+.scene-theater .fg-bush { position: absolute; bottom: -9%; width: 30%; max-width: 380px; filter: blur(2px) var(--prop-lit);
+  transform: translate(calc(var(--px, 0) * 18px), calc(var(--py, 0) * 8px)); transition: transform .6s ease-out; }
+.scene-theater .fg-bush--l { left: -7%; }
+.scene-theater .fg-bush--r { right: -7%; scale: -1 1; }
+.scene-theater[data-depth] .painted-exit { z-index: 200 !important; }
+.scene-theater[data-depth] .scene-landmark { z-index: 150; }
+@media (max-width: 600px) {
+  .scene-theater .fg-bush { width: 46%; bottom: -7%; }
+  .scene-theater[data-depth] .painted-actor, .scene-theater[data-depth] .painted-avatar { height: clamp(112px, 28%, 160px) !important; width: 76px !important; }
+  .scene-theater[data-depth] .scene-prop { width: 58px !important; height: 56px !important; }
+}
+/* 新人物原点：躯干 58,150，头 58,70，眼 58,61 */
+.painted-person.toy-person .fig-upper { transform-origin: 58px 150px; }
+.painted-person.toy-person .fig-head { transform-origin: 58px 80px; }
+.painted-person.toy-person .fig-eyes { transform-origin: 58px 61px; }
+.scene-theater[data-depth][data-location="hearth"]::after { display: none; }

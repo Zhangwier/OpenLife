@@ -4,6 +4,8 @@ import { PracticeComponents } from "@openlife/module-practice-runtime";
 import { PotteryPracticeDefinitions } from "@openlife/module-craft-pottery";
 import {
   SettlementCommands,
+  liveSeason,
+  heirsOf,
   SettlementProjections,
   carrying,
   homestead,
@@ -106,6 +108,10 @@ export function runSettlementAction(sim: Simulation, actorId: string, action: st
   };
 
   switch (action) {
+    case SettlementCommands.beginSeason: {
+      const lived = liveSeason(sim as never, actorId, String(payload.focus ?? ""));
+      return lived.ok ? { ok: true, events: [], errors: [] } as unknown as ReturnType<Simulation["dispatch"]> : rejected(lived.error ?? "这一季过不下去。");
+    }
     case SettlementCommands.arrive:
       return advance(dispatch(SettlementCommands.arrive, { payload: { placeId: payload.placeId, travelMode: payload.travelMode, planIndex: payload.planIndex, planStep: payload.planStep } }), payload.travelMode === "local" ? 0 : Number(payload.costDays ?? 1));
     case SpaceCommands.moveWithin:
@@ -152,6 +158,23 @@ export function runSettlementAction(sim: Simulation, actorId: string, action: st
       return advance(dispatch(SettlementCommands.drink, { payload: { containerId: payload.containerId, resourceId: "resource:water" } }), 0);
     case SettlementCommands.eat:
       return advance(dispatch(SettlementCommands.eat, { payload: { resourceId: payload.resourceId, placeId: payload.placeId, objectId: payload.objectId, planIndex: payload.planIndex, planStep: payload.planStep } }), 0);
+    case SettlementCommands.craft:
+      return dispatch(SettlementCommands.craft, { payload: { recipeId: String(payload.recipeId ?? "") } });
+    case SettlementCommands.exchange:
+      return dispatch(SettlementCommands.exchange, { payload: {
+        targetId: String(payload.targetId ?? ""), give: Array.isArray(payload.give) ? payload.give.map(String) : [],
+        askResource: String(payload.askResource ?? ""), askAmount: Number(payload.askAmount ?? 1), credit: payload.credit === true,
+      } });
+    case SettlementCommands.requestAnswer:
+      return dispatch(SettlementCommands.requestAnswer, { payload: { requesterId: String(payload.requesterId ?? ""), accept: payload.accept === true } });
+    case SettlementCommands.gift:
+      return dispatch(SettlementCommands.gift, { payload: { targetId: String(payload.targetId ?? ""), itemId: String(payload.itemId ?? "") } });
+    case SettlementCommands.learn:
+      return dispatch(SettlementCommands.learn, { payload: { targetId: String(payload.targetId ?? "") } });
+    case SettlementCommands.court:
+    case SettlementCommands.wed:
+    case SettlementCommands.handoff:
+      return dispatch(action, { payload: { targetId: String(payload.targetId ?? "") } });
     case SettlementCommands.playerBarterRequest:
       return dispatch(SettlementCommands.playerBarterRequest, { payload: { grainId: payload.grainId } });
     case SettlementCommands.playerBarterAccept:
@@ -183,7 +206,7 @@ export function runSettlementAction(sim: Simulation, actorId: string, action: st
     case SettlementCommands.tend:
       return advance(dispatch(SettlementCommands.tend, { payload: { spaceId: payload.spaceId, planIndex: payload.planIndex, planStep: payload.planStep } }), 0);
     case SettlementCommands.rest:
-      return advance(dispatch(SettlementCommands.rest, { payload: { spaceId: payload.spaceId, matId: payload.matId, planIndex: payload.planIndex, planStep: payload.planStep } }), 0);
+      return advance(dispatch(SettlementCommands.rest, { payload: { spaceId: payload.spaceId, matId: payload.matId, fuelId: payload.fuelId, planIndex: payload.planIndex, planStep: payload.planStep } }), 0);
     case SettlementCommands.configurePlan:
       return dispatch(SettlementCommands.configurePlan, { payload: { steps: payload.steps, repeat: payload.repeat, enabled: payload.enabled } });
     case SettlementCommands.step:
@@ -207,6 +230,13 @@ export function playerActions(sim: Simulation, actorId: string) {
   const alive = world.getEntity(actorId)?.archivedAt === undefined;
   const actions: Record<string, any>[] = [];
   const add = (id: string, label: string, hint: string, cost: number, enabled = true, reason = "", payload = {}, tone = "warm") => actions.push({ id, label, hint, cost, enabled, reason, payload, tone });
+  // 聚落生活里走完一生：长大的孩子接过来。
+  if (!alive && world.getEntity("settlement-locations:settlement:river-terrace")) {
+    const heirs = heirsOf(world, actorId);
+    for (const h of heirs) add(SettlementCommands.handoff, `接过${h.name}的人生`, `${h.name}今年 ${h.age} 岁，家里的手艺和村里的情分都还在。`, 0, true, "", { targetId: h.id }, "gold");
+    if (!heirs.length) add("life-ended", "这一生走完了", "没有长大成人的孩子可以接过来。可以从右上角开始新的人生。", 0, false, "没有可接棒的孩子");
+    return actions;
+  }
   if (!p.entered && !p.practice) { add("life-enter", "进入聚落手艺生活", "认识窑场的师傅与邻居，开始一条有过程的手艺路线。", 0, alive); return actions; }
   if (!alive) {
     for (const child of p.children) add("life-handoff", `接过${child.name}的人生`, "带着家族留下的作品与经验继续生活。", 0, child.alive && child.age >= 18, child.alive ? "孩子成年后才能接棒" : "这位家人已经离世", { targetId: child.id }, "gold");

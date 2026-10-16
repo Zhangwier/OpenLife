@@ -8,3 +8,11 @@ export { chooseNpcIntent, shortagePressure, type NpcIntent } from "./autonomy/np
 export * from "./content.ts";
 export { villageRoles, ROLES as VillageRoles } from "./autonomy/roles.ts";
 export { fuelHelpReply } from "./autonomy/npc-reed.ts";
+export * from "./exchange.ts";
+export { tryNpcExchange } from "./autonomy/npc-exchange.ts";
+export * from "./weather.ts";
+export { runBrainDay, runBrainDays, BrainRun, mindOf, residentMind, temperamentWords, tellGroup, kinOf, type Mind } from "./autonomy/brain.ts";
+export * from "./social.ts";
+export * from "./origin.ts";
+export * from "./happenings.ts";
+export * from "./people.ts";

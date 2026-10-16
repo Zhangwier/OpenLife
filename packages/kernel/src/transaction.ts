@@ -82,8 +82,8 @@ export class TransactionEngine {
    */
   applyEffects(effects: TaggedEffect[], ctx: TransactionContext): WorldEvent[] {
     const checkpoint = {
-      store: this.#deps.store.serialize(),
-      eventLog: this.#deps.eventLog.serialize(),
+      store: this.#deps.store.checkpoint(),
+      eventLog: this.#deps.eventLog.mark(),
       scheduler: this.#deps.scheduler.serialize(),
       facts: this.#deps.facts.serialize(),
     };
@@ -95,12 +95,13 @@ export class TransactionEngine {
     try {
       const emitted = this.#applyBatch(effects, ctx, state);
       this.#cascade(emitted, ctx, state);
+      this.#deps.store.commit(checkpoint.store);
       return emitted;
     } catch (error) {
       // A transaction is all-or-nothing. Reactions may fail after earlier
       // effects have already touched the store, journal, scheduler or facts.
-      this.#deps.store.restore(checkpoint.store);
-      this.#deps.eventLog.restore(checkpoint.eventLog);
+      this.#deps.store.rollback(checkpoint.store);
+      this.#deps.eventLog.rollback(checkpoint.eventLog);
       this.#deps.scheduler.restore(checkpoint.scheduler);
       this.#deps.facts.restore(checkpoint.facts);
       throw error;

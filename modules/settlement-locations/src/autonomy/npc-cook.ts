@@ -7,7 +7,7 @@ import { SettlementCommands, SettlementComponents, residentId, dailyActivity } f
 import { SpaceCommands, occupiedPlaceId, occupiedSpaceId } from "@openlife/module-world-space";
 import { ObjectRelations, ownerOf, prototypeOf } from "@openlife/module-world-objects";
 import { chooseNpcIntent, shortagePressure } from "./npc-goals.ts";
-import { ROLES, yieldId } from "./roles.ts";
+import { ROLES, yieldId, stockAt, mealIfHungry, roleNote } from "./roles.ts";
 
 export const SECOND_AUTONOMOUS_RESIDENT = ROLES.cook.id;
 export function runSecondNpcDay(sim: NpcHost) {
@@ -27,13 +27,13 @@ export function runSecondNpcDay(sim: NpcHost) {
   const fuel = () => sim.worldView().listRelations({ type: ObjectRelations.heldBy, to: actorId })
     .map(r => r.from).sort().find(id => ownerOf(sim.worldView(), id) === actorId &&
       prototypeOf(sim.worldView(), id).resourceId === "resource:fuel") ?? "";
-  const stock = () => Number(sim.worldView().getComponent(yieldId(ROLES.fuelGatherer.workPlace, "resource:fuel"),
-    SettlementComponents.yieldPoint)?.stock ?? 0);
+  const stock = () => stockAt(sim.worldView(), ROLES.fuelGatherer.workPlace, "resource:fuel");
   const act = (type: string, payload: Record<string, string> = {}, label: string) => {
     const result = sim.dispatch({ type, actorId, source: "ai", payload });
     if (result.ok) { actions.push(label); return true; }
     obstacle = result.errors?.[0]?.message ?? `${label}受阻`; return false;
   };
+  mealIfHungry(sim, actorId, act);
   // He must go to the reedbed to inspect the actual available stock;
   // there is no omniscient lookup of a distant place's resources.
   if (!fuel() && at() !== ROLES.fuelGatherer.workPlace &&
@@ -61,7 +61,7 @@ export function runSecondNpcDay(sim: NpcHost) {
     if (intent.id === "seek-fuel") {
       if (room() !== ROLES.fuelGatherer.workSpot &&
           !act(SpaceCommands.moveWithin, { spaceId: ROLES.fuelGatherer.workSpot }, "走到割苇处")) return finish();
-      act(SettlementCommands.draw, { placeId: ROLES.fuelGatherer.workPlace, resourceId: "resource:fuel" }, "采回真正的一捆柴草");
+      act(SettlementCommands.draw, { placeId: ROLES.fuelGatherer.workPlace, resourceId: "resource:fuel" }, "割回一捆柴草");
     } else if (intent.id === "ask-neighbour") {
       act(SettlementCommands.npcAskHelp, { targetId: ROLES.fuelGatherer.id }, `柴草不足，向${ROLES.fuelGatherer.name}求助`);
     } else {
@@ -71,7 +71,7 @@ export function runSecondNpcDay(sim: NpcHost) {
   if (fuel()) {
     if (at() !== ROLES.cook.workPlace &&
         !act(SettlementCommands.arrive, { placeId: ROLES.cook.workPlace, travelMode: "local" }, "带柴草回公灶")) return finish();
-    act(SettlementCommands.npcFire, { itemId: fuel() }, "消耗一捆柴草，维持公灶火");
+    act(SettlementCommands.npcFire, { itemId: fuel() }, "添了一捆柴，把公灶的火续上");
   } else if (at() === ROLES.cook.workPlace) {
     actions.push("没有柴草，今天点不起灶火");
   }
@@ -81,7 +81,7 @@ export function runSecondNpcDay(sim: NpcHost) {
     act(SettlementCommands.rest, { spaceId: ROLES.cook.home }, "休息");
   return finish();
   function finish() {
-    const note = `${ROLES.cook.name}：${actions.join("、") || "没有成功行动"}${obstacle ? "；" + obstacle : ""}`;
+    const note = roleNote(ROLES.cook.name, actions, obstacle);
     const marker = sim.dispatch({ type: SettlementCommands.npcMarkDay, actorId, source: "ai",
       payload: { actions, summary: note } });
     return { actorId, tick, skipped: false, actions,

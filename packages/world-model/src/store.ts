@@ -49,6 +49,14 @@ export class WorldStore {
   #entitySeq: number;
   #relationSeq = 0;
   #entityIdPrefix: string;
+  /**
+   * Undo journal for transaction rollback. While a checkpoint is open, every
+   * mutation records its inverse, so a rollback restores the exact previous
+   * state without deep-copying the whole world on every transaction.
+   */
+  #undo: (() => void)[] | null = null;
+  #depth = 0;
+  #reindex = false;
 
   constructor(options: WorldStoreOptions = {}) {
     this.#entitySeq = options.startEntitySeq ?? 0;
@@ -125,6 +133,10 @@ export class WorldStore {
       throw new Error(`entity already exists: ${record.id}`);
     }
     this.#entities.set(record.id, record);
+    this.#undo?.push(() => {
+      this.#entities.delete(record.id);
+      remove(this.#byKind, record.kind, record.id);
+    });
     let bucket = this.#byKind.get(record.kind);
     if (!bucket) {
       bucket = new Set();
@@ -136,17 +148,20 @@ export class WorldStore {
 
   setComponent(entityId: EntityId, component: ComponentTypeId, value: ComponentData): void {
     const entity = this.#requireEntity(entityId);
+    this.#rememberComponent(entity.components, component);
     entity.components[component] = value;
   }
 
   mergeComponent(entityId: EntityId, component: ComponentTypeId, patch: ComponentData): void {
     const entity = this.#requireEntity(entityId);
+    this.#rememberComponent(entity.components, component);
     const current = entity.components[component];
     entity.components[component] = current ? { ...current, ...patch } : { ...patch };
   }
 
   archiveEntity(entityId: EntityId, at: number, reason: string): void {
     const entity = this.#requireEntity(entityId);
+    this.#rememberArchive(entity);
     entity.archivedAt = at;
     entity.archivedReason = reason;
   }
@@ -165,6 +180,19 @@ export class WorldStore {
         throw new Error(`relation already exists: ${record.type} ${record.from} -> ${record.to}`);
       }
       if (existing) {
+        if (this.#undo) {
+          // Re-establishing an archived fact moves it to the end of the map.
+          // Undo puts the old record back in its original position.
+          const order = [...this.#relations.keys()];
+          const position = order.indexOf(existingId);
+          this.#undo.push(() => {
+            const entries = [...this.#relations.entries()];
+            entries.splice(position, 0, [existingId, existing]);
+            this.#relations = new Map(entries);
+            this.#relationIndex.set(key, existingId);
+            this.#reindex = true;
+          });
+        }
         this.#relations.delete(existingId);
         remove(this.#relationsByType, existing.type, existingId);
         remove(this.#relationsByFrom, existing.from, existingId);
@@ -176,6 +204,13 @@ export class WorldStore {
     push(this.#relationsByType, record.type, record.id);
     push(this.#relationsByFrom, record.from, record.id);
     push(this.#relationsByTo, record.to, record.id);
+    this.#undo?.push(() => {
+      this.#relations.delete(record.id);
+      if (this.#relationIndex.get(key) === record.id) this.#relationIndex.delete(key);
+      remove(this.#relationsByType, record.type, record.id);
+      remove(this.#relationsByFrom, record.from, record.id);
+      remove(this.#relationsByTo, record.to, record.id);
+    });
     return record;
   }
 
@@ -189,7 +224,21 @@ export class WorldStore {
   ): RelationRecord[] {
     const includeArchived = filter.includeArchived ?? false;
     const out: RelationRecord[] = [];
-    for (const relation of this.#relations.values()) {
+    // Narrow by the smallest matching index. Every bucket keeps the same
+    // relative order as the relation map, so the result order is unchanged.
+    let source: Iterable<RelationRecord> = this.#relations.values();
+    const buckets = [
+      filter.from ? this.#relationsByFrom.get(filter.from) ?? EMPTY : undefined,
+      filter.to ? this.#relationsByTo.get(filter.to) ?? EMPTY : undefined,
+      filter.type ? this.#relationsByType.get(filter.type) ?? EMPTY : undefined,
+    ].filter((bucket): bucket is Set<RelationId> => bucket !== undefined);
+    if (buckets.length) {
+      const smallest = buckets.reduce((a, b) => (b.size < a.size ? b : a));
+      if (smallest.size === 0) return out;
+      const relations = this.#relations;
+      source = (function* () { for (const id of smallest) { const r = relations.get(id); if (r) yield r; } })();
+    }
+    for (const relation of source) {
       if (filter.type && relation.type !== filter.type) continue;
       if (filter.from && relation.from !== filter.from) continue;
       if (filter.to && relation.to !== filter.to) continue;
@@ -206,6 +255,7 @@ export class WorldStore {
   ): void {
     const relation = this.#relations.get(relationId);
     if (!relation) throw new Error(`unknown relation: ${relationId}`);
+    this.#rememberComponent(relation.components, component);
     const current = relation.components[component];
     relation.components[component] = current ? { ...current, ...patch } : { ...patch };
   }
@@ -213,8 +263,61 @@ export class WorldStore {
   archiveRelation(relationId: RelationId, at: number, reason: string): void {
     const relation = this.#relations.get(relationId);
     if (!relation) throw new Error(`unknown relation: ${relationId}`);
+    this.#rememberArchive(relation);
     relation.archivedAt = at;
     relation.archivedReason = reason;
+  }
+
+  /** Opens a rollback point (nestable). */
+  checkpoint(): { index: number; entitySeq: number; relationSeq: number } {
+    if (!this.#undo) this.#undo = [];
+    this.#depth += 1;
+    return { index: this.#undo.length, entitySeq: this.#entitySeq, relationSeq: this.#relationSeq };
+  }
+
+  /** Keeps every change made since the checkpoint. */
+  commit(_mark: { index: number }): void {
+    this.#depth = Math.max(0, this.#depth - 1);
+    if (this.#depth === 0) this.#undo = null;
+  }
+
+  /** Undoes every change made since the checkpoint, newest first. */
+  rollback(mark: { index: number; entitySeq: number; relationSeq: number }): void {
+    const undo = this.#undo ?? [];
+    while (undo.length > mark.index) undo.pop()!();
+    this.#entitySeq = mark.entitySeq;
+    this.#relationSeq = mark.relationSeq;
+    if (this.#reindex) {
+      this.#reindex = false;
+      this.#relationsByType = new Map();
+      this.#relationsByFrom = new Map();
+      this.#relationsByTo = new Map();
+      for (const relation of this.#relations.values()) {
+        push(this.#relationsByType, relation.type, relation.id);
+        push(this.#relationsByFrom, relation.from, relation.id);
+        push(this.#relationsByTo, relation.to, relation.id);
+      }
+    }
+    this.commit(mark);
+  }
+
+  #rememberComponent(components: Record<string, ComponentData>, component: ComponentTypeId): void {
+    if (!this.#undo) return;
+    const had = Object.prototype.hasOwnProperty.call(components, component);
+    const previous = components[component];
+    this.#undo.push(() => {
+      if (had) components[component] = previous!; else delete components[component];
+    });
+  }
+
+  #rememberArchive(record: { archivedAt?: number; archivedReason?: string }): void {
+    if (!this.#undo) return;
+    const hadAt = "archivedAt" in record, at = record.archivedAt;
+    const hadReason = "archivedReason" in record, reason = record.archivedReason;
+    this.#undo.push(() => {
+      if (hadAt) record.archivedAt = at; else delete record.archivedAt;
+      if (hadReason) record.archivedReason = reason; else delete record.archivedReason;
+    });
   }
 
   #requireEntity(id: EntityId): EntityRecord {
@@ -264,6 +367,8 @@ export class WorldStore {
     return stableStringify(this.serialize());
   }
 }
+
+const EMPTY: Set<RelationId> = new Set();
 
 function push<K, V>(map: Map<K, Set<V>>, key: K, value: V): void {
   let bucket = map.get(key);
