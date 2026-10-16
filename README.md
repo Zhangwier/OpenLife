@@ -17,6 +17,7 @@ npm run demo       # 现代世界脚本演示
 npm run demo:magic # 魔法测试世界演示（验证 Core 不绑定世界观）
 npm run cli        # 交互式调试控制台
 npm run web        # Web 客户端 http://127.0.0.1:4173 （PORT 可改端口；默认只监听本机，HOST=0.0.0.0 可让局域网设备访问）
+npm run catalog    # 重新生成 docs/MODULES.md（新增/改动模块后运行）
 ```
 
 > 不先 `npm install` 直接跑测试，会报 `Cannot find package '@openlife/kernel'`。
@@ -45,15 +46,16 @@ packages/            引擎核心（不含任何具体世界观）
   autonomy-runtime/  AutoSim 与决策提供者
   simulation/        把以上组装成可运行的模拟
   life-contracts/    人生类模块共享的契约（教育、经济、现代世界）
-modules/             World / System / Content Pack
-  modern-world/      现代世界（含夏纪年历）
-  modern-science/    现代科学知识包
-  education/ career/ family/ economy/ basic-autonomy/
-  magic-test-world/  魔法世界，用于验证 Core 的世界观中立
+modules/             World / System / Content Pack（36 个，完整清单见 docs/MODULES.md）
+  modern-world/ magic-test-world/ robot-test-world/ world-clock/   World Pack
+  world-*/ education/ career/ family/ economy/ ...                  System Pack
+  settlement-locations/ settlement-life/ craft-pottery/ ...         Content Pack
 apps/
   debug-console/     CLI 与脚本化演示
   web/               简易 Web 客户端
-tests/unit/          单元测试（node --test）
+scripts/             workspace-graph.ts（依赖图）/ gen-module-catalog.ts（生成目录）/ 验证脚本
+docs/                文档索引 docs/README.md；rfc/ reviews/ notes/（带日期的工作记录）
+tests/unit/          单元测试（node --test），含 workspace-structure 分层守卫
 ```
 
 ## 架构不变量
@@ -83,3 +85,16 @@ tests/unit/          单元测试（node --test）
 ## 测试与 CI
 
 `npm test` 运行 `tests/unit/` 下全部测试，其中 `determinism.test.ts` 保证可复现性。每次 push 到 `main` 和每个 Pull Request 都会在 GitHub Actions 上运行测试和两个演示。
+
+## 当前规划与服务端保存
+
+手机优先路线与任务验收见 [2026-10-16 开发规划](docs/plans/mobile-life-roadmap-2026-10-16.md)。
+当前默认文字模式；运行 `node apps/web/dev-browser-smoke.mjs` 可在安装了 Edge 的 Windows 上检查实际触控与布局。
+
+`npm run web` 默认从 `apps/web/data/openlife-save.json` 恢复共享世界，每 5 分钟落盘。成功读档或重开后立即尝试落盘；写入串行执行，损坏/不兼容存档先保留为 `.rejected-时间戳`。无法读取或保留原档时禁用覆盖并记录错误。
+
+- `OPENLIFE_SAVE_PATH`：自定义存档路径；每个服务器进程必须使用独立路径。
+- `OPENLIFE_SAVE_INTERVAL_MS=0`：仅关闭定时器，读档/重开和正常信号退出仍尝试保存。
+- `OPENLIFE_PERSISTENCE=0`：完全关闭服务端读写，供独立测试使用。
+
+磁盘写失败会记录服务端日志，API 操作仍可成功；界面保存失败提示属于下一轮 SAVE-01。硬杀进程/断电不能依赖退出保存，只恢复最近成功快照。服务当前是单实例共享世界，不提供多用户隔离。

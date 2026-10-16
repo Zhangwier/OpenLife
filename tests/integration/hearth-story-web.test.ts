@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 test("playable village: player meets cook, sources real fuel, helps, saves and resumes", { timeout: 45000 }, async () => {
   const child = spawn(process.execPath, [fileURLToPath(new URL("../../apps/web/server.ts", import.meta.url))], {
-    env: { ...process.env, PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, OPENLIFE_PERSISTENCE: "0", PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
   });
   let stderr = "";
   child.stderr.on("data", data => { stderr += String(data); });

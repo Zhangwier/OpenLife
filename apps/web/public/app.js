@@ -713,9 +713,6 @@ function fillOriginChoices(catalog) {
   sync();
 }
 
-function escapeHtml(v) {
-  return String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-}
 
 /** 人物卡上的出身与天赋。 */
 function renderOriginCard(s) {

@@ -18,6 +18,8 @@
     "demo": "node apps/debug-console/main.ts demo modern-world",
     "demo:magic": "node apps/debug-console/main.ts demo magic-test-world",
     "inspect": "node apps/debug-console/main.ts inspect",
-    "web": "node apps/web/server.ts"
+    "web": "node apps/web/server.ts",
+    "catalog": "node scripts/gen-module-catalog.ts",
+    "catalog:check": "node scripts/gen-module-catalog.ts --check"
   }
 }

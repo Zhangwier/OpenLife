@@ -17,3 +17,6 @@ tmp-*.js
 
 # Verification/build output (screenshots, TAP reports, browser JSON results)
 artifacts/
+
+# Local server saves
+apps/web/data/

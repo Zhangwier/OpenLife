@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
  */
 test("UX-P0: Web can only know villagers by real conversations, not one-click friendship", { timeout: 40000 }, async () => {
   const child = spawn(process.execPath, [fileURLToPath(new URL("../../apps/web/server.ts", import.meta.url))], {
-    env: { ...process.env, PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, OPENLIFE_PERSISTENCE: "0", PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
   });
   let stderr = "";
   child.stderr.on("data", (chunk) => { stderr += chunk; });
@@ -81,7 +81,7 @@ test("UX-P0: Web can only know villagers by real conversations, not one-click fr
 
 test("Exchange: Web shows tradeable goods and partners, and the general exchange answers with a reason", { timeout: 40000 }, async () => {
   const child = spawn(process.execPath, [fileURLToPath(new URL("../../apps/web/server.ts", import.meta.url))], {
-    env: { ...process.env, PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, OPENLIFE_PERSISTENCE: "0", PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
   });
   let stderr = "";
   child.stderr.on("data", (chunk) => { stderr += chunk; });
@@ -133,7 +133,7 @@ test("Exchange: Web shows tradeable goods and partners, and the general exchange
 
 test("M3-D: Web lets player gather grain, ask the cook, refuse or accept the exact real goods", { timeout: 40000 }, async () => {
   const child = spawn(process.execPath, [fileURLToPath(new URL("../../apps/web/server.ts", import.meta.url))], {
-    env: { ...process.env, PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, OPENLIFE_PERSISTENCE: "0", PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
   });
   let stderr = "";
   child.stderr.on("data", (part) => { stderr += part; });
@@ -256,7 +256,7 @@ test("M3-D: Web lets player gather grain, ask the cook, refuse or accept the exa
 
 test("M3-C: manual end-day and continuous batches share one persisted NPC day boundary", { timeout: 40000 }, async () => {
   const child = spawn(process.execPath, [fileURLToPath(new URL("../../apps/web/server.ts", import.meta.url))], {
-    env: { ...process.env, PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, OPENLIFE_PERSISTENCE: "0", PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
   });
   let stderr = "";
   child.stderr.on("data", (data) => { stderr += data; });
@@ -362,7 +362,7 @@ test("M3-C: manual end-day and continuous batches share one persisted NPC day bo
 
 test("M3-B: Web shows two bounded NPC routines and one persistent physical barter", { timeout: 40000 }, async () => {
   const child = spawn(process.execPath, [fileURLToPath(new URL("../../apps/web/server.ts", import.meta.url))], {
-    env: { ...process.env, PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, OPENLIFE_PERSISTENCE: "0", PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
   });
   let stderr = "";
   child.stderr.on("data", (chunk) => { stderr += chunk; });
@@ -433,7 +433,7 @@ test("M3-B: Web shows two bounded NPC routines and one persistent physical barte
 
 test("M3-A: Web continuous simulation runs one autonomous farmer and exposes witnessed actions", { timeout: 40000 }, async () => {
   const child = spawn(process.execPath, [fileURLToPath(new URL("../../apps/web/server.ts", import.meta.url))], {
-    env: { ...process.env, PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, OPENLIFE_PERSISTENCE: "0", PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
   });
   let stderr = "";
   child.stderr.on("data", (data) => { stderr += data; });
@@ -514,7 +514,7 @@ test("M3-A: Web continuous simulation runs one autonomous farmer and exposes wit
 
 test("M2-B-C: Web turns harvested reeds into a worn wrap with real field-work savings", { timeout: 40000 }, async () => {
   const child = spawn(process.execPath, [fileURLToPath(new URL("../../apps/web/server.ts", import.meta.url))], {
-    env: { ...process.env, PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, OPENLIFE_PERSISTENCE: "0", PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
   });
   let stderr = "";
   child.stderr.on("data", (data) => { stderr += data; });
@@ -611,7 +611,7 @@ test("M2-B-C: Web turns harvested reeds into a worn wrap with real field-work sa
 
 test("M2-B: Web weaves a carrying bag and sleeping mat with real storage and rest benefits", { timeout: 40000 }, async () => {
   const child = spawn(process.execPath, [fileURLToPath(new URL("../../apps/web/server.ts", import.meta.url))], {
-    env: { ...process.env, PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, OPENLIFE_PERSISTENCE: "0", PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
   });
   let stderr = "";
   child.stderr.on("data", (data) => { stderr += data; });
@@ -740,7 +740,7 @@ test("M2-B: Web weaves a carrying bag and sleeping mat with real storage and res
 
 test("Web player walks the settlement, borrows a jar, fetches water and returns it", { timeout: 40000 }, async () => {
   const child = spawn(process.execPath, [fileURLToPath(new URL("../../apps/web/server.ts", import.meta.url))], {
-    env: { ...process.env, PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, OPENLIFE_PERSISTENCE: "0", PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
   });
   let stderr = "";
   child.stderr.on("data", (data) => { stderr += data; });
@@ -979,7 +979,7 @@ test("Web player walks the settlement, borrows a jar, fetches water and returns 
 
 test("M2-UX2-B: configured routine repeats real actions, survives save, and yields to manual play", { timeout: 40000 }, async () => {
   const child = spawn(process.execPath, [fileURLToPath(new URL("../../apps/web/server.ts", import.meta.url))], {
-    env: { ...process.env, PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, OPENLIFE_PERSISTENCE: "0", PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
   });
   let stderr = "";
   child.stderr.on("data", (data) => { stderr += data; });
@@ -1186,7 +1186,7 @@ test("M2-UX2-B: configured routine repeats real actions, survives save, and yiel
 
 test("M2-UX1: bounded continuous batches advance, guard stale requests, and stop at real hunger crisis", { timeout: 40000 }, async () => {
   const child = spawn(process.execPath, [fileURLToPath(new URL("../../apps/web/server.ts", import.meta.url))], {
-    env: { ...process.env, PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, OPENLIFE_PERSISTENCE: "0", PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
   });
   let stderr = "";
   child.stderr.on("data", (data) => { stderr += data; });
@@ -1267,7 +1267,7 @@ test("M2-UX1: bounded continuous batches advance, guard stale requests, and stop
 
 test("Web player can still finish the older pottery slice from its own save", { timeout: 40000 }, async () => {
   const child = spawn(process.execPath, [fileURLToPath(new URL("../../apps/web/server.ts", import.meta.url))], {
-    env: { ...process.env, PORT: "0", OPENLIFE_START: "pottery" }, stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, OPENLIFE_PERSISTENCE: "0", PORT: "0", OPENLIFE_START: "pottery" }, stdio: ["ignore", "pipe", "pipe"],
   });
   let stderr = "";
   child.stderr.on("data", (data) => { stderr += data; });

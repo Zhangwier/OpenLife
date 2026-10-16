@@ -956,7 +956,7 @@ button:active:not(:disabled) { transform: scale(.98); }
 .talent-list { display: grid; gap: 6px; }
 .talent-choice { display: grid !important; grid-template-columns: auto auto 1fr; align-items: baseline; gap: 8px !important; }
 .talent-choice small { opacity: .75; }
-.origin-card { margin: 12px 0; padding: 12px 14px; border-radius: 12px; background: var(--paper-soft, rgba(127,127,127,.08)); display: grid; gap: 6px; }
+.origin-card { grid-column: 1 / -1; min-width: 0; margin: 12px 0; padding: 12px 14px; border-radius: 12px; background: var(--paper-soft, rgba(127,127,127,.08)); display: grid; gap: 6px; }
 .origin-head { display: flex; gap: 8px; align-items: baseline; }
 .origin-head span { font-size: .8em; opacity: .7; }
 .origin-story, .origin-wish { margin: 0; line-height: 1.6; }

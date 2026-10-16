@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 
 async function start(env: Record<string, string> = {}) {
   const child = spawn(process.execPath, [fileURLToPath(new URL("../../apps/web/server.ts", import.meta.url))], {
-    env: { ...process.env, PORT: "0", ...env }, stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, OPENLIFE_PERSISTENCE: "0", PORT: "0", ...env }, stdio: ["ignore", "pipe", "pipe"],
   });
   const base = await new Promise<string>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error("server startup timeout")), 15000);
