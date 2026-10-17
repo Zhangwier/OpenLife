@@ -166,9 +166,23 @@ export const civilizationModule: OpenLifeModule = {
         const inventions = ((c.command.payload.inventions ?? []) as InventionLike[])
           .map((i) => ({ id: i.id, answers: i.answers ?? [], difficulty: Number(i.difficulty ?? 25) }));
 
+        // A4: read the deposit map if world-deposits is installed. A polity
+        // without a required deposit (and no trade route) cannot invent it.
+        const deposits = c.world.getComponent("world-deposits:map", "world-deposits.map") as
+          { deposits?: Array<{ tag: string; x: number; y: number }> } | undefined;
+        const hasDeposit = (tag: string, x: number, y: number, radius = 3): boolean =>
+          (deposits?.deposits ?? []).some((d) =>
+            d.tag === tag && Math.abs(d.x - x) + Math.abs(d.y - y) <= radius,
+          );
+
         const needFor = (polityId: string, inventionId: string): number => {
           const polity = state.polities.find((p) => p.id === polityId)!;
-          return aggregateNeed(polity, inventionId, (id) => inventions.find((i) => i.id === id)?.answers ?? []);
+          const base = aggregateNeed(polity, inventionId, (id) => inventions.find((i) => i.id === id)?.answers ?? []);
+          // A4: a deposit-gated invention needs the deposit nearby, or a trade route.
+          const inv = inventions.find((i) => i.id === inventionId);
+          const material = inv?.answers?.find((a) => a.startsWith("deposit:"));
+          if (material && !hasDeposit(material, polity.x, polity.y)) return 0;
+          return base;
         };
 
         const result = civilizationYear(

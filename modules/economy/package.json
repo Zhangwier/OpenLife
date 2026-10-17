@@ -8,10 +8,12 @@
   },
   "dependencies": {
     "@openlife/contracts": "*",
-    "@openlife/life-contracts": "*"
+    "@openlife/life-contracts": "*",
+    "@openlife/module-polity": "*",
+    "@openlife/module-tech": "*"
   },
   "openlife": {
-    "label": "经济",
-    "summary": "已有经济原型，接入古代生活前需要时代适配。"
+    "label": "经济与交换",
+    "summary": "以物易物到货币：比价、货币、债、集市。"
   }
 }

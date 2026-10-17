@@ -1,195 +1,171 @@
 /**
- * Economy system pack.
+ * 经济模块：把「一物换一物」变成「有比价的交换」。
  *
- * Adds a small, world-level economic cycle to the modern world without teaching
- * Core what "economy" means. It reacts to the public passage-of-time event and
- * changes only module-owned components through Effects.
+ * 这个模块只做三件事：
+ *  1. 每个聚落有一份价格表（供给 ÷ 需求，每年更新）
+ *  2. 荒年粮价上涨，交换要用更多东西换粮
+ *  3. 债的利息和违约概率由价格波动决定
+ *
+ * 货币制度由 polity 的 institution:currency 开启；集市由 office 的 matter:market 开启。
  */
-
-import type { Effect, OpenLifeModule } from "@openlife/contracts";
+import type {
+  ConstraintOutcome, Effect, JsonValue, OpenLifeModule, WorldView,
+} from "@openlife/contracts";
 import {
-  EconomyComponents as EC,
-  type EconomyCityStateComponent,
-  type EconomyPhase,
-  type EconomyWorldCycleComponent,
-} from "@openlife/life-contracts/economy";
-import {
-  CITY_NORTH,
-  CITY_SOUTH,
-  WORLD_ENTITY_ID,
-} from "@openlife/life-contracts/modern";
+  BASE_PRICES, costOf, debtAfterYear, defaultChanceOf, interestOf,
+  marketReach, productivityFromSpecialization, updatePrices,
+  type Debt, type EconomyState, type Price,
+} from "./prices.ts";
 
-const OWNER = "economy";
-const PHASES: EconomyPhase[] = ["steady", "expansion", "slowdown", "recovery"];
+export const ECONOMY_OWNER = "economy";
+export const EconomyComponents = {
+  state: "economy.state",
+} as const;
+
+export const EconomyCommands = {
+  found: "economy.found",
+  year: "economy.year",
+} as const;
+
+export const EconomyProjections = {
+  prices: "economy.prices",
+  debts: "economy.debts",
+} as const;
+
+export const ECONOMY_ENTITY = "economy:village";
+
+function readEconomy(world: WorldView): EconomyState | undefined {
+  return world.getComponent(ECONOMY_ENTITY, EconomyComponents.state) as unknown as EconomyState | undefined;
+}
+
+function refuse(code: string, message: string) {
+  return { ok: false as const, code, message };
+}
 
 export const economyModule: OpenLifeModule = {
   manifest: {
-    id: OWNER,
+    id: ECONOMY_OWNER,
     version: "0.1.0",
     engineRange: "^0.1.0",
-    type: "system-pack",
-    name: "Economy",
-    description: "A restrained city economy cycle that continues beyond the player.",
-    requires: ["time.calendar", "life.population", "economy.currency"],
+    type: "system",
+    name: "经济与交换",
     provides: ["economy.cycle"],
-    expects: ["life.population"],
+    requires: [],
+    optional: ["polity.institutions", "tech.invention", "polity.office"],
+    incompatible: [],
     capabilities: [
-      "component.register",
-      "rule.reaction.register",
-      "projection.register",
+      "component.register", "command.register", "rule.constraint.register",
+      "rule.resolution.register", "projection.register",
     ],
   },
 
   register(ctx) {
-    ctx.registerComponent({
-      id: EC.worldCycle,
-      persist: true,
-      description: "Current world economic phase.",
+    ctx.registerComponent({ id: EconomyComponents.state, persist: true, description: "the village's prices, debts, currency and market day" });
+    for (const type of Object.values(EconomyCommands)) ctx.registerCommand({ type, description: "Economy action." });
+
+    const save = (world: WorldView, state: EconomyState, why: string): Effect =>
+      world.getEntity(ECONOMY_ENTITY)
+        ? {
+            kind: "setComponent", entityId: ECONOMY_ENTITY, component: EconomyComponents.state,
+            value: state as unknown as Record<string, never>, reason: why,
+          }
+        : {
+            kind: "spawnEntity", localId: "economy", id: ECONOMY_ENTITY, entityKind: "economy.village",
+            components: { [EconomyComponents.state]: state as unknown as Record<string, never> },
+          };
+
+    // ---- found: lay down the village's prices -----------------------------
+    ctx.registerConstraintRule({
+      id: `${EconomyCommands.found}.allowed`, commandType: EconomyCommands.found,
+      evaluate: (c): ConstraintOutcome =>
+        readEconomy(c.world) ? refuse("E_ECONOMY_ALREADY", "这村子已经有自己的账了。") : { ok: true },
     });
-    ctx.registerComponent({
-      id: EC.cityState,
-      persist: true,
-      description: "Visible economic condition of a city.",
-    });
-
-    ctx.registerReactionRule({
-      id: "economy.world_initialized.seed",
-      eventType: "modern.world_initialized",
-      react: () => [
-        {
-          kind: "setComponent",
-          entityId: WORLD_ENTITY_ID,
-          component: EC.worldCycle,
-          value: { phase: "steady", yearsInPhase: 0, cycle: 0 },
-          reason: "economy begins with the world",
-        },
-        ...cityEffects("steady"),
-      ],
-    });
-
-    ctx.registerReactionRule({
-      id: "economy.year_passed.cycle",
-      eventType: "modern.year_passed",
-      react: (c) => {
-        const current = (c.world.getComponent(
-          WORLD_ENTITY_ID,
-          EC.worldCycle,
-        ) ?? {
-          phase: "steady",
-          yearsInPhase: 0,
-          cycle: 0,
-        }) as unknown as EconomyWorldCycleComponent;
-
-        const yearsInPhase = Number(current.yearsInPhase ?? 0) + 1;
-        const mustChange = yearsInPhase >= 4;
-        const mayChange = yearsInPhase >= 2 && c.rng.chance(0.45);
-        const change = mustChange || mayChange;
-
-        if (!change) {
-          return [
-            {
-              kind: "modifyComponent",
-              entityId: WORLD_ENTITY_ID,
-              component: EC.worldCycle,
-              patch: { yearsInPhase },
-              reason: "economic phase continues",
-            },
-          ];
-        }
-
-        const currentIndex = Math.max(0, PHASES.indexOf(current.phase));
-        const nextPhase = PHASES[(currentIndex + 1) % PHASES.length] as EconomyPhase;
-        const cycle = Number(current.cycle ?? 0) + (nextPhase === "steady" ? 1 : 0);
-
-        const effects: Effect[] = [
+    ctx.registerResolutionRule({
+      id: `${EconomyCommands.found}.resolve`, commandType: EconomyCommands.found,
+      resolve: (c): Effect[] => {
+        const state: EconomyState = {
+          prices: BASE_PRICES,
+          debts: [],
+          currency: false,
+          marketDay: 0,
+        };
+        return [
+          save(c.world, state, "laid down the village's prices"),
           {
-            kind: "setComponent",
-            entityId: WORLD_ENTITY_ID,
-            component: EC.worldCycle,
-            value: { phase: nextPhase, yearsInPhase: 0, cycle },
-            reason: "economic cycle moved to its next phase",
-          },
-          ...cityEffects(nextPhase),
-          {
-            kind: "emitEvent",
-            eventType: "economy.phase_changed",
-            actorId: WORLD_ENTITY_ID,
-            data: {
-              from: current.phase,
-              to: nextPhase,
-              cycle,
-            },
-            historicalSignificance: 0.55,
-            visibility: "public",
+            kind: "emitEvent", eventType: "economy.founded", actorId: undefined,
+            data: { prices: Object.keys(state.prices) },
+            historicalSignificance: 0.05,
           },
         ];
-        return effects;
+      },
+    });
+
+    // ---- year: update prices, roll debts ----------------------------------
+    ctx.registerConstraintRule({
+      id: `${EconomyCommands.year}.allowed`, commandType: EconomyCommands.year,
+      evaluate: (c): ConstraintOutcome =>
+        readEconomy(c.world) ? { ok: true } : refuse("E_ECONOMY_NONE", "先铺这村子的账。"),
+    });
+    ctx.registerResolutionRule({
+      id: `${EconomyCommands.year}.resolve`, commandType: EconomyCommands.year,
+      resolve: (c): Effect[] => {
+        const state = readEconomy(c.world)!;
+        const supply = (c.command.payload.supply ?? {}) as Record<string, number>;
+        const demand = (c.command.payload.demand ?? {}) as Record<string, number>;
+        const lean = c.command.payload.lean === true;
+
+        const next: EconomyState = {
+          ...state,
+          prices: updatePrices(state.prices, supply, demand, lean,
+            (purpose, ...parts) => c.rng.keyed("economy", purpose, ...parts)),
+          debts: state.debts.map((d) => debtAfterYear(d, state.prices)),
+        };
+
+        return [
+          save(c.world, next, "updated the year's prices"),
+          {
+            kind: "emitEvent", eventType: "economy.year_updated", actorId: undefined,
+            data: { lean, grainRatio: next.prices["resource:grain"]?.ratio ?? 1 },
+            historicalSignificance: lean ? 0.1 : 0.02,
+          },
+        ];
+      },
+    });
+
+    // ---- projections ------------------------------------------------------
+    ctx.registerProjection({
+      id: EconomyProjections.prices,
+      description: "The village's prices, in words not numbers.",
+      build: ({ world }: { world: WorldView }): Record<string, JsonValue> => {
+        const state = readEconomy(world);
+        if (!state) return { prices: [], line: "这村子还没有自己的账。" };
+        const words = (r: number) => r >= 1.5 ? "贵" : r >= 0.8 ? "平" : r >= 0.4 ? "便宜" : "贱";
+        return {
+          prices: Object.values(state.prices).map((p) => ({
+            resourceId: p.resourceId, word: words(p.ratio), trend: p.trend > 0.1 ? "涨" : p.trend < -0.1 ? "跌" : "平",
+          })) as unknown as JsonValue,
+          line: `今年的粮${words(state.prices["resource:grain"]?.ratio ?? 1)}，柴${words(state.prices["resource:fuel"]?.ratio ?? 1)}。`,
+        };
       },
     });
 
     ctx.registerProjection({
-      id: "economy.overview",
-      description: "A natural-language-friendly view of the current economic climate.",
-      build: ({ world }) => {
-        const cycle = (world.getComponent(WORLD_ENTITY_ID, EC.worldCycle)
-          ?? { phase: "steady", yearsInPhase: 0, cycle: 0 }) as unknown as EconomyWorldCycleComponent;
+      id: EconomyProjections.debts,
+      description: "Who owes whom, and how much.",
+      build: ({ world }: { world: WorldView }): Record<string, JsonValue> => {
+        const state = readEconomy(world);
+        if (!state) return { debts: [], line: "这村子还没有自己的账。" };
         return {
-          phase: cycle.phase,
-          label: phaseLabel(cycle.phase),
-          note: phaseNote(cycle.phase),
-          cities: [CITY_NORTH, CITY_SOUTH].map((cityId) => {
-            const city = (world.getComponent(cityId, EC.cityState)
-              ?? cityState(cycle.phase, cityId)) as unknown as EconomyCityStateComponent;
-            return {
-              id: cityId,
-              activity: city.activity,
-              housing: city.housing,
-            };
-          }),
+          debts: state.debts.map((d) => ({
+            creditor: d.creditor, debtor: d.debtor, amount: d.amount,
+          })) as unknown as JsonValue,
+          line: state.debts.length ? `村里有 ${state.debts.length} 笔债。` : "村里没有债。",
         };
       },
     });
   },
 };
 
-function cityEffects(phase: EconomyPhase): Effect[] {
-  return [CITY_NORTH, CITY_SOUTH].map((cityId) => ({
-    kind: "setComponent",
-    entityId: cityId,
-    component: EC.cityState,
-    value: cityState(phase, cityId),
-    reason: "city follows the wider economic climate",
-  }));
-}
-
-function cityState(phase: EconomyPhase, cityId: string): EconomyCityStateComponent {
-  const north = cityId === CITY_NORTH;
-  switch (phase) {
-    case "expansion":
-      return { activity: phase, housing: north ? "tight" : "warm" };
-    case "slowdown":
-      return { activity: phase, housing: "cool" };
-    case "recovery":
-      return { activity: phase, housing: north ? "warm" : "balanced" };
-    default:
-      return { activity: phase, housing: "balanced" };
-  }
-}
-
-function phaseLabel(phase: EconomyPhase): string {
-  return {
-    steady: "市场平稳",
-    expansion: "城市正在扩张",
-    slowdown: "经济进入放缓期",
-    recovery: "生活重新回暖",
-  }[phase];
-}
-
-function phaseNote(phase: EconomyPhase): string {
-  return {
-    steady: "工作与生活保持着相对稳定的节奏。",
-    expansion: "组织更活跃，城市里的机会和压力一起增加。",
-    slowdown: "人们开始更谨慎地工作、消费和做长期决定。",
-    recovery: "经历低潮后，新的机会正在一点点重新出现。",
-  }[phase];
-}
+export { BASE_PRICES, costOf, debtAfterYear, defaultChanceOf, interestOf,
+  marketReach, productivityFromSpecialization, updatePrices };
+export type { Debt, EconomyState, Price };

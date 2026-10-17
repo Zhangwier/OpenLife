@@ -22,15 +22,18 @@
 | `packages/simulation` | `@openlife/simulation` | autonomy-runtime, contracts, history-runtime, kernel, module-runtime, query, rule-engine, save-system, world-model |
 | `packages/world-model` | `@openlife/world-model` | contracts |
 
-## modules/ · 57 个模块包
+## modules/ · 59 个模块包
 
-### system（3）
+### system（6）
 
 | 目录 | 名称 | 模块 id（导出） | provides | requires | 依赖（workspace） |
 | --- | --- | --- | --- | --- | --- |
 | `modules/civilization` | 文明层 | `civilization` (`civilizationModule`) | `world.polities` | — | contracts, life-contracts, module-polity, module-tech | 可关 |
+| `modules/culture` | 文化与信仰 | `culture` (`cultureModule`) | `culture.beliefs` | — | contracts, life-contracts, module-office, module-polity, module-tech | 可关 |
+| `modules/economy` | 经济与交换 | `economy` (`economyModule`) | `economy.cycle` | — | contracts, life-contracts, module-polity, module-tech | 可关 |
 | `modules/office` | 职位与公事 | `office` (`officeModule`) | `polity.office` | `life.settlement` | contracts, life-contracts, module-polity, module-settlement-locations, module-world-objects | 可关 |
 | `modules/settlement-build` | 盖房子 | `settlement-build` (`settlementBuildModule`) | `settlement.housing` | `life.settlement` | contracts, life-contracts, module-settlement-locations, module-world-space | 可关 |
+| `modules/world-deposits` | 矿藏与资源分布 | `world-deposits` (`worldDepositsModule`) | `world.deposits` | — | contracts, life-contracts, module-tech | 可关 |
 
 ### content（2）
 
@@ -48,13 +51,12 @@
 | `modules/robot-test-world` | 机器人测试世界 | `robot-test-world` (`robotTestWorldModule`) | `robot.population`, `robot.energy_network`, `time.machine_cycle` | — | contracts | 可关 |
 | `modules/world-clock` | 世界时钟 | `world-clock` (`worldClockModule`) | `time.life-scale`, `time.scale` | `time.calendar` | contracts, life-contracts, module-practice-runtime | core |
 
-### System Pack · 通用系统（43）
+### System Pack · 通用系统（42）
 
 | 目录 | 名称 | 模块 id（导出） | provides | requires | 依赖（workspace） |
 | --- | --- | --- | --- | --- | --- |
 | `modules/basic-autonomy` | 人物自主行为 | `basic-autonomy` (`basicAutonomyModule`) | `autonomy.basic` | `time.calendar`, `life.population`, `education.provider`, `career.provider`, `family.relationship_provider`, `family.heir_provider` | contracts, life-contracts | 可关 |
 | `modules/career` | 职业原型 | `career` (`careerModule`) | `career.provider` | `time.calendar` | contracts, life-contracts | 可关 |
-| `modules/economy` | 经济 | `economy` (`economyModule`) | `economy.cycle` | `time.calendar`, `life.population`, `economy.currency` | contracts, life-contracts | 可关 |
 | `modules/education` | 教育原型 | `education` (`educationModule`) | `education.provider` | `time.calendar` | contracts, life-contracts | 可关 |
 | `modules/epistemic-state` | 人物认知 | `epistemic-state` (`epistemicStateModule`) | `cognition.epistemic-state` | — | contracts | 可关 |
 | `modules/era-ladder` | 时代识别 | `era-ladder` (`eraLadderModule`) | `era.current` | — | contracts | 可关 |
@@ -113,4 +115,4 @@
 | 目录 | 包名 | 依赖（workspace） |
 | --- | --- | --- |
 | `apps/debug-console` | `@openlife/debug-console` | contracts, module-career, module-education, module-family, module-magic-test-world, module-map-pack, module-modern-world, module-runtime, module-world-geography, rule-engine, simulation |
-| `apps/web` | `@openlife/web` | autonomy-runtime, contracts, life-contracts, module-civilization, module-craft-pottery, module-early-civilization, module-epistemic-state, module-era-ladder, module-family, module-fate, module-fauna-bonds, module-heredity, module-historical-anchors, module-historical-era, module-historical-memory, module-intellectual-history, module-life-stages, module-map-pack, module-modern-science, module-modern-world, module-narrative-voice, module-office, module-polity, module-polity-bondage, module-practice-runtime, module-settlement-build, module-settlement-goals, module-settlement-life, module-settlement-locations, module-settlement-nature, module-social-conflict, module-story-director, module-tech, module-village-chronicle, module-village-secrets, module-village-stories, module-village-wants, module-world-clock, module-world-hazard, module-world-objects, module-world-space, simulation, world-model |
+| `apps/web` | `@openlife/web` | autonomy-runtime, contracts, life-contracts, module-civilization, module-craft-pottery, module-culture, module-early-civilization, module-economy, module-epistemic-state, module-era-ladder, module-family, module-fate, module-fauna-bonds, module-heredity, module-historical-anchors, module-historical-era, module-historical-memory, module-intellectual-history, module-life-stages, module-map-pack, module-modern-science, module-modern-world, module-narrative-voice, module-office, module-polity, module-polity-bondage, module-practice-runtime, module-settlement-build, module-settlement-goals, module-settlement-life, module-settlement-locations, module-settlement-nature, module-social-conflict, module-story-director, module-tech, module-village-chronicle, module-village-secrets, module-village-stories, module-village-wants, module-world-clock, module-world-deposits, module-world-hazard, module-world-objects, module-world-space, simulation, world-model |

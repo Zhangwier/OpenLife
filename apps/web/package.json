@@ -46,6 +46,9 @@
     "@openlife/world-model": "*",
     "@openlife/module-office": "*",
     "@openlife/module-narrative-voice": "*",
-    "@openlife/module-civilization": "*"
+    "@openlife/module-civilization": "*",
+    "@openlife/module-world-deposits": "*",
+    "@openlife/module-culture": "*",
+    "@openlife/module-economy": "*"
   }
 }
