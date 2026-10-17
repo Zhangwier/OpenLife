@@ -1,0 +1,16 @@
+{
+  "name": "@openlife/module-story-director",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*"
+  },
+  "openlife": {
+    "label": "叙事者",
+    "summary": "张力驱动的节奏：平静积累压力，压力决定今天能出哪一档事，出过大事就喘一口气。"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "@openlife/module-settlement-goals",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/life-contracts": "*",
+    "@openlife/module-settlement-locations": "*"
+  },
+  "openlife": {
+    "label": "村落成长目标",
+    "summary": "村子活下去并长大：落脚到传承六级阶梯、村子散了的结局，以及今天/这一季/这一生三档目标。"
+  }
+}

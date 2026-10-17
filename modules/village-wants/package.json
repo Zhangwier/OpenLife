@@ -1,0 +1,18 @@
+{
+  "name": "@openlife/module-village-wants",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/module-settlement-locations": "*",
+    "@openlife/module-world-space": "*"
+  },
+  "openlife": {
+    "label": "愿望与恐惧",
+    "summary": "每个人怕一样东西，怕的东西会真的改变他的行为；每一季还有一个短期愿望，满足了就高兴，没满足也不罚。"
+  }
+}

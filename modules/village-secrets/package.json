@@ -1,0 +1,18 @@
+{
+  "name": "@openlife/module-village-secrets",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/module-settlement-locations": "*",
+    "@openlife/module-world-space": "*"
+  },
+  "openlife": {
+    "label": "村里的事",
+    "summary": "秘密有门槛：不知、听说、确知。只能靠打听、日久相处或亲眼撞见才知道；知道了可以替人保密、私下劝、当众揭发或拿来要挟。"
+  }
+}

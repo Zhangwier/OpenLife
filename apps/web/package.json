@@ -30,6 +30,19 @@
     "@openlife/module-settlement-nature": "*",
     "@openlife/module-social-conflict": "*",
     "@openlife/module-settlement-build": "*",
+    "@openlife/module-story-director": "*",
+    "@openlife/module-settlement-goals": "*",
+    "@openlife/module-village-secrets": "*",
+    "@openlife/module-village-wants": "*",
+    "@openlife/module-life-stages": "*",
+    "@openlife/module-epistemic-state": "*",
+    "@openlife/module-heredity": "*",
+    "@openlife/module-tech": "*",
+    "@openlife/module-era-ladder": "*",
+    "@openlife/module-village-chronicle": "*",
+    "@openlife/module-polity": "*",
+    "@openlife/module-polity-bondage": "*",
+    "@openlife/module-fate": "*",
     "@openlife/world-model": "*"
   }
 }

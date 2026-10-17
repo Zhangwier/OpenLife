@@ -1,0 +1,19 @@
+{
+  "name": "@openlife/module-life-stages",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/life-contracts": "*",
+    "@openlife/module-settlement-locations": "*",
+    "@openlife/module-world-space": "*"
+  },
+  "openlife": {
+    "label": "人生阶段",
+    "summary": "童年、少年、成年、壮年、老年，每段只做得了那一段的事；老去时没走完的心愿与确知的心事，以遗言的形式传一部分给继承人。"
+  }
+}

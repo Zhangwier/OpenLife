@@ -1,0 +1,73 @@
+{
+  "formatVersion": 1,
+  "note": "恐惧四类，各有触发情境、回避的行为与严重时的后果。短期愿望是「这一季想要什么」，从候选里按确定性散列抽一个；满足了交情上升（走聚落自己的送礼/学艺规则），没满足什么也不罚。",
+  "fears": [
+    {
+      "id": "fear:village-wants.water",
+      "name": "怕水",
+      "text": "水一没到膝盖，腿就自己软了。",
+      "moodDrop": 3,
+      "triggers": [
+        { "kind": "place", "placeId": "place:river" },
+        { "kind": "place", "placeId": "place:ford" },
+        { "kind": "event", "eventType": "world-hazard.flood" }
+      ],
+      "avoidPlaces": ["place:river", "place:ford"],
+      "refuseWorkBelow": 3,
+      "leaveVillageBelow": 1
+    },
+    {
+      "id": "fear:village-wants.alone",
+      "name": "怕孤老",
+      "text": "屋里太静的时候，会想起以后也是这么静。",
+      "moodDrop": 2,
+      "triggers": [
+        { "kind": "alone" },
+        { "kind": "event", "eventType": "modern.character_died" }
+      ],
+      "avoidPlaces": [],
+      "refuseWorkBelow": 2,
+      "leaveVillageBelow": 0
+    },
+    {
+      "id": "fear:village-wants.scorned",
+      "name": "怕被人看不起",
+      "text": "别人笑的时候，总觉得是在笑自己。",
+      "moodDrop": 3,
+      "triggers": [
+        { "kind": "event", "eventType": "village-secrets.exposed" },
+        { "kind": "event", "eventType": "settlement-locations.request_refused" }
+      ],
+      "avoidPlaces": ["place:hearth-yard"],
+      "refuseWorkBelow": 2,
+      "leaveVillageBelow": 1
+    },
+    {
+      "id": "fear:village-wants.hunger",
+      "name": "怕挨饿",
+      "text": "饿过一次的人，看见空罐子就心慌。",
+      "moodDrop": 3,
+      "triggers": [
+        { "kind": "hunger", "atLeast": 6 },
+        { "kind": "stockBelow", "resourceId": "resource:grain", "amount": 8 }
+      ],
+      "avoidPlaces": [],
+      "refuseWorkBelow": 2,
+      "leaveVillageBelow": 1
+    }
+  ],
+  "originFears": {
+    "potter-kin": "fear:village-wants.scorned",
+    "ferry-child": "fear:village-wants.water",
+    "field-hand": "fear:village-wants.hunger",
+    "wanderer": "fear:village-wants.alone"
+  },
+  "wishes": [
+    { "id": "wish:village-wants.warm-cloak", "text": "想要一件新披", "kind": "item", "resourceId": "resource:reed", "label": "一捆苇子，好编件挡风的" },
+    { "id": "wish:village-wants.learn-craft", "text": "想学一门手艺", "kind": "deed", "event": "settlement-locations.lesson" },
+    { "id": "wish:village-wants.new-jar", "text": "想有一只不漏水的罐", "kind": "item", "resourceId": "resource:clay", "label": "一份好泥" },
+    { "id": "wish:village-wants.hot-meal", "text": "想吃一口热的", "kind": "item", "resourceId": "resource:cooked", "label": "一口热饭" },
+    { "id": "wish:village-wants.a-hand", "text": "想有人帮着搭把手", "kind": "deed", "event": "settlement-locations.hearth_helped" },
+    { "id": "wish:village-wants.a-talk", "text": "想有人陪着说说话", "kind": "deed", "event": "settlement-locations.conversation" }
+  ]
+}

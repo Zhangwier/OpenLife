@@ -30,6 +30,14 @@ import { worldHazardModule } from "@openlife/module-world-hazard";
 import { faunaBondsModule } from "@openlife/module-fauna-bonds";
 import { socialConflictModule } from "@openlife/module-social-conflict";
 import { settlementBuildModule } from "@openlife/module-settlement-build";
+// 秘密需要认知层（cognition.epistemic-state）：epistemic-state 因此在 web 里也装上了。
+// 它不是 core：关掉它，village-secrets 会按 docs/PLUGINS.md §2 的规则跟着关掉。
+import { epistemicStateModule } from "@openlife/module-epistemic-state";
+import { villageSecretsModule } from "@openlife/module-village-secrets";
+import { villageWantsModule } from "@openlife/module-village-wants";
+import { lifeStagesModule } from "@openlife/module-life-stages";
+import { storyDirectorModule } from "@openlife/module-story-director";
+import { settlementGoalsModule } from "@openlife/module-settlement-goals";
 import { resolveModules, type ModuleEntry } from "./module-plan.ts";
 
 export const WEB_MODULE_ENTRIES: ModuleEntry[] = [
@@ -44,6 +52,15 @@ export const WEB_MODULE_ENTRIES: ModuleEntry[] = [
   { module: faunaBondsModule },
   { module: socialConflictModule },
   { module: settlementBuildModule },
+  // 认知层与心事：秘密要靠它记「谁知道了什么」。不是 core。
+  { module: epistemicStateModule },
+  { module: villageSecretsModule },
+  { module: villageWantsModule },
+  { module: lifeStagesModule },
+  // 叙事者与成长目标：都只读世界、只写自己的状态，关掉就回到原来的固定概率抽取
+  // 与"没有阶梯"的旧样子（docs/plans/EXPANSION_PLAN_2026-10.md §5）。
+  { module: storyDirectorModule },
+  { module: settlementGoalsModule },
   { module: familyModule, core: true },
   { module: modernScienceModule },
   { module: earlyCivilizationModule },

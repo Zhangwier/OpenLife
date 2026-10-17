@@ -1,0 +1,33 @@
+{
+  "id": "beats:river-terrace",
+  "formatVersion": 1,
+  "note": "叙事者的节拍位。正文属于内容层，这里只给档位与一句话，不含任何人的名字。",
+  "beats": [
+    { "id": "beat:ambient.kettle-sings", "tier": "ambient", "line": "灶上的水开了，壶盖轻轻响。" },
+    { "id": "beat:ambient.dogs-bark", "tier": "ambient", "line": "半夜有狗叫了几声，又静了。" },
+    { "id": "beat:ambient.old-song", "tier": "ambient", "line": "有人在河边唱起一支老调子。" },
+    { "id": "beat:ambient.wet-wood", "tier": "ambient", "line": "柴垛底下潮了，点火点了半天。" },
+    { "id": "beat:ambient.child-laughs", "tier": "ambient", "line": "巷子里有孩子在笑，跑远了。" },
+    { "id": "beat:ambient.first-frost", "tier": "ambient", "line": "清早草叶上结了第一层白霜。" },
+
+    { "id": "beat:minor.fish-gone", "tier": "minor", "line": "河湾里这两天没什么鱼，网都空着。" },
+    { "id": "beat:minor.jar-cracked", "tier": "minor", "line": "一只陶罐裂了缝，水一点点往外渗。" },
+    { "id": "beat:minor.stray-boar", "tier": "minor", "line": "野猪在田边拱了一片，脚印很新。" },
+    { "id": "beat:minor.roof-leak", "tier": "minor", "line": "夜里的雨漏进屋，地上湿了一块。" },
+    { "id": "beat:minor.lost-child", "tier": "minor", "line": "有孩子半天没回家，村里人提着灯找了一圈。" },
+    { "id": "beat:minor.ferry-late", "tier": "minor", "line": "渡口的船晚了半日，等船的人蹲在岸边。" },
+
+    { "id": "beat:conflict.grain-dispute", "tier": "conflict", "line": "两家人为了一担粟在场上争起来，谁也不让。" },
+    { "id": "beat:conflict.water-right", "tier": "conflict", "line": "上游把水引走了，下游的田干着，话越说越硬。" },
+    { "id": "beat:conflict.kiln-order", "tier": "conflict", "line": "两户都要先用自己的窑，一炉陶卡在那里。" },
+    { "id": "beat:conflict.herb-shortage", "tier": "conflict", "line": "草药只够一个人，谁先吃，屋里吵了起来。" },
+    { "id": "beat:conflict.suspected-theft", "tier": "conflict", "line": "晒着的鱼干少了几条，有人被指认，他不认。" },
+    { "id": "beat:conflict.marriage-refused", "tier": "conflict", "line": "一门亲事被家里拦下，两个人在门口站了很久。" },
+
+    { "id": "beat:crisis.flood-night", "tier": "crisis", "line": "水一夜之间漫过了堤，低处的屋子进了水。" },
+    { "id": "beat:crisis.fire-in-yard", "tier": "crisis", "line": "火从柴垛烧起来，半个村子的人都出来了。" },
+    { "id": "beat:crisis.epidemic", "tier": "crisis", "line": "病气在几家之间过了一遍，能下地的人不多了。" },
+    { "id": "beat:crisis.famine", "tier": "crisis", "line": "存粮见底，灶上开始按人头分，一天比一天少。" },
+    { "id": "beat:crisis.winter-death", "tier": "crisis", "line": "最冷的那几天，有人没能熬到天亮。" }
+  ]
+}

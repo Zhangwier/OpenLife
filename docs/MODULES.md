@@ -22,7 +22,7 @@
 | `packages/simulation` | `@openlife/simulation` | autonomy-runtime, contracts, history-runtime, kernel, module-runtime, query, rule-engine, save-system, world-model |
 | `packages/world-model` | `@openlife/world-model` | contracts |
 
-## modules/ · 49 个模块包
+## modules/ · 54 个模块包
 
 ### system（1）
 
@@ -39,7 +39,7 @@
 | `modules/robot-test-world` | 机器人测试世界 | `robot-test-world` (`robotTestWorldModule`) | `robot.population`, `robot.energy_network`, `time.machine_cycle` | — | contracts |
 | `modules/world-clock` | 世界时钟 | `world-clock` (`worldClockModule`) | `time.life-scale`, `time.scale` | `time.calendar` | contracts, life-contracts, module-practice-runtime |
 
-### System Pack · 通用系统（38）
+### System Pack · 通用系统（43）
 
 | 目录 | 名称 | 模块 id（导出） | provides | requires | 依赖（workspace） |
 | --- | --- | --- | --- | --- | --- |
@@ -57,6 +57,7 @@
 | `modules/historical-memory` | 历史留存 | `historical-memory` (`historicalMemoryModule`) | `history.material-evidence`, `history.public-memory` | — | contracts |
 | `modules/intellectual-history` | 思想与学派 | `intellectual-history` (`intellectualHistoryModule`) | `culture.intellectual-tradition` | — | contracts |
 | `modules/knowledge-transmission` | 知识传授 | `knowledge-transmission` (`knowledgeTransmissionModule`) | `knowledge.transmission-practice` | `practice.runtime`, `cognition.epistemic-state` | contracts, module-epistemic-state, module-practice-runtime |
+| `modules/life-stages` | 人生阶段 | `life-stages` (`lifeStagesModule`) | `life.stages` | `life.settlement` | contracts, life-contracts, module-settlement-locations, module-world-space |
 | `modules/map-pack` | 地图包 | `map-pack` (`mapPackModule`) | `world.map-packs` | `world.geography` | contracts, module-world-geography, simulation |
 | `modules/modern-science` | 文明认知 | `modern-science` (`modernScienceModule`) | `knowledge.modern-science` | `life.population` | contracts, life-contracts |
 | `modules/polity` | 政治 | `polity` (`polityModule`) | `polity.institutions`, `polity.authority` | — | contracts |
@@ -64,9 +65,13 @@
 | `modules/practice-autonomy` | 自主参与活动 | `practice-autonomy` (`practiceAutonomyModule`) | `practice.autonomy` | `practice.runtime` | contracts, module-practice-runtime |
 | `modules/practice-runtime` | 持续活动 | `practice-runtime` (`practiceRuntimeModule`) | `practice.runtime` | — | contracts |
 | `modules/science-research` | 研究活动 | `science-research` (`scienceResearchModule`) | `science.research-practice` | `practice.runtime` | contracts, module-practice-runtime |
+| `modules/settlement-goals` | 村落成长目标 | `settlement-goals` (`settlementGoalsModule`) | `settlement.goals` | — | contracts, life-contracts, module-settlement-locations |
 | `modules/social-conflict` | 乡邻纠纷 | `social-conflict` (`socialConflictModule`) | `social.conflict` | — | contracts |
+| `modules/story-director` | 叙事者 | `story-director` (`storyDirectorModule`) | `story.director` | — | contracts |
 | `modules/tech` | 科技 | `tech` (`techModule`) | `tech.invention`, `tech.learning`, `tech.need-ledger` | — | contracts |
 | `modules/village-chronicle` | 村史 | `village-chronicle` (`villageChronicleModule`) | `chronicle.village` | — | contracts, module-era-ladder, module-fate, module-heredity, module-polity, module-polity-bondage, module-tech, simulation |
+| `modules/village-secrets` | 村里的事 | `village-secrets` (`villageSecretsModule`) | `settlement.secrets` | `cognition.epistemic-state` | contracts, module-settlement-locations, module-world-space |
+| `modules/village-wants` | 愿望与恐惧 | `village-wants` (`villageWantsModule`) | `life.wants` | `life.settlement` | contracts, module-settlement-locations, module-world-space |
 | `modules/world-climate` | 气候 | `world-climate` (`worldClimateModule`) | `world.climate-profile` | `world.geography`, `world.geosphere-profile` | contracts, module-world-geography, module-world-geosphere |
 | `modules/world-ecology` | 生态 | `world-ecology` (`worldEcologyModule`) | `world.ecology-state` | `world.geography`, `world.climate-profile`, `world.hydrology-state` | contracts, module-world-climate, module-world-geography, module-world-hydrology |
 | `modules/world-geography` | 地理与连通 | `boundary-handshake` (`boundaryHandshakeModule`) | `world.boundary-handshake` | `world.geography` | contracts |
@@ -99,4 +104,4 @@
 | 目录 | 包名 | 依赖（workspace） |
 | --- | --- | --- |
 | `apps/debug-console` | `@openlife/debug-console` | contracts, module-career, module-education, module-family, module-magic-test-world, module-map-pack, module-modern-world, module-runtime, module-world-geography, rule-engine, simulation |
-| `apps/web` | `@openlife/web` | autonomy-runtime, contracts, life-contracts, module-craft-pottery, module-early-civilization, module-family, module-fauna-bonds, module-historical-anchors, module-historical-era, module-historical-memory, module-intellectual-history, module-map-pack, module-modern-science, module-modern-world, module-practice-runtime, module-settlement-build, module-settlement-life, module-settlement-locations, module-settlement-nature, module-social-conflict, module-village-stories, module-world-clock, module-world-hazard, module-world-objects, module-world-space, simulation, world-model |
+| `apps/web` | `@openlife/web` | autonomy-runtime, contracts, life-contracts, module-craft-pottery, module-early-civilization, module-epistemic-state, module-era-ladder, module-family, module-fate, module-fauna-bonds, module-heredity, module-historical-anchors, module-historical-era, module-historical-memory, module-intellectual-history, module-life-stages, module-map-pack, module-modern-science, module-modern-world, module-polity, module-polity-bondage, module-practice-runtime, module-settlement-build, module-settlement-goals, module-settlement-life, module-settlement-locations, module-settlement-nature, module-social-conflict, module-story-director, module-tech, module-village-chronicle, module-village-secrets, module-village-stories, module-village-wants, module-world-clock, module-world-hazard, module-world-objects, module-world-space, simulation, world-model |

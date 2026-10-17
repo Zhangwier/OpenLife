@@ -30,7 +30,7 @@ import { worldCatalog } from "./src/catalog.ts";
 import { codex } from "./src/codex.ts";
 import { humanizeEvent } from "./src/humanize.ts";
 import { ensureNature, runNatureAction, withNature } from "./src/nature.ts";
-import { webModules } from "./src/modules.ts";
+import { startHistory, historyDay, historySeason } from "./src/history-bridge.ts";import { webModules } from "./src/modules.ts";
 const PORT = Number(process.env.PORT ?? 4173);
 const PUBLIC_DIR = fileURLToPath(new URL("./public/", import.meta.url));
 /** Which opening a brand-new life uses: the M1 settlement, or the older slice. */
@@ -230,7 +230,7 @@ export function createGame(options: NewLifeOptions = {}): Simulation {
     return sim;
   }
   requireOk(sim.dispatch({ type: "settlement-locations.found", payload: { hungerToll: HUNGER_TOLL }, source: "system" }));
-  ensureNature(sim);
+  ensureNature(sim); startHistory(sim);
   requireOk(sim.dispatch({
     type: "settlement-locations.arrive",
     actorId,
@@ -803,7 +803,6 @@ function thoughtTemplate(roleId: string) {
   }
 }
 
-
 /**
  * M2-UX1: a short, bounded slice of continuous waiting.
  * The browser requests another slice only while its Start control is active.
@@ -1159,8 +1158,9 @@ const server = createServer(async (req, res) => {
           });
         }
         simulation.syncHistory();
+        historyDay(simulation);   // 喂给历史实验室；装不上就什么也不做
+        if (action === SettlementCommands.step) historySeason(simulation);
         const narrative = narrativeSince(seqBefore, manualActorId);
-        // 念想是从世界里读出来的；它在这一步刚刚成真时，讲一句话。
         const hopeAfter = settlementView(simulation, manualActorId)?.aspiration;
         if (hopeBefore === false && hopeAfter?.done) narrative.push(hopeAfter.line);
         res.end(JSON.stringify({ result, narrative, state: gameState() }));
