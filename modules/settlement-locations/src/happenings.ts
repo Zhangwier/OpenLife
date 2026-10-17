@@ -79,3 +79,18 @@ export function isIll(tick: number, residentId: string): boolean {
 }
 
 export function illnessSpec(): IllnessSpec | undefined { return SPEC.illness; }
+
+/** A small stable hash for picking lines deterministically from world state. */
+export function pickIndex(key: string, n: number): number {
+  let h = 2166136261;
+  for (let i = 0; i < key.length; i += 1) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return n > 0 ? h % n : 0;
+}
+
+export function seasonOf(tick: number): string {
+  const month = (Math.floor(tick / DAYS_PER_MONTH) % 12) + 1;
+  if (month >= 3 && month <= 5) return "春";
+  if (month >= 6 && month <= 8) return "夏";
+  if (month >= 9 && month <= 11) return "秋";
+  return "冬";
+}

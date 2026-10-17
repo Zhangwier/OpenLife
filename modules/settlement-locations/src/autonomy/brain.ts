@@ -792,8 +792,8 @@ export class BrainRun {
     const gaveUp = [...new Set(missed.filter((id) => (before.get(id) ?? 0) === 1).map((id) => LABEL[goalOutput(id)] ?? "那样东西"))];
     if (gaveUp.length) told.push(`想弄${gaveUp.join("、")}，折腾了两天没成，先放一放`);
     const note = `${this.name}${words.length ? `（${words.join("、")}）` : ""}：${told.join("；") || "今天没出门，在家歇着"}${obstacle ? "。没办成的：" + obstacle : ""}`;
-    const marker = sim.dispatch({ type: SettlementCommands.npcMarkDay, actorId, source: "ai", payload: { actions: this.actions, summary: note,
-      missed, made: [...this.today].filter((t) => t.startsWith("made:")).map((t) => t.slice(5)) } });
+    const marker = sim.dispatch({ type: SettlementCommands.npcMarkDay, actorId, source: "ai", payload: { actions: this.actions.slice(0, 12), summary: note, // the marker caps a record at 12 actions / 8 misses
+      missed: missed.slice(0, 8), made: [...this.today].filter((t) => t.startsWith("made:")).map((t) => t.slice(5)) } });
     return { actorId, tick: sim.tick, skipped: false, actions: [...this.actions], note: marker.ok ? note : `${note}；未能记录日程` };
   }
 }

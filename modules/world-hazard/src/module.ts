@@ -232,7 +232,7 @@ export const worldHazardModule: OpenLifeModule = {
     ctx.registerResolutionRule({
       id: "world-hazard.build_earthwork.resolve",
       commandType: "world-hazard.build_earthwork",
-      resolve: (c) => {
+      resolve: (c): Effect[] => {
         const locationId = c.command.targetId as string;
         const name = String(c.command.payload.name ?? "earthwork");
         const builtBy = c.command.actorId ?? null;

@@ -88,19 +88,14 @@ export const ObjectRejection = {
 /**
  * Capabilities a prototype can declare. Actions are registered against these,
  * never against a specific object type, so a new vessel does not need a new
- * button (OBJ-001).
- *
- * `warm` is authored by the settlement pack (`prototype:hide-cloak`); it is
- * declared here so the ability survives loading. What a worn cloak is worth at
- * night is the settlement's rule, not this module's.
+ * button (OBJ-001). `warm` (the settlement pack's hide cloak) survives loading.
  */
 export type ObjectCapability =
   | "carryable"
   | "container"
   | "edible"
   | "burnable"
-  | "wearable"
-  | "warm"
+  | "wearable" | "warm"
   | "workable"
   | "tool"
   | "fixture"
@@ -140,13 +135,7 @@ export interface ObjectInstanceState {
   /** Domain-owned trace, e.g. the pottery production strategy. */
   provenance: Record<string, JsonValue>;
   visibleFromOutside: boolean;
-  /**
-   * A standing authorisation the owner declared when placing it: `public-visitor`
-   * lets any visitor borrow it through a real loan; anything else (including "")
-   * means ordinary consent rules apply. Permission is a world rule, so it lives
-   * here — readObject used to drop it, letting a projection disagree with the
-   * command path about whether the same object could be taken.
-   */
+  /** Owner's standing permission: `public-visitor` lets any visitor borrow it via a real loan; "" = ordinary consent. */
   loanPolicy: string;
 }
 
@@ -318,7 +307,7 @@ function registerSpawnCommand(ctx: Registration): void {
       // jar standing in a yard; inferring a holder from the owner would make
       // every household object simultaneously carried.
       const holderId = text(c.command.payload.holderId);
-      const state: ObjectInstanceState = {
+      const state: Omit<ObjectInstanceState, "loanPolicy"> = {
         prototypeId,
         name: text(c.command.payload.name) || prototype.name,
         condition: text(c.command.payload.condition) || "new",
@@ -1210,11 +1199,7 @@ function capabilities(value: unknown): ObjectCapability[] {
   const out: ObjectCapability[] = [];
   for (const entry of value) {
     const id = String(entry) as ObjectCapability;
-    // A capability the pack declares but this list does not know is a data
-    // loss, not a filter: the loader used to drop `warm` silently, so a
-    // hide cloak stored the ability to keep someone warm and every reader saw
-    // a plain garment. Unknown names now survive the round trip; only the
-    // declared union gives a reader anything to act on.
+    // Unknown capability names survive the round trip (dropping them lost `warm`).
     if (!out.includes(id)) out.push(id);
   }
   return out;

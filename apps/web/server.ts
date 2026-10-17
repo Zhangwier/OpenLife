@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import type { SavePackage } from "@openlife/contracts";
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename } from "node:fs/promises";
+import { describeSaveFailure, renameIntoPlace, type SaveHealth } from "./src/save-health.ts";
 import { dirname, extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Simulation } from "@openlife/simulation";
@@ -21,7 +22,7 @@ import { historicalEraModule } from "@openlife/module-historical-era";
 import { historicalAnchorsModule } from "@openlife/module-historical-anchors";
 import { practiceRuntimeModule } from "@openlife/module-practice-runtime";
 import { craftPotteryModule } from "@openlife/module-craft-pottery";
-import { settlementLifeModule, Life, qualityLabel } from "@openlife/module-settlement-life";
+import { settlementLifeModule, Life } from "@openlife/module-settlement-life";
 import { worldClockModule } from "@openlife/module-world-clock";
 import { worldSpaceModule } from "@openlife/module-world-space";
 import { worldObjectsModule } from "@openlife/module-world-objects";
@@ -40,6 +41,7 @@ import {
 } from "./src/player.ts";
 import { worldCatalog } from "./src/catalog.ts";
 import { codex } from "./src/codex.ts";
+import { humanizeEvent } from "./src/humanize.ts";
 import { settlementNatureModule } from "@openlife/module-settlement-nature";
 import { worldHazardModule } from "@openlife/module-world-hazard";
 import { faunaBondsModule } from "@openlife/module-fauna-bonds";
@@ -96,38 +98,7 @@ interface DiskSaveFile {
   save: SavePackage;
 }
 
-/**
- * The last disk-write outcome, so the page can show it.
- *
- * SAVE-01 asks that a save failure be visible rather than only logged: the
- * server used to write `console.error` and the player saw nothing, so a world
- * that had stopped reaching disk looked identical to one that was safe.
- * `state` is "off" when persistence is disabled for this process.
- *
- * `reason` is developer-facing detail (`EEXIST: ... mkdir 'C:\...'`) and is for
- * the console and diagnostics. `playerReason` is what the page may show:
- * UI-004 forbids answering a player with a raw technical code or a server path.
- */
-interface SaveHealth {
-  state: "off" | "ok" | "failed";
-  reason: string;
-  playerReason: string;
-  at: string;
-  path: string;
-}
 let saveHealth: SaveHealth = { state: "off", reason: "", playerReason: "", at: "", path: SAVE_PATH };
-
-/** A failure reason a player can act on: no errno, no file paths. */
-function describeSaveFailure(error: unknown): string {
-  const code = (error as NodeJS.ErrnoException).code ?? "";
-  const status = (error as { status?: number }).status;
-  if (code === "ENOSPC" || status === 507) return "这台设备的磁盘空间不够了。";
-  if (code === "EROFS" || code === "EACCES" || code === "EPERM") return "服务器没有权限把它写到磁盘上。";
-  if (code === "ENOTDIR" || code === "EEXIST") return "服务器上给它准备的存放位置不是一个可用的文件夹。";
-  if (code === "ENOENT") return "服务器上给它准备的存放文件夹不见了。";
-  if (code === "EBUSY") return "磁盘上的这一份一直被占用，腾不出手来写。";
-  return "原因还不清楚，服务器日志里有更详细的记录。";
-}
 
 /** Write the current world to disk atomically (temp file + rename). Never throws. */
 let saveQueue = Promise.resolve();
@@ -140,39 +111,6 @@ function persistNow(reason: string): Promise<void> {
   return saveQueue;
 }
 
-/**
- * Errors that mean "try again", not "this world cannot be saved".
- *
- * On Windows, `rename` over a destination that another handle currently holds
- * open fails with EPERM/EACCES (measured: 20/20 failures while a reader is open,
- * 20/20 successes once it closes). The autosave timer renames over the same path
- * every interval, so a single transient lock must not be reported as a lost
- * save. Only errors that persist across the retries below become failures.
- */
-const TRANSIENT_SAVE_CODES = new Set(["EPERM", "EACCES", "EBUSY"]);
-const SAVE_RETRY_DELAYS_MS = [40, 120, 360];
-
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-
-/** Atomically writes the snapshot, retrying a temporarily locked destination. */
-async function renameIntoPlace(tmpPath: string, body: string): Promise<void> {
-  await writeFile(tmpPath, body, "utf8");
-  for (let attempt = 0; ; attempt += 1) {
-    try {
-      await rename(tmpPath, SAVE_PATH);
-      return;
-    } catch (error) {
-      const code = (error as NodeJS.ErrnoException).code ?? "";
-      const last = attempt >= SAVE_RETRY_DELAYS_MS.length;
-      if (last || !TRANSIENT_SAVE_CODES.has(code)) {
-        await rm(tmpPath, { force: true });
-        throw error;
-      }
-      await sleep(SAVE_RETRY_DELAYS_MS[attempt]!);
-    }
-  }
-}
-
 async function writeSnapshot(reason: string): Promise<void> {
   try {
     const save: SavePackage = simulation.save({ label: `autosave:${reason}` });
@@ -182,7 +120,7 @@ async function writeSnapshot(reason: string): Promise<void> {
       save,
     };
     await mkdir(dirname(SAVE_PATH), { recursive: true });
-    await renameIntoPlace(`${SAVE_PATH}.${process.pid}.tmp`, JSON.stringify(payload));
+    await renameIntoPlace(`${SAVE_PATH}.${process.pid}.tmp`, SAVE_PATH, JSON.stringify(payload));
     saveHealth = { state: "ok", reason, playerReason: "", at: payload.savedAt, path: SAVE_PATH };
   } catch (error) {
     const message = (error as Error).message;
@@ -204,7 +142,8 @@ async function restoreFromDisk(): Promise<boolean> {
   try {
     raw = await readFile(SAVE_PATH, "utf8");
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+    // ENOTDIR (a parent is a file) is "no save here" too; the first write reports it.
+    if (!["ENOENT", "ENOTDIR"].includes((error as NodeJS.ErrnoException).code ?? "")) {
       persistenceBlocked = true;
       saveHealth = { state: "failed", reason: (error as Error).message,
         playerReason: "磁盘上的存档读不出来，这个世界暂时不会写盘。",
@@ -713,91 +652,9 @@ function buildActions(input: {
   return actions;
 }
 
-function humanizeEvent(type: string, data: Record<string, unknown> = {}): string {
-  if (typeof data.summary === "string") return data.summary;
-  if (type === "craft-pottery.vessel_fired") return `完成一窑陶器：${qualityLabel(data.quality)}`;
-  if (type === "historical-anchors.person_entered") {
-    const precision = data.datePrecision === "approximate" ? "约" : "";
-    return `${String(data.displayName ?? "一位历史人物")}在${String(data.regionLabel ?? "这个世界")}${precision ? "大约" : ""}来到世间`;
-  }
-  if (type === "historical-era.entered") {
-    return `世界进入“${String(data.label ?? "一个时代")}”的历史阶段`;
-  }
-  if (type === "historical-era.changed") {
-    const signals = Array.isArray(data.changeSignals)
-      ? data.changeSignals.slice(0, 2).join("、")
-      : "";
-    return `时代从“${String(data.fromLabel ?? "过去")}”走向“${String(data.toLabel ?? "新的时代")}”${signals ? `：${signals}` : ""}`;
-  }
-  if (type === "modern-science.discovery_made") {
-    return `文明建立了新的理解：${String(data.label ?? data.id ?? "未知知识")}`;
-  }
-  if (type === "early-civilization.role_assumed") {
-    return `开始承担“${String(data.title ?? "聚落役事")}”`;
-  }
-  if (type === "early-civilization.legacy_left") {
-    return `留下了关于“${String(data.title ?? "一门手艺")}”的经验`;
-  }
-  if (type === "historical-memory.work_created") {
-    return `一段经验被物化保存下来：“${String(data.title ?? "无名作品")}”`;
-  }
-  if (type === "historical-memory.artifact_copied") {
-    return "一份承载经验的副本被制作出来";
-  }
-  if (type === "historical-memory.artifact_fragmented") {
-    return "一件承载记忆的证据变得残缺";
-  }
-  if (type === "historical-memory.artifact_rediscovered") {
-    return "一件失去踪迹的旧证据重新被发现";
-  }
-  if (type === "historical-memory.claim_formed") {
-    return "后人形成了一种关于作品归属的说法";
-  }
-  if (type === "historical-memory.claim_supported") {
-    return "新的证据让一种历史说法更加可信";
-  }
-  if (type === "historical-memory.artifact_lost") {
-    return "一件承载记忆的证据失去了踪迹";
-  }
-  if (type === "historical-memory.claim_revised") {
-    return "新的证据改变了后人对一段往事的理解";
-  }
-  if (type === "intellectual-history.idea_proposed") {
-    return `提出了一种新的看法：“${String(data.title ?? "无名思想")}”`;
-  }
-  if (type === "intellectual-history.idea_transmitted") {
-    return `“${String(data.title ?? "一种想法")}”被讲给了另一个人`;
-  }
-  if (type === "intellectual-history.school_founded") {
-    return `围绕一种共同看法形成了“${String(data.name ?? "一个学派")}”`;
-  }
-  if (type === "intellectual-history.idea_branched") {
-    return `旧思想出现了新的解释：“${String(data.title ?? "一个新分支")}”`;
-  }
-  if (type === "intellectual-history.idea_institutionalized") {
-    return `“${String(data.title ?? "一种思想")}”开始影响共同体的做法`;
-  }
-  const labels: Record<string, string> = {
-    "modern.character_created": "一个新生命来到世界",
-    "modern.world_initialized": "世界开始运转",
-    "settlement-locations.founded": "河岸聚落在这里扎下了根",
-    "early-civilization.era_begun": "夏初的聚落开始延续",
-    "early-civilization.learning_begun": "开始跟随生活学习",
-    "family.married": "两个人决定共同生活",
-    "family.child_born": "家族迎来了新的成员",
-    "modern.character_died": "这一生走到了终点",
-    "modern.generation_switched": "故事交到了下一代手中",
-  };
-  return labels[type] ?? type.replaceAll(".", " · ").replaceAll("_", " ");
-}
-
 function runAction(action: string, payload: Record<string, unknown> = {}) {
   const id = activeCharacterId();
-  // The browser synthesises bare object and space verb ids. They are not
-  // registered commands: player.ts maps each one to its real command
-  // (world-objects.take / .place / .returnItem / .wear / .unwear / .store /
-  // .retrieve, world-space.move_within) and the handler runs on the fall-through
-  // below, so they never reach this switch as unknown actions.
+  // Bare object/space verbs from the browser pass isSettlementAction (src/actions.ts); player.ts maps them.
   if (STORY_ACTIONS.has(action)) return simulation.dispatch({ type: action, actorId: id, source: "player", payload: payload as never });
   // Nature/hazard actions (feeding an animal, taming it, raising earthworks)
   // come from the nature view rather than the settlement one, so they are

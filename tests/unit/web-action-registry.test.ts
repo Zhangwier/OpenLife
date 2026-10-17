@@ -81,9 +81,9 @@ test("web server accepts every action the browser client hard-codes", () => {
       }
       continue;
     }
-    if (!readFileSync(new URL("../../apps/web/server.ts", import.meta.url), "utf8").includes(`"${id}"`)) {
-      problems.push(`client sends ${id} but server.ts never mentions it`);
-    }
+    // Object and space verbs are accepted by isSettlementAction in src/actions.ts.
+    const accepted = server + readFileSync(new URL("../../apps/web/src/actions.ts", import.meta.url), "utf8");
+    if (!accepted.includes(`"${id}"`)) problems.push(`client sends ${id} but neither server.ts nor src/actions.ts accepts it`);
   }
   assert.deepEqual(problems, []);
 });

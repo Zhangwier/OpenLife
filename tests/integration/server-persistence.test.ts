@@ -36,7 +36,7 @@ async function start(path: string, interval = "0") {
 async function post(base: string, route: string, body: unknown) {
   const response = await fetch(base + route, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   assert.equal(response.status, 200);
-  return response.json();
+  return response.json() as Promise<any>;
 }
 
 /**
@@ -57,7 +57,7 @@ async function waitForSaveHealth(
   const started = Date.now();
   let last: { state: string; reason: string; at: string } = { state: "", reason: "", at: "" };
   while (Date.now() - started < deadlineMs) {
-    last = (await (await fetch(base + "/api/state")).json()).saveHealth;
+    last = (await (await fetch(base + "/api/state")).json() as any).saveHealth;
     if (wanted(last)) return last;
     await new Promise(resolve => setTimeout(resolve, 50));
   }
@@ -75,14 +75,14 @@ test("disk save: reset/load survive hard restart; timer writes valid snapshots",
     assert.equal(JSON.parse(await readFile(path, "utf8")).version, 1);
     await server.stop();
     server = await start(path);
-    assert.deepEqual(worldState(await (await fetch(server.base + "/api/state")).json()), worldState(original.state));
-    assert.equal((await (await fetch(server.base + "/api/state")).json()).saveHealth.state, "ok",
+    assert.deepEqual(worldState(await (await fetch(server.base + "/api/state")).json() as any), worldState(original.state));
+    assert.equal((await (await fetch(server.base + "/api/state")).json() as any).saveHealth.state, "ok",
       "a restored world already has one good snapshot on disk");
     await post(server.base, "/api/reset", { seed: 321 });
     await post(server.base, "/api/load", { save: saved.save });
     await server.stop();
     server = await start(path, "100");
-    assert.deepEqual(worldState(await (await fetch(server.base + "/api/state")).json()), worldState(original.state));
+    assert.deepEqual(worldState(await (await fetch(server.base + "/api/state")).json() as any), worldState(original.state));
     const before = JSON.parse(await readFile(path, "utf8")).savedAt;
     await new Promise(resolve => setTimeout(resolve, 400));
     const after = JSON.parse(await readFile(path, "utf8"));
@@ -130,7 +130,7 @@ test("disk save: a failed write is reported to the client while the world stays 
   try {
     await writeFile(blocker, "this is a file, so it cannot be a save directory");
     server = await start(path);
-    const health = async () => (await (await fetch(server!.base + "/api/state")).json()).saveHealth;
+    const health = async () => (await (await fetch(server!.base + "/api/state")).json() as any).saveHealth;
     assert.equal((await health()).state, "off", "nothing has been written yet in this process");
 
     await post(server.base, "/api/reset", { seed: 77 });

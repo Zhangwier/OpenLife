@@ -23,7 +23,13 @@ import { registerNpcBarter, registerPlayerBarter, tradeReady } from "./barter.ts
 
 import type { ComponentData, Effect, JsonValue, OpenLifeModule, WorldView } from "@openlife/contracts";
 import { DAYS_PER_MONTH, DAY_TICKS_PER_YEAR } from "@openlife/life-contracts";
-import { feastOn, feastSoon, illnessOn, illnessSpec, isIll, calendarDate } from "./happenings.ts";
+import { feastOn, feastSoon, illnessOn, illnessSpec, isIll, calendarDate, pickIndex, seasonOf } from "./happenings.ts";
+export { pickIndex, seasonOf } from "./happenings.ts";
+import { HUNGER_MIN_CAPACITY, hungerLevel, hungerToll } from "./hunger-toll.ts";
+export { HUNGER_MIN_CAPACITY, HUNGER_SICK_DAYS, hungerToll } from "./hunger-toll.ts";
+import { chooseSeasonStory, storyHistory } from "./story-pick.ts";
+import { acquaintanceOf, askedToday, contactConversations, happeningsView, heardAbout, knowsName, knownName, registerAskAbout, type Acquaintance } from "./knowledge.ts";
+export { acquaintanceOf, happeningsView, knowsName, knownName, type Acquaintance } from "./knowledge.ts";
 import { appraise, type CounterpartView, type Closeness } from "./exchange.ts";
 import { skyOn, isWet, OUTDOOR_PLACES, SKY_NOTE } from "./weather.ts";
 import {
@@ -257,8 +263,7 @@ function registerFound(ctx: Registration): void {
             name: String(c.command.payload.name ?? "河岸台地聚落"),
             locationId,
             foundedAt: c.world.tick,
-            // 饿肚子要付代价是建村时定下的规矩：新开的 Web 人生打开它；
-            // 旧存档与只测单一机制的世界不带这条规矩，行为不变。
+            // 饿肚子要付代价是建村时定的规矩：新 Web 人生打开，旧存档与单机制测试世界不带。
             ...(c.command.payload.hungerToll === true ? { hungerToll: true } : {}),
           } as unknown as Record<string, never>,
         },
@@ -650,15 +655,6 @@ export function residentTemperament(id: string): string[] {
   return mind ? temperamentWords(mind) : [];
 }
 
-/** Hunger is derived from the world's day clock, not an extra ticking timer. */
-function hungerLevel(world: WorldView, actorId: string): number {
-  const state = world.getComponent(actorId, SettlementComponents.holding);
-  const settlementStart = world.getComponent(SettlementId, SettlementComponents.settlement)?.foundedAt;
-  const since = Number(state?.hungerAt ?? settlementStart ?? world.tick);
-  const base = Number(state?.hunger ?? 0);
-  return hungerAt(base, since, world.tick, talentFx(world, actorId).hungerDaysPerPoint || HUNGER_DAYS_PER_POINT);
-}
-
 /** The player's 出身与天赋 (none for villagers and for lives saved before 0.2.0). */
 export function originOf(world: WorldView, actorId: string): PlayerOrigin {
   return readOrigin(world.getComponent(actorId, SettlementComponents.holding)?.origin);
@@ -800,14 +796,7 @@ const ACTIVITY_COST: Partial<Record<string, number>> = {
   [SettlementCommands.craft]: 2,
 };
 
-/**
- * A garment the wearer actually has on, if any.
- *
- * Was `prototype:fiber-wrap` only, which made every other wearable object
- * cosmetic: the pack authors a thick hide cloak ("穿着下田更省力气") and the
- * brain wants cloth in the cold, but wearing either changed nothing. Any worn
- * prototype that declares the `wearable` capability now counts.
- */
+/** A garment the wearer actually has on: any worn prototype with the `wearable` capability (not only the fiber wrap). */
 export function wornWrap(world: WorldView, actorId: string): string {
   const id = wornByActor(world, actorId);
   if (!id) return "";
@@ -833,40 +822,6 @@ export function activityCostFor(world: WorldView, actorId: string, commandType: 
     cost -= 1;
   }
   return cost;
-}
-
-/**
- * 饿着肚子干不动活。只对玩家这一类自己过日子的人生效（村民有自己的脑子和口粮），
- * 全部从饥饿值与世界时钟推算，不另记计时器。
- *  - 饥饿 6–7：少 1 格；8–9：少 2 格；10：少 3 格
- *  - 饿到 10 之后又熬了 HUNGER_SICK_DAYS 天：饿病，再少 2 格
- * 再饿也留 HUNGER_MIN_CAPACITY 格：够走到公灶吃上一口，永远有回头路。
- *
- * 建村时用 `hungerToll: true` 决定这条规矩是否生效：新开的 Web 人生打开它，
- * 旧存档与只测单一机制的世界不带，行为与从前一致。
- */
-export const HUNGER_MIN_CAPACITY = 2;
-export const HUNGER_SICK_DAYS = 6;
-export function hungerToll(world: WorldView, actorId: string): { units: number; starvingDays: number; sick: boolean; line: string } {
-  const none = { units: 0, starvingDays: 0, sick: false, line: "" };
-  if (world.getComponent(actorId, SettlementComponents.resident)) return none;
-  if (world.getComponent(SettlementId, SettlementComponents.settlement)?.hungerToll !== true) return none;
-  const holding = world.getComponent(actorId, SettlementComponents.holding);
-  const hunger = hungerLevel(world, actorId);
-  if (hunger < 6) return none;
-  const dpp = talentFx(world, actorId).hungerDaysPerPoint || HUNGER_DAYS_PER_POINT;
-  const settlementStart = world.getComponent(SettlementId, SettlementComponents.settlement)?.foundedAt;
-  const since = Number(holding?.hungerAt ?? settlementStart ?? world.tick);
-  const base = Number(holding?.hunger ?? 0);
-  const reachedTen = since + Math.max(0, 10 - base) * dpp;
-  const starvingDays = hunger >= 10 ? Math.max(0, world.tick - reachedTen) : 0;
-  const sick = starvingDays >= HUNGER_SICK_DAYS;
-  const units = (hunger >= 10 ? 3 : hunger >= 8 ? 2 : 1) + (sick ? 2 : 0);
-  const line = sick ? "饿病了：头晕腿软，什么活都干不动。先去公灶或找人讨一口吃的。"
-    : hunger >= 10 ? "饿得眼前发黑，今天只能勉强做一点事。"
-    : hunger >= 8 ? "饿得发慌，干活没力气。"
-    : "肚子饿了，手脚慢了些。";
-  return { units, starvingDays, sick, line };
 }
 
 export function dailyActivity(world: WorldView, actorId: string) {
@@ -1632,61 +1587,9 @@ export interface HomesteadView {
   note: string;
 }
 
-function contactConversations(world: WorldView, actorId: string, targetId: string): number {
-  const raw = world.getComponent(actorId, SettlementComponents.holding)?.contacts;
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return 0;
-  const person = (raw as Record<string, JsonValue>)[targetId];
-  if (!person || typeof person !== "object" || Array.isArray(person)) return 0;
-  return Math.max(0, Number((person as Record<string, JsonValue>).conversations ?? 0));
-}
 function contactLevel(world: WorldView, actorId: string, targetId: string): string {
   const count = contactConversations(world, actorId, targetId);
   return count >= 3 ? "相识" : count > 0 ? "见过" : "陌生";
-}
-
-/**
- * 你知不知道这个人是谁。
- *
- * 一个人站在你面前，你能看见的是「那里有个人」，不是他的名字、职业和脾气。
- * 这些要谈过话、共过事，或者有人跟你讲起过，才算知道。出身里本来就认识的
- * 人（如陶家的长辈）一开始就跨过这道门槛。
- *
- * 三档：
- *  - stranger：只是看见有人在；连名字都不知道。
- *  - met：说过话，记得住脸和名字，但还不清楚他靠什么过活、什么性子。
- *  - acquainted：聊过几回，知道他的营生与脾气。
- */
-export type Acquaintance = "stranger" | "met" | "acquainted";
-export function acquaintanceOf(world: WorldView, actorId: string, targetId: string): Acquaintance {
-  const count = contactConversations(world, actorId, targetId);
-  if (count >= 3) return "acquainted";
-  if (count > 0) return "met";
-  // 有人跟你提起过这个人：你至少知道他是谁、叫什么。
-  const heard = world.getComponent(actorId, SettlementComponents.holding)?.heardAbout;
-  if (Array.isArray(heard) && heard.map(String).includes(targetId)) return "met";
-  // 出身里就有交情的人（陶叔陶婶、教你搓绳的阿岚…）：一开始就认识。
-  const origin = originOf(world, actorId);
-  if (origin.id === "none") return "stranger";
-  const key = RESIDENTS.find((r) => residentId(r.key) === targetId)?.key;
-  const spec = (RIVER_TERRACE_PACK.origins ?? []).find((o) => o.id === origin.id);
-  const bond = key ? spec?.bonds?.[key] : undefined;
-  const familiarity = Number(bond?.familiarity ?? 0);
-  if (familiarity >= 4) return "acquainted";
-  if (familiarity > 0) return "met";
-  // 同屋住着的人，抬头不见低头见：知道是谁，但还没深交。
-  const me = readResident(world, actorId), them = readResident(world, targetId);
-  if (me?.homeSpace && me.homeSpace === them?.homeSpace) return "met";
-  return "stranger";
-}
-
-/** 你能不能叫出这个人的名字。 */
-export function knowsName(world: WorldView, actorId: string, targetId: string): boolean {
-  return acquaintanceOf(world, actorId, targetId) !== "stranger";
-}
-
-/** 别人嘴里提到的称呼：认识就叫名字，不认识就是「那个人」。 */
-export function knownName(world: WorldView, actorId: string, targetId: string, fallback = "那个人"): string {
-  return knowsName(world, actorId, targetId) ? personName(world, targetId) : fallback;
 }
 
 export function homestead(world: WorldView, actorId: string): HomesteadView {
@@ -1702,15 +1605,12 @@ export function homestead(world: WorldView, actorId: string): HomesteadView {
       const resident = readResident(world, entity.id)!;
       const otherPlace = occupiedPlaceId(world, entity.id);
       const realName = String(entity.components["modern.identity"]?.givenName ?? entity.id);
-      // 认知决定看得见什么：陌生时只知道「这里有个人」，谈过话才知姓名，
-      // 聊熟了才知营生与脾气。身份数据仍在世界里，只是不投影给还不知道的人。
+      // 认知决定看得见什么：陌生只见其人，谈过知姓名，聊熟知营生（身份数据仍在世界里）。
       const knows = acquaintanceOf(world, actorId, entity.id);
-      const knowsName = knows !== "stranger";
-      const knowsWork = knows === "acquainted";
+      const knowsName = knows !== "stranger", knowsWork = knows === "acquainted";
       return {
         id: entity.id,
-        // 姓名、营生、脾气是要谈过才知道的；其余的下面都是你看得见的。
-        // realName 保留身份本身（投影、存档与测试用它认人），name 才是给你看的称呼。
+        // realName 是身份本身（投影、存档与测试用它认人），name 才是给你看的称呼。
         name: knowsName ? realName : "陌生人",
         realName,
         acquaintance: knows,
@@ -1878,15 +1778,10 @@ export function homestead(world: WorldView, actorId: string): HomesteadView {
     portableLoad: portableLoad(world, actorId),
     // 熟人列表只列真打过交道的人；没聊过的人不出现，名字与营生按认识程度给。
     contacts: RESIDENTS.map((r) => {
-      const id = residentId(r.key);
-      const knows = acquaintanceOf(world, actorId, id);
-      return {
-        id, name: knows === "stranger" ? "" : r.name,
-        role: knows === "acquainted" ? r.role : "",
-        contact: contactLevel(world, actorId, id),
-        conversations: contactConversations(world, actorId, id),
-        nearby: occupiedPlaceId(world, id) === placeId,
-      };
+      const id = residentId(r.key), knows = acquaintanceOf(world, actorId, id);
+      return { id, name: knows === "stranger" ? "" : r.name, role: knows === "acquainted" ? r.role : "",
+        contact: contactLevel(world, actorId, id), conversations: contactConversations(world, actorId, id),
+        nearby: occupiedPlaceId(world, id) === placeId };
     }).filter((r) => r.conversations > 0),
     actions,
     note: inSettlement
@@ -1955,12 +1850,10 @@ function homesteadActions(
       0, !talked, talked ? "今天已经聊过，明天再来" : "", { targetId: id });
     // 认识的人才能打听村里的事：谁病着、谁要过生日、谁家揭不开锅。
     if (knowsName(world, actorId, id)) {
-      const askedRaw = world.getComponent(actorId, SettlementComponents.holding)?.askedAt;
-      const askedToday = askedRaw && typeof askedRaw === "object" && !Array.isArray(askedRaw)
-        ? Number((askedRaw as Record<string, JsonValue>)[id] ?? -1) === world.tick : false;
+      const asked = askedToday(world, actorId, id);
       add(SettlementCommands.askAbout, `向${resident.name}打听村里的事`,
         "谁病着、谁快过生日、谁家缺粮——不问是不会自己知道的。",
-        0, !askedToday, askedToday ? "今天已经问过了，明天再说" : "", { targetId: id });
+        0, !asked, asked ? "今天已经问过了，明天再说" : "", { targetId: id });
     }
   }
 
@@ -2300,13 +2193,6 @@ const SPACE_WORK: Record<string, { label: string; hint: string; days: number }> 
   Object.entries(LEGACY_SPACE_WORK).map(([id, w]) => [id, WORKSITES[id] ? { ...w, label: WORKSITES[id]!.label, hint: WORKSITES[id]!.hint } : w]));
 const THANKS = RIVER_TERRACE_PACK.thanks ?? ["{name}向你道了声谢。"];
 
-/** A small stable hash for picking lines deterministically from world state. */
-export function pickIndex(key: string, n: number): number {
-  let h = 2166136261;
-  for (let i = 0; i < key.length; i += 1) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
-  return n > 0 ? h % n : 0;
-}
-
 /** How many of a worksite's gain the player could carry away right now (0 = none). */
 function worksiteGain(world: WorldView, actorId: string, spaceId: string): { resourceId: string; amount: number; stock: number } | null {
   const gain = WORKSITES[spaceId]?.gain;
@@ -2539,14 +2425,6 @@ function isStandingIn(world: WorldView, objectId: string, placeId: string): bool
   return container === placeId;
 }
 
-export function seasonOf(tick: number): string {
-  const month = (Math.floor(tick / DAYS_PER_MONTH) % 12) + 1;
-  if (month >= 3 && month <= 5) return "春";
-  if (month >= 6 && month <= 8) return "夏";
-  if (month >= 9 && month <= 11) return "秋";
-  return "冬";
-}
-
 // ---------------------------------------------------------------------------
 // Daily actions
 // ---------------------------------------------------------------------------
@@ -2625,124 +2503,6 @@ function registerTalk(ctx: Registration): void {
       }];
     },
   });
-}
-
-/**
- * 打听：问一个你认识的人「村里最近怎么了」。
- *
- * 这是认识别人的主要途径，也是唯一能知道「谁过生日、谁病倒了」的办法——
- * 这些事不会凭空出现在你的消息里，得有人告诉你。一次只问一件事，
- * 问到的人也得是他愿意说的（交情太浅的人只会跟你打太极）。
- */
-function registerAskAbout(ctx: Registration): void {
-  ctx.registerConstraintRule({
-    id: `${SettlementCommands.askAbout}.allowed`,
-    commandType: SettlementCommands.askAbout,
-    evaluate: (c) => {
-      const actorId = c.command.actorId ?? "";
-      const targetId = String(c.command.payload.targetId ?? "");
-      if (!actorId || actorId === targetId) return refuse(SettlementRejection.NotYours, "只能自己去打听。");
-      if (!c.world.getComponent(targetId, SettlementComponents.resident))
-        return refuse(SettlementRejection.NoSuchResident, "这里没有可以问的人。");
-      if (occupiedPlaceId(c.world, actorId) !== occupiedPlaceId(c.world, targetId))
-        return refuse(SettlementRejection.WrongPlace, "得走到对方面前才问得上话。");
-      // 不认识的人不会跟你讲村里的事：先搭话。
-      if (!knowsName(c.world, actorId, targetId))
-        return refuse(SettlementRejection.NoSuchResident, "你还不认识这个人，先跟他搭句话。");
-      const raw = c.world.getComponent(actorId, SettlementComponents.holding)?.askedAt;
-      const asked = raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, JsonValue> : {};
-      if (Number(asked[targetId] ?? -1) === c.world.tick)
-        return refuse(SettlementRejection.Already, "今天已经跟他打听过了，明天再说。");
-      return { ok: true };
-    },
-  });
-  ctx.registerResolutionRule({
-    id: `${SettlementCommands.askAbout}.resolve`,
-    commandType: SettlementCommands.askAbout,
-    resolve: (c): Effect[] => {
-      const actorId = c.command.actorId as string;
-      const targetId = String(c.command.payload.targetId);
-      const tick = c.world.tick;
-      const said = askAboutLine(c.world, actorId, targetId);
-      const raw = c.world.getComponent(actorId, SettlementComponents.holding)?.askedAt;
-      const asked = raw && typeof raw === "object" && !Array.isArray(raw) ? { ...raw as Record<string, JsonValue> } : {};
-      asked[targetId] = tick;
-      return [
-        { kind: "modifyComponent", entityId: actorId, component: SettlementComponents.holding,
-          patch: { askedAt: asked, ...(said.learnedId ? { heardAbout: [...new Set([...heardAbout(c.world, actorId), said.learnedId])].slice(-60) } : {}) },
-          reason: "the player asked about the village" },
-        saveSocial(targetId, withBond(socialOf(c.world, targetId), actorId, { familiarity: 0.5 }, tick),
-          "being asked about the village is a small kindness"),
-        { kind: "emitEvent", eventType: "settlement-locations.asked_about", actorId, targetId,
-          data: { topic: said.topic, ...(said.learnedId ? { learned: said.learnedId } : {}) }, historicalSignificance: 0.01 },
-      ];
-    },
-  });
-}
-
-/** 已经听人说起过的人：他们的名字从此叫得出来。 */
-function heardAbout(world: WorldView, actorId: string): string[] {
-  const raw = world.getComponent(actorId, SettlementComponents.holding)?.heardAbout;
-  return Array.isArray(raw) ? raw.map(String) : [];
-}
-
-/** 这人听说过村里哪件还没传到你耳朵里的事。 */
-function askAboutLine(world: WorldView, actorId: string, targetId: string): { line: string; topic: string; learnedId?: string } {
-  const tick = world.tick;
-  const pick = (list: string[], salt: string) => list.length ? list[pickIndex(`ask:${tick}:${targetId}:${salt}`, list.length)]! : "";
-  const heard = new Set(heardAbout(world, actorId));
-  const speaker = personName(world, targetId);
-
-  // 1. 有人病着：这是最该被说出口的事，但只有认识的人才报得出名字。
-  const ill = illnessOn(tick);
-  if (ill && illnessSpec() && !heard.has(ill.residentId)) {
-    const where = PLACES.find((place) => place.id === occupiedPlaceId(world, ill.residentId))?.name;
-    const who = personName(world, ill.residentId);
-    return { topic: "illness", learnedId: ill.residentId,
-      line: `你问起村里最近的事，${speaker}压低声音：“${who}着了凉，这几天在家躺着${where ? `，人在${where}` : ""}。”` };
-  }
-  // 2. 近几天谁过生日：提前知道才好备礼。
-  const soon = nextBirthday(world, 12);
-  if (soon && !heard.has(soon.id)) {
-    return { topic: "birthday", learnedId: soon.id,
-      line: `你问起村里最近的事，${speaker}想了想：“再过${soon.inDays}天是${soon.name}的生日，${soon.month}月${soon.day}日。”` };
-  }
-  // 3. 谁最近手头紧、想换什么：这直接关系到你能帮上什么忙。
-  const needy = RESIDENTS.map((r) => ({ r, id: residentId(r.key) }))
-    .filter(({ id }) => !heard.has(id) && hungerLevel(world, id) >= 7);
-  if (needy.length) {
-    const one = needy[pickIndex(`ask:${tick}:${targetId}:needy`, needy.length)]!;
-    return { topic: "hunger", learnedId: one.id,
-      line: `${speaker}叹了口气：“${one.r.name}家这几天揭不开锅了，你要是手头宽裕，搭把手吧。”` };
-  }
-  // 4. 年景：收成、河水、天气，人人都能说两句。
-  const story = STORY?.events?.find((e) => e.yields && e.seasons.includes(seasonOf(tick)));
-  if (story) {
-    return { topic: "season",
-      line: `你问起村里最近的事，${speaker}说：“${story.text}”` };
-  }
-  return { topic: "quiet",
-    line: pick([
-      `你问起村里最近的事，${speaker}摆摆手：“都挺好，没什么可说的。”`,
-      `你问起村里最近的事，${speaker}想了想：“跟往常一样，日子照旧过。”`,
-    ], "quiet") };
-}
-
-/** 从今天起 days 天内，谁最先过生日。 */
-function nextBirthday(world: WorldView, days: number): { id: string; name: string; inDays: number; month: number; day: number } | null {
-  let best: { id: string; name: string; inDays: number; month: number; day: number } | null = null;
-  for (let d = 0; d < days; d += 1) {
-    const t = world.tick + d;
-    for (const r of RESIDENTS) {
-      const id = residentId(r.key);
-      if (!isBirthday(id, t)) continue;
-      const date = calendarDate(t);
-      const cand = { id, name: r.name, inDays: d, month: date.month, day: date.day };
-      if (!best || cand.inDays < best.inDays) best = cand;
-    }
-    if (best) break;
-  }
-  return best;
 }
 
 const DIALOGUE = RIVER_TERRACE_PACK.dialogue;
@@ -4631,39 +4391,6 @@ function personCard(world: WorldView, me: string, rid: string) {
   };
 }
 
-/**
- * 今天村里有什么值得知道的。
- *
- * 只有**大家都看得见**的事才自动播报：节日、聚会这种全村的事。至于谁今天过生日、
- * 谁病倒了，那是私事——不认识的人，你凭什么知道他今天生日？所以只有已经打过交道
- * 的人，名字才会出现在这里；陌生人生病只报「村里有人病着」，不带名字。
- * 想知道具体是谁，去问人（`settlement-locations.ask_about`）。
- */
-export function happeningsView(world: WorldView, actorId: string): string[] {
-  const tick = world.tick, out: string[] = [];
-  for (const r of RESIDENTS) {
-    const id = residentId(r.key);
-    if (!isBirthday(id, tick)) continue;
-    // 只有认识的人才报得出名字；不认识的，你根本不知道今天是他生日。
-    if (knowsName(world, actorId, id)) out.push(`今天是${personName(world, id)}的生日。`);
-  }
-  const feast = feastOn(tick);
-  if (feast) out.push(feast.text);
-  else { const soon = feastSoon(tick); if (soon) out.push(soon.feast.soon.replace("{n}", String(soon.inDays))); }
-  const ill = illnessOn(tick);
-  if (ill && illnessSpec()) {
-    const where = PLACES.find((place) => place.id === occupiedPlaceId(world, ill.residentId))?.name;
-    const here = where ? `（人在${where}）` : "";
-    // 认识就报名字；不认识只能说「村里有人病着」——想知道是谁，去问人。
-    if (knowsName(world, actorId, ill.residentId)) {
-      out.push(illnessSpec()!.text.replace("{name}", personName(world, ill.residentId)) + here);
-    } else {
-      out.push("听说村里有人病倒了，出不了门。" + here + "至于是谁，得去问问别人才知道。");
-    }
-  }
-  return out;
-}
-
 
 // ---------------------------------------------------------------------------
 // 一季一季地过：人生不能一天天抠，把心思放在一处，一季过去再结算。
@@ -5076,14 +4803,6 @@ function world_kin(world: WorldView, id: string): string[] {
 // ---------------------------------------------------------------------------
 const STORY = RIVER_TERRACE_PACK.storyteller;
 const seasonKey = (tick: number) => `${Math.floor(tick / DAY_TICKS_PER_YEAR)}:${seasonOf(tick)}`;
-/** When each story event last happened, so a cooldown is measured in real time. */
-function storyHistory(world: WorldView): Record<string, number> {
-  const raw = world.getComponent(SettlementId, SettlementComponents.settlement)?.storyLastAt;
-  const out: Record<string, number> = {};
-  if (raw && typeof raw === "object" && !Array.isArray(raw))
-    for (const [k, v] of Object.entries(raw as Record<string, unknown>)) out[k] = Number(v ?? -1);
-  return out;
-}
 function sexOf(world: WorldView, id: string): string {
   const sex = String(world.getComponent(id, "modern.identity")?.sex ?? "other");
   return sex !== "other" ? sex : personOf(id)?.sex ?? "other";
@@ -5115,58 +4834,11 @@ export function seasonTurnEffects(world: WorldView, inSeason = false, shared?: S
   };
 
   // 1. 年景：不是每季都有事。
-  //
-  // An event must be *possible* here, not merely in season: a bad harvest says
-  // nothing in a village with no field, and a wildfire should not strike twice
-  // in a row. Preconditions and a cooldown are checked before the deterministic
-  // pick, so the chosen story always describes something the village can see.
-  //
-  // 天灾不掷骰子：地点有 world-hazard 在跟踪时，只在这一季真的发过水/旱过时讲，
-  // 而且一定讲；没有跟踪（旧世界、测试）时保持原来的随机年景。
-  const struck = (kind: "flood" | "drought", at = ""): boolean | undefined => {
-    const state = world.getComponent(at, "world-hazard.state") as Record<string, JsonValue> | undefined;
-    if (!state) return undefined;
-    const track = (state[kind] ?? {}) as Record<string, JsonValue>;
-    const last = track.lastStrikeAt === null || track.lastStrikeAt === undefined ? -Infinity : Number(track.lastStrikeAt);
-    return track.stage === "active" || track.stage === "aftermath" || last > tick - DAY_TICKS_PER_YEAR / 4;
-  };
   const stockTotal = (resourceId: string) =>
     yieldPoints(world).filter((y) => y.resourceId === resourceId).reduce((n, y) => n + y.stock, 0);
-  const homeRoofsLeaking = HOME_SPACES.some((space) => roofState(world, space).leaking);
-  const lastStoryAt = (eventId: string) => Number(
-    world.getComponent(SettlementId, SettlementComponents.settlement)?.storyLastAt instanceof Object
-      ? (world.getComponent(SettlementId, SettlementComponents.settlement)!.storyLastAt as Record<string, number>)[eventId] ?? -1
-      : -1);
-  const eligible = (e: NonNullable<typeof STORY>["events"][number]) => {
-    const req = e.requires;
-    if (req) {
-      const pop = living.length;
-      if (req.population?.min !== undefined && pop < req.population.min) return false;
-      if (req.population?.max !== undefined && pop > req.population.max) return false;
-      for (const c of req.stockBelow ?? []) if (stockTotal(c.resourceId) >= c.amount) return false;
-      for (const c of req.stockAtLeast ?? []) if (stockTotal(c.resourceId) < c.amount) return false;
-      if (req.roofLeaking !== undefined && req.roofLeaking !== homeRoofsLeaking) return false;
-    }
-    const cool = e.cooldownYears ?? 0;
-    if (cool > 0) {
-      const last = lastStoryAt(e.id);
-      if (last >= 0 && tick - last < cool * DAY_TICKS_PER_YEAR) return false;
-    }
-    return true;
-  };
-  const inSeasonPool = STORY.events.filter((e) => e.seasons.includes(season) && eligible(e));
-  // 夏末发的水，到秋天换季时也照样要讲：先找当季的说法，没有就用别季的。
-  const forced = inSeasonPool.find((e) => e.hazard && struck(e.hazard, e.at) === true)
-    ?? STORY.events.filter(eligible).find((e) => e.hazard && struck(e.hazard, e.at) === true);
-  // Hazard-tied stories are never drawn at random: they are either forced by a
-  // real strike, or withheld. Stories excluding a hazard stand down when it hit.
-  const pool = inSeasonPool.filter((e) => {
-    if (e.hazard && struck(e.hazard, e.at) !== undefined) return false;
-    if (e.excludes && struck(e.excludes, e.at) === true) return false;
-    return true;
-  });
-  if (forced || (pool.length && pickIndex(`story:${key}`, 100) < Math.round(STORY.chance * 100))) {
-    const ev = forced ?? pool[pickIndex(`story:${key}:which`, pool.length)]!;
+  const ev = chooseSeasonStory(world, { season, key, population: living.length, stockTotal,
+    roofLeaking: HOME_SPACES.some((space) => roofState(world, space).leaking) });
+  if (ev) {
     for (const [where, factor] of Object.entries(ev.yields ?? {})) {
       const [, placeId, resourceId] = where.match(/^(place:[^:]+):(.+)$/) ?? [];
       const point = yieldPoints(world).find((y) => y.placeId === placeId && y.resourceId === resourceId);
