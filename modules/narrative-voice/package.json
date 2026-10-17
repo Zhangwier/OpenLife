@@ -1,0 +1,17 @@
+{
+  "name": "@openlife/module-narrative-voice",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/module.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/life-contracts": "*"
+  },
+  "openlife": {
+    "label": "河岸台地叙事与言语",
+    "summary": "基于确定性文法展开与加权选句的村民台词与旁白生成，含跨存档防重复。"
+  }
+}

@@ -22,7 +22,14 @@
 | `packages/simulation` | `@openlife/simulation` | autonomy-runtime, contracts, history-runtime, kernel, module-runtime, query, rule-engine, save-system, world-model |
 | `packages/world-model` | `@openlife/world-model` | contracts |
 
-## modules/ · 55 个模块包
+## modules/ · 56 个模块包
+
+### content（2）
+
+| 目录 | 名称 | 模块 id（导出） | provides | requires | 依赖（workspace） |
+| --- | --- | --- | --- | --- | --- |
+| `modules/narrative-voice` | 河岸台地叙事与言语 | `narrative-voice` (`default`) | `narrative-voice.say`, `narrative-voice.narrate` | — | contracts, life-contracts |
+| `modules/narrative-voice` | 河岸台地叙事与言语 | `narrative-voice` (`narrativeVoiceModule`) | `narrative-voice.say`, `narrative-voice.narrate` | — | contracts, life-contracts |
 
 ### system（2）
 
@@ -105,4 +112,4 @@
 | 目录 | 包名 | 依赖（workspace） |
 | --- | --- | --- |
 | `apps/debug-console` | `@openlife/debug-console` | contracts, module-career, module-education, module-family, module-magic-test-world, module-map-pack, module-modern-world, module-runtime, module-world-geography, rule-engine, simulation |
-| `apps/web` | `@openlife/web` | autonomy-runtime, contracts, life-contracts, module-craft-pottery, module-early-civilization, module-epistemic-state, module-era-ladder, module-family, module-fate, module-fauna-bonds, module-heredity, module-historical-anchors, module-historical-era, module-historical-memory, module-intellectual-history, module-life-stages, module-map-pack, module-modern-science, module-modern-world, module-office, module-polity, module-polity-bondage, module-practice-runtime, module-settlement-build, module-settlement-goals, module-settlement-life, module-settlement-locations, module-settlement-nature, module-social-conflict, module-story-director, module-tech, module-village-chronicle, module-village-secrets, module-village-stories, module-village-wants, module-world-clock, module-world-hazard, module-world-objects, module-world-space, simulation, world-model |
+| `apps/web` | `@openlife/web` | autonomy-runtime, contracts, life-contracts, module-craft-pottery, module-early-civilization, module-epistemic-state, module-era-ladder, module-family, module-fate, module-fauna-bonds, module-heredity, module-historical-anchors, module-historical-era, module-historical-memory, module-intellectual-history, module-life-stages, module-map-pack, module-modern-science, module-modern-world, module-narrative-voice, module-office, module-polity, module-polity-bondage, module-practice-runtime, module-settlement-build, module-settlement-goals, module-settlement-life, module-settlement-locations, module-settlement-nature, module-social-conflict, module-story-director, module-tech, module-village-chronicle, module-village-secrets, module-village-stories, module-village-wants, module-world-clock, module-world-hazard, module-world-objects, module-world-space, simulation, world-model |
