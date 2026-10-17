@@ -29,6 +29,7 @@ import { settlementNatureModule } from "@openlife/module-settlement-nature";
 import { worldHazardModule } from "@openlife/module-world-hazard";
 import { faunaBondsModule } from "@openlife/module-fauna-bonds";
 import { socialConflictModule } from "@openlife/module-social-conflict";
+import { settlementBuildModule } from "@openlife/module-settlement-build";
 import { resolveModules, type ModuleEntry } from "./module-plan.ts";
 
 export const WEB_MODULE_ENTRIES: ModuleEntry[] = [
@@ -42,6 +43,7 @@ export const WEB_MODULE_ENTRIES: ModuleEntry[] = [
   { module: worldHazardModule },
   { module: faunaBondsModule },
   { module: socialConflictModule },
+  { module: settlementBuildModule },
   { module: familyModule, core: true },
   { module: modernScienceModule },
   { module: earlyCivilizationModule },

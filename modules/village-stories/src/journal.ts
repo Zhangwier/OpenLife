@@ -17,6 +17,7 @@ import type { Bond } from "@openlife/module-settlement-locations";
 import {
   STORY_PACK, type AchievementCondition, type BondChange, type ItemGrant, type Objective, type QuestSpec, type Requirements, type Reward,
 } from "./spec.ts";
+import { allIncidents } from "./pack-incidents.ts";
 
 export const STORY_OWNER = "village-stories";
 export const StoryComponents = { journal: "village-stories.journal" } as const;
@@ -395,6 +396,8 @@ export function incidentOn(tick: number) {
   const spec = STORY_PACK.incidents;
   if (mix(tick, 1) % 1000 >= Math.round(spec.chance * 1000)) return undefined;
   const season = seasonOf(tick);
-  const pool = spec.list.filter((i) => !i.seasons || i.seasons.includes(season));
+  // Content packs (format v2) contribute their own incidents; a world without
+  // packs gets exactly the base list and the same pick as before.
+  const pool = allIncidents(spec.list).filter((i) => !i.seasons || i.seasons.includes(season));
   return pool.length ? pool[mix(tick, 2) % pool.length] : undefined;
 }

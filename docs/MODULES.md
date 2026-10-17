@@ -22,7 +22,13 @@
 | `packages/simulation` | `@openlife/simulation` | autonomy-runtime, contracts, history-runtime, kernel, module-runtime, query, rule-engine, save-system, world-model |
 | `packages/world-model` | `@openlife/world-model` | contracts |
 
-## modules/ · 41 个模块包
+## modules/ · 42 个模块包
+
+### system（1）
+
+| 目录 | 名称 | 模块 id（导出） | provides | requires | 依赖（workspace） |
+| --- | --- | --- | --- | --- | --- |
+| `modules/settlement-build` | 盖房子 | `settlement-build` (`settlementBuildModule`) | `settlement.housing` | `life.settlement` | contracts, life-contracts, module-settlement-locations, module-world-space |
 
 ### World Pack · 世界观（4）
 
@@ -86,4 +92,4 @@
 | 目录 | 包名 | 依赖（workspace） |
 | --- | --- | --- |
 | `apps/debug-console` | `@openlife/debug-console` | contracts, module-career, module-education, module-family, module-magic-test-world, module-map-pack, module-modern-world, module-runtime, module-world-geography, rule-engine, simulation |
-| `apps/web` | `@openlife/web` | autonomy-runtime, contracts, life-contracts, module-craft-pottery, module-early-civilization, module-family, module-fauna-bonds, module-historical-anchors, module-historical-era, module-historical-memory, module-intellectual-history, module-map-pack, module-modern-science, module-modern-world, module-practice-runtime, module-settlement-life, module-settlement-locations, module-settlement-nature, module-social-conflict, module-village-stories, module-world-clock, module-world-hazard, module-world-objects, module-world-space, simulation |
+| `apps/web` | `@openlife/web` | autonomy-runtime, contracts, life-contracts, module-craft-pottery, module-early-civilization, module-family, module-fauna-bonds, module-historical-anchors, module-historical-era, module-historical-memory, module-intellectual-history, module-map-pack, module-modern-science, module-modern-world, module-practice-runtime, module-settlement-build, module-settlement-life, module-settlement-locations, module-settlement-nature, module-social-conflict, module-village-stories, module-world-clock, module-world-hazard, module-world-objects, module-world-space, simulation, world-model |
