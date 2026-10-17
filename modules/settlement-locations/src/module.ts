@@ -819,17 +819,22 @@ function carriedRation(world: WorldView, actorId: string, objectId: string): boo
  * Raw grain is edible anywhere but eases less hunger than a cooked ration,
  * so a starving player holding grain is never locked out of eating.
  */
-function carriedFood(world: WorldView, actorId: string, objectId: string): "resource:cooked" | "resource:grain" | "resource:fish" | "" {
+/**
+ * Hunger eased by one portion: cooked food 4, millet cake 4, dried fish 3,
+ * raw grain 2, fish 2. Keys are also the set of foods a resident may eat.
+ */
+const HUNGER_EASED: Record<string, number> = {
+  "resource:cooked": 4, "resource:millet-cake": 4, "resource:dried-fish": 3, "resource:grain": 2, "resource:fish": 2,
+};
+
+function carriedFood(world: WorldView, actorId: string, objectId: string): string {
   const entity = world.getEntity(objectId);
   if (!entity || entity.kind !== ObjectKinds.item || entity.archivedAt !== undefined) return "";
   if (ownerOf(world, objectId) !== actorId || holderOf(world, objectId) !== actorId) return "";
   if (readObject(entity.components[ObjectComponents.object]).quantity < 1) return "";
   const resourceId = prototypeOf(world, objectId).resourceId;
-  return resourceId === "resource:cooked" || resourceId === "resource:grain" || resourceId === "resource:fish" ? resourceId : "";
+  return resourceId in HUNGER_EASED ? resourceId : "";
 }
-
-/** Hunger eased by one portion: cooked food 4, raw grain 2. */
-const HUNGER_EASED: Record<string, number> = { "resource:cooked": 4, "resource:grain": 2, "resource:fish": 2 };
 
 
 /**
@@ -893,6 +898,7 @@ const ACTIVITY_COST: Partial<Record<string, number>> = {
   [SettlementCommands.harvest]: 3,
   [SettlementCommands.tend]: 3,
   [SettlementCommands.rest]: 2,
+  [SettlementCommands.craft]: 2,
 };
 
 /** A single personally owned wrap shields the worker at the field. */

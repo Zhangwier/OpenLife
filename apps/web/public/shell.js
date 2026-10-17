@@ -6,8 +6,9 @@ import { openDetail, closeDetail, leaveDetail } from "/detail-navigation.js";
 import { icon } from "/icons.js";
 import { renderSceneFx } from "/scene-fx.js";
 import { audioState, onAudioChange, setSoundMode, setVolume } from "/audio.js";
+import { loadCodex, installMusicToggle } from "/codex.js";
 
-const TITLES = { life: "人生概述", character: "人物", activities: "生活", people: "人际", works: "行囊", family: "家族谱", map: "地图与地点", world: "时代与世界", history: "记忆与历史", modules: "模块管理" };
+const TITLES = { life: "人生概述", character: "人物", activities: "生活", people: "人际", works: "行囊", family: "家族谱", map: "地图与地点", world: "时代与世界", history: "记忆与历史", codex: "图鉴", modules: "模块管理" };
 let active = "home", started = false, currentState, callbacks;
 let bagSelection = null;
 const $ = id => document.getElementById(id);
@@ -25,6 +26,7 @@ export function installShell(options) {
     $("pageScreens").append(screen);
   }
   $("legacyLayout").remove();
+  installMusicToggle();
   $("screen-character").insertAdjacentHTML("beforeend", `<section class="panel personal-links"><h3>人生手账</h3><div class="menu-links"><button data-route="life">人生概述</button><button data-route="family">家族与传承</button><button data-route="history">往日记忆</button><button data-route="world">时代与世界</button></div></section>`);
   const collection = document.createElement("details");
   collection.className = "collection-fold";
@@ -98,11 +100,12 @@ function showRoute(route) {
   });
   if (route !== "home") {
     $("pageTitle").textContent = TITLES[route];
-    $("pageEyebrow").textContent = ["modules", "world", "map", "history"].includes(route) ? "生活的世界" : "我的人生";
+    $("pageEyebrow").textContent = ["modules", "world", "map", "history", "codex"].includes(route) ? "生活的世界" : "我的人生";
     $("pageTitle").focus({ preventScroll: true });
   }
   if (route === "modules") loadModules();
   if (route === "map") loadMap();
+  if (route === "codex") loadCodex($("screen-codex"), callbacks.onSettlementAction);
   if (changed) window.scrollTo({ top: 0, behavior: "instant" });
 }
 export function enterLife() { started = true; if (currentState) renderShell(currentState); updateHome(); navigate("activities"); }
@@ -202,13 +205,31 @@ async function loadModules() {
         (off.length ? `<details class="module-fold"><summary>本地已有、当前未接入 · ${off.length}</summary><div class="module-list">${off.map(card).join("")}</div></details>` : ""); })()}`;
   } catch (error) { screen.innerHTML = `<p class="page-empty panel">${html(error.message)}</p>`; }
 }
+const TERRAIN_LABELS = {
+  plain: "平原", highland: "高地", wetland: "湿地", corridor: "走廊", basin: "盆地", delta: "三角洲", terrace: "台地",
+  lakeshore: "湖岸", dry_plain: "旱原", frontier: "边地", river_bank: "河岸", river_branch: "支流", river_crossing: "渡河处",
+  river_mouth: "河口", river_mouth_plain: "河口平原", inland_rise: "内陆高坡", crossing: "渡口", inlet: "入水口", marsh: "沼泽",
+  meadow: "草甸", grassland: "草原", gully: "冲沟", valley: "河谷", spring: "泉", camp: "营地", trading_post: "交易点",
+  hunting_ground: "猎场", waterhole: "水坑", wet_farmland: "水田", shallow_lake: "浅湖", reed_flat: "芦苇滩", basin_floor: "盆底",
+  basin_rim: "盆缘", frontier_bank: "边地河岸", frontier_post: "边地哨所", slope: "山坡", ridge: "山脊", pass: "垭口",
+  hill_slope: "丘陵坡地", oak_slope: "栎树坡", cave: "洞穴", bamboo_valley: "竹谷", bamboo_grove: "竹林", stream_ford: "溪滩",
+  valley_floor: "谷底", waterfall_pool: "瀑潭", salt_spring_terrace: "盐泉台地", salt_spring: "盐泉", salt_flat: "盐滩",
+};
+const EVENT_KIND_LABELS = { landmark: "地标", gathering: "采集", encounter: "相遇", hazard: "险情", omen: "征兆", festival: "节庆" };
+const SEASON_LABELS = { any: "四季", spring: "春", summer: "夏", autumn: "秋", winter: "冬" };
+function terrainLabel(type) { return TERRAIN_LABELS[type] ?? String(type ?? "").replaceAll("_", " "); }
+function eventPointList(map) {
+  if (!map.eventPoints?.length) return "";
+  const names = new Map(map.locations.map(loc => [loc.id, loc.name]));
+  return `<details class="region-fold event-fold"><summary>查看 ${map.eventPoints.length} 个事件点</summary><ul class="event-points">${map.eventPoints.map(point => `<li><div><strong>${html(point.name)}</strong><span class="codex-tag">${html(EVENT_KIND_LABELS[point.kind] ?? point.kind)} · ${html(SEASON_LABELS[point.season] ?? point.season)}</span></div><small>${html(names.get(point.locationId) ?? point.locationId)}</small><p>${html(point.text)}</p></li>`).join("")}</ul></details>`;
+}
 async function loadMap() {
   const screen = $("screen-map");
   screen.innerHTML = '<p class="page-empty panel">正在读取地图资料…</p>';
   try {
     const response = await fetch("/api/catalog"); if (!response.ok) throw new Error("地图资料读取失败");
     const data = await response.json();
-    screen.innerHTML = `<section class="catalog-intro panel"><div class="overview-label">当前位置</div><h2>${html(currentState?.character?.city ?? "尚未进入世界")}</h2><p>河岸聚落已经可以在「生活」里真实移动、走进房间和操作物品。更远的地图包仍主要是世界资料，暂不能全部直接前往。</p></section>${data.maps.map(map => `<section class="map-pack panel"><div class="panel-title-row"><div><div class="eyebrow">地图资料</div><h2>${html(map.label)}</h2></div><span class="module-status">${map.ok ? "结构校验通过" : "资料需修复"}</span></div><div class="map-counts"><span>${map.regions.length} 个区域</span><span>${map.locations.length} 个地点</span><span>${map.edges} 条连接</span></div><p class="map-limit">地形与连接已有定义；居民、房屋内部、可交互物体和衣物尚未随地图包填充。</p><details class="region-fold"><summary>查看 ${map.regions.length} 个区域</summary>${map.regions.map(region => `<details class="region-entry"><summary>${html(region.name)} <small>${html(region.id)}</small></summary><ul>${map.locations.filter(loc => loc.regionId === region.id).map(loc => `<li><strong>${html(loc.name)}</strong><span>${html(loc.type)}</span></li>`).join("")}</ul></details>`).join("")}</details></section>`).join("")}`;
+    screen.innerHTML = `<section class="catalog-intro panel"><div class="overview-label">当前位置</div><h2>${html(currentState?.character?.city ?? "尚未进入世界")}</h2><p>河岸聚落已经可以在「生活」里真实移动、走进房间和操作物品。更远的地图包仍主要是世界资料，暂不能全部直接前往。</p></section>${data.maps.map(map => `<section class="map-pack panel"><div class="panel-title-row"><div><div class="eyebrow">地图资料</div><h2>${html(map.label)}</h2></div><span class="module-status">${map.ok ? "结构校验通过" : "资料需修复"}</span></div><div class="map-counts"><span>${map.regions.length} 个区域</span><span>${map.locations.length} 个地点</span><span>${map.edges} 条连接</span></div><p class="map-limit">地形与连接已有定义；居民、房屋内部、可交互物体和衣物尚未随地图包填充。${map.eventPoints?.length ? `这片地图记有 ${map.eventPoints.length} 处值得留意的地方。` : ""}</p>${eventPointList(map)}<details class="region-fold"><summary>查看 ${map.regions.length} 个区域</summary>${map.regions.map(region => `<details class="region-entry"><summary>${html(region.name)} <small>${html(terrainLabel(region.type))} · ${html(region.id)}</small></summary><ul>${map.locations.filter(loc => loc.regionId === region.id).map(loc => `<li><strong>${html(loc.name)}</strong><span>${html(terrainLabel(loc.type))}</span></li>`).join("")}</ul></details>`).join("")}</details></section>`).join("")}`;
   } catch (error) { screen.innerHTML = `<p class="page-empty panel">${html(error.message)}</p>`; }
 }
 

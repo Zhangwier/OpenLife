@@ -199,6 +199,8 @@ export function runSettlementAction(sim: Simulation, actorId: string, action: st
       return dispatch(ObjectCommands.retrieve, { payload: { objectId: payload.objectId } });
     case SettlementCommands.cook:
       return advance(dispatch(SettlementCommands.cook), 0);
+    case SettlementCommands.craft:
+      return advance(dispatch(SettlementCommands.craft, { payload: { recipeId: payload.recipeId } }), 0);
     case SettlementCommands.sow:
       return advance(dispatch(SettlementCommands.sow), 0);
     case SettlementCommands.harvest:

@@ -72,7 +72,16 @@
     {"id": "prototype:water-cache", "name": "储水坑", "material": "earth", "resourceId": "resource:cistern", "unit": "处", "mass": 0, "capacity": 12, "capabilities": ["fixture", "container", "liquid-holder"], "durability": 0},
     {"id": "prototype:fence-post", "name": "围栏木桩", "material": "wood", "resourceId": "resource:fence", "unit": "根", "mass": 2.4, "capacity": 0, "capabilities": ["fixture"], "durability": 60},
     {"id": "prototype:grain-basket", "name": "竹编粮囤", "material": "woven-reed", "resourceId": "resource:basket", "unit": "个", "mass": 1.1, "capacity": 5, "capabilities": ["carryable", "container", "storage"], "durability": 26, "visible": true},
-    {"id": "prototype:sleep-mat", "name": "寝席", "material": "woven-reed", "resourceId": "resource:mat", "unit": "张", "mass": 1.1, "capacity": 0, "capabilities": ["fixture", "sleep-on"], "durability": 35, "visible": true}
+    {"id": "prototype:sleep-mat", "name": "寝席", "material": "woven-reed", "resourceId": "resource:mat", "unit": "张", "mass": 1.1, "capacity": 0, "capabilities": ["fixture", "sleep-on"], "durability": 35, "visible": true},
+    {"id": "prototype:dried-fish", "name": "鱼干", "material": "dried-fish", "resourceId": "resource:dried-fish", "unit": "条", "mass": 0.3, "capacity": 0, "capabilities": ["carryable", "edible", "storage"], "durability": 0},
+    {"id": "prototype:millet-cake", "name": "粟饼", "material": "baked-grain", "resourceId": "resource:millet-cake", "unit": "块", "mass": 0.4, "capacity": 0, "capabilities": ["carryable", "edible", "storage"], "durability": 0},
+    {"id": "prototype:spindle-whorl", "name": "陶纺轮", "material": "fired-clay", "resourceId": "resource:tool", "unit": "个", "mass": 0.15, "capacity": 0, "capabilities": ["carryable", "tool"], "durability": 60},
+    {"id": "prototype:clay-xun", "name": "陶埙", "material": "fired-clay", "resourceId": "resource:instrument", "unit": "个", "mass": 0.25, "capacity": 0, "capabilities": ["carryable", "instrument"], "durability": 50},
+    {"id": "prototype:bone-hook", "name": "骨鱼钩", "material": "bone", "resourceId": "resource:tool", "unit": "枚", "mass": 0.01, "capacity": 0, "capabilities": ["carryable", "tool"], "durability": 18},
+    {"id": "prototype:hemp-cloth", "name": "麻布", "material": "woven-hemp", "resourceId": "resource:cloth", "unit": "匹", "mass": 0.6, "capacity": 0, "capabilities": ["carryable", "workable", "storage"], "durability": 45},
+    {"id": "prototype:reed-screen", "name": "苇帘", "material": "woven-reed", "resourceId": "resource:screen", "unit": "张", "mass": 1.3, "capacity": 0, "capabilities": ["carryable", "fixture"], "durability": 35, "visible": true},
+    {"id": "prototype:salt-cake", "name": "盐块", "material": "spring-salt", "resourceId": "resource:salt", "unit": "块", "mass": 0.5, "capacity": 0, "capabilities": ["carryable", "storage"], "durability": 0},
+    {"id": "prototype:herb-bundle", "name": "草药束", "material": "dried-herb", "resourceId": "resource:herb", "unit": "束", "mass": 0.1, "capacity": 0, "capabilities": ["carryable", "storage"], "durability": 0}
   ],
   "resourceLabels": {
     "resource:water": "水",
@@ -90,7 +99,9 @@
     "resource:mat": "席",
     "resource:tool": "工具",
     "resource:cloth": "衣料",
-    "resource:bag": "编织袋", "resource:basket": "粮筐", "resource:net": "渔网", "resource:greenware": "陶坯"
+    "resource:bag": "编织袋", "resource:basket": "粮筐", "resource:net": "渔网", "resource:greenware": "陶坯",
+    "resource:dried-fish": "鱼干", "resource:millet-cake": "粟饼", "resource:instrument": "乐器",
+    "resource:screen": "帘", "resource:salt": "盐", "resource:herb": "草药", "resource:trap": "渔篓"
   },
   "instances": [
     {"id": "instance:jar:0:0", "prototypeId": "prototype:water-jar", "inId": "space:main-sleep", "quantity": 0, "owner": "elder"},
@@ -261,7 +272,17 @@
     {"id": "instance:ford-jar:1", "prototypeId": "prototype:small-jar", "inId": "space:ford-landing", "quantity": 0, "owner": "lan"},
     {"id": "instance:ford-grain", "prototypeId": "prototype:grain", "inId": "instance:ford-bag", "quantity": 2, "owner": "trader-elder"},
     {"id": "instance:ford-mat", "prototypeId": "prototype:mat", "inId": "space:ford-landing", "quantity": 0, "owner": "trader-elder"},
-    {"id": "instance:ford-cache", "prototypeId": "prototype:water-cache", "inId": "space:ford-landing", "quantity": 4, "owner": "water-carrier"}
+    {"id": "instance:ford-cache", "prototypeId": "prototype:water-cache", "inId": "space:ford-landing", "quantity": 4, "owner": "water-carrier"},
+    {"id": "instance:salt:0", "prototypeId": "prototype:salt-cake", "inId": "space:ford-sleep", "quantity": 1, "owner": "trader-elder"},
+    {"id": "instance:salt:1", "prototypeId": "prototype:salt-cake", "inId": "space:ford-sleep", "quantity": 1, "owner": "trader-elder"},
+    {"id": "instance:herb:0", "prototypeId": "prototype:herb-bundle", "inId": "space:store", "quantity": 1, "owner": "elder-wife"},
+    {"id": "instance:herb:1", "prototypeId": "prototype:herb-bundle", "inId": "space:store", "quantity": 1, "owner": "elder-wife"},
+    {"id": "instance:xun:0", "prototypeId": "prototype:clay-xun", "inId": "space:main-sleep", "quantity": 1, "owner": "elder"},
+    {"id": "instance:hook:0", "prototypeId": "prototype:bone-hook", "inId": "space:water-sleep", "quantity": 1, "owner": "water-carrier"},
+    {"id": "instance:dried-fish:0", "prototypeId": "prototype:dried-fish", "inId": "space:store", "quantity": 1, "owner": "elder-wife"},
+    {"id": "instance:dried-fish:1", "prototypeId": "prototype:dried-fish", "inId": "space:store", "quantity": 1, "owner": "elder-wife"},
+    {"id": "instance:whorl:0", "prototypeId": "prototype:spindle-whorl", "inId": "space:lan-sleep", "quantity": 1, "owner": "lan-mother"},
+    {"id": "instance:screen:0", "prototypeId": "prototype:reed-screen", "inId": "space:reed-sleep", "quantity": 1, "owner": "reed-worker"}
   ],
   "exchange": {
     "values": {"resource:grain": 2, "resource:cooked": 3, "resource:fuel": 1, "resource:reed": 1, "resource:water": 1,
@@ -690,4 +711,5 @@
       "原先在山里打猎，想换个活法"
     ]
   }
+
 }
