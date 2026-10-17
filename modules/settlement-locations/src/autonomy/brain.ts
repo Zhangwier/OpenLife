@@ -420,7 +420,7 @@ function options(s: Situation, m: Mind, blocked: Set<string>, today: Set<string>
       const plan: Plan | null = s.present.has(id) ? { first: { kind: "give", targetId: id, itemId: item }, cost: 0, why: "道个喜" }
         : where && where !== s.placeId ? { first: { kind: "go", placeId: where }, cost: 1, why: "去找过生日的人" }
         : r.homeSpace && PLACE_OF_SPACE.get(r.homeSpace) !== s.placeId ? { first: { kind: "go", placeId: PLACE_OF_SPACE.get(r.homeSpace)! }, cost: 1, why: "去找过生日的人" } : null;
-      push("birthday", 30 + p.generosity * 0.25, plan, `${r.name}过生日`);
+      push("birthday", 47 + p.generosity * 0.25, plan, `${r.name}过生日`);
       break;
     }
   }
