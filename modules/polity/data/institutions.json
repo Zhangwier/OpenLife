@@ -1,0 +1,23 @@
+{
+  "formatVersion": 1,
+  "note": "制度只在条件成立时才可能出现（每年按概率），条件消失久了会废弛。requiresCapability 指某个插件必须装着（例如债役需要 polity-bondage）。",
+  "adoptChance": 0.3,
+  "lapseChance": 0.15,
+  "institutions": [
+    { "id": "institution:headship", "label": "头人", "when": { "population": 12 } },
+    { "id": "institution:shared-granary", "label": "公仓", "when": { "capabilities": ["cap:storage"], "surplusYears": 2 } },
+    { "id": "institution:specialist-crafts", "label": "专门手艺人", "when": { "surplusYears": 4, "population": 15 } },
+    { "id": "institution:household-property", "label": "家产", "when": { "capabilities": ["cap:storage"], "surplusYears": 6 } },
+    { "id": "institution:lending", "label": "借贷", "when": { "institutions": ["institution:household-property"] } },
+    { "id": "institution:exogamy", "label": "近亲不婚", "when": { "customs": ["custom:exogamy"] } },
+    { "id": "institution:river-offering", "label": "祭河", "when": { "customs": ["custom:river-offering"] } },
+    { "id": "institution:exorcism", "label": "驱邪", "when": { "customs": ["custom:exorcism"] } },
+    { "id": "institution:ward-charms", "label": "挂符", "when": { "customs": ["custom:ward-charms"] } },
+    { "id": "institution:kiln-offering", "label": "祭窑", "when": { "customs": ["custom:kiln-offering"] } },
+    { "id": "institution:ranked-lineages", "label": "世家", "when": { "institutions": ["institution:household-property", "institution:headship"], "surplusYears": 12, "population": 30 } },
+    { "id": "institution:debt-bondage", "label": "债役", "when": { "institutions": ["institution:lending"], "defaults": 1, "population": 20, "requiresCapability": "polity.labor", "notAbolished": true } },
+    { "id": "institution:written-law", "label": "成文规矩", "when": { "capabilities": ["cap:writing"], "institutions": ["institution:headship"] } },
+    { "id": "institution:chiefdom", "label": "酋邦", "when": { "contacts": 3, "population": 40, "institutions": ["institution:headship"] } },
+    { "id": "institution:tribute", "label": "贡赋", "when": { "institutions": ["institution:chiefdom"], "capabilities": ["cap:records"] } }
+  ]
+}

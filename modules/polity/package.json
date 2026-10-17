@@ -1,0 +1,16 @@
+{
+  "name": "@openlife/module-polity",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*"
+  },
+  "openlife": {
+    "label": "政治",
+    "summary": "制度在村子养得起时才出现：头人、公仓、专门手艺人、家产、借贷、世家、成文规矩、酋邦。"
+  }
+}

@@ -22,7 +22,7 @@
 | `packages/simulation` | `@openlife/simulation` | autonomy-runtime, contracts, history-runtime, kernel, module-runtime, query, rule-engine, save-system, world-model |
 | `packages/world-model` | `@openlife/world-model` | contracts |
 
-## modules/ · 41 个模块包
+## modules/ · 48 个模块包
 
 ### World Pack · 世界观（4）
 
@@ -33,7 +33,7 @@
 | `modules/robot-test-world` | 机器人测试世界 | `robot-test-world` (`robotTestWorldModule`) | `robot.population`, `robot.energy_network`, `time.machine_cycle` | — | contracts |
 | `modules/world-clock` | 世界时钟 | `world-clock` (`worldClockModule`) | `time.life-scale`, `time.scale` | `time.calendar` | contracts, life-contracts, module-practice-runtime |
 
-### System Pack · 通用系统（31）
+### System Pack · 通用系统（38）
 
 | 目录 | 名称 | 模块 id（导出） | provides | requires | 依赖（workspace） |
 | --- | --- | --- | --- | --- | --- |
@@ -42,18 +42,25 @@
 | `modules/economy` | 经济 | `economy` (`economyModule`) | `economy.cycle` | `time.calendar`, `life.population`, `economy.currency` | contracts, life-contracts |
 | `modules/education` | 教育原型 | `education` (`educationModule`) | `education.provider` | `time.calendar` | contracts, life-contracts |
 | `modules/epistemic-state` | 人物认知 | `epistemic-state` (`epistemicStateModule`) | `cognition.epistemic-state` | — | contracts |
+| `modules/era-ladder` | 时代识别 | `era-ladder` (`eraLadderModule`) | `era.current` | — | contracts |
 | `modules/family` | 家庭与关系 | `family` (`familyModule`) | `family.relationship_provider`, `family.heir_provider` | `time.calendar`, `life.population` | contracts, life-contracts |
+| `modules/fate` | 天命 | `fate` (`fateModule`) | `fate.perturbation` | — | contracts |
 | `modules/fauna-bonds` | 与动物相处 | `fauna-bonds` (`faunaBondsModule`) | `fauna.individuals` | `world.species` | contracts, module-world-species |
+| `modules/heredity` | 禀赋 | `heredity` (`heredityModule`) | `life.heredity` | — | contracts |
 | `modules/historical-era` | 时代环境 | `historical-era` (`historicalEraModule`) | `history.era-context` | `time.calendar` | contracts, life-contracts |
 | `modules/historical-memory` | 历史留存 | `historical-memory` (`historicalMemoryModule`) | `history.material-evidence`, `history.public-memory` | — | contracts |
 | `modules/intellectual-history` | 思想与学派 | `intellectual-history` (`intellectualHistoryModule`) | `culture.intellectual-tradition` | — | contracts |
 | `modules/knowledge-transmission` | 知识传授 | `knowledge-transmission` (`knowledgeTransmissionModule`) | `knowledge.transmission-practice` | `practice.runtime`, `cognition.epistemic-state` | contracts, module-epistemic-state, module-practice-runtime |
 | `modules/map-pack` | 地图包 | `map-pack` (`mapPackModule`) | `world.map-packs` | `world.geography` | contracts, module-world-geography, simulation |
 | `modules/modern-science` | 文明认知 | `modern-science` (`modernScienceModule`) | `knowledge.modern-science` | `life.population` | contracts, life-contracts |
+| `modules/polity` | 政治 | `polity` (`polityModule`) | `polity.institutions`, `polity.authority` | — | contracts |
+| `modules/polity-bondage` | 债役 | `polity-bondage` (`polityBondageModule`) | `polity.labor` | `polity.institutions` | contracts |
 | `modules/practice-autonomy` | 自主参与活动 | `practice-autonomy` (`practiceAutonomyModule`) | `practice.autonomy` | `practice.runtime` | contracts, module-practice-runtime |
 | `modules/practice-runtime` | 持续活动 | `practice-runtime` (`practiceRuntimeModule`) | `practice.runtime` | — | contracts |
 | `modules/science-research` | 研究活动 | `science-research` (`scienceResearchModule`) | `science.research-practice` | `practice.runtime` | contracts, module-practice-runtime |
 | `modules/social-conflict` | 乡邻纠纷 | `social-conflict` (`socialConflictModule`) | `social.conflict` | — | contracts |
+| `modules/tech` | 科技 | `tech` (`techModule`) | `tech.invention`, `tech.learning`, `tech.need-ledger` | — | contracts |
+| `modules/village-chronicle` | 村史 | `village-chronicle` (`villageChronicleModule`) | `chronicle.village` | — | contracts, module-era-ladder, module-fate, module-heredity, module-polity, module-polity-bondage, module-tech, simulation |
 | `modules/world-climate` | 气候 | `world-climate` (`worldClimateModule`) | `world.climate-profile` | `world.geography`, `world.geosphere-profile` | contracts, module-world-geography, module-world-geosphere |
 | `modules/world-ecology` | 生态 | `world-ecology` (`worldEcologyModule`) | `world.ecology-state` | `world.geography`, `world.climate-profile`, `world.hydrology-state` | contracts, module-world-climate, module-world-geography, module-world-hydrology |
 | `modules/world-geography` | 地理与连通 | `boundary-handshake` (`boundaryHandshakeModule`) | `world.boundary-handshake` | `world.geography` | contracts |

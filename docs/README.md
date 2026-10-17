@@ -19,6 +19,7 @@
 | --- | --- |
 | [`MODULES.md`](./MODULES.md) | 全部 workspace 包的分层目录（由 `npm run catalog` 生成） |
 | [`PLUGINS.md`](./PLUGINS.md) | 插件 / Mod 规范：系统模块、内容包、地图包怎么写、怎么开关、怎么拆 |
+| [`HISTORY_LAB.md`](./HISTORY_LAB.md) | 历史实验室：禀赋、科技、政治、天命、时代识别，`npm run chronicle` 推演村史 |
 
 ## RFC（`docs/rfc/`）
 

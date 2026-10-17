@@ -1,0 +1,16 @@
+{
+  "name": "@openlife/module-era-ladder",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*"
+  },
+  "openlife": {
+    "label": "时代识别",
+    "summary": "只读科技、政治和人口，认出现在是什么时代、何时进入、何时倒退；不解锁任何东西。"
+  }
+}

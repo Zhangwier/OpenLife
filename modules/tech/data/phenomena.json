@@ -1,0 +1,44 @@
+{
+  "formatVersion": 1,
+  "phenomena": {
+    "phen:river-rise": {
+      "label": "河水每年涨落"
+    },
+    "phen:dry-spell": {
+      "label": "有的年头久旱"
+    },
+    "phen:food-spoils": {
+      "label": "吃的放久了会坏"
+    },
+    "phen:pot-cracks": {
+      "label": "陶坯一烧就裂"
+    },
+    "phen:heavy-things": {
+      "label": "长杆能撬动大石头"
+    },
+    "phen:sickness-water": {
+      "label": "喝了生水的人闹肚子"
+    },
+    "phen:land-tires": {
+      "label": "地越种越薄"
+    },
+    "phen:seasons-turn": {
+      "label": "日影长短、星辰出没一年一轮"
+    },
+    "phen:wound-festers": {
+      "label": "伤口会烂"
+    },
+    "phen:child-resembles": {
+      "label": "孩子长得像爹娘"
+    },
+    "phen:metal-in-stone": {
+      "label": "有的绿石头在火里化出亮东西"
+    },
+    "phen:water-pushes": {
+      "label": "急水能推着东西转"
+    },
+    "phen:lid-rattles": {
+      "label": "开水把罐盖顶起来"
+    }
+  }
+}

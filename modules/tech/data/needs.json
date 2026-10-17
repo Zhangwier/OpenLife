@@ -1,0 +1,45 @@
+{
+  "formatVersion": 1,
+  "note": "需要簿里的需要。玩家或 NPC 反复受阻时记一次；强度随时间衰减。",
+  "needs": {
+    "need:lift-water": {
+      "label": "打水太费力"
+    },
+    "need:move-heavy": {
+      "label": "重东西搬不动"
+    },
+    "need:preserve-food": {
+      "label": "吃的放不住"
+    },
+    "need:protect-from-flood": {
+      "label": "怕涨水"
+    },
+    "need:more-grain": {
+      "label": "粮不够吃"
+    },
+    "need:cure-sickness": {
+      "label": "病了没法子"
+    },
+    "need:better-pots": {
+      "label": "陶器老烧裂"
+    },
+    "need:know-season": {
+      "label": "拿不准农时"
+    },
+    "need:sharper-blade": {
+      "label": "刀斧不快"
+    },
+    "need:keep-records": {
+      "label": "账记不住"
+    },
+    "need:grind-grain": {
+      "label": "舂米磨面太累"
+    },
+    "need:carry-loads": {
+      "label": "挑东西太累"
+    },
+    "need:more-power": {
+      "label": "人力不够使"
+    }
+  }
+}
