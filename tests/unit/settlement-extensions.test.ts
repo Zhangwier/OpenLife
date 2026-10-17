@@ -28,8 +28,12 @@ test("the example pack merges cleanly and its recipe becomes playable", () => {
 });
 
 test("discovery finds packs by manifest.json and honours the disabled list", () => {
-  assert.deepEqual(discoverExtensions(EXAMPLES).map((x) => x.manifest.id), ["reed_baskets"]);
-  assert.deepEqual(discoverExtensions(EXAMPLES, ["reed_baskets"]), []);
+  const found = discoverExtensions(EXAMPLES).map((x) => x.manifest.id);
+  // Lists every example pack that ships, sorted by id. Asserting membership
+  // rather than an exact list keeps this honest when a new example is added.
+  assert.ok(found.includes("reed_baskets"), found.join(", "));
+  assert.deepEqual(found, [...found].sort(), "packs come back sorted by id");
+  assert.deepEqual(discoverExtensions(EXAMPLES, ["reed_baskets"]).map((x) => x.manifest.id).includes("reed_baskets"), false);
   assert.deepEqual(discoverExtensions("/nonexistent"), []);
 });
 

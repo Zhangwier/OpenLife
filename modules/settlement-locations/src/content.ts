@@ -176,6 +176,41 @@ export interface StoryEventSpec {
   at?: string;
   /** Never told in a season when this tracked hazard struck (a bumper year after a drought). */
   excludes?: "flood" | "drought";
+  /**
+   * Format v2: a story that asks the player to choose instead of only telling
+   * them something. Absent means a plain description (every pre-v2 story), which
+   * keeps the old behaviour byte for byte.
+   *
+   * At least two choices should be defensible; at least one should have a
+   * delayed consequence. See docs/PLUGINS.md §4 for the writing standard.
+   */
+  choices?: StoryChoiceSpec[];
+}
+
+/**
+ * One answer to a choice event.
+ *
+ * A choice may cost something, change how people feel, set a flag later choices
+ * can test, or queue a follow-up event -- KoDP's delayed consequence, which is
+ * the whole reason this format exists.
+ */
+export interface StoryChoiceSpec {
+  id: string;
+  label: string;
+  /** The line the player reads after choosing. */
+  line?: string;
+  /** Resources taken from the village's shared stock (resourceId -> amount). */
+  cost?: Record<string, number>;
+  /** How the people this event is about feel afterwards. */
+  bond?: Partial<Record<"familiarity" | "trust" | "grudge", number>>;
+  /** Sticky facts a later event or dialogue can test. */
+  flags?: string[];
+  /** Village-wide standing, -3..3. */
+  reputation?: number;
+  /** Scale real gathering points, same semantics as the parent event's yields. */
+  yields?: Record<string, number>;
+  /** A later event this choice sets in motion. */
+  followUp?: { id: string; afterSeasons?: number; afterDays?: number };
 }
 
 export interface SeasonLifeSpec {
@@ -391,6 +426,39 @@ export function validateSettlementPack(pack: SettlementPack): string[] {
       if (!["flood", "drought"].includes(kind)) problems.push(`story ${e.id}: unknown hazard ${kind}`);
       if (!e.at || !places.has(e.at)) problems.push(`story ${e.id}: hazard ${kind} needs a known place in "at"`);
     }
+    // 抉择事件（格式 v2）：至少要两个选项，每个选项都要真的改变什么。
+    // 一个"没有后果"的选项等于没有选择，只会让玩家以为自己在做决定。
+    if (e.choices !== undefined) {
+      if (!Array.isArray(e.choices) || e.choices.length < 2) {
+        problems.push(`story ${e.id}: a choice event needs at least two choices`);
+      }
+      const seen = new Set<string>();
+      for (const c of e.choices ?? []) {
+        if (!c.id) problems.push(`story ${e.id}: a choice has no id`);
+        if (seen.has(c.id)) problems.push(`story ${e.id}: duplicate choice id ${c.id}`);
+        seen.add(c.id);
+        if (!c.label) problems.push(`story ${e.id}: choice ${c.id} has no label`);
+        const changes = Boolean(
+          (c.cost && Object.keys(c.cost).length) ||
+          (c.bond && Object.values(c.bond).some((n) => Number(n ?? 0) !== 0)) ||
+          c.flags?.length || c.reputation || (c.yields && Object.keys(c.yields).length) || c.followUp,
+        );
+        if (!changes) problems.push(`story ${e.id}: choice ${c.id} changes nothing`);
+        if (c.reputation !== undefined && Math.abs(c.reputation) > 3) {
+          problems.push(`story ${e.id}: choice ${c.id} reputation must be within -3..3`);
+        }
+        for (const [where, factor] of Object.entries(c.yields ?? {})) {
+          const parts = where.split(":");
+          const placeId = parts.slice(0, 2).join(":");
+          const resourceId = parts.slice(2).join(":");
+          if (!places.has(placeId)) problems.push(`story ${e.id}: choice ${c.id} names unknown place ${placeId}`);
+          else if (!pack.yields.some((y) => y.placeId === placeId && y.resourceId === resourceId)) {
+            problems.push(`story ${e.id}: choice ${c.id}: ${resourceId} is not yielded at ${placeId}`);
+          }
+          if (!(factor > 0)) problems.push(`story ${e.id}: choice ${c.id}: yields factor must be positive`);
+        }
+      }
+    }
   }
   return problems;
 }
@@ -409,7 +477,7 @@ export function loadSettlementPack(url: URL): SettlementPack {
 }
 
 /** The authored River Terrace village as shipped, before content packs. */
-const BASE_RIVER_TERRACE_PACK: SettlementPack =
+export const BASE_RIVER_TERRACE_PACK: SettlementPack =
   loadSettlementPack(new URL("../data/river-terrace.json", import.meta.url));
 
 // ---------------------------------------------------------------------------
@@ -508,8 +576,30 @@ const RIVER_TERRACE = applyExtensions(
 export const RIVER_TERRACE_PACK: SettlementPack = RIVER_TERRACE.pack;
 /** The River Terrace recipes shipped with this module, plus every installed content pack's. */
 export const RIVER_TERRACE_RECIPES: RecipeBook = RIVER_TERRACE.book;
+/** Choice events contributed by content packs (format v2). Empty for base-only worlds. */
+export const PACK_INCIDENTS = RIVER_TERRACE.incidents;
+/** Dialogue fragments contributed by content packs. */
+export const PACK_DIALOGUE = RIVER_TERRACE.dialogue;
 /** Content packs merged into the village, as `id@version`, in load order. */
 export const ACTIVE_CONTENT_PACKS: string[] = INSTALLED_EXTENSIONS.map((x) => `${x.manifest.id}@${x.manifest.version}`);
+
+/** What a new world records about its content packs (docs/PLUGINS.md §3.1). */
+export function contentPackStamps(): string[] {
+  return [...ACTIVE_CONTENT_PACKS];
+}
+
+/**
+ * Packs a save used that this process does not have.
+ *
+ * Loading such a save must not fail on a missing item deep inside the world:
+ * the honest answer is "this save used reed_baskets@0.1.0, which is not
+ * installed". Worlds founded before this field existed return an empty list.
+ */
+export function missingContentPacks(saved: unknown): string[] {
+  if (!Array.isArray(saved)) return [];
+  const have = new Set(ACTIVE_CONTENT_PACKS);
+  return saved.map(String).filter((stamp) => !have.has(stamp));
+}
 
 /**
  * The recipe book's recipes made playable: each becomes an ordinary pack

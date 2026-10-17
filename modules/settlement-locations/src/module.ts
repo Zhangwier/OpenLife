@@ -263,7 +263,7 @@ function registerFound(ctx: Registration): void {
             name: String(c.command.payload.name ?? "河岸台地聚落"),
             locationId,
             foundedAt: c.world.tick,
-            // 饿肚子要付代价是建村时定的规矩：新 Web 人生打开，旧存档与单机制测试世界不带。
+            // 建村时定下的规矩：饿肚子付代价（旧存档/单机制测试世界不带）。
             ...(c.command.payload.hungerToll === true ? { hungerToll: true } : {}),
           } as unknown as Record<string, never>,
         },
