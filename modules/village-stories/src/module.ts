@@ -18,6 +18,11 @@ import type { CommandIntent, ConstraintOutcome, Effect, OpenLifeModule, WorldVie
 import { occupiedPlaceId } from "@openlife/module-world-space";
 import { SettlementComponents, SettlementId, feastOn, isIll, residentId } from "@openlife/module-settlement-locations";
 import { STORY_PACK, storyPackProblems, type QuestSpec } from "./spec.ts";
+import { bondsProblems } from "./bonds.ts";
+import {
+  BOND_LABELS, WORK_EVENTS, keepRoutines, peopleView, quarrelProblem, remarkFor, serviceById, serviceProblem, settleQuarrel, useService,
+  workAlongside, type QuarrelSide,
+} from "./people-rules.ts";
 import {
   Outcome, STORY_OWNER, StoryComponents, activePlayer, baseFor, consume, daysUntil, eventActive, handOver, heartsWith, incidentOn,
   keyOf, meets, npcName, ownedInHand, progressOf, readJournal, resourceLabel, yearOf, type Journal,
@@ -30,6 +35,8 @@ export const StoryCommands = {
   rite: "village-stories.festival.rite",
   joinEvent: "village-stories.event.join",
   resolveIncident: "village-stories.incident.resolve",
+  settleQuarrel: "village-stories.quarrel.settle",
+  useService: "village-stories.service.use",
 } as const;
 export const StoryProjections = { journal: "village-stories.journal" } as const;
 export const StoryRejection = "E_STORY_NOT_NOW";
@@ -129,7 +136,7 @@ const COUNTED: Record<string, (data: Record<string, unknown>, target: string) =>
   "settlement-locations.water_carried": () => ["water"],
   "settlement-locations.crafted": (d) => ["craft", ...(d.recipeId ? [`craft:${String(d.recipeId)}`] : [])],
   "settlement-locations.cooked": () => ["cook", "craft"],
-  "settlement-locations.gift_given": (_d, t) => ["gift", `gift:${keyOf(t)}`],
+  "settlement-locations.gift_received": (_d, t) => ["gift", `gift:${keyOf(t)}`],
   "settlement-locations.exchanged": () => ["exchange"],
   "settlement-locations.player_barter_accepted": () => ["exchange"],
   "settlement-locations.hearth_helped": () => ["help"],
@@ -149,7 +156,7 @@ export const villageStoriesModule: OpenLifeModule = {
     capabilities: ["component.register", "command.register", "rule.constraint.register", "rule.resolution.register", "rule.reaction.register", "projection.register"],
   },
   register(ctx) {
-    const problems = storyPackProblems();
+    const problems = [...storyPackProblems(), ...bondsProblems()];
     if (problems.length) throw new Error(`village-stories pack is invalid:\n${problems.join("\n")}`);
     ctx.registerComponent({ id: StoryComponents.journal, persist: true, description: "the player's quests, flags, achievements and story choices" });
     for (const type of Object.values(StoryCommands)) ctx.registerCommand({ type, description: "Village story action." });
@@ -187,7 +194,7 @@ export const villageStoriesModule: OpenLifeModule = {
         const o = step.objective as Extract<typeof step.objective, { type: "deliver" }>;
         const ids = ownedInHand(c.world, out.me, o.resource).slice(0, o.count);
         out.effects.push(...handOver(ids, out.me, residentId(o.npc), `story: ${q.id}`));
-        out.bond(o.npc, { familiarity: 0.5 });
+        out.bond(o.npc, { familiarity: 0.5 }, `交付「${q.title}」`);
         out.say("village-stories.delivered", step.doneLine ?? `你把东西交给了${npcName(o.npc)}。`, { questId: q.id, step: step.id }, residentId(o.npc));
         out.advance(q);
       });
@@ -208,12 +215,18 @@ export const villageStoriesModule: OpenLifeModule = {
         const key = str(c, "npc");
         const at = currentNode(out.j, key)!;
         const option = at.node.options.find((o) => o.id === str(c, "option"))!;
-        out.bond(key, option.effects?.bond);
+        // Words warm a bond once a day; choosing again still moves the story, not the numbers.
+        const warms = (option.effects?.bond && out.j.bonds.chatDay[key] !== out.tick) || (option.effects?.bond?.grudge ?? 0) < 0;
+        if (warms) {
+          out.bond(key, option.effects?.bond, `对话：${option.label}`);
+          out.j = { ...out.j, bonds: { ...out.j.bonds, chatDay: { ...out.j.bonds.chatDay, [key]: out.tick } } };
+        }
         out.flag(...(option.effects?.setFlags ?? []));
         out.count("dialogue");
         const next = option.next ?? at.tree.start;
         out.j = { ...out.j, dialogue: { ...out.j.dialogue, [key]: next } };
-        out.say("village-stories.dialogue", option.effects?.line ?? at.tree.nodes[next]!.text,
+        const remark = remarkFor(c.world, out.me, key, out.j.bonds.reconciled);
+        out.say("village-stories.dialogue", `${option.effects?.line ?? at.tree.nodes[next]!.text}${remark && at.id === at.tree.start ? remark : ""}`,
           { npc: key, node: at.id, option: option.id, next }, residentId(key));
       });
 
@@ -222,7 +235,7 @@ export const villageStoriesModule: OpenLifeModule = {
       (c, out) => {
         const { feast, rite } = riteToday(c.world)!;
         if (rite.requires?.resource) out.effects.push(...consume(ownedInHand(c.world, out.me, rite.requires.resource).slice(0, 1), out.me, `rite: ${feast.id}`));
-        const got = out.reward(rite.reward);
+        const got = out.reward(rite.reward, `节日：${feast.name}`);
         out.j = { ...out.j, rites: { ...out.j.rites, [feast.id]: yearOf(out.tick) } };
         out.count("rite");
         out.say("village-stories.rite", `${rite.line}${got.length ? `（得到：${got.join("、")}）` : ""}`, { feast: feast.id });
@@ -235,7 +248,7 @@ export const villageStoriesModule: OpenLifeModule = {
         const offer = e.offers.find((o) => o.id === str(c, "offerId"))!;
         if (offer.give) out.effects.push(...consume(ownedInHand(c.world, out.me, offer.give).slice(0, 1), out.me, `event: ${e.id}`));
         const got = offer.get ? [out.grant(offer.get)] : [];
-        for (const [k, b] of Object.entries(offer.bond ?? {})) out.bond(k, b);
+        for (const [k, b] of Object.entries(offer.bond ?? {})) out.bond(k, b, `活动：${e.name}`);
         out.j = { ...out.j, events: { ...out.j.events, [e.id]: yearOf(out.tick) } };
         out.count("event");
         out.count(`event:${e.id}`);
@@ -248,12 +261,20 @@ export const villageStoriesModule: OpenLifeModule = {
         const incident = incidentOn(out.tick)!;
         const choice = incident.choices.find((x) => x.id === str(c, "choiceId"))!;
         if (choice.consume && choice.requires?.resource) out.effects.push(...consume(ownedInHand(c.world, out.me, choice.requires.resource).slice(0, 1), out.me, `incident: ${incident.id}`));
-        const got = out.reward(choice);
+        const got = out.reward(choice, `突发：${incident.title}`);
         out.flag(...(choice.setFlags ?? []));
         out.j = { ...out.j, incidents: { ...out.j.incidents, [String(out.tick)]: `${incident.id}:${choice.id}` } };
         out.count("incident");
         out.say("village-stories.incident_resolved", `${choice.line}${got.length ? `（得到：${got.join("、")}）` : ""}`, { incidentId: incident.id, choiceId: choice.id });
       });
+
+    rule(StoryCommands.settleQuarrel,
+      (c, me, j) => quarrelProblem(c.world, me, j, str(c, "side")),
+      (c, out) => settleQuarrel(out, str(c, "side") as QuarrelSide));
+
+    rule(StoryCommands.useService,
+      (c, me, j) => serviceProblem(c.world, me, j, serviceById(str(c, "serviceId")), str(c, "targetNpc")),
+      (c, out) => useService(out, serviceById(str(c, "serviceId"))!, str(c, "targetNpc")));
 
     // Real settlement events move counters, then quest steps and achievements.
     for (const [eventType, counters] of Object.entries(COUNTED)) {
@@ -264,7 +285,10 @@ export const villageStoriesModule: OpenLifeModule = {
           if (!me || c.event.actorId !== me) return [];
           const out = new Outcome(c.world, me, readJournal(c.world, me), c.world.tick);
           const target = String(c.event.targetId ?? "");
+          out.observe(BOND_LABELS[eventType] ?? "日子里的来往", keyOf(target));
           for (const counter of counters(c.event.data as Record<string, unknown>, target)) out.count(counter);
+          if (WORK_EVENTS.has(eventType)) workAlongside(out, String((c.event.data as Record<string, unknown>)?.placeId ?? "") || here(c.world, me));
+          keepRoutines(out, false);
           if (eventType === "settlement-locations.conversation" && target && !out.j.talked.includes(keyOf(target))) {
             out.j = { ...out.j, talked: [...out.j.talked, keyOf(target)] };
           }
@@ -272,6 +296,19 @@ export const villageStoriesModule: OpenLifeModule = {
         },
       });
     }
+
+    // The player walked somewhere: the hour may have turned, and someone may be met by chance.
+    ctx.registerReactionRule({
+      id: `${STORY_OWNER}.arrived`, eventType: "settlement-locations.arrived",
+      react: (c): Effect[] => {
+        const me = activePlayer(c.world);
+        if (!me || c.event.actorId !== me) return [];
+        const out = new Outcome(c.world, me, readJournal(c.world, me), c.world.tick);
+        out.observe("日子里的来往");
+        keepRoutines(out, true);
+        return out.finish("arrived");
+      },
+    });
 
     ctx.registerProjection({
       id: StoryProjections.journal,
@@ -309,6 +346,7 @@ export function storyView(world: WorldView, me: string) {
       const at = currentNode(j, key)!;
       return {
         npc: key, name: npcName(key), hearts: heartsWith(world, key, me), node: at.id, text: at.node.text,
+        remark: remarkFor(world, me, key, j.bonds.reconciled) || null,
         options: at.node.options.map((o) => {
           const why = withMe(world, me, key) || meets(world, me, j, o.requires, key);
           return { id: o.id, label: o.label, enabled: !why, reason: why };
@@ -336,6 +374,7 @@ export function storyView(world: WorldView, me: string) {
     } : null,
     achievements: STORY_PACK.achievements.map((a) => ({ id: a.id, name: a.name, text: a.text,
       unlocked: j.achievements[a.id] !== undefined, at: j.achievements[a.id] ?? null })),
+    people: peopleView(world, me, j),
     counters: j.counters,
     flags: j.flags,
   };

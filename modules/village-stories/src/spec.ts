@@ -6,6 +6,7 @@
  */
 import { readFileSync } from "node:fs";
 import { RIVER_TERRACE_PACK, type SettlementPack } from "@openlife/module-settlement-locations";
+import { BONDS_PACK } from "./bonds.ts";
 
 export type BondChange = Partial<Record<"familiarity" | "trust" | "grudge", number>>;
 export interface ItemGrant { prototype: string; name?: string }
@@ -17,7 +18,9 @@ export type Objective =
   | { type: "distinctTalks"; count: number }
   | { type: "flag"; flag: string }
   | { type: "hearts"; npc: string; atLeast: number }
-  | { type: "deliver"; npc: string; resource: string | string[]; count: number };
+  | { type: "deliver"; npc: string; resource: string | string[]; count: number }
+  /** Reach at least this relationship tier with `count` villagers. */
+  | { type: "tiers"; tier: string; count: number };
 
 export interface Requirements {
   flags?: string[];
@@ -30,6 +33,12 @@ export interface Requirements {
   quest?: Record<string, string>;
   /** Needs one owned item of this resource in hand (consumed when `consume`). */
   resource?: string;
+  /** Dialogue only: the speaker's relationship tier with the player is at least this. */
+  minTier?: string;
+  /** Relationship tier with named villagers is at least this. */
+  tierWith?: Record<string, string>;
+  /** Dialogue only: true = only while the speaker holds a grudge (feud); false = never then. */
+  feud?: boolean;
 }
 
 export interface Reward {
@@ -71,7 +80,9 @@ export type AchievementCondition =
   | { questDone: string }
   | { questsDone: { kind: "main" | "side"; atLeast: number } }
   | { anyHearts: number }
-  | { flag: string };
+  | { flag: string }
+  | { flags: string[] }
+  | { tierCount: { tier: string; atLeast: number } };
 export interface AchievementSpec { id: string; name: string; text: string; condition: AchievementCondition }
 
 export interface StoryPack {
@@ -97,10 +108,12 @@ export function storyPackProblems(story: StoryPack = STORY_PACK, pack: Settlemen
   const places = new Set(pack.places.map((p) => p.id));
   const feasts = new Set((pack.happenings?.feasts ?? []).map((f) => f.id));
   const quests = new Map(story.quests.map((q) => [q.id, q]));
+  const tiers = new Set(BONDS_PACK.tiers.map((t) => t.id));
   const settable = new Set<string>();
   for (const q of story.quests) for (const f of q.reward?.flags ?? []) settable.add(f);
   for (const t of Object.values(story.dialogues)) for (const n of Object.values(t.nodes)) for (const o of n.options) for (const f of o.effects?.setFlags ?? []) settable.add(f);
   for (const i of story.incidents.list) for (const c of i.choices) for (const f of c.setFlags ?? []) settable.add(f);
+  for (const t of BONDS_PACK.tierEvents) for (const f of t.reward?.flags ?? []) settable.add(f);
 
   const npc = (key: string, where: string) => { if (!residents.has(key)) problems.push(`${where}: unknown resident ${key}`); };
   const item = (g: ItemGrant, where: string) => { if (!prototypes.has(g.prototype)) problems.push(`${where}: unknown prototype ${g.prototype}`); };
@@ -117,6 +130,8 @@ export function storyPackProblems(story: StoryPack = STORY_PACK, pack: Settlemen
       if (!quests.get(q)?.steps.some((s) => s.id === step)) problems.push(`${where}: quest ${q} has no step ${step}`);
     }
     if (r?.resource) resource(r.resource, where);
+    if (r?.minTier && !tiers.has(r.minTier)) problems.push(`${where}: unknown tier ${r.minTier}`);
+    for (const [k, t] of Object.entries(r?.tierWith ?? {})) { npc(k, where); if (!tiers.has(t)) problems.push(`${where}: unknown tier ${t}`); }
   };
 
   const ids = new Set<string>();
@@ -133,6 +148,7 @@ export function storyPackProblems(story: StoryPack = STORY_PACK, pack: Settlemen
       if ("npc" in o) npc(o.npc, `${where} step ${s.id}`);
       if (o.type === "flag" && !settable.has(o.flag)) problems.push(`${where} step ${s.id}: flag ${o.flag} is never set`);
       if (o.type === "deliver") for (const r of [o.resource].flat()) resource(r, `${where} step ${s.id}`);
+      if (o.type === "tiers" && !tiers.has(o.tier)) problems.push(`${where} step ${s.id}: unknown tier ${o.tier}`);
       if ("count" in o && !(o.count > 0)) problems.push(`${where} step ${s.id}: count must be positive`);
     }
   }
@@ -169,6 +185,8 @@ export function storyPackProblems(story: StoryPack = STORY_PACK, pack: Settlemen
     const c = a.condition;
     if ("questDone" in c && !quests.has(c.questDone)) problems.push(`achievement ${a.id}: unknown quest ${c.questDone}`);
     if ("flag" in c && !settable.has(c.flag)) problems.push(`achievement ${a.id}: flag ${c.flag} is never set`);
+    if ("flags" in c) for (const f of c.flags) if (!settable.has(f) && !f.startsWith("served:")) problems.push(`achievement ${a.id}: flag ${f} is never set`);
+    if ("tierCount" in c && !tiers.has(c.tierCount.tier)) problems.push(`achievement ${a.id}: unknown tier ${c.tierCount.tier}`);
   }
   return problems;
 }

@@ -11,6 +11,10 @@ import {
 } from "@openlife/module-settlement-locations";
 import { ObjectComponents, ObjectKinds, ObjectRelations, holderOf, ownerOf, prototypeOf } from "@openlife/module-world-objects";
 import {
+  BONDS_PACK, LOG_LIMIT, isFeud, readBonds, rippleOf, tierIndex, tierOfHearts, npcLabel, type BondsState,
+} from "./bonds.ts";
+import type { Bond } from "@openlife/module-settlement-locations";
+import {
   STORY_PACK, type AchievementCondition, type BondChange, type ItemGrant, type Objective, type QuestSpec, type Requirements, type Reward,
 } from "./spec.ts";
 
@@ -30,7 +34,12 @@ export interface Journal {
   incidents: Record<string, string>;
   dialogue: Record<string, string>;
   itemSeq: number;
+  bonds: BondsState;
 }
+
+/** Reads a villager's bond with the player; an Outcome answers with its pending changes applied. */
+export type BondFn = (key: string) => Bond;
+export const worldBonds = (world: WorldView, me: string): BondFn => (key) => bondOf(socialOf(world, residentId(key)), me);
 
 const obj = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? v as Record<string, unknown> : {});
 const nums = (v: unknown): Record<string, number> => Object.fromEntries(Object.entries(obj(v)).map(([k, n]) => [k, Number(n)]));
@@ -53,6 +62,7 @@ export function readJournal(world: WorldView, me: string): Journal {
     incidents: strs(raw.incidents),
     dialogue: strs(raw.dialogue),
     itemSeq: Number(raw.itemSeq ?? 0),
+    bonds: readBonds(raw.bonds),
   };
 }
 
@@ -98,13 +108,21 @@ export function consume(ids: string[], from: string, reason: string): Effect[] {
 // ---------------------------------------------------------------------------
 // Conditions
 
-export function meets(world: WorldView, me: string, j: Journal, r: Requirements | undefined, speaker?: string): string {
+export function meets(world: WorldView, me: string, j: Journal, r: Requirements | undefined, speaker?: string, bond: BondFn = worldBonds(world, me)): string {
   if (!r) return "";
+  const hearts = (k: string) => heartsOf(bond(k));
+  if (r.minTier && speaker && tierIndex(tierOfHearts(hearts(speaker)).id) < tierIndex(r.minTier)) {
+    return `要和${npcName(speaker)}成为「${BONDS_PACK.tiers[tierIndex(r.minTier)]!.name}」`;
+  }
+  for (const [k, t] of Object.entries(r.tierWith ?? {})) {
+    if (tierIndex(tierOfHearts(hearts(k)).id) < tierIndex(t)) return `要和${npcName(k)}成为「${BONDS_PACK.tiers[tierIndex(t)]!.name}」`;
+  }
+  if (r.feud !== undefined && speaker && isFeud(bond(speaker)) !== r.feud) return r.feud ? "你们之间没有疙瘩" : `${npcName(speaker)}心里还有疙瘩`;
   for (const f of r.flags ?? []) if (!j.flags.includes(f)) return "时候未到";
   for (const f of r.notFlags ?? []) if (j.flags.includes(f)) return "已经不合适了";
-  for (const [k, n] of Object.entries(r.hearts ?? {})) if (heartsWith(world, k, me) < n) return `和${npcName(k)}的交情还不够（需要 ${n} 颗心）`;
+  for (const [k, n] of Object.entries(r.hearts ?? {})) if (hearts(k) < n) return `和${npcName(k)}的交情还不够（需要 ${n} 颗心）`;
   for (const q of r.questsDone ?? []) if (j.quests[q]?.status !== "done") return "要先把别的事办完";
-  if (r.minHearts !== undefined && speaker && heartsWith(world, speaker, me) < r.minHearts) return `交情还不够（需要 ${r.minHearts} 颗心）`;
+  if (r.minHearts !== undefined && speaker && hearts(speaker) < r.minHearts) return `交情还不够（需要 ${r.minHearts} 颗心）`;
   for (const [q, step] of Object.entries(r.quest ?? {})) {
     const state = j.quests[q];
     const spec = STORY_PACK.quests.find((s) => s.id === q);
@@ -117,13 +135,18 @@ export function meets(world: WorldView, me: string, j: Journal, r: Requirements 
 // ---------------------------------------------------------------------------
 // Quest objectives
 
-function objectiveValue(world: WorldView, me: string, j: Journal, o: Objective): number {
+export function friendsAtTier(bond: BondFn, tier: string): number {
+  return RIVER_TERRACE_PACK.residents.filter((r) => tierIndex(tierOfHearts(heartsOf(bond(r.key))).id) >= tierIndex(tier)).length;
+}
+
+function objectiveValue(world: WorldView, me: string, j: Journal, o: Objective, bond: BondFn = worldBonds(world, me)): number {
   switch (o.type) {
+    case "tiers": return friendsAtTier(bond, o.tier);
     case "counter": return j.counters[o.counter] ?? 0;
     case "talk": return j.counters[`talk:${o.npc}`] ?? 0;
     case "distinctTalks": return j.talked.length;
     case "flag": return j.flags.includes(o.flag) ? 1 : 0;
-    case "hearts": return heartsWith(world, o.npc, me);
+    case "hearts": return heartsOf(bond(o.npc));
     case "deliver": return ownedInHand(world, me, o.resource).length;
   }
 }
@@ -133,13 +156,13 @@ export function baseFor(world: WorldView, me: string, j: Journal, o: Objective):
   return o.type === "counter" || o.type === "talk" || o.type === "distinctTalks" ? objectiveValue(world, me, j, o) : 0;
 }
 
-export function progressOf(world: WorldView, me: string, j: Journal, q: QuestSpec): { done: number; target: number; auto: boolean } | undefined {
+export function progressOf(world: WorldView, me: string, j: Journal, q: QuestSpec, bond: BondFn = worldBonds(world, me)): { done: number; target: number; auto: boolean } | undefined {
   const state = j.quests[q.id];
   const step = state?.status === "active" ? q.steps[state.step] : undefined;
   if (!step) return undefined;
   const o = step.objective;
   const target = o.type === "flag" ? 1 : o.type === "hearts" ? o.atLeast : o.count;
-  const raw = objectiveValue(world, me, j, o);
+  const raw = objectiveValue(world, me, j, o, bond);
   const done = o.type === "counter" || o.type === "talk" || o.type === "distinctTalks" ? raw - state!.base : raw;
   return { done: Math.max(0, Math.min(target, done)), target, auto: o.type !== "deliver" };
 }
@@ -151,6 +174,9 @@ export class Outcome {
   readonly effects: Effect[] = [];
   readonly lines: string[] = [];
   readonly #bonds = new Map<string, BondChange>();
+  readonly #why = new Map<string, string>();
+  /** Bond changes already in the world (made by the settlement this transaction), for ripple. */
+  readonly #observed = new Map<string, BondChange>();
   readonly world: WorldView;
   readonly me: string;
   readonly tick: number;
@@ -159,17 +185,51 @@ export class Outcome {
     this.world = world; this.me = me; this.j = j; this.tick = tick;
   }
 
-  bond(key: string, change: BondChange | undefined): void {
+  bond(key: string, change: BondChange | undefined, why?: string): void {
     if (!change) return;
     const prev = this.#bonds.get(key) ?? {};
     const next: BondChange = { ...prev };
     for (const [k, v] of Object.entries(change) as [keyof BondChange, number][]) next[k] = (next[k] ?? 0) + v;
     this.#bonds.set(key, next);
+    if (why && !this.#why.has(key)) this.#why.set(key, why);
   }
-  bondAll(change: BondChange | undefined): void {
+  bondAll(change: BondChange | undefined, why?: string): void {
     if (!change) return;
-    for (const r of RIVER_TERRACE_PACK.residents) this.bond(r.key, change);
+    for (const r of RIVER_TERRACE_PACK.residents) this.bond(r.key, change, why);
   }
+  /** The bond as it will be once this outcome lands. */
+  readonly bondNow: BondFn = (key) => {
+    const rid = residentId(key);
+    const change = this.#bonds.get(key);
+    const memory = socialOf(this.world, rid);
+    return bondOf(change ? withBond(memory, this.me, change, this.tick) : memory, this.me);
+  };
+
+  /**
+   * Notices how the settlement's own rules moved bonds (a talk, a gift) since
+   * the journal last looked, and logs each change with what caused it.
+   */
+  observe(label: string, targetKey = ""): void {
+    const seen = { ...this.j.bonds.seen };
+    const tierSeen = { ...this.j.bonds.tierSeen };
+    const log = [...this.j.bonds.log];
+    for (const r of RIVER_TERRACE_PACK.residents) {
+      const now = bondOf(socialOf(this.world, residentId(r.key)), this.me);
+      const before = seen[r.key];
+      seen[r.key] = { familiarity: now.familiarity, trust: now.trust, grudge: now.grudge };
+      if (!before) {
+        // First sight: what the village already felt before you came is a baseline, not news.
+        tierSeen[r.key] ??= tierIndex(tierOfHearts(heartsOf(now)).id);
+        continue;
+      }
+      const d = { familiarity: r2(now.familiarity - before.familiarity), trust: r2(now.trust - before.trust), grudge: r2(now.grudge - before.grudge) };
+      if (!d.familiarity && !d.trust && !d.grudge) continue;
+      log.push({ at: this.tick, npc: r.key, ...d, why: r.key === targetKey ? label : "日子里的来往" });
+      if (r.key === targetKey) this.#observed.set(r.key, d);
+    }
+    this.j = { ...this.j, bonds: { ...this.j.bonds, seen, tierSeen, log: log.slice(-LOG_LIMIT) } };
+  }
+
   grant(item: ItemGrant): string {
     this.j = { ...this.j, itemSeq: this.j.itemSeq + 1 };
     const id = `village-stories:item:${this.me}:${this.j.itemSeq}`;
@@ -187,12 +247,12 @@ export class Outcome {
     );
     return name;
   }
-  reward(r: Reward | undefined): string[] {
+  reward(r: Reward | undefined, why = "故事里的事"): string[] {
     const got: string[] = [];
     if (!r) return got;
     for (const item of r.items ?? []) got.push(this.grant(item));
-    for (const [k, c] of Object.entries(r.bond ?? {})) this.bond(k, c);
-    this.bondAll(r.bondAll);
+    for (const [k, c] of Object.entries(r.bond ?? {})) this.bond(k, c, why);
+    this.bondAll(r.bondAll, why);
     this.flag(...(r.flags ?? []));
     return got;
   }
@@ -208,19 +268,58 @@ export class Outcome {
     this.effects.push({ kind: "emitEvent", eventType, actorId: this.me, ...(targetId ? { targetId } : {}), data: { ...data, line }, historicalSignificance: 0.05 });
   }
 
-  /** Advance auto-completing quest steps, pay rewards, unlock achievements; then emit everything. */
+  /** Ripple through the village web, advance quests, fire tier scenes, unlock achievements; then emit. */
   finish(reason: string): Effect[] {
-    for (let guard = 0; guard < 20 && this.#settleQuests(); guard += 1) { /* repeat until stable */ }
+    this.#ripple();
+    for (let guard = 0; guard < 20 && (this.#settleQuests() || this.#tierScenes()); guard += 1) { /* repeat until stable */ }
     this.#unlockAchievements();
     const out: Effect[] = [...this.effects];
+    const seen = { ...this.j.bonds.seen };
+    const log = [...this.j.bonds.log];
     for (const [key, change] of this.#bonds) {
       const rid = residentId(key);
       if (!this.world.getComponent(rid, SettlementComponents.resident)) continue;
+      const before = bondOf(socialOf(this.world, rid), this.me);
+      const memory = withBond(socialOf(this.world, rid), this.me, change, this.tick);
+      const after = bondOf(memory, this.me);
       out.push({ kind: "modifyComponent", entityId: rid, component: SettlementComponents.resident,
-        patch: { social: toJson(withBond(socialOf(this.world, rid), this.me, change, this.tick)) }, reason: `story: ${reason}` });
+        patch: { social: toJson(memory) }, reason: `story: ${reason}` });
+      seen[key] = { familiarity: after.familiarity, trust: after.trust, grudge: after.grudge };
+      const d = { familiarity: r2(after.familiarity - before.familiarity), trust: r2(after.trust - before.trust), grudge: r2(after.grudge - before.grudge) };
+      if (d.familiarity || d.trust || d.grudge) log.push({ at: this.tick, npc: key, ...d, why: this.#why.get(key) ?? reason });
     }
+    this.j = { ...this.j, bonds: { ...this.j.bonds, seen, log: log.slice(-LOG_LIMIT) } };
     out.push(journalEffect(this.me, this.j, reason));
     return out;
+  }
+
+  #ripple(): void {
+    const sources = new Map<string, BondChange>(this.#observed);
+    for (const [k, c] of this.#bonds) {
+      const prev = sources.get(k) ?? {};
+      sources.set(k, { familiarity: (prev.familiarity ?? 0) + (c.familiarity ?? 0), trust: (prev.trust ?? 0) + (c.trust ?? 0) });
+    }
+    for (const [key, change] of sources) {
+      for (const r of rippleOf(key, change, this.j.bonds.reconciled)) this.bond(r.other, r.change, r.why);
+    }
+  }
+
+  /** A villager whose tier rose past a written scene tells it now (once per tier). */
+  #tierScenes(): boolean {
+    let fired = false;
+    for (const r of RIVER_TERRACE_PACK.residents) {
+      const now = tierIndex(tierOfHearts(heartsOf(this.bondNow(r.key))).id);
+      const seen = this.j.bonds.tierSeen[r.key] ?? 0;
+      if (now <= seen) continue;
+      this.j = { ...this.j, bonds: { ...this.j.bonds, tierSeen: { ...this.j.bonds.tierSeen, [r.key]: now } } };
+      for (const ev of BONDS_PACK.tierEvents.filter((e) => e.npc === r.key && tierIndex(e.tier) > seen && tierIndex(e.tier) <= now)) {
+        const got = this.reward(ev.reward, `和${npcLabel(r.key)}成了${BONDS_PACK.tiers[tierIndex(ev.tier)]!.name}`);
+        this.say("village-stories.tier_scene", `${ev.text}${got.length ? `（得到：${got.join("、")}）` : ""}`, { npc: r.key, tier: ev.tier }, residentId(r.key));
+      }
+      this.say("village-stories.tier_up", `你和${npcLabel(r.key)}的关系变成了「${BONDS_PACK.tiers[now]!.name}」。`, { npc: r.key, tier: BONDS_PACK.tiers[now]!.id }, residentId(r.key));
+      fired = true;
+    }
+    return fired;
   }
 
   /** Moves a quest past its current step; completes it when that was the last. */
@@ -229,7 +328,7 @@ export class Outcome {
     const next = state.step + 1;
     if (next >= q.steps.length) {
       this.j = { ...this.j, quests: { ...this.j.quests, [q.id]: { ...state, status: "done", step: next, doneAt: this.tick } } };
-      const got = this.reward(q.reward);
+      const got = this.reward(q.reward, `「${q.title}」办成了`);
       this.count("quest");
       this.count(`quest:${q.kind}`);
       this.say("village-stories.quest_completed", `${q.completeLine}${got.length ? `（得到：${got.join("、")}）` : ""}`, { questId: q.id, kind: q.kind });
@@ -244,7 +343,7 @@ export class Outcome {
   #settleQuests(): boolean {
     let moved = false;
     for (const q of STORY_PACK.quests) {
-      const p = progressOf(this.world, this.me, this.j, q);
+      const p = progressOf(this.world, this.me, this.j, q, this.bondNow);
       if (p?.auto && p.done >= p.target) { this.advance(q); moved = true; }
     }
     return moved;
@@ -252,19 +351,22 @@ export class Outcome {
 
   #unlockAchievements(): void {
     for (const a of STORY_PACK.achievements) {
-      if (this.j.achievements[a.id] !== undefined || !achieved(this.world, this.me, this.j, a.condition)) continue;
+      if (this.j.achievements[a.id] !== undefined || !achieved(this.world, this.me, this.j, a.condition, this.bondNow)) continue;
       this.j = { ...this.j, achievements: { ...this.j.achievements, [a.id]: this.tick } };
       this.say("village-stories.achievement_unlocked", `【成就】${a.name}：${a.text}。`, { achievementId: a.id });
     }
   }
 }
+const r2 = (n: number) => Math.round(n * 100) / 100;
 
-export function achieved(world: WorldView, me: string, j: Journal, c: AchievementCondition): boolean {
+export function achieved(world: WorldView, me: string, j: Journal, c: AchievementCondition, bond: BondFn = worldBonds(world, me)): boolean {
+  if ("tierCount" in c) return friendsAtTier(bond, c.tierCount.tier) >= c.tierCount.atLeast;
+  if ("flags" in c) return c.flags.every((f) => j.flags.includes(f));
   if ("counter" in c) return (j.counters[c.counter] ?? 0) >= c.atLeast;
   if ("distinctTalks" in c) return j.talked.length >= c.distinctTalks;
   if ("questDone" in c) return j.quests[c.questDone]?.status === "done";
   if ("questsDone" in c) return STORY_PACK.quests.filter((q) => q.kind === c.questsDone.kind && j.quests[q.id]?.status === "done").length >= c.questsDone.atLeast;
-  if ("anyHearts" in c) return RIVER_TERRACE_PACK.residents.some((r) => heartsWith(world, r.key, me) >= c.anyHearts);
+  if ("anyHearts" in c) return RIVER_TERRACE_PACK.residents.some((r) => heartsOf(bond(r.key)) >= c.anyHearts);
   return j.flags.includes(c.flag);
 }
 

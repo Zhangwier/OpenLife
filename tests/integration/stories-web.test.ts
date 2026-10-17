@@ -58,6 +58,10 @@ test("Web: the 故事 page's quests and dialogue run end to end over HTTP", { ti
       assert.equal(said.result.ok, true, JSON.stringify(said.result.errors));
       assert.ok(said.narrative.length > 0, "the answer is told back");
     }
+    assert.equal(s.stories.people.villagers.length, 16, "the 故事 page lists every villager with tier and ties");
+    assert.ok(s.stories.people.villagers.some((v: any) => v.special === "巫医"));
+    const service = await act("village-stories.service.use", { serviceId: "divine" });
+    assert.equal(service.result.ok, false, "a stranger cannot ask the healer to read tomorrow");
     const refused = await act("village-stories.quest.accept", { questId: "main-3-ford" });
     assert.equal(refused.result.ok, false, "chapter three is locked");
 

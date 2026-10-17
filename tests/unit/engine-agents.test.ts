@@ -33,7 +33,7 @@ test("M4-B: a 30-day advanceBy (debug console path) lives 30 village days", () =
   const sim = village(4401);
   sim.advanceBy(30);
   const counts = dailyCounts(sim);
-  assert.equal(counts.length, 14);
+  assert.equal(counts.length, 16);
   assert.ok(counts.every((n) => n === 30), `every resident lived each day: ${counts}`);
   const report = sim.agentReport(VILLAGE_DAY_AGENT);
   assert.equal(report?.tick, sim.tick);

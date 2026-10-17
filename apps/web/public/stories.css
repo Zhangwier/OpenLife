@@ -29,3 +29,14 @@
 .story-badges li.is-unlocked { opacity: 1; filter: none; border-color: var(--accent-line); background: var(--accent-soft); }
 .story-badges b { display: block; font-size: .9rem; }
 .story-badges small { color: var(--ink-2); font-size: .75rem; }
+
+.story-roster { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 6px; }
+.story-person { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; border-bottom: 1px dashed var(--line); padding: 6px 0; }
+.story-person.is-feud b { color: #b4483b; }
+.story-where { color: var(--ink-2); }
+.story-ties i { font-style: normal; font-size: .72rem; margin-right: 4px; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--line); }
+.story-ties .tie-kin { border-color: var(--accent-line); }
+.story-ties .tie-rival { border-color: #b4483b; color: #b4483b; }
+.story-log { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; font-size: .88rem; }
+.story-log small { color: var(--ink-2); margin-left: 6px; }
+.story-remark { color: var(--accent-ink); font-size: .88rem; }

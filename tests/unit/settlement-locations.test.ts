@@ -111,7 +111,7 @@ test("each authored place has a purpose, an object and a person attached", () =>
 test("residents are already somewhere when the player arrives, not idle at origen", () => {
   const { sim } = world();
   const staff = people(sim.worldView()).residents;
-  assert.equal(staff.length, 14);
+  assert.equal(staff.length, 16);
   for (const resident of staff) {
     assert.ok(resident.placeId, `${resident.id} must start the day somewhere`);
     assert.equal(resident.atWork ?? true, true);
@@ -1081,7 +1081,7 @@ test("a settlement survives save and load with its places, stock and residents i
   assert.equal(other.fingerprint(), sim.fingerprint());
   assert.ok(other.worldView().getEntity(SettlementId));
   assert.equal(occupiedPlaceId(other.worldView(), actorId), "place:river");
-  assert.equal(people(other.worldView()).residents.length, 14);
+  assert.equal(people(other.worldView()).residents.length, 16);
   assert.deepEqual(
     worksites(other.worldView()).totals,
     worksites(sim.worldView()).totals,
@@ -1112,7 +1112,7 @@ test("an old save from before the settlement gains one without losing its people
     sim.worldView().getComponent(legacyId, "modern.identity"),
     legacy.worldView().getComponent(legacyId, "modern.identity"),
   );
-  assert.equal(people(sim.worldView()).residents.length, 14);
+  assert.equal(people(sim.worldView()).residents.length, 16);
 });
 
 test("founding refuses a second settlement and an unknown map location", () => {

@@ -432,6 +432,159 @@
         }
       },
       "completeLine": "阿灶尝了一口阿稷的饭，愣了一下：“盐放得……跟我一样。”阿稷偷偷朝你眨了眨眼。"
+    },
+    {
+      "id": "side-healer-herbs",
+      "kind": "side",
+      "title": "蓍婆的药圃",
+      "giver": "healer",
+      "requires": {
+        "tierWith": {
+          "healer": "acquaint"
+        }
+      },
+      "summary": "蓍婆的草药快用完了，入冬前得备足止咳退热的草。",
+      "acceptLine": "蓍婆把空了的草篓给你看：“冬天前得备齐。你腿脚快，帮我去苇滩割些来。”",
+      "steps": [
+        {
+          "id": "cut",
+          "text": "去芦苇滩割两回苇子（顺手掐草药）",
+          "objective": {
+            "type": "counter",
+            "counter": "gather:resource:reed",
+            "count": 2
+          }
+        },
+        {
+          "id": "fiber",
+          "text": "给蓍婆送一束纤维（捆药用）",
+          "objective": {
+            "type": "deliver",
+            "npc": "healer",
+            "resource": "resource:fiber",
+            "count": 1
+          },
+          "doneLine": "蓍婆把草一束束捆好挂起来：“够熬一冬天了。”"
+        }
+      ],
+      "reward": {
+        "bond": {
+          "healer": {
+            "familiarity": 1,
+            "trust": 2
+          },
+          "trader-elder": {
+            "familiarity": 0.5
+          }
+        },
+        "flags": [
+          "healer-apprentice"
+        ]
+      },
+      "completeLine": "蓍婆第一次让你进了她挂满草药的小屋：“往后谁病了，你可以先来问我。”"
+    },
+    {
+      "id": "side-smith-flint",
+      "kind": "side",
+      "title": "阿砺的燧石",
+      "giver": "stonesmith",
+      "requires": {
+        "tierWith": {
+          "stonesmith": "acquaint"
+        }
+      },
+      "summary": "阿砺想找一块能打出一辈子好刀的燧石，听说河湾深处有，可他一个人翻不动。",
+      "acceptLine": "阿砺闷声说：“河湾底下有好石头。帮我翻几回？翻到了，头一把刀给你。”",
+      "steps": [
+        {
+          "id": "dig",
+          "text": "去河湾挖两回黏土（翻出底下的石头）",
+          "objective": {
+            "type": "counter",
+            "counter": "gather:resource:clay",
+            "count": 2
+          }
+        },
+        {
+          "id": "talk",
+          "text": "回去告诉阿砺你看到的石头（对话）",
+          "objective": {
+            "type": "flag",
+            "flag": "smith-flint-found"
+          }
+        },
+        {
+          "id": "rope",
+          "text": "送阿砺一根草绳（捆石料）",
+          "objective": {
+            "type": "deliver",
+            "npc": "stonesmith",
+            "resource": "resource:rope",
+            "count": 1
+          }
+        }
+      ],
+      "reward": {
+        "items": [
+          {
+            "prototype": "prototype:stone-knife",
+            "name": "燧石刀"
+          }
+        ],
+        "bond": {
+          "stonesmith": {
+            "familiarity": 1,
+            "trust": 2
+          },
+          "clay-digger": {
+            "familiarity": 0.5
+          }
+        }
+      },
+      "completeLine": "阿砺用那块燧石打出的第一把刀，刃口能照见人影。他把刀塞给你：“说好的。”"
+    },
+    {
+      "id": "side-elder-trust",
+      "kind": "side",
+      "title": "长老的托付",
+      "giver": "trader-elder",
+      "requires": {
+        "flags": [
+          "settled-in"
+        ]
+      },
+      "summary": "埴公想知道，村里人是不是真把你当自己人了。",
+      "acceptLine": "埴公眯着眼：“一个人在村里站不站得住，看他有几个说得上话的朋友。”",
+      "steps": [
+        {
+          "id": "friends",
+          "text": "和三位村民成为朋友（3 颗心）",
+          "objective": {
+            "type": "tiers",
+            "tier": "friend",
+            "count": 3
+          }
+        },
+        {
+          "id": "report",
+          "text": "回去跟埴公说说（对话）",
+          "objective": {
+            "type": "flag",
+            "flag": "elder-trust-told"
+          }
+        }
+      ],
+      "reward": {
+        "bond": {
+          "trader-elder": {
+            "trust": 2
+          }
+        },
+        "flags": [
+          "village-trusted"
+        ]
+      },
+      "completeLine": "埴公听完，慢慢点头：“好。往后村里议事，你也来坐一坐。”"
     }
   ],
   "dialogues": {
@@ -455,6 +608,19 @@
                 }
               },
               "next": "master"
+            },
+            {
+              "id": "heir",
+              "label": "问他泥刀的事",
+              "requires": {
+                "minTier": "close"
+              },
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                },
+                "line": "陶叔拍拍你：“急什么。窑火认得你了，泥刀迟早是你的。”"
+              }
             },
             {
               "id": "bye",
@@ -529,6 +695,19 @@
                 "minHearts": 3
               },
               "next": "secret"
+            },
+            {
+              "id": "feud",
+              "label": "向她道歉",
+              "requires": {
+                "feud": true
+              },
+              "effects": {
+                "bond": {
+                  "grudge": -1
+                },
+                "line": "阿岚别过脸去：“……知道错就好。”声音软了些。"
+              }
             },
             {
               "id": "later",
@@ -686,6 +865,24 @@
                 ]
               },
               "next": "ford"
+            },
+            {
+              "id": "trust",
+              "label": "跟埴公说说村里的朋友",
+              "requires": {
+                "quest": {
+                  "side-elder-trust": "report"
+                }
+              },
+              "effects": {
+                "setFlags": [
+                  "elder-trust-told"
+                ],
+                "bond": {
+                  "trust": 0.5
+                },
+                "line": "你一个个数给埴公听。他捋着胡子，笑得眼睛都眯成一条缝。"
+              }
             },
             {
               "id": "bye",
@@ -888,6 +1085,179 @@
                   "knows-river"
                 ],
                 "line": "阿汲点点头：“记住了就不会掉进去。我小时候就掉过一回。”"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "healer": {
+      "start": "root",
+      "nodes": {
+        "root": {
+          "text": "蓍婆坐在门槛上理草药，抬眼看你：“哪儿不舒服？”",
+          "options": [
+            {
+              "id": "fine",
+              "label": "说没事，只是路过",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.3
+                },
+                "line": "蓍婆“嗯”了一声：“没事最好。没事也常来，省得有事才来。”"
+              }
+            },
+            {
+              "id": "herbs",
+              "label": "请教认草药",
+              "requires": {
+                "minTier": "acquaint"
+              },
+              "next": "herbs"
+            },
+            {
+              "id": "past",
+              "label": "问她为什么做巫医",
+              "requires": {
+                "minTier": "friend"
+              },
+              "next": "past"
+            }
+          ]
+        },
+        "herbs": {
+          "text": "“叶背有白毛的退热，折了冒白汁的止血。开紫花、根发甜的——千万别碰。”",
+          "options": [
+            {
+              "id": "remember",
+              "label": "一样样复述一遍",
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                },
+                "setFlags": [
+                  "knows-herbs"
+                ],
+                "line": "蓍婆难得笑了：“记得比我年轻时还快。”"
+              }
+            },
+            {
+              "id": "why",
+              "label": "问紫花的为什么不能碰",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "蓍婆沉默了一下：“我见过一个孩子误吃了。”她没再往下说。"
+              }
+            }
+          ]
+        },
+        "past": {
+          "text": "“我娘是巫医，她娘也是。”蓍婆望着苇滩，“可我没孩子。认草的本事，到我这儿可能就断了。”",
+          "options": [
+            {
+              "id": "learn",
+              "label": "说你愿意学",
+              "effects": {
+                "bond": {
+                  "trust": 1
+                },
+                "setFlags": [
+                  "healer-heir"
+                ],
+                "line": "蓍婆盯着你看了很久：“学这个，要先学会看人疼。你想好了再来。”"
+              }
+            },
+            {
+              "id": "comfort",
+              "label": "说村里会记得她",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "蓍婆摇摇头，嘴角却松了些：“人记不住草，草倒是年年都长。”"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "stonesmith": {
+      "start": "root",
+      "nodes": {
+        "root": {
+          "text": "阿砺手里的石锤没停：“什么事？”",
+          "options": [
+            {
+              "id": "watch",
+              "label": "站在一边看他打石头",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.3
+                },
+                "line": "阿砺敲了一会儿，把一块石片推到你面前：“你试试。”"
+              }
+            },
+            {
+              "id": "flint",
+              "label": "告诉他河湾底下的石头",
+              "requires": {
+                "quest": {
+                  "side-smith-flint": "talk"
+                }
+              },
+              "next": "flint"
+            },
+            {
+              "id": "reed",
+              "label": "问他和阿苇怎么回事",
+              "requires": {
+                "minTier": "acquaint"
+              },
+              "next": "reed"
+            }
+          ]
+        },
+        "flint": {
+          "text": "阿砺的锤子停了：“灰里透青、一敲有回音？”他站了起来。",
+          "options": [
+            {
+              "id": "yes",
+              "label": "说就是那样的",
+              "effects": {
+                "setFlags": [
+                  "smith-flint-found"
+                ],
+                "bond": {
+                  "trust": 1
+                },
+                "line": "阿砺眼睛都亮了：“就是它！我爹找了半辈子。”"
+              }
+            }
+          ]
+        },
+        "reed": {
+          "text": "“她嫌我吵。”阿砺闷声说，“可河湾的石头就在苇滩边上，我能去哪儿敲？”",
+          "options": [
+            {
+              "id": "fair",
+              "label": "说两边各让一步",
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                },
+                "line": "阿砺哼了一声，没反驳。"
+              }
+            },
+            {
+              "id": "side",
+              "label": "说阿苇小题大做",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "阿砺嘴角动了动：“你也这么觉得？”"
               }
             }
           ]
@@ -1412,6 +1782,58 @@
       "text": "替阿岚守住一个秘密",
       "condition": {
         "flag": "lan-secret-kept"
+      }
+    },
+    {
+      "id": "tier-friend",
+      "name": "有了朋友",
+      "text": "和一位村民成为朋友（3 颗心）",
+      "condition": {
+        "tierCount": {
+          "tier": "friend",
+          "atLeast": 1
+        }
+      }
+    },
+    {
+      "id": "tier-five-friends",
+      "name": "人缘好",
+      "text": "和五位村民成为朋友",
+      "condition": {
+        "tierCount": {
+          "tier": "friend",
+          "atLeast": 5
+        }
+      }
+    },
+    {
+      "id": "peacemaker",
+      "name": "和事佬",
+      "text": "调解一场村民之间的争执",
+      "condition": {
+        "counter": "mediate",
+        "atLeast": 1
+      }
+    },
+    {
+      "id": "night-owl",
+      "name": "夜里也热闹",
+      "text": "在作息里偶遇村民五次",
+      "condition": {
+        "counter": "encounter",
+        "atLeast": 5
+      }
+    },
+    {
+      "id": "specialist",
+      "name": "三位能人",
+      "text": "受过长老、巫医、石匠各一次帮助",
+      "condition": {
+        "flags": [
+          "served:trader-elder",
+          "served:healer",
+          "served:stonesmith"
+        ]
       }
     }
   ]

@@ -33,10 +33,10 @@ function run30(seed: number, resumeAt = -1) {
   for (let day = 1; day <= 30; day++) {
     const boundary = liveDay(sim);
     assert.equal(boundary.ran, true);
-    assert.equal(boundary.notes.length, 14, "all authored villagers have a daily decision");
+    assert.equal(boundary.notes.length, 16, "all authored villagers have a daily decision");
     const state = sim.worldView();
     const residents = people(state).residents;
-    assert.equal(residents.length, 14);
+    assert.equal(residents.length, 16);
     for (const resident of residents) {
       const id = String(resident.id);
       assert.equal(state.getComponent(id, SettlementComponents.resident)?.lastRoutineAt, sim.tick,
@@ -72,7 +72,7 @@ function run30(seed: number, resumeAt = -1) {
   return { fingerprint: sim.fingerprint(), observed, sim };
 }
 
-test("30 days: all 14 residents act, scarcity creates distinct outcomes, and replay is identical", () => {
+test("30 days: all 16 residents act, scarcity creates distinct outcomes, and replay is identical", () => {
   const control = run30(9901);
   const restored = run30(9901, 15);
   assert.equal(control.fingerprint, restored.fingerprint);
