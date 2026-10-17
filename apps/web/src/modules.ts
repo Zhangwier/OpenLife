@@ -32,6 +32,7 @@ import { socialConflictModule } from "@openlife/module-social-conflict";
 import { settlementBuildModule } from "@openlife/module-settlement-build";
 import { officeModule } from "@openlife/module-office";
 import { narrativeVoiceModule } from "@openlife/module-narrative-voice";
+import { civilizationModule } from "@openlife/module-civilization";
 // 秘密需要认知层（cognition.epistemic-state）：epistemic-state 因此在 web 里也装上了。
 // 它不是 core：关掉它，village-secrets 会按 docs/PLUGINS.md §2 的规则跟着关掉。
 import { epistemicStateModule } from "@openlife/module-epistemic-state";
@@ -56,6 +57,7 @@ export const WEB_MODULE_ENTRIES: ModuleEntry[] = [
   { module: settlementBuildModule },
   { module: officeModule },
   { module: narrativeVoiceModule },
+  { module: civilizationModule },
   // 认知层与心事：秘密要靠它记「谁知道了什么」。不是 core。
   { module: epistemicStateModule },
   { module: villageSecretsModule },

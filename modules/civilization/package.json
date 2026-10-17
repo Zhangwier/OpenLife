@@ -1,0 +1,19 @@
+{
+  "name": "@openlife/module-civilization",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/life-contracts": "*",
+    "@openlife/module-tech": "*",
+    "@openlife/module-polity": "*"
+  },
+  "openlife": {
+    "label": "文明层",
+    "summary": "多政体、传播、交流与冲突：发明沿聚落网络扩散，而不是同时到处出现。"
+  }
+}

@@ -45,6 +45,7 @@
     "@openlife/module-fate": "*",
     "@openlife/world-model": "*",
     "@openlife/module-office": "*",
-    "@openlife/module-narrative-voice": "*"
+    "@openlife/module-narrative-voice": "*",
+    "@openlife/module-civilization": "*"
   }
 }
