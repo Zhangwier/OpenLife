@@ -9,5 +9,9 @@
   "dependencies": {
     "@openlife/contracts": "*",
     "@openlife/module-world-space": "*"
+  },
+  "openlife": {
+    "label": "物品与容器",
+    "summary": "通用的物品原型、实例、容器、携带与归属规则。"
   }
 }

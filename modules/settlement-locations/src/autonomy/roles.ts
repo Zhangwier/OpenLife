@@ -7,7 +7,8 @@
  * authored on the place.
  */
 import { RIVER_TERRACE_PACK, type SettlementPack } from "../content.ts";
-import { residentId, currentYields, hungerAt, SettlementCommands, SettlementComponents, SettlementId } from "../module.ts";
+import { residentId, SettlementCommands, SettlementComponents, SettlementId } from "../vocabulary.ts";
+import { currentYields, hungerAt } from "../module.ts";
 import { occupiedPlaceId } from "@openlife/module-world-space";
 import type { AgentHost } from "@openlife/contracts";
 import type { WorldView } from "@openlife/contracts";

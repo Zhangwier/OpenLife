@@ -258,11 +258,16 @@ function parseManifest(file: StagedFile, issues: MapPackIssue[]): MapPackManifes
     issues.push(fileIssue(file, MapPackIssueCode.SchemaVersion, `manifest.schema_version must be "${MAP_PACK_SCHEMA_VERSION}", received "${schemaVersion}"`, { field: "schema_version" }));
   }
   const description = typeof root.description === "string" ? root.description : undefined;
+  const displayName = typeof root.display_name === "string" && root.display_name.trim() ? root.display_name.trim() : undefined;
 
   if (id === undefined || name === undefined || version === undefined || type === undefined || schemaVersion === undefined) {
     return undefined;
   }
-  return { id, name, version, type, schemaVersion, ...(description !== undefined ? { description } : {}) };
+  return {
+    id, name, version, type, schemaVersion,
+    ...(description !== undefined ? { description } : {}),
+    ...(displayName !== undefined ? { displayName } : {}),
+  };
 }
 
 // --- collections -----------------------------------------------------------

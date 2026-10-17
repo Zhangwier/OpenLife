@@ -8,5 +8,9 @@
   },
   "dependencies": {
     "@openlife/contracts": "*"
+  },
+  "openlife": {
+    "label": "持续活动",
+    "summary": "跨时间进行的活动和等待参与者决定的节点。"
   }
 }

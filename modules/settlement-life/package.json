@@ -3,11 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "dependencies": {
     "@openlife/contracts": "*",
     "@openlife/life-contracts": "*",
     "@openlife/module-practice-runtime": "*",
     "@openlife/module-craft-pottery": "*"
+  },
+  "openlife": {
+    "label": "聚落生活活动",
+    "summary": "现有的学习、相处、作品用途与家庭交棒。"
   }
 }

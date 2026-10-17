@@ -7,7 +7,8 @@
  * resident's persisted lastRoutineAt marker.
  */
 import type { AgentHost as NpcHost } from "@openlife/contracts";
-import { SettlementCommands, SettlementComponents, residentId, dailyActivity, worksites } from "../module.ts";
+import { SettlementCommands, SettlementComponents, residentId } from "../vocabulary.ts";
+import { dailyActivity, worksites } from "../module.ts";
 import { SpaceCommands, occupiedPlaceId, occupiedSpaceId } from "@openlife/module-world-space";
 import { ObjectRelations, holderOf, ownerOf, prototypeOf } from "@openlife/module-world-objects";
 import { ROLES, yieldId, stockAt, roleNote } from "./roles.ts";

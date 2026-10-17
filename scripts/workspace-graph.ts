@@ -23,6 +23,9 @@ export interface WorkspacePackage {
   /** Directory relative to the repo root, e.g. `modules/world-space`. */
   dir: string;
   description: string;
+  /** Player-facing name and one-line summary from package.json `openlife` (modules). */
+  label: string;
+  summary: string;
   /** `@openlife/*` names declared in dependencies / devDependencies / peerDependencies. */
   declared: string[];
   /** `@openlife/*` names imported (statically or via re-export) by source files. */
@@ -75,6 +78,8 @@ export function readWorkspace(root: string = REPO_ROOT): WorkspacePackage[] {
         layer,
         dir: `${layer}/${name}`,
         description: String(manifest.description ?? ""),
+        label: String(manifest.openlife?.label ?? ""),
+        summary: String(manifest.openlife?.summary ?? ""),
         declared,
         imported: Object.keys(importSites).sort(),
         importSites,
@@ -105,4 +110,60 @@ export function findCycles(packages: readonly WorkspacePackage[]): string[][] {
   };
   for (const p of packages) if (!state.has(p.name)) visit(p.name);
   return cycles;
+}
+
+// ---------------------------------------------------------------------------
+// File-level import graph (relative imports inside one package)
+
+const RELATIVE_IMPORT = /^\s*(?:import|export)\s+(?!type\b)(?:[^"';]*?\sfrom\s+)?["'](\.{1,2}\/[^"']+)["']/gm;
+
+/**
+ * Runtime import edges between source files, from relative `import` /
+ * `export ... from` statements. Type-only imports (`import type`, inline
+ * `import("...")` type queries) are erased at runtime and never create a cycle,
+ * so they are skipped. Keys and values are repo-relative POSIX paths.
+ */
+export function fileImportGraph(root: string = REPO_ROOT): Map<string, string[]> {
+  const graph = new Map<string, string[]>();
+  for (const layer of LAYERS) {
+    const layerDir = path.join(root, layer);
+    if (!fs.existsSync(layerDir)) continue;
+    for (const file of sourceFiles(layerDir)) {
+      if (!file.endsWith(".ts")) continue;
+      const from = path.relative(root, file).split(path.sep).join("/");
+      const deps: string[] = [];
+      for (const match of fs.readFileSync(file, "utf8").matchAll(RELATIVE_IMPORT)) {
+        deps.push(path.relative(root, path.resolve(path.dirname(file), match[1]!)).split(path.sep).join("/"));
+      }
+      graph.set(from, deps);
+    }
+  }
+  return graph;
+}
+
+/** Strongly connected groups of more than one file: each is an import cycle. */
+export function fileCycles(graph: Map<string, string[]>): string[][] {
+  let counter = 0;
+  const index = new Map<string, number>();
+  const low = new Map<string, number>();
+  const stack: string[] = [];
+  const onStack = new Set<string>();
+  const groups: string[][] = [];
+  const connect = (v: string) => {
+    index.set(v, counter); low.set(v, counter); counter += 1;
+    stack.push(v); onStack.add(v);
+    for (const w of graph.get(v) ?? []) {
+      if (!graph.has(w)) continue;
+      if (!index.has(w)) { connect(w); low.set(v, Math.min(low.get(v)!, low.get(w)!)); }
+      else if (onStack.has(w)) low.set(v, Math.min(low.get(v)!, index.get(w)!));
+    }
+    if (low.get(v) === index.get(v)) {
+      const group: string[] = [];
+      let w: string;
+      do { w = stack.pop()!; onStack.delete(w); group.push(w); } while (w !== v);
+      if (group.length > 1) groups.push(group.sort());
+    }
+  };
+  for (const v of [...graph.keys()].sort()) if (!index.has(v)) connect(v);
+  return groups.sort((a, b) => a[0]!.localeCompare(b[0]!));
 }

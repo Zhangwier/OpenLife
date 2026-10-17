@@ -9,5 +9,9 @@
   "dependencies": {
     "@openlife/contracts": "*",
     "@openlife/module-practice-runtime": "*"
+  },
+  "openlife": {
+    "label": "建筑与空间",
+    "summary": "地点内部的场所与房间、进出与占用。"
   }
 }

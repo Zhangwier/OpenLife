@@ -11,5 +11,9 @@
     "@openlife/module-world-geography": "*",
     "@openlife/module-world-vegetation": "*",
     "@openlife/module-world-species": "*"
+  },
+  "openlife": {
+    "label": "放牧环境",
+    "summary": "放牧压力与自然环境反馈。"
   }
 }

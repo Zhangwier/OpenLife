@@ -9,5 +9,9 @@
   "dependencies": {
     "@openlife/contracts": "*",
     "@openlife/life-contracts": "*"
+  },
+  "openlife": {
+    "label": "人物与人生基础",
+    "summary": "人物、时间、出生与死亡；当前聚落复用这部分人生规则。"
   }
 }

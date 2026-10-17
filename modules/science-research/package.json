@@ -9,5 +9,9 @@
   "dependencies": {
     "@openlife/contracts": "*",
     "@openlife/module-practice-runtime": "*"
+  },
+  "openlife": {
+    "label": "研究活动",
+    "summary": "以持续活动推进观察与研究。"
   }
 }

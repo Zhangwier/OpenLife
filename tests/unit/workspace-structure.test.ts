@@ -74,3 +74,11 @@ test("repo root keeps only long-lived docs; dated working notes live in docs/not
   const dated = fs.readdirSync(REPO_ROOT).filter((name) => /_\d{4}-\d{2}-\d{2}\.md$/.test(name));
   assert.deepEqual(dated, [], "move dated notes to docs/notes/");
 });
+
+test("every module describes itself in package.json \"openlife\": { label, summary }", () => {
+  const problems = workspace
+    .filter((p) => p.layer === "modules")
+    .filter((p) => !p.label.trim() || !p.summary.trim())
+    .map((p) => `${p.dir}: add "openlife": { "label": ..., "summary": ... } to package.json`);
+  assert.deepEqual(problems, []);
+});

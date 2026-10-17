@@ -9,5 +9,9 @@
   "dependencies": {
     "@openlife/contracts": "*",
     "@openlife/life-contracts": "*"
+  },
+  "openlife": {
+    "label": "时代环境",
+    "summary": "时代阶段与当时生活背景。"
   }
 }

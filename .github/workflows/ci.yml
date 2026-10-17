@@ -20,6 +20,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - name: Type-check ratchet (no new TypeScript errors)
+        run: npm run typecheck
       - name: Smoke - modern-world demo
         run: npm run demo
       - name: Smoke - magic-test-world demo

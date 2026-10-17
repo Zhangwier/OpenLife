@@ -11,5 +11,9 @@
     "@openlife/life-contracts": "*",
     "@openlife/module-world-objects": "*",
     "@openlife/module-world-space": "*"
+  },
+  "openlife": {
+    "label": "河岸聚落",
+    "summary": "居民、地点、物资与日常行动：玩家真正生活的聚落内容层。"
   }
 }

@@ -10,5 +10,9 @@
     "@openlife/contracts": "*",
     "@openlife/module-practice-runtime": "*",
     "@openlife/life-contracts": "*"
+  },
+  "openlife": {
+    "label": "世界时钟",
+    "summary": "把引擎的整数刻度解释为日、月、季节与年份。"
   }
 }

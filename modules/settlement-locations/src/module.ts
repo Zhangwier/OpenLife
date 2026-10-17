@@ -64,115 +64,22 @@ const OWNER = "settlement-locations";
 const WORLD = "modern:world";
 const STATE = "modern.world_state";
 
-export const SettlementComponents = {
-  /** Marks the settlement entity and carries its authored identity. */
-  settlement: "settlement-locations.settlement",
-  /** Per-resident daily life: household, work place, hunger, standing routine. */
-  resident: "settlement-locations.resident",
-  /** A resource a place holds and renews, with its own authoritative stock. */
-  yieldPoint: "settlement-locations.yield",
-  /** Per-holding state for one player: what they have drawn, carried and eaten. */
-  holding: "settlement-locations.holding",
-  /** Crop state on the existing field place; absent for old saves means fallow. */
-  cropPlot: "settlement-locations.crop-plot",
-  dailyPlan: "settlement-locations.daily-plan",
-  /** A home's roof, on the home space: level after the last mending and the day it was mended. */
-  roof: "settlement-locations.roof",
-} as const;
-
-export const SettlementCommands = {
-  found: "settlement-locations.found",
-  arrive: "settlement-locations.arrive",
-  draw: "settlement-locations.draw",
-  talk: "settlement-locations.talk",
-  drink: "settlement-locations.drink",
-  eat: "settlement-locations.eat",
-  cook: "settlement-locations.cook",
-  weaveBag: "settlement-locations.weave_bag",
-  weaveMat: "settlement-locations.weave_mat",
-  prepareFiber: "settlement-locations.prepare_fiber",
-  weaveWrap: "settlement-locations.weave_wrap",
-  harvest: "settlement-locations.harvest",
-  sow: "settlement-locations.sow",
-  tend: "settlement-locations.tend",
-  rest: "settlement-locations.rest",
-  step: "settlement-locations.end_day",
-  configurePlan: "settlement-locations.plan.configure",
-  npcMarkDay: "settlement-locations.npc.mark_day",
-  npcOffer: "settlement-locations.npc.barter_offer",
-  npcAccept: "settlement-locations.npc.barter_accept",
-  playerBarterRequest: "settlement-locations.barter.request",
-  cookBarterQuote: "settlement-locations.barter.cook_quote",
-  playerBarterAccept: "settlement-locations.barter.accept",
-  playerBarterDecline: "settlement-locations.barter.decline",
-  /** General exchange between any two people in the same place. */
-  exchange: "settlement-locations.exchange",
-  craft: "settlement-locations.craft",
-  helpHearth: "settlement-locations.hearth.help",
-  npcAskHelp: "settlement-locations.npc.ask_help",
-  npcAnswerHelp: "settlement-locations.npc.answer_help",
-  npcFire: "settlement-locations.npc.fire",
-  /** A resident looks around: who is here, what they carry; old requests are settled. */
-  npcNotice: "settlement-locations.npc.notice",
-  /** A resident, face to face, asks the player for something (borrow, trade or collect a favour). */
-  npcRequest: "settlement-locations.npc.request",
-  /** The player answers a resident's request. */
-  requestAnswer: "settlement-locations.request.answer",
-  /** A resident hands someone one of their own things (repaying a favour, thanks). */
-  npcGive: "settlement-locations.npc.give",
-  /** A new life picks where it comes from and one or two talents (once). */
-  chooseOrigin: "settlement-locations.choose_origin",
-  /** The player gives one of their own things to a villager standing with them. */
-  gift: "settlement-locations.gift",
-  learn: "settlement-locations.learn",
-  /** 把这一季交给日子：记下心思放在哪儿（时间由调用方一口气推过去）。 */
-  beginSeason: "settlement-locations.season.begin",
-  /** 一季过完，结算这段日子：口粮、交情、手艺、收获。 */
-  settleSeason: "settlement-locations.season.settle",
-  /** 向一个人表明心意（交情满 8 颗心才开得了口）。 */
-  court: "settlement-locations.court",
-  /** 定亲几天后，当着全村成亲。 */
-  wed: "settlement-locations.wed",
-  /** 一家人的日子往前走：添丁、出生、孩子长到能帮家里干活（村里每天看一眼）。 */
-  familyTick: "settlement-locations.family.tick",
-  /** 人走了以后，由一个长大成人的孩子接过这一生。 */
-  handoff: "settlement-locations.handoff",
-  /** 换季那天，村里这一季的大事（村里每天看一眼，一季只发生一次）。 */
-  seasonTurn: "settlement-locations.village.season_turn",
-} as const;
-
-export const SettlementProjections = {
-  homestead: "settlement-locations.homestead",
-  people: "settlement-locations.people",
-  worksites: "settlement-locations.worksites",
-} as const;
-
-export const SettlementRejection = {
-  NotEntered: "E_SETTLEMENT_NOT_ENTERED",
-  NoSuchResident: "E_SETTLEMENT_NO_RESIDENT",
-  NoSuchPlace: "E_SETTLEMENT_NO_PLACE",
-  WrongPlace: "E_SETTLEMENT_WRONG_PLACE",
-  Empty: "E_SETTLEMENT_EMPTY",
-  NotYours: "E_SETTLEMENT_NOT_YOURS",
-  Already: "E_SETTLEMENT_ALREADY",
-  NoRoom: "E_SETTLEMENT_NO_ROOM",
-  Exhausted: "E_SETTLEMENT_EXHAUSTED",
-  Busy: "E_SETTLEMENT_BUSY",
-} as const;
-
-/** The authored settlement: one terrace village beside the central river. */
-export const SettlementId = "settlement-locations:settlement:river-terrace";
+// Ids, command types, component names and rejection codes live in
+// vocabulary.ts so satellite files can use them without importing this file.
+export {
+  SettlementComponents, SettlementProjections, SettlementCommands, SettlementRejection, SettlementId, residentId,
+} from "./vocabulary.ts";
+import {
+  SettlementComponents, SettlementProjections, SettlementCommands, SettlementRejection, SettlementId, residentId,
+} from "./vocabulary.ts";
+import { RESIDENTS, activeId, personName, saveSocial, socialOf } from "./world-reads.ts";
+import {
+  PEOPLE_TIES_SPOUSE, courtRefusal, engagedTo, registerMarriage, romanceOf, spouseOf, wedRefusal,
+} from "./marriage.ts";
+export { socialOf } from "./world-reads.ts";
+export { COURT_HEARTS, WED_AFTER_DAYS, romanceOf, spouseOf } from "./marriage.ts";
 
 
-/**
- * Fourteen residents across six households.
- *
- * Every one answers "why is he here today": they have a home space, a work
- * place and a standing routine. Their names are plain reconstructions, which is
- * the honest label for a 2070 BCE village (see the content policy in
- * `OPEN_WORLD_REQUIREMENTS.md` 搂3).
- */
-const RESIDENTS: ResidentSpec[] = RIVER_TERRACE_PACK.residents;
 
 /** Places of the settlement, each with a purpose and a cost to reach. */
 // Open outdoor arrival spots allow villagers and visitors to pass; 0 is the
@@ -733,9 +640,6 @@ export function residentTemperament(id: string): string[] {
   const mind = residentMind(id);
   return mind ? temperamentWords(mind) : [];
 }
-export function residentId(key: string): string {
-  return `settlement-locations:resident:${key}`;
-}
 
 /** Hunger is derived from the world's day clock, not an extra ticking timer. */
 function hungerLevel(world: WorldView, actorId: string): number {
@@ -1260,10 +1164,6 @@ function wantsOf(world: WorldView, personId: string): string[] {
   return key ? EXCHANGE_WANTS[key] ?? [] : [];
 }
 
-function personName(world: WorldView, personId: string): string {
-  const key = RESIDENTS.find((r) => residentId(r.key) === personId);
-  return key?.name ?? (world.getEntity(personId)?.name || String(world.getComponent(personId, "modern.identity")?.givenName ?? "") || "对方");
-}
 
 export function counterpartView(world: WorldView, proposerId: string, targetId: string): CounterpartView {
   const goods = tradeableGoods(world, targetId);
@@ -3852,12 +3752,7 @@ interface RequestRecord {
   kind: "borrow" | "trade" | "collect"; placeId: string; reason: string;
 }
 
-const activeId = (world: WorldView) =>
-  String(world.getComponent("modern:world", "modern.world_state")?.activeCharacterId ?? "");
 
-export function socialOf(world: WorldView, personId: string): SocialMemory {
-  return readSocial(world.getComponent(personId, SettlementComponents.resident)?.social);
-}
 
 function requestOf(world: WorldView, residentId: string): RequestRecord | null {
   const raw = world.getComponent(residentId, SettlementComponents.resident)?.request;
@@ -3900,10 +3795,6 @@ function setFavour(world: WorldView, creditorId: string, debtorId: string, value
   return [{ kind: "modifyComponent", entityId: creditorId, component, patch: { favours }, reason }];
 }
 
-function saveSocial(residentIdValue: string, memory: SocialMemory, reason: string): Effect {
-  return { kind: "modifyComponent", entityId: residentIdValue, component: SettlementComponents.resident,
-    patch: { social: toJson(memory) }, reason };
-}
 
 /** How close the counterpart feels to the proposer: talk counts, and so do their own memories. */
 function feltCloseness(world: WorldView, proposerId: string, targetId: string): Closeness {
@@ -4695,131 +4586,6 @@ export function liveSeason(sim: { tick: number; dispatch: (c: never) => { ok: bo
   const settled = sim.dispatch({ type: SettlementCommands.settleSeason, actorId, source: "player", payload: {} } as never);
   if (!settled.ok) return { ok: false, lines: [], days, error: settled.errors?.[0]?.message };
   return { ok: true, lines: [], days };
-}
-
-
-// ---------------------------------------------------------------------------
-// 结亲：交情一点点处出来，满 8 颗心才开得了口；对方点了头先定亲，过几天成亲。
-// ---------------------------------------------------------------------------
-export const COURT_HEARTS = 8;
-export const WED_AFTER_DAYS = 3;
-const ageOfEntity = (world: WorldView, id: string) => Number(world.getComponent(id, "modern.vitals")?.ageYears ?? 0);
-export function spouseOf(world: WorldView, id: string): string {
-  return world.listRelations({ type: "family.married_to", from: id })[0]?.to ?? "";
-}
-function engagedTo(world: WorldView, me: string): string {
-  const raw = world.getComponent(me, SettlementComponents.holding)?.engaged;
-  return raw && typeof raw === "object" && !Array.isArray(raw) ? String((raw as Record<string, JsonValue>).to ?? "") : "";
-}
-function engagedAt(world: WorldView, me: string): number {
-  const raw = world.getComponent(me, SettlementComponents.holding)?.engaged;
-  return raw && typeof raw === "object" && !Array.isArray(raw) ? Number((raw as Record<string, JsonValue>).at ?? -99) : -99;
-}
-/** 你和这个人：成了亲、定了亲、对方已有家室、或者都没有。 */
-export function romanceOf(world: WorldView, me: string, id: string): "married" | "engaged" | "taken" | "" {
-  if (spouseOf(world, me) === id) return "married";
-  if (engagedTo(world, me) === id) return "engaged";
-  if (spouseOf(world, id) || PEOPLE_TIES_SPOUSE.has(keyOfResident(id))) return "taken";
-  return "";
-}
-/** 写在人物里的老伴（陶叔陶婶）本来就是一家，不另算。 */
-const PEOPLE_TIES_SPOUSE = new Set(Object.entries(RIVER_TERRACE_PACK.people ?? {})
-  .filter(([, p]) => Object.values(p.ties ?? {}).some((t) => t.relation === "老伴")).map(([k]) => k));
-
-function courtRefusal(world: WorldView, me: string, id: string): string {
-  const name = personName(world, id);
-  if (ageOfEntity(world, me) < 18) return "你还没满十八，这话说早了";
-  if (ageOfEntity(world, id) < 18) return `${name}还没成年`;
-  if (spouseOf(world, me)) return "你已经成了家";
-  if (isIll(world.tick, id)) return `${name}病着，不是说这话的时候`;
-  const hearts = heartsOf(bondOf(socialOf(world, id), me));
-  if (hearts < COURT_HEARTS) return `交情还不够（${hearts}/${COURT_HEARTS} 颗心）`;
-  const holding = world.getComponent(me, SettlementComponents.holding);
-  const last = (holding?.courtAt && typeof holding.courtAt === "object" ? holding.courtAt as Record<string, number> : {})[id];
-  if (last !== undefined && world.tick - last < 7) return `刚跟${name}说过，给对方一点时间`;
-  return "";
-}
-function wedRefusal(world: WorldView, me: string, id: string): string {
-  const left = WED_AFTER_DAYS - (world.tick - engagedAt(world, me));
-  if (left > 0) return `才定亲，再过 ${left} 天成亲`;
-  if (isIll(world.tick, id) || isIll(world.tick, me)) return "等身子好了再办";
-  return "";
-}
-
-function registerMarriage(ctx: Registration): void {
-  const present = (c: { world: WorldView; command: { actorId?: string; payload: Record<string, unknown> } }) => {
-    const me = c.command.actorId ?? "", id = String(c.command.payload.targetId ?? "");
-    if (!me || me !== activeId(c.world)) return { me, id, why: "只有你自己能说这话。" };
-    if (!c.world.getComponent(id, SettlementComponents.resident) || !personOf(id)?.court) return { me, id, why: "要对一个具体的人说。" };
-    if (occupiedPlaceId(c.world, me) !== occupiedPlaceId(c.world, id)) return { me, id, why: "这种话要当面说。" };
-    return { me, id, why: "" };
-  };
-  ctx.registerConstraintRule({
-    id: `${SettlementCommands.court}.allowed`, commandType: SettlementCommands.court,
-    evaluate: (c) => {
-      const { me, id, why } = present(c);
-      if (why) return refuse(SettlementRejection.NotYours, why);
-      if (romanceOf(c.world, me, id)) return refuse(SettlementRejection.Already, romanceOf(c.world, me, id) === "taken" ? `${personName(c.world, id)}已经有家了。` : "你们已经说定了。");
-      if (engagedTo(c.world, me)) return refuse(SettlementRejection.Already, "你已经跟别人定了亲。");
-      const no = courtRefusal(c.world, me, id);
-      return no ? refuse(SettlementRejection.Busy, `${no}。`) : { ok: true };
-    },
-  });
-  ctx.registerResolutionRule({
-    id: `${SettlementCommands.court}.resolve`, commandType: SettlementCommands.court,
-    resolve: (c): Effect[] => {
-      const me = c.command.actorId as string, id = String(c.command.payload.targetId), tick = c.world.tick;
-      const bond = bondOf(socialOf(c.world, id), me);
-      const court = personOf(id)!.court!;
-      // 交情够了还得信得过、心里没疙瘩，对方才点头。
-      const yes = bond.trust >= 7 && bond.grudge < 1;
-      const holding = c.world.getComponent(me, SettlementComponents.holding);
-      const courtAt = { ...((holding?.courtAt ?? {}) as Record<string, JsonValue>), [id]: tick };
-      let memory = withBond(socialOf(c.world, id), me, yes ? { familiarity: 1, trust: 1 } : { trust: 0.5 }, tick);
-      if (yes) memory = withNews(memory, `engaged:${me}:${id}`, { about: me, text: `${personName(c.world, me)}和${personName(c.world, id)}定了亲`, at: tick });
-      return [
-        { kind: "modifyComponent", entityId: me, component: SettlementComponents.holding,
-          patch: { courtAt, ...(yes ? { engaged: { to: id, at: tick } } : {}) }, reason: yes ? "betrothed" : "asked, not yet" },
-        saveSocial(id, memory, "heard your heart"),
-        { kind: "emitEvent", eventType: "settlement-locations.courted", actorId: me, targetId: id,
-          data: { accepted: yes, line: court.accept && yes ? court.accept : court.notYet }, historicalSignificance: yes ? 0.2 : 0.03 },
-      ];
-    },
-  });
-  ctx.registerConstraintRule({
-    id: `${SettlementCommands.wed}.allowed`, commandType: SettlementCommands.wed,
-    evaluate: (c) => {
-      const { me, id, why } = present(c);
-      if (why) return refuse(SettlementRejection.NotYours, why);
-      if (engagedTo(c.world, me) !== id) return refuse(SettlementRejection.Busy, "你们还没定亲。");
-      const no = wedRefusal(c.world, me, id);
-      return no ? refuse(SettlementRejection.Busy, `${no}。`) : { ok: true };
-    },
-  });
-  ctx.registerResolutionRule({
-    id: `${SettlementCommands.wed}.resolve`, commandType: SettlementCommands.wed,
-    resolve: (c): Effect[] => {
-      const me = c.command.actorId as string, id = String(c.command.payload.targetId), tick = c.world.tick;
-      const mine = personName(c.world, me), theirs = personName(c.world, id);
-      const effects: Effect[] = [
-        { kind: "addRelation", type: "family.married_to", from: me, to: id, components: { "family.marriage": { since: tick, trust: 0.8 } }, announce: false },
-        { kind: "addRelation", type: "family.married_to", from: id, to: me, components: { "family.marriage": { since: tick, trust: 0.8 } }, announce: false },
-        { kind: "modifyComponent", entityId: me, component: SettlementComponents.holding, patch: { engaged: null, marriedAt: tick }, reason: "wed" },
-      ];
-      // 全村都来道喜：人人都记得这一天。
-      for (const r of RESIDENTS) {
-        const rid = residentId(r.key);
-        if (rid === me) continue;
-        let memory = withBond(socialOf(c.world, rid), me, rid === id ? { familiarity: 1, trust: 1 } : { familiarity: 0.5 }, tick);
-        memory = withNews(memory, `wed:${me}:${id}`, { about: me, text: `${mine}和${theirs}成了亲`, at: tick });
-        effects.push(saveSocial(rid, memory, "a wedding in the village"));
-      }
-      effects.push({ kind: "emitEvent", eventType: "family.married", actorId: me, targetId: id,
-        data: { since: tick, line: `这天全村人都来了。陶婶张罗了一锅热粟饭，埴公说了几句吉利话，孩子们围着你们跑。从今往后，你和${theirs}就是一家人了。` },
-        historicalSignificance: 0.55 });
-      return effects;
-    },
-  });
 }
 
 

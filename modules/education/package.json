@@ -9,5 +9,9 @@
   "dependencies": {
     "@openlife/contracts": "*",
     "@openlife/life-contracts": "*"
+  },
+  "openlife": {
+    "label": "教育原型",
+    "summary": "既有学习规则，尚未作为早期聚落教育体系接入。"
   }
 }
