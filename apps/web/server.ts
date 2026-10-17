@@ -27,6 +27,7 @@ import { worldSpaceModule } from "@openlife/module-world-space";
 import { worldObjectsModule } from "@openlife/module-world-objects";
 import { settlementLocationsModule, SettlementCommands } from "@openlife/module-settlement-locations";
 import { villageStoriesModule, StoryCommands, StoryProjections } from "@openlife/module-village-stories";
+import { isSettlementAction } from "./src/actions.ts";
 import { residentId, rollOrigin, originCatalog } from "@openlife/module-settlement-locations";
 import {
   playerView,
@@ -509,6 +510,7 @@ function gameState() {
     },
     settlement: settlementView(simulation, characterId),
     stories: storiesView(characterId),
+    guide: guideView(characterId),
     originCatalog: originCatalog(),
     clock: clockReading(world),
     actions: world.getComponent(characterId, Life.state)
@@ -537,55 +539,15 @@ function storiesView(characterId: string) {
   return projected.ok ? projected.data : null;
 }
 
+/** 今日指引: what matters now, what to do next, and what tomorrow holds. */
+function guideView(characterId: string) {
+  if (!characterId || !simulation.worldView().getEntity("settlement-locations:settlement:river-terrace")) return null;
+  const projected = simulation.project({ id: StoryProjections.guide, params: { actorId: characterId } });
+  return projected.ok ? projected.data : null;
+}
+
 /** Story actions are plain validated commands; none of them moves the clock. */
 const STORY_ACTIONS = new Set<string>(Object.values(StoryCommands));
-
-/** Settlement actions the UI is allowed to send, and how long each takes. */
-const SETTLEMENT_ACTIONS: Record<string, number> = {
-  [SettlementCommands.arrive]: 1,
-  [SettlementCommands.draw]: 1,
-  [SettlementCommands.talk]: 1,
-  [SettlementCommands.exchange]: 1,
-  [SettlementCommands.drink]: 1,
-  [SettlementCommands.eat]: 1,
-  [SettlementCommands.cook]: 1,
-  [SettlementCommands.craft]: 1,
-  [SettlementCommands.weaveBag]: 1,
-  [SettlementCommands.weaveMat]: 1,
-  [SettlementCommands.prepareFiber]: 1,
-  [SettlementCommands.weaveWrap]: 1,
-  [SettlementCommands.sow]: 1,
-  [SettlementCommands.harvest]: 1,
-  [SettlementCommands.tend]: 1,
-  [SettlementCommands.rest]: 1,
-  [SettlementCommands.step]: 1,
-  [SettlementCommands.configurePlan]: 0,
-  [SettlementCommands.playerBarterRequest]: 0,
-  [SettlementCommands.playerBarterAccept]: 0,
-  [SettlementCommands.playerBarterDecline]: 0,
-  [SettlementCommands.helpHearth]: 0,
-  [SettlementCommands.requestAnswer]: 0,
-  [SettlementCommands.gift]: 0,
-  [SettlementCommands.learn]: 0,
-  [SettlementCommands.beginSeason]: 0,
-  [SettlementCommands.court]: 0,
-  [SettlementCommands.wed]: 0,
-  [SettlementCommands.handoff]: 0,
-  [SettlementCommands.craft]: 1,
-};
-
-export function isSettlementAction(action: string): boolean {
-  return action in SETTLEMENT_ACTIONS
-    || action === "world-space.enter"
-    || action === "world-space.move_within"
-    || action === "world-objects.take"
-    || action === "world-objects.store"
-    || action === "world-objects.retrieve"
-    || action === "world-objects.wear"
-    || action === "world-objects.unwear"
-    || action === "world-objects.place"
-    || action === "world-objects.return";
-}
 
 function buildActions(input: {
   age: number;

@@ -1,5 +1,6 @@
 id: xia_south_hills_v0_1
 name: 南丘与盐泉
+display_name: 南丘与盐泉
 version: 0.1.0
 schema_version: "0.1"
 type: map_pack

@@ -2,6 +2,7 @@ import { renderPlayer, renderActionButtons, installModalAccess, selectView } fro
 import { installShell, renderShell, enterLife } from "/shell.js";
 import { renderSettlement, describeSettlementResult } from "/settlement.js";
 import { renderStories } from "/stories.js";
+import { renderGuide } from "/guide.js";
 import { renderFigure } from "/character-appearance.js";
 import { playActionFx } from "/action-fx.js";
 import { isTextMode } from "/view-mode.js";
@@ -82,6 +83,7 @@ function render(s, animate = false) {
   updatePlanStatus(s);
   renderShell(s);
   renderStories(s, performSettlementAction);
+  renderGuide(s, performSettlementAction);
 }
 
 function renderActions(actions) {

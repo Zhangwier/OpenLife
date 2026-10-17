@@ -75,7 +75,7 @@
 | `modules/historical-anchors` | 历史人物 | `historical-anchors` (`historicalAnchorsModule`) | `history.person-anchors` | `time.calendar`, `life.population` | contracts, life-contracts |
 | `modules/settlement-life` | 聚落生活活动 | `settlement-life` (`settlementLifeModule`) | `life.settlement-playable` | `life.population`, `family.relationship_provider`, `practice.runtime`, `craft.pottery-practice` | contracts, life-contracts, module-craft-pottery, module-practice-runtime |
 | `modules/settlement-locations` | 河岸聚落 | `settlement-locations` (`settlementLocationsModule`) | `life.settlement` | `world.space`, `world.objects`, `time.life-scale` | contracts, life-contracts, module-world-objects, module-world-space |
-| `modules/village-stories` | 故事层 | `village-stories` (`villageStoriesModule`) | `settlement.stories` | `life.settlement` | contracts, life-contracts, module-settlement-locations, module-world-objects, module-world-space |
+| `modules/village-stories` | 村中故事 | `village-stories` (`villageStoriesModule`) | `settlement.stories` | `life.settlement` | contracts, life-contracts, module-settlement-locations, module-world-objects, module-world-space |
 
 ## apps/ · 应用
 

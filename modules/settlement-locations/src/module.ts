@@ -73,6 +73,8 @@ import {
   SettlementComponents, SettlementProjections, SettlementCommands, SettlementRejection, SettlementId, residentId,
 } from "./vocabulary.ts";
 import { RESIDENTS, activeId, personName, saveSocial, socialOf } from "./world-reads.ts";
+import { HUNGER_DAYS_PER_POINT, HUNGER_EASED, hungerAt } from "./hunger.ts";
+export { HUNGER_DAYS_PER_POINT, hungerAt };
 import {
   PEOPLE_TIES_SPOUSE, courtRefusal, engagedTo, registerMarriage, romanceOf, spouseOf, wedRefusal,
 } from "./marriage.ts";
@@ -710,12 +712,6 @@ export function skillsView(world: WorldView, actorId: string) {
 /** 肯不肯教你：要么熟，要么信得过你。 */
 const TEACH_FAMILIARITY = 2, TEACH_TRUST = 6.5;
 
-/** Hunger grows by one point every HUNGER_DAYS_PER_POINT days since the last meal, capped at 10. */
-export const HUNGER_DAYS_PER_POINT = 2;
-export function hungerAt(base: number, since: number, tick: number, daysPerPoint = HUNGER_DAYS_PER_POINT): number {
-  return Math.max(0, Math.min(10, base + Math.floor(Math.max(0, tick - since) / daysPerPoint)));
-}
-
 /** A carried cooked ration must be a real, owned, live item, not a yield point. */
 function carriedRation(world: WorldView, actorId: string, objectId: string): boolean {
   return carriedFood(world, actorId, objectId) === "resource:cooked";
@@ -726,14 +722,6 @@ function carriedRation(world: WorldView, actorId: string, objectId: string): boo
  * Raw grain is edible anywhere but eases less hunger than a cooked ration,
  * so a starving player holding grain is never locked out of eating.
  */
-/**
- * Hunger eased by one portion: cooked food 4, millet cake 4, dried fish 3,
- * raw grain 2, fish 2. Keys are also the set of foods a resident may eat.
- */
-const HUNGER_EASED: Record<string, number> = {
-  "resource:cooked": 4, "resource:millet-cake": 4, "resource:dried-fish": 3, "resource:grain": 2, "resource:fish": 2,
-};
-
 function carriedFood(world: WorldView, actorId: string, objectId: string): string {
   const entity = world.getEntity(objectId);
   if (!entity || entity.kind !== ObjectKinds.item || entity.archivedAt !== undefined) return "";

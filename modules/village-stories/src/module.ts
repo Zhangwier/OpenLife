@@ -19,6 +19,7 @@ import { occupiedPlaceId } from "@openlife/module-world-space";
 import { SettlementComponents, SettlementId, feastOn, isIll, residentId } from "@openlife/module-settlement-locations";
 import { STORY_PACK, storyPackProblems, type QuestSpec } from "./spec.ts";
 import { bondsProblems } from "./bonds.ts";
+import { dailyGuide, guideProblems } from "./guide.ts";
 import {
   BOND_LABELS, WORK_EVENTS, keepRoutines, peopleView, quarrelProblem, remarkFor, serviceById, serviceProblem, settleQuarrel, useService,
   workAlongside, type QuarrelSide,
@@ -38,7 +39,7 @@ export const StoryCommands = {
   settleQuarrel: "village-stories.quarrel.settle",
   useService: "village-stories.service.use",
 } as const;
-export const StoryProjections = { journal: "village-stories.journal" } as const;
+export const StoryProjections = { journal: "village-stories.journal", guide: "village-stories.guide" } as const;
 export const StoryRejection = "E_STORY_NOT_NOW";
 
 const refuse = (message: string): ConstraintOutcome => ({ ok: false, code: StoryRejection, message });
@@ -156,7 +157,7 @@ export const villageStoriesModule: OpenLifeModule = {
     capabilities: ["component.register", "command.register", "rule.constraint.register", "rule.resolution.register", "rule.reaction.register", "projection.register"],
   },
   register(ctx) {
-    const problems = [...storyPackProblems(), ...bondsProblems()];
+    const problems = [...storyPackProblems(), ...bondsProblems(), ...guideProblems()];
     if (problems.length) throw new Error(`village-stories pack is invalid:\n${problems.join("\n")}`);
     ctx.registerComponent({ id: StoryComponents.journal, persist: true, description: "the player's quests, flags, achievements and story choices" });
     for (const type of Object.values(StoryCommands)) ctx.registerCommand({ type, description: "Village story action." });
@@ -307,6 +308,15 @@ export const villageStoriesModule: OpenLifeModule = {
         out.observe("日子里的来往");
         keepRoutines(out, true);
         return out.finish("arrived");
+      },
+    });
+
+    ctx.registerProjection({
+      id: StoryProjections.guide,
+      description: "今日指引: the one thing that matters most now, up to three doable suggestions, next steps for refused actions, and tomorrow.",
+      build: ({ world, params }) => {
+        const me = String(params.actorId ?? activePlayer(world));
+        return dailyGuide(world, me, storyView(world, me)) as unknown as Record<string, unknown>;
       },
     });
 

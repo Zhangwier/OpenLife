@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Quest chains, dialogue trees, festival rites, limited-time events, incidents and achievements over the river-terrace settlement.",
+  "description": "Quest chains, dialogue trees, festivals, events, incidents, achievements, NPC relationships and routines, and the daily guide over the river-terrace settlement.",
   "exports": {
     ".": "./src/index.ts"
   },
@@ -13,5 +13,9 @@
     "@openlife/module-settlement-locations": "*",
     "@openlife/module-world-objects": "*",
     "@openlife/module-world-space": "*"
+  },
+  "openlife": {
+    "label": "村中故事",
+    "summary": "任务链、对话树、节日与活动、人物关系与作息，以及「今日指引」：聚落之上的故事与人情层。"
   }
 }
