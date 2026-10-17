@@ -57,7 +57,7 @@ test("villagers pass on what happened, and tell you something you have not heard
     assert.ok(!line.includes("{"), line);
     const heard = sim.worldView().getComponent(me, "settlement-locations.holding")?.newsHeard as string[];
     assert.ok(heard.includes(item.id));
-  } else assert.ok(line.includes("心里惦记"), `either the wish comes first or the news: ${line}`);
+  } else assert.ok(line.includes("这是") || line.includes("心里惦记"), `第一次是自我介绍，之后才是心愿或新闻：${line}`);
 });
 
 test("someone ill is known to their household", () => {

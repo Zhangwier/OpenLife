@@ -14,6 +14,18 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { REPO_ROOT, readWorkspace, type WorkspacePackage } from "./workspace-graph.ts";
 
+/** The web app's own module list, with its core/plug-in split. */
+async function webCoreModules(): Promise<Set<string>> {
+  try {
+    const { WEB_MODULE_ENTRIES } = await import("../apps/web/src/modules.ts") as {
+      WEB_MODULE_ENTRIES: Array<{ module: { manifest: { id: string } }; core?: boolean }>;
+    };
+    return new Set(WEB_MODULE_ENTRIES.filter((e) => e.core).map((e) => e.module.manifest.id));
+  } catch {
+    return new Set();
+  }
+}
+
 export const CATALOG_PATH = path.join(REPO_ROOT, "docs", "MODULES.md");
 
 interface ManifestLike {
@@ -65,13 +77,14 @@ export async function renderCatalog(): Promise<string> {
   }
 
   const modules = workspace.filter((w) => w.layer === "modules");
+  const core = await webCoreModules();
   const rows: { type: string; line: string }[] = [];
   for (const p of modules) {
     const manifests = await manifestsOf(p);
     for (const { exportName, manifest } of manifests) {
       rows.push({
         type: manifest.type,
-        line: `| \`${p.dir}\` | ${cell(p.label || "—")} | \`${manifest.id}\` (\`${exportName}\`) | ${list(manifest.provides)} | ${list(manifest.requires)} | ${cell(p.declared.map(short).join(", ") || "—")} |`,
+        line: `| \`${p.dir}\` | ${cell(p.label || "—")} | \`${manifest.id}\` (\`${exportName}\`) | ${list(manifest.provides)} | ${list(manifest.requires)} | ${cell(p.declared.map(short).join(", ") || "—")} | ${core.has(manifest.id) ? "core" : "可关"} |`,
       });
     }
   }

@@ -210,7 +210,11 @@ async function loadModules() {
     const data = await response.json();
     screen.innerHTML = `<div class="catalog-intro panel"><h2>这个世界的组成</h2><p>当前人生使用「早期聚落」组合。这里显示真实加载状态与本地可用模块；更换组合与运行中启停将在依赖、存档兼容检查完成后开放。</p><span class="catalog-total">${data.modules.filter(m => m.loaded).length} 个已加载 · ${data.modules.length} 个本地模块</span></div>${(() => { const card = m => `<article class="module-card panel"><div><h3>${html(m.label)}</h3><span class="module-status ${m.loaded ? "loaded" : ""}">${m.loaded ? "当前世界已加载" : "本地已有 · 当前未接入"}</span></div><p>${html(m.description)}</p><details><summary>模块信息</summary><p>${html(m.id)} · ${html(m.version)}</p><p>${m.loaded ? `依赖能力：${html(m.requires.join("、") || "无")}` : "接入前需核对依赖与世界规则。"}</p></details></article>`;
       const on = data.modules.filter(m => m.loaded), off = data.modules.filter(m => !m.loaded);
-      return `<h3 class="module-group">当前世界已加载 · ${on.length}</h3><div class="module-list">${on.map(card).join("")}</div>` +
+      const core = on.filter(m => m.core === true), optional = on.filter(m => m.core !== true);
+      const coreCard = m => `<article class="module-card panel is-core"><div><h3>${html(m.label)}</h3><span class="module-status loaded">核心 · 关掉世界会乱</span></div><p>${html(m.description)}</p></article>`;
+      const optCard = m => `<article class="module-card panel"><div><h3>${html(m.label)}</h3><span class="module-status loaded">当前世界已加载 · 可关</span></div><p>${html(m.description)}</p></article>`;
+      return `<h3 class="module-group">核心 · ${core.length}</h3><div class="module-list">${core.map(coreCard).join("")}</div>` +
+        `<h3 class="module-group">当前世界已加载 · ${optional.length}</h3><div class="module-list">${optional.map(optCard).join("")}</div>` +
         (off.length ? `<details class="module-fold"><summary>本地已有、当前未接入 · ${off.length}</summary><div class="module-list">${off.map(card).join("")}</div></details>` : ""); })()}`;
   } catch (error) { screen.innerHTML = `<p class="page-empty panel">${html(error.message)}</p>`; }
 }

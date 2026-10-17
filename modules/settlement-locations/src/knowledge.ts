@@ -26,6 +26,35 @@ export function contactConversations(world: WorldView, actorId: string, targetId
 }
 
 /**
+ * 一个陌生人的可区分称呼。
+ *
+ * 用户报的缺陷：两个陌生人都叫「陌生人」，分不清谁是谁。
+ *
+ * 名字是私事，但长相不是。你能看见的是一个中年妇人还是个孩子，这不违反
+ * 认知规则——性别与年龄段是睁眼就能看见的，营生和生日才是要谈的。
+ *
+ * 返回形如「陌生的妇人」「一个少年」的描述，让两个陌生人能被区分开。
+ */
+export function describeStranger(world: WorldView, personId: string): string {
+  const entity = world.getEntity(personId);
+  if (!entity) return "陌生人";
+  const identity = entity.components["modern.identity"] as Record<string, JsonValue> | undefined;
+  const vitals = entity.components["modern.vitals"] as Record<string, JsonValue> | undefined;
+  const sex = String(identity?.sex ?? "");
+  const age = Number(vitals?.ageYears ?? 0);
+
+  const byAge = age < 6 ? "小孩" : age < 16 ? (sex === "female" ? "少女" : "少年")
+    : age < 40 ? (sex === "female" ? "妇人" : "男人")
+    : (sex === "female" ? "老妇人" : "老人");
+  return `陌生的${byAge}`;
+}
+
+/** 能不能叫出这个人的名字。 */
+export function knowsName(world: WorldView, actorId: string, targetId: string): boolean {
+  return acquaintanceOf(world, actorId, targetId) !== "stranger";
+}
+
+/**
  * 你知不知道这个人是谁。
  *
  * 一个人站在你面前，你能看见的是「那里有个人」，不是他的名字、职业和脾气。
@@ -45,24 +74,26 @@ export function acquaintanceOf(world: WorldView, actorId: string, targetId: stri
   // 有人跟你提起过这个人：你至少知道他是谁、叫什么。
   const heard = world.getComponent(actorId, SettlementComponents.holding)?.heardAbout;
   if (Array.isArray(heard) && heard.map(String).includes(targetId)) return "met";
+  // 交情也是认识：任务指派、交付、送礼都算一次正式来往——你不可能和一个
+  // 完全陌生的人做这些事而不认识他。
+  const key = RESIDENTS.find((r) => residentId(r.key) === targetId)?.key;
+  if (key) {
+    const bond = socialOf(world, actorId, targetId);
+    if (bond && Number(bond.familiarity ?? 0) >= 0.5) return "acquainted";
+    if (bond && Number(bond.familiarity ?? 0) > 0) return "met";
+  }
   // 出身里就有交情的人（陶叔陶婶、教你搓绳的阿岚…）：一开始就认识。
   const origin = readOrigin(world.getComponent(actorId, SettlementComponents.holding)?.origin);
   if (origin.id === "none") return "stranger";
-  const key = RESIDENTS.find((r) => residentId(r.key) === targetId)?.key;
   const spec = (RIVER_TERRACE_PACK.origins ?? []).find((o) => o.id === origin.id);
-  const bond = key ? spec?.bonds?.[key] : undefined;
-  const familiarity = Number(bond?.familiarity ?? 0);
+  const originBond = key ? spec?.bonds?.[key] : undefined;
+  const familiarity = Number(originBond?.familiarity ?? 0);
   if (familiarity >= 4) return "acquainted";
   if (familiarity > 0) return "met";
   // 同屋住着的人，抬头不见低头见：知道是谁，但还没深交。
   const home = (id: string) => String(world.getComponent(id, SettlementComponents.resident)?.homeSpace ?? "");
   if (home(actorId) && home(actorId) === home(targetId)) return "met";
   return "stranger";
-}
-
-/** 你能不能叫出这个人的名字。 */
-export function knowsName(world: WorldView, actorId: string, targetId: string): boolean {
-  return acquaintanceOf(world, actorId, targetId) !== "stranger";
 }
 
 /** 别人嘴里提到的称呼：认识就叫名字，不认识就是「那个人」。 */

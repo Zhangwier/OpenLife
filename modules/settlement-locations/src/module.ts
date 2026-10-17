@@ -28,7 +28,7 @@ export { pickIndex, seasonOf } from "./happenings.ts";
 import { HUNGER_MIN_CAPACITY, hungerLevel, hungerToll } from "./hunger-toll.ts";
 export { HUNGER_MIN_CAPACITY, HUNGER_SICK_DAYS, hungerToll } from "./hunger-toll.ts";
 import { chooseSeasonStory, storyHistory } from "./story-pick.ts";
-import { acquaintanceOf, askedToday, contactConversations, happeningsView, heardAbout, knowsName, knownName, registerAskAbout, type Acquaintance } from "./knowledge.ts";
+import { acquaintanceOf, askedToday, contactConversations, describeStranger, happeningsView, heardAbout, knowsName, knownName, registerAskAbout, type Acquaintance } from "./knowledge.ts";
 import { registerStock } from "./stock.ts";
 import { appraise, type CounterpartView, type Closeness } from "./exchange.ts";
 import { skyOn, isWet, OUTDOOR_PLACES, SKY_NOTE } from "./weather.ts";
@@ -86,7 +86,6 @@ import {
 } from "./marriage.ts";
 export { socialOf } from "./world-reads.ts";
 export { COURT_HEARTS, WED_AFTER_DAYS, romanceOf, spouseOf } from "./marriage.ts";
-
 
 
 /** Places of the settlement, each with a purpose and a cost to reach. */
@@ -1611,7 +1610,7 @@ export function homestead(world: WorldView, actorId: string): HomesteadView {
       return {
         id: entity.id,
         // realName 是身份本身（投影、存档与测试用它认人），name 才是给你看的称呼。
-        name: knowsName ? realName : "陌生人",
+        name: knowsName ? realName : describeStranger(world, entity.id),
         realName,
         acquaintance: knows,
         role: knowsWork ? resident.role : "",
@@ -2527,6 +2526,7 @@ export function talkLine(world: WorldView, actorId: string, targetId: string, co
   const fill = (t: string) => t.replace("{name}", name).replace("{wish}", spec?.wish ?? "")
     .replace(/：“\{weather\}”/, saysWeather ? "：“{weather}”" : "。").replace(/([。！？])\{weather\}”/, saysWeather ? "$1{weather}”" : "$1”")
     .replace("{weather}", saysWeather ? DIALOGUE.weather[skyOn(world.tick)] ?? "" : "");
+  if (conversations === 1) { const line = fill(pick(spec?.firstMet ?? DIALOGUE.firstMet ?? [], "first")).replace("{name}", name); return { line: `${line}（这是${name}）`, reveal: false }; }
   if (bond.grudge >= 3) return { line: fill(pick(DIALOGUE.grudge, "g")), reveal: false };
   // 交情到了，会讲一段只跟你讲的往事（每段只讲一次）。
   // 往事不会一口气讲完：同一个人隔几天才再讲一段，一天里最多听一个人讲。
