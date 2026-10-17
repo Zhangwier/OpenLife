@@ -6,28 +6,15 @@ import { dirname, extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Simulation } from "@openlife/simulation";
 import { runAutoSim, untilActorArchived, untilTick, type AutoSimContext } from "@openlife/autonomy-runtime";
-import { modernWorldModule } from "@openlife/module-modern-world";
 import { formatYear } from "@openlife/life-contracts";
 import {
   reading as clockReading,
   readingAtTick as clockReadingAt,
   ageAt,
 } from "@openlife/module-world-clock";
-import { familyModule } from "@openlife/module-family";
-import { modernScienceModule } from "@openlife/module-modern-science";
-import { earlyCivilizationModule } from "@openlife/module-early-civilization";
-import { historicalMemoryModule } from "@openlife/module-historical-memory";
-import { intellectualHistoryModule } from "@openlife/module-intellectual-history";
-import { historicalEraModule } from "@openlife/module-historical-era";
-import { historicalAnchorsModule } from "@openlife/module-historical-anchors";
-import { practiceRuntimeModule } from "@openlife/module-practice-runtime";
-import { craftPotteryModule } from "@openlife/module-craft-pottery";
-import { settlementLifeModule, Life } from "@openlife/module-settlement-life";
-import { worldClockModule } from "@openlife/module-world-clock";
-import { worldSpaceModule } from "@openlife/module-world-space";
-import { worldObjectsModule } from "@openlife/module-world-objects";
-import { settlementLocationsModule, SettlementCommands } from "@openlife/module-settlement-locations";
-import { villageStoriesModule, StoryCommands, StoryProjections } from "@openlife/module-village-stories";
+import { Life } from "@openlife/module-settlement-life";
+import { SettlementCommands } from "@openlife/module-settlement-locations";
+import { StoryCommands, StoryProjections } from "@openlife/module-village-stories";
 import { isSettlementAction } from "./src/actions.ts";
 import { residentId, rollOrigin, originCatalog } from "@openlife/module-settlement-locations";
 import {
@@ -42,39 +29,19 @@ import {
 import { worldCatalog } from "./src/catalog.ts";
 import { codex } from "./src/codex.ts";
 import { humanizeEvent } from "./src/humanize.ts";
-import { settlementNatureModule } from "@openlife/module-settlement-nature";
-import { worldHazardModule } from "@openlife/module-world-hazard";
-import { faunaBondsModule } from "@openlife/module-fauna-bonds";
-import { socialConflictModule } from "@openlife/module-social-conflict";
 import { ensureNature, runNatureAction, withNature } from "./src/nature.ts";
+import { webModules } from "./src/modules.ts";
 const PORT = Number(process.env.PORT ?? 4173);
 const PUBLIC_DIR = fileURLToPath(new URL("./public/", import.meta.url));
 /** Which opening a brand-new life uses: the M1 settlement, or the older slice. */
 /** 饿肚子会少活动格（新开的人生默认打开；OPENLIFE_HUNGER_TOLL=0 关掉，供只测走动/器物的验收用）。 */
 const HUNGER_TOLL = process.env.OPENLIFE_HUNGER_TOLL !== "0";
 const START_MODE = process.env.OPENLIFE_START === "pottery" ? "pottery" : "settlement";
-const modules = [
-  modernWorldModule,
-  worldClockModule,
-  worldSpaceModule,
-  worldObjectsModule,
-  settlementLocationsModule,
-  villageStoriesModule,
-  settlementNatureModule,
-  worldHazardModule,
-  faunaBondsModule,
-  socialConflictModule,
-  familyModule,
-  modernScienceModule,
-  earlyCivilizationModule,
-  historicalMemoryModule,
-  intellectualHistoryModule,
-  historicalEraModule,
-  historicalAnchorsModule,
-  practiceRuntimeModule,
-  craftPotteryModule,
-  settlementLifeModule,
-];
+const modulePlan = webModules();
+const modules = modulePlan.modules;
+if (modulePlan.disabled.length + modulePlan.cascaded.length > 0) {
+  console.log(`modules off: ${[...modulePlan.disabled, ...modulePlan.cascaded].join(", ")}`);
+}
 let simulation = createGame();
 
 // ---------------------------------------------------------------------------

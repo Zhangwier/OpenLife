@@ -19,13 +19,18 @@ const DROUGHT_LINES: Partial<Record<HazardStage, string>> = {
 };
 const EARTHWORK_DAYS = 3;
 
+/** Each half of the nature view is a plugin: either may be switched off (docs/PLUGINS.md). */
+const has = (sim: Simulation, moduleId: string) => sim.modules.get(moduleId)?.state === "active";
+
 /** Put the river watch and the two local animals into a settlement world. Idempotent. */
 export function ensureNature(sim: Simulation): void {
   const world = sim.worldView();
   if (!world.getEntity(RIVER_PLACE)) return;
-  // The scheduler dedupes on the watch key, so repeating this is harmless.
-  sim.dispatch({ type: "world-hazard.watch_location", targetId: RIVER_PLACE, payload: { everyTicks: 1 }, source: "system" });
-  if (world.listEntities({ kind: FaunaKinds.animal }).length === 0) {
+  if (has(sim, "world-hazard")) {
+    // The scheduler dedupes on the watch key, so repeating this is harmless.
+    sim.dispatch({ type: "world-hazard.watch_location", targetId: RIVER_PLACE, payload: { everyTicks: 1 }, source: "system" });
+  }
+  if (has(sim, "fauna-bonds") && has(sim, "settlement-nature") && world.listEntities({ kind: FaunaKinds.animal }).length === 0) {
     sim.dispatch({ type: "fauna-bonds.materialize", targetId: "place:yard", payload: { speciesId: NatureSpecies.dog, name: "阿黄" }, source: "system" });
     sim.dispatch({ type: "fauna-bonds.materialize", targetId: "place:reedbed", payload: { speciesId: NatureSpecies.wolf, name: "灰脊" }, source: "system" });
   }
@@ -42,9 +47,10 @@ export function natureView(sim: Simulation, actorId: string, placeId: string | u
     if (f) lines.push(f);
     if (d) lines.push(d);
   }
+  if (!has(sim, "world-hazard") && !has(sim, "fauna-bonds")) return null;
   const earthworks = world.listRelations({ type: "world-hazard.protects", to: RIVER_PLACE }).length;
   const actions: Record<string, unknown>[] = [];
-  if (placeId === RIVER_PLACE && earthworks < 3) {
+  if (has(sim, "world-hazard") && placeId === RIVER_PLACE && earthworks < 3) {
     actions.push({ id: "nature.build_earthwork", label: earthworks ? "把河堤再加高一段" : "在河边垒一段土堤", hint: `花 ${EARTHWORK_DAYS} 天挑土夯实，以后涨水时河滩没那么容易被淹。`, payload: {} });
   }
 

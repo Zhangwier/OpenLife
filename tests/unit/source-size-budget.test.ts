@@ -19,7 +19,7 @@ export const LIMIT = 1200;
 /** Existing oversized files and the most lines each may have. */
 export const CEILINGS: Record<string, number> = {
   "modules/settlement-locations/src/module.ts": 4971,
-  "apps/web/server.ts": 1343,
+  "apps/web/server.ts": 1310,
   "modules/historical-memory/src/module.ts": 1292,
   "modules/world-geography/src/boundary-handshake.ts": 1290,
   "modules/world-objects/src/module.ts": 1223,

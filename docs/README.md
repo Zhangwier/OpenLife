@@ -18,6 +18,7 @@
 | 文档 | 内容 |
 | --- | --- |
 | [`MODULES.md`](./MODULES.md) | 全部 workspace 包的分层目录（由 `npm run catalog` 生成） |
+| [`PLUGINS.md`](./PLUGINS.md) | 插件 / Mod 规范：系统模块、内容包、地图包怎么写、怎么开关、怎么拆 |
 
 ## RFC（`docs/rfc/`）
 

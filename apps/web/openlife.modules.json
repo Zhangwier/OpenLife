@@ -1,0 +1,4 @@
+{
+  "$comment": "关掉某个可选模块：把它的 id 写进 disabled。core 模块不能关；依赖被关掉的模块会自动跟着关。规范见 docs/PLUGINS.md",
+  "disabled": []
+}

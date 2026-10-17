@@ -1,0 +1,18 @@
+{
+  "recipes": [
+    {
+      "id": "recipe:reed_baskets.fish-creel",
+      "name": "编鱼篓",
+      "placeId": "place:reedbed",
+      "spaceId": "space:reed-cut",
+      "inputs": [
+        { "prototypeId": "prototype:reed-bundle", "count": 1 },
+        { "prototypeId": "prototype:rope", "count": 1 }
+      ],
+      "tools": [],
+      "outputs": [{ "prototypeId": "prototype:reed_baskets.fish-creel", "count": 1 }],
+      "skill": "编织",
+      "description": "细苇秆一圈圈盘上去，口收窄，鱼进去就出不来。挂在腰上去河边。"
+    }
+  ]
+}

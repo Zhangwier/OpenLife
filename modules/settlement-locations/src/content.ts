@@ -7,6 +7,8 @@
  * uses it, so a broken pack fails loudly at load instead of mid-game.
  */
 import { existsSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { checkExtension, discoverExtensions, mergeExtensions, type SettlementExtension } from "./extensions.ts";
 import type { OriginSpec, TalentSpec } from "./origin.ts";
 
 export interface ResidentSpec {
@@ -406,8 +408,8 @@ export function loadSettlementPack(url: URL): SettlementPack {
   return pack;
 }
 
-/** The authored River Terrace village shipped with this module. */
-export const RIVER_TERRACE_PACK: SettlementPack =
+/** The authored River Terrace village as shipped, before content packs. */
+const BASE_RIVER_TERRACE_PACK: SettlementPack =
   loadSettlementPack(new URL("../data/river-terrace.json", import.meta.url));
 
 // ---------------------------------------------------------------------------
@@ -477,9 +479,37 @@ export function loadRecipeBook(url: URL, pack: SettlementPack): RecipeBook {
   return book;
 }
 
-/** The River Terrace recipes shipped with this module. */
-export const RIVER_TERRACE_RECIPES: RecipeBook =
-  loadRecipeBook(new URL("../data/river-terrace-recipes.json", import.meta.url), RIVER_TERRACE_PACK);
+/**
+ * Merges data-only content packs into a pack and its recipe book, running the
+ * same validation the base pack passes; throws with every problem listed.
+ */
+export function applyExtensions(pack: SettlementPack, book: RecipeBook, exts: SettlementExtension[]): { pack: SettlementPack; book: RecipeBook } {
+  const problems = exts.flatMap((ext) => checkExtension(ext, pack));
+  const ids = exts.map((ext) => ext.manifest.id);
+  for (const id of ids) if (ids.indexOf(id) !== ids.lastIndexOf(id)) problems.push(`content pack ${id} is installed twice`);
+  const merged = mergeExtensions(pack, book, exts);
+  if (problems.length === 0) problems.push(...validateSettlementPack(merged.pack), ...validateRecipeBook(merged.book, merged.pack));
+  if (problems.length > 0) throw new Error(`content packs are invalid:\n  ${[...new Set(problems)].join("\n  ")}`);
+  return merged;
+}
+
+/** Where content packs are discovered: <repo>/content-packs, or OPENLIFE_CONTENT_PACKS. */
+export const CONTENT_PACKS_ROOT = process.env.OPENLIFE_CONTENT_PACKS
+  ?? fileURLToPath(new URL("../../../content-packs/", import.meta.url));
+const DISABLED_CONTENT_PACKS = (process.env.OPENLIFE_DISABLE_PACKS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+const INSTALLED_EXTENSIONS = discoverExtensions(CONTENT_PACKS_ROOT, DISABLED_CONTENT_PACKS);
+const RIVER_TERRACE = applyExtensions(
+  BASE_RIVER_TERRACE_PACK,
+  loadRecipeBook(new URL("../data/river-terrace-recipes.json", import.meta.url), BASE_RIVER_TERRACE_PACK),
+  INSTALLED_EXTENSIONS,
+);
+
+/** The River Terrace village shipped with this module, plus every installed content pack. */
+export const RIVER_TERRACE_PACK: SettlementPack = RIVER_TERRACE.pack;
+/** The River Terrace recipes shipped with this module, plus every installed content pack's. */
+export const RIVER_TERRACE_RECIPES: RecipeBook = RIVER_TERRACE.book;
+/** Content packs merged into the village, as `id@version`, in load order. */
+export const ACTIVE_CONTENT_PACKS: string[] = INSTALLED_EXTENSIONS.map((x) => `${x.manifest.id}@${x.manifest.version}`);
 
 /**
  * The recipe book's recipes made playable: each becomes an ordinary pack

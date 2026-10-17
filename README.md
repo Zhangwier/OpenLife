@@ -20,6 +20,7 @@ npm run demo:magic # 魔法测试世界演示（验证 Core 不绑定世界观�
 npm run cli        # 交互式调试控制台
 npm run web        # Web 客户端 http://127.0.0.1:4173 （PORT 可改端口；默认只监听本机，HOST=0.0.0.0 可让局域网设备访问）
 npm run catalog    # 重新生成 docs/MODULES.md（新增/改动模块后运行）
+# 插件 / Mod 规范见 docs/PLUGINS.md；模块开关在 apps/web/openlife.modules.json
 ```
 
 > 不先 `npm install` 直接跑测试，会报 `Cannot find package '@openlife/kernel'`。
