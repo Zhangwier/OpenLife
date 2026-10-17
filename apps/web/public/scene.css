@@ -1,0 +1,265 @@
+/**
+ * 画卷与话本：三个核心组件。
+ *
+ * 这份样式只放 docs/design/DESIGN.md §7 里还没实现的东西：选项木牌、印章、
+ * 抽屉、叙事版心、对白格式。全部只用 theme.css 已有的令牌，不新增颜色。
+ *
+ * 单独成文件而不是塞进 theme.css：那个文件已经在 1000 行上下，再长就没人读得动。
+ */
+
+/* ============ 叙事版心 ============ */
+/*
+ * 叙事是主角（原则 1）：永远在视觉中心，宽度受控，其余都是抽屉。
+ * 电脑最宽 640px（约 36 个汉字一行），手机左右各留 20px。
+ */
+.story-measure {
+  width: 100%;
+  max-width: var(--measure);
+  margin-inline: auto;
+  padding-inline: var(--measure-pad);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  letter-spacing: var(--ls-body);
+  color: var(--ink-narration);
+}
+
+@media (min-width: 900px) {
+  .story-measure {
+    font-size: var(--fs-body-wide);
+    padding-inline: 0;
+  }
+}
+
+/* 一段叙事：淡入并上移 6px，每段 180ms（§6）。 */
+.story-beat {
+  margin: 0 0 16px;
+  animation: story-beat-in 180ms var(--ease-soft) both;
+}
+
+@keyframes story-beat-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/*
+ * 对白：人名单独一行，14px、字重 600、--ink-2；对白本身用正文字号，
+ * 不加引号框——中文对白加框会显得像代码块。
+ */
+.story-beat.is-speech .speaker {
+  display: block;
+  font-size: var(--fs-ui);
+  font-weight: 600;
+  color: var(--ink-2);
+  margin-bottom: 2px;
+}
+
+.story-beat.is-speech .line { color: var(--ink-speech); }
+
+/* 玩家自己说的话：赭石色细边，与 NPC 区分（§7 人物头像牌同一条规则）。 */
+.story-beat.is-player .speaker { color: var(--accent); }
+
+/* ============ 选项木牌 ============ */
+/*
+ * 一行做法 + 一行代价暗示。不可选的灰掉，并写明原因（「没有界石」）。
+ * 木牌质感只靠左边一道细边和极浅的底，不堆纹理——国风一屏不超过两处。
+ */
+.choice-card {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 12px 16px;
+  text-align: start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-inline-start: 3px solid var(--line-strong);
+  border-radius: var(--r-md);
+  color: var(--ink);
+  font-size: var(--fs-ui);
+  line-height: var(--lh-ui);
+  cursor: pointer;
+  transition: background var(--t-micro) var(--ease-soft),
+              border-color var(--t-micro) var(--ease-soft),
+              transform var(--t-micro) var(--ease-soft);
+}
+
+.choice-card:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-inline-start-color: var(--primary);
+}
+
+.choice-card:active:not(:disabled) { transform: translateY(1px); }
+
+.choice-card .label { font-weight: 600; }
+
+/* 代价暗示：不写数值，只写「会得罪阿石」这类话。 */
+.choice-card .cost {
+  font-size: var(--fs-note);
+  color: var(--muted);
+}
+
+.choice-card .cost.is-warning { color: var(--tone-hostile); }
+
+/* 不可选：灰掉 + 说明原因。绝不只靠颜色区分（§9）。 */
+.choice-card:disabled {
+  cursor: not-allowed;
+  background: var(--surface-2);
+  border-inline-start-color: var(--line);
+  color: var(--muted);
+}
+
+.choice-card:disabled .label::after {
+  content: "（做不到）";
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* 许诺过的做法贴一张纸条（§5.2 B）。 */
+.choice-card .pledge-note {
+  margin-top: 4px;
+  padding: 2px 8px;
+  font-size: var(--fs-note);
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: var(--r-sm);
+  justify-self: start;
+}
+
+/* ============ 印章 ============ */
+/*
+ * 只用在三处：当选、立规矩、重大传承（§7）。朱砂色，盖章动画 300ms。
+ * 平时不出现——这是全篇最克制的一个元素。
+ */
+.seal {
+  display: inline-grid;
+  place-items: center;
+  min-width: 64px;
+  padding: 6px 10px;
+  font-family: var(--serif);
+  font-size: var(--fs-ui);
+  letter-spacing: var(--ls-title);
+  color: var(--danger);
+  border: 2px solid var(--danger);
+  border-radius: var(--r-sm);
+  opacity: 0;
+  transform: rotate(-6deg) scale(1.4);
+  animation: seal-stamp 300ms var(--ease-soft) forwards;
+}
+
+@keyframes seal-stamp {
+  0%   { opacity: 0; transform: rotate(-6deg) scale(1.4); }
+  60%  { opacity: 1; transform: rotate(-6deg) scale(.96); }
+  100% { opacity: 1; transform: rotate(-6deg) scale(1); }
+}
+
+/* ============ 抽屉 ============ */
+/*
+ * 电脑从右边滑出，宽 420；手机是底部抽屉，可停半屏或全屏。
+ * 用 <dialog> 不合适的场合（需要常驻、不抢焦点）就用这个。
+ */
+.drawer {
+  position: fixed;
+  z-index: 80;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  transition: transform var(--t-panel) var(--ease-soft),
+              opacity var(--t-panel) var(--ease-soft);
+}
+
+/* 电脑：右侧滑出 */
+@media (min-width: 900px) {
+  .drawer {
+    inset-block: 0;
+    inset-inline-end: 0;
+    width: 420px;
+    max-width: 90vw;
+    border-start-start-radius: var(--r-xl);
+    border-end-start-radius: var(--r-xl);
+    transform: translateX(100%);
+  }
+  .drawer.is-open { transform: none; }
+}
+
+/* 手机：底部抽屉，半屏起步，能下拉关闭 */
+@media (max-width: 899px) {
+  .drawer {
+    inset-inline: 0;
+    inset-block-end: 0;
+    max-height: 88dvh;
+    border-start-start-radius: var(--r-xl);
+    border-start-end-radius: var(--r-xl);
+    transform: translateY(100%);
+  }
+  .drawer.is-open { transform: none; }
+  .drawer.is-half { transform: translateY(45%); }
+
+  /* 顶部那道把手：告诉玩家可以往下拉 */
+  .drawer::before {
+    content: "";
+    position: absolute;
+    inset-block-start: 8px;
+    inset-inline: 0;
+    width: 36px;
+    height: 4px;
+    margin-inline: auto;
+    border-radius: var(--r-pill);
+    background: var(--line-strong);
+  }
+}
+
+/* ============ 词条（可展开的概念词） ============ */
+/*
+ * 正文里的概念词、人名、地名都能点开，最多叠 3 层（原则 5）。
+ * 用虚下划线而不是颜色加粗——颜色留给「重要」。
+ */
+.gloss {
+  border-block-end: 1px dashed color-mix(in srgb, var(--primary) 60%, transparent);
+  cursor: help;
+  color: inherit;
+}
+
+.gloss:hover { border-block-end-style: solid; }
+
+/* ============ 场景舞台的三层 ============ */
+/*
+ * 远、中、近三层插画，只做很轻的视差与光照；人物不走动（原则 2）。
+ * 插画本身还没有，这里先把结构定下来，内容作者按层交付即可。
+ */
+.scene-layers { position: relative; overflow: hidden; }
+
+.scene-layers > .layer {
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  will-change: transform;
+}
+
+/* 光照叠加：按时辰调色，透明度变化 ≤ 0.3（§6） */
+.scene-layers > .lighting {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--accent-soft);
+  opacity: 0;
+  transition: opacity var(--t-scene) var(--ease-soft);
+}
+
+.scene-layers[data-time="dawn"] > .lighting  { opacity: .18; }
+.scene-layers[data-time="day"] > .lighting   { opacity: 0; }
+.scene-layers[data-time="dusk"] > .lighting  { opacity: .22; }
+.scene-layers[data-time="night"] > .lighting { opacity: .28; background: var(--primary-soft); }
+
+/* ============ 无障碍 ============ */
+@media (prefers-reduced-motion: reduce) {
+  .story-beat,
+  .seal,
+  .choice-card,
+  .drawer,
+  .scene-layers > .lighting {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+  .seal { opacity: 1; }
+}

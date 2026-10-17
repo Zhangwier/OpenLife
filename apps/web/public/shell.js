@@ -6,6 +6,7 @@ import { openDetail, closeDetail, leaveDetail } from "/detail-navigation.js";
 import { icon } from "/icons.js";
 import { renderSceneFx } from "/scene-fx.js";
 import { audioState, onAudioChange, setSoundMode, setVolume } from "/audio.js";
+import { installOffice } from "/office-panel.js";
 import { loadCodex, installMusicToggle } from "/codex.js";
 
 const TITLES = { life: "人生概述", character: "人生", activities: "此刻", people: "熟人", stories: "故事", works: "行囊", family: "家族谱", map: "地图与地点", world: "时代与世界", history: "记忆与历史", codex: "图鉴", modules: "模块管理" };
@@ -113,6 +114,13 @@ export function enterLife() { started = true; if (currentState) renderShell(curr
 export function renderShell(state) {
   currentState = state; updateHome();
   $("pageIdentity").textContent = state.character ? `${state.character.name} · ${state.character.age} 岁 · ${state.character.city}` : "";
+  // 职位面板：有 office 模块时才出现，没有就整块隐藏。
+  const officeRoot = $("officePanel");
+  if (officeRoot) {
+    const hasOffice = Boolean(state.office || state.officeRegistry);
+    officeRoot.hidden = !hasOffice;
+    if (hasOffice) installOffice(officeRoot, { getState: () => currentState, send: (a, p) => options.onSettlementAction(a, p) });
+  }
   const c = state.character, p = state.player;
   const inProgress = Boolean(p?.practice);
   $("screen-life").innerHTML = `<section class="life-overview panel"><div class="overview-label">${html(state.era)} · ${state.month} 月 · ${html(c?.city)}</div><h2>${html(c?.name)}，${c?.alive ? "今天想怎样生活？" : "这一生留下了什么？"}</h2><p class="overview-intro">${c?.alive ? "生活里有许多值得停留的地方。照看自己，见一见熟人，或者接着做手中的事。" : "你留下的关系、作品与家人仍在世界里。可以到家族谱寻找接续的人生。"}</p><div class="overview-facts"><span>${c?.age ?? 0} 岁</span><span>第 ${state.generation} 代</span><span>${html(c?.role)}</span></div>${p?.outcome ? `<div class="overview-memory"><span>最近发生的事</span><p>${html(p.outcome)}</p></div>` : ""}</section>

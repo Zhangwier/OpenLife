@@ -30,7 +30,7 @@ import { worldCatalog } from "./src/catalog.ts";
 import { codex } from "./src/codex.ts";
 import { humanizeEvent } from "./src/humanize.ts";
 import { ensureNature, runNatureAction, withNature } from "./src/nature.ts";
-import { startHistory, historyDay, historySeason } from "./src/history-bridge.ts";import { webModules } from "./src/modules.ts";
+import { startHistory, historyDay, historySeason, officeViews } from "./src/history-bridge.ts";import { webModules } from "./src/modules.ts";
 const PORT = Number(process.env.PORT ?? 4173);
 const PUBLIC_DIR = fileURLToPath(new URL("./public/", import.meta.url));
 /** Which opening a brand-new life uses: the M1 settlement, or the older slice. */
@@ -512,8 +512,8 @@ function gameState() {
       settlementLoans: characterId ? loansHeldBy(simulation, characterId) : [],
     },
     settlement: withNature(simulation, settlementView(simulation, characterId), characterId),
-    stories: storiesView(characterId),
-    guide: guideView(characterId),
+    stories: storiesView(characterId), guide: guideView(characterId),
+    office: officeViews(simulation).panel, officeRegistry: officeViews(simulation).registry,
     originCatalog: originCatalog(),
     clock: clockReading(world),
     /** SAVE-01: whether this world's last disk write actually succeeded. */

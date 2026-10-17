@@ -279,3 +279,29 @@ export function acceptedTheories(sim: Simulation): string[] {
   if (!installedOf(sim).tech) return [];
   return Object.keys(villageRecord(sim)?.accepted ?? {}).sort();
 }
+
+/**
+ * The office panel and registry, ready for the browser.
+ *
+ * Kept here rather than in server.ts (frozen at 1310 lines) and rather than in
+ * a new file (one more thing to wire): both are one projection call each, and
+ * they belong to the same "what is the village doing" question the bridge
+ * already answers. Returns nulls when the office module is absent, so the shell
+ * can simply not render the panel.
+ */
+export function officeViews(sim: Simulation): {
+  panel: Record<string, unknown> | null;
+  registry: Record<string, unknown> | null;
+} {
+  const has = (() => {
+    const registry = (sim as unknown as { modules?: { get?: (id: string) => unknown } }).modules;
+    try { return Boolean(registry?.get?.("office")); } catch { return false; }
+  })();
+  if (!has) return { panel: null, registry: null };
+  const panel = sim.project({ id: "office.panel", params: {} });
+  const registry = sim.project({ id: "office.registry", params: {} });
+  return {
+    panel: panel.ok ? (panel.data as Record<string, unknown>) : null,
+    registry: registry.ok ? (registry.data as Record<string, unknown>) : null,
+  };
+}

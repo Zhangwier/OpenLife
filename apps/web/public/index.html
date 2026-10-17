@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/codex.css" />
   <link rel="stylesheet" href="/stories.css" />
   <link rel="stylesheet" href="/guide.css">
+  <link rel="stylesheet" href="/scene.css" />
   <link rel="icon" href="data:," />
   <meta name="color-scheme" content="light dark" />
   <meta name="theme-color" content="#f2ece1" />
@@ -215,6 +216,9 @@
       <section class="relationship-card panel" data-view-panel="people">
         <div class="panel-title-row"><div><div class="eyebrow">人与人</div><h3>关系</h3></div><span class="subtle" id="relationCount">0 条关系</span></div>
         <div class="relationship-orbit" id="relationshipOrbit"></div>
+      </section>
+      <section class="office-card panel" data-view-panel="people" id="officePanel">
+        <!-- 职位面板：由 office-panel.js 渲染。没有 office 模块时整块不出现。 -->
       </section>
       <section class="works-card panel" data-view-panel="works" hidden>
         <div class="panel-title-row"><div><div class="eyebrow">手艺与作品</div><h3>亲手留下的东西</h3></div></div>
