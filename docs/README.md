@@ -44,3 +44,7 @@
 
 - [手机优先路线与任务表（2026-10-16）](plans/mobile-life-roadmap-2026-10-16.md)
 - [分支整合与验证记录（2026-10-16）](reviews/integration-2026-10-16.md)
+
+## 状态核验
+
+- [需求状态矩阵（BASE-01）](status/requirement-status-matrix.md) · 逐条需求映射到源码证据、自动化验收与真人验收三列，并记录文档声称与代码事实的冲突。

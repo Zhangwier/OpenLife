@@ -22,7 +22,7 @@
 | `packages/simulation` | `@openlife/simulation` | autonomy-runtime, contracts, history-runtime, kernel, module-runtime, query, rule-engine, save-system, world-model |
 | `packages/world-model` | `@openlife/world-model` | contracts |
 
-## modules/ · 37 个模块包
+## modules/ · 41 个模块包
 
 ### World Pack · 世界观（4）
 
@@ -33,7 +33,7 @@
 | `modules/robot-test-world` | 机器人测试世界 | `robot-test-world` (`robotTestWorldModule`) | `robot.population`, `robot.energy_network`, `time.machine_cycle` | — | contracts |
 | `modules/world-clock` | 世界时钟 | `world-clock` (`worldClockModule`) | `time.life-scale`, `time.scale` | `time.calendar` | contracts, life-contracts, module-practice-runtime |
 
-### System Pack · 通用系统（28）
+### System Pack · 通用系统（31）
 
 | 目录 | 名称 | 模块 id（导出） | provides | requires | 依赖（workspace） |
 | --- | --- | --- | --- | --- | --- |
@@ -43,6 +43,7 @@
 | `modules/education` | 教育原型 | `education` (`educationModule`) | `education.provider` | `time.calendar` | contracts, life-contracts |
 | `modules/epistemic-state` | 人物认知 | `epistemic-state` (`epistemicStateModule`) | `cognition.epistemic-state` | — | contracts |
 | `modules/family` | 家庭与关系 | `family` (`familyModule`) | `family.relationship_provider`, `family.heir_provider` | `time.calendar`, `life.population` | contracts, life-contracts |
+| `modules/fauna-bonds` | 与动物相处 | `fauna-bonds` (`faunaBondsModule`) | `fauna.individuals` | `world.species` | contracts, module-world-species |
 | `modules/historical-era` | 时代环境 | `historical-era` (`historicalEraModule`) | `history.era-context` | `time.calendar` | contracts, life-contracts |
 | `modules/historical-memory` | 历史留存 | `historical-memory` (`historicalMemoryModule`) | `history.material-evidence`, `history.public-memory` | — | contracts |
 | `modules/intellectual-history` | 思想与学派 | `intellectual-history` (`intellectualHistoryModule`) | `culture.intellectual-tradition` | — | contracts |
@@ -52,12 +53,14 @@
 | `modules/practice-autonomy` | 自主参与活动 | `practice-autonomy` (`practiceAutonomyModule`) | `practice.autonomy` | `practice.runtime` | contracts, module-practice-runtime |
 | `modules/practice-runtime` | 持续活动 | `practice-runtime` (`practiceRuntimeModule`) | `practice.runtime` | — | contracts |
 | `modules/science-research` | 研究活动 | `science-research` (`scienceResearchModule`) | `science.research-practice` | `practice.runtime` | contracts, module-practice-runtime |
+| `modules/social-conflict` | 乡邻纠纷 | `social-conflict` (`socialConflictModule`) | `social.conflict` | — | contracts |
 | `modules/world-climate` | 气候 | `world-climate` (`worldClimateModule`) | `world.climate-profile` | `world.geography`, `world.geosphere-profile` | contracts, module-world-geography, module-world-geosphere |
 | `modules/world-ecology` | 生态 | `world-ecology` (`worldEcologyModule`) | `world.ecology-state` | `world.geography`, `world.climate-profile`, `world.hydrology-state` | contracts, module-world-climate, module-world-geography, module-world-hydrology |
 | `modules/world-geography` | 地理与连通 | `boundary-handshake` (`boundaryHandshakeModule`) | `world.boundary-handshake` | `world.geography` | contracts |
 | `modules/world-geography` | 地理与连通 | `world-geography` (`worldGeographyModule`) | `world.geography` | — | contracts |
 | `modules/world-geosphere` | 地形与地质 | `world-geosphere` (`worldGeosphereModule`) | `world.geosphere-profile` | `world.geography` | contracts, module-world-geography |
 | `modules/world-grazing` | 放牧环境 | `world-grazing` (`worldGrazingModule`) | `world.grazing-pressure` | `world.geography`, `world.vegetation`, `world.species` | contracts, module-world-geography, module-world-species, module-world-vegetation |
+| `modules/world-hazard` | 水旱与治水 | `world-hazard` (`worldHazardModule`) | `world.hazard-state` | `world.hydrology-state` | contracts, module-world-hydrology |
 | `modules/world-hydrology` | 水文 | `world-hydrology` (`worldHydrologyModule`) | `world.hydrology-state` | `world.geography`, `world.geosphere-profile`, `world.weather-current` | contracts, module-world-geography, module-world-geosphere, module-world-weather |
 | `modules/world-objects` | 物品与容器 | `world-objects` (`worldObjectsModule`) | `world.objects` | `world.space` | contracts, module-world-space |
 | `modules/world-space` | 建筑与空间 | `world-space` (`worldSpaceModule`) | `world.space` | `time.calendar` | contracts, module-practice-runtime |
@@ -66,7 +69,7 @@
 | `modules/world-vegetation` | 植被 | `world-vegetation` (`worldVegetationModule`) | `world.vegetation` | `world.geography`, `world.climate-profile`, `world.hydrology-state`, `world.ecology-state` | contracts, module-world-climate, module-world-ecology, module-world-geography, module-world-hydrology |
 | `modules/world-weather` | 天气 | `world-weather` (`worldWeatherModule`) | `world.weather-current` | `world.geography`, `world.climate-profile` | contracts, module-world-climate, module-world-geography |
 
-### Content Pack · 具体内容（6）
+### Content Pack · 具体内容（7）
 
 | 目录 | 名称 | 模块 id（导出） | provides | requires | 依赖（workspace） |
 | --- | --- | --- | --- | --- | --- |
@@ -75,6 +78,7 @@
 | `modules/historical-anchors` | 历史人物 | `historical-anchors` (`historicalAnchorsModule`) | `history.person-anchors` | `time.calendar`, `life.population` | contracts, life-contracts |
 | `modules/settlement-life` | 聚落生活活动 | `settlement-life` (`settlementLifeModule`) | `life.settlement-playable` | `life.population`, `family.relationship_provider`, `practice.runtime`, `craft.pottery-practice` | contracts, life-contracts, module-craft-pottery, module-practice-runtime |
 | `modules/settlement-locations` | 河岸聚落 | `settlement-locations` (`settlementLocationsModule`) | `life.settlement` | `world.space`, `world.objects`, `time.life-scale` | contracts, life-contracts, module-world-objects, module-world-space |
+| `modules/settlement-nature` | 河岸天时 | `settlement-nature` (`settlementNatureModule`) | `world.hydrology-state`, `world.species` | `life.settlement` | contracts, module-settlement-locations, module-world-hazard, module-world-hydrology, module-world-species |
 | `modules/village-stories` | 村中故事 | `village-stories` (`villageStoriesModule`) | `settlement.stories` | `life.settlement` | contracts, life-contracts, module-settlement-locations, module-world-objects, module-world-space |
 
 ## apps/ · 应用
@@ -82,4 +86,4 @@
 | 目录 | 包名 | 依赖（workspace） |
 | --- | --- | --- |
 | `apps/debug-console` | `@openlife/debug-console` | contracts, module-career, module-education, module-family, module-magic-test-world, module-map-pack, module-modern-world, module-runtime, module-world-geography, rule-engine, simulation |
-| `apps/web` | `@openlife/web` | autonomy-runtime, contracts, life-contracts, module-craft-pottery, module-early-civilization, module-family, module-historical-anchors, module-historical-era, module-historical-memory, module-intellectual-history, module-map-pack, module-modern-science, module-modern-world, module-practice-runtime, module-settlement-life, module-settlement-locations, module-village-stories, module-world-clock, module-world-objects, module-world-space, simulation |
+| `apps/web` | `@openlife/web` | autonomy-runtime, contracts, life-contracts, module-craft-pottery, module-early-civilization, module-family, module-fauna-bonds, module-historical-anchors, module-historical-era, module-historical-memory, module-intellectual-history, module-map-pack, module-modern-science, module-modern-world, module-practice-runtime, module-settlement-life, module-settlement-locations, module-settlement-nature, module-social-conflict, module-village-stories, module-world-clock, module-world-hazard, module-world-objects, module-world-space, simulation |

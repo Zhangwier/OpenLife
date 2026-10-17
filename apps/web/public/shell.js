@@ -8,7 +8,7 @@ import { renderSceneFx } from "/scene-fx.js";
 import { audioState, onAudioChange, setSoundMode, setVolume } from "/audio.js";
 import { loadCodex, installMusicToggle } from "/codex.js";
 
-const TITLES = { life: "人生概述", character: "人物", activities: "生活", people: "人际", stories: "故事", works: "行囊", family: "家族谱", map: "地图与地点", world: "时代与世界", history: "记忆与历史", codex: "图鉴", modules: "模块管理" };
+const TITLES = { life: "人生概述", character: "人生", activities: "此刻", people: "熟人", stories: "故事", works: "行囊", family: "家族谱", map: "地图与地点", world: "时代与世界", history: "记忆与历史", codex: "图鉴", modules: "模块管理" };
 let active = "home", started = false, currentState, callbacks;
 let bagSelection = null;
 const $ = id => document.getElementById(id);
@@ -116,10 +116,10 @@ export function renderShell(state) {
   const inProgress = Boolean(p?.practice);
   $("screen-life").innerHTML = `<section class="life-overview panel"><div class="overview-label">${html(state.era)} · ${state.month} 月 · ${html(c?.city)}</div><h2>${html(c?.name)}，${c?.alive ? "今天想怎样生活？" : "这一生留下了什么？"}</h2><p class="overview-intro">${c?.alive ? "生活里有许多值得停留的地方。照看自己，见一见熟人，或者接着做手中的事。" : "你留下的关系、作品与家人仍在世界里。可以到家族谱寻找接续的人生。"}</p><div class="overview-facts"><span>${c?.age ?? 0} 岁</span><span>第 ${state.generation} 代</span><span>${html(c?.role)}</span></div>${p?.outcome ? `<div class="overview-memory"><span>最近发生的事</span><p>${html(p.outcome)}</p></div>` : ""}</section>
     <div class="destination-grid">
-      <button class="destination-card" data-route="activities"><span class="destination-symbol">◎</span><h3>${inProgress ? "继续制作" : "回到生活"}</h3><p>${inProgress ? "你的手艺仍在进行。" : "遇见的人、手边的原料和附近的地点。"}</p><span class="destination-link">进入生活 →</span></button>
-      <button class="destination-card" data-route="character"><span class="destination-symbol">我</span><h3>查看自己</h3><p>身体、经历与正在学习的能力。</p><span class="destination-link">进入人物 →</span></button>
+      <button class="destination-card" data-route="activities"><span class="destination-symbol">◎</span><h3>${inProgress ? "继续制作" : "回到此刻"}</h3><p>${inProgress ? "你的手艺仍在进行。" : "遇见的人、手边的原料和附近的地点。"}</p><span class="destination-link">进入此刻 →</span></button>
+      <button class="destination-card" data-route="character"><span class="destination-symbol">我</span><h3>查看自己</h3><p>身体、经历与正在学习的能力。</p><span class="destination-link">进入人生 →</span></button>
       <button class="destination-card" data-route="works"><span class="destination-symbol">袋</span><h3>整理行囊</h3><p>查看真正携带的东西、负重和存放。</p><span class="destination-link">进入行囊 →</span></button>
-      <button class="destination-card" data-route="people"><span class="destination-symbol">人</span><h3>人际关系</h3><p>见过、交谈、相识，关系需要真实经历。</p><span class="destination-link">打开人际 →</span></button>
+      <button class="destination-card" data-route="people"><span class="destination-symbol">人</span><h3>认识的人</h3><p>见过、交谈、相识，关系需要真实经历。</p><span class="destination-link">打开熟人 →</span></button>
     </div>`;
   const oldDecision = document.querySelector(".decision-area");
   if (oldDecision && !oldDecision.closest(".legacy-choice-details")) {

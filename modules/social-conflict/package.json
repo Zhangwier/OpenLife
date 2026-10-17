@@ -1,0 +1,16 @@
+{
+  "name": "@openlife/module-social-conflict",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*"
+  },
+  "openlife": {
+    "label": "乡邻纠纷",
+    "summary": "争执会升级成世仇，需要调解；严重的恩怨会被后代继承。"
+  }
+}

@@ -32,6 +32,7 @@ import {
   stock,
   nearby,
   detail,
+  prototypeOf,
 } from "@openlife/module-world-objects";
 import { DAYS_PER_MONTH, DAY_TICKS_PER_YEAR, describeDuration } from "@openlife/life-contracts";
 
@@ -255,6 +256,48 @@ test("taking, storing and retrieving keep exactly one holder and one container",
   step({ type: ObjectCommands.retrieve, actorId, payload: { objectId: "obj:grain" } });
   assert.equal(holderOf(sim.worldView(), "obj:grain"), actorId);
   assert.equal(containerOf(sim.worldView(), "obj:grain"), "");
+});
+
+/**
+ * A capability the pack declares must survive loading.
+ *
+ * Regression: `capabilities()` filtered against a hard-coded whitelist, so
+ * `prototype:hide-cloak` kept `["carryable","wearable","warm"]` in the store but
+ * every reader saw only the first two. A silently dropped ability is worse than
+ * an unimplemented one: the data claims a property no rule can ever observe.
+ */
+test("a declared capability survives loading instead of being filtered away", () => {
+  const { sim, actorId } = boot();
+  buildHome(sim, actorId);
+  const register = (capabilities: string[]) => sim.dispatch({ type: ObjectCommands.registerPrototype, payload: {
+    prototypeId: "object:cloak", name: "兽皮披", material: "hide", resourceId: "resource:cloth",
+    unit: "件", mass: 1.5, capacity: 0, capabilities, durability: 30,
+  } as never });
+  assert.equal(register(["carryable", "wearable", "warm"]).ok, true);
+
+  // Read it the way every rule does: through a real instance of the prototype.
+  const world = sim.worldView();
+  const stored = world.getComponent("object:cloak", ObjectComponents.prototype) as Record<string, unknown>;
+  assert.deepEqual(stored?.capabilities, ["carryable", "wearable", "warm"], "the store keeps what the pack declared");
+  const spawned = sim.dispatch({ type: ObjectCommands.spawn, payload: {
+    prototypeId: "object:cloak", objectId: "obj:cloak", ownerId: actorId, placeId: "place:yard",
+  } as never });
+  assert.equal(spawned.ok, true, spawned.errors.map((error) => error.message).join("; "));
+  assert.deepEqual(prototypeOf(sim.worldView(), "obj:cloak").capabilities, ["carryable", "wearable", "warm"],
+    "a reader must see the same abilities the pack declared");
+
+  // The loader still normalises a declared list: duplicates collapse instead of
+  // accumulating, so a repeated name cannot inflate the capability set.
+  const twice = boot();
+  buildHome(twice.sim, twice.actorId);
+  assert.equal(twice.sim.dispatch({ type: ObjectCommands.registerPrototype, payload: {
+    prototypeId: "object:wrap", name: "纤维裹身", material: "fiber", resourceId: "resource:cloth",
+    unit: "件", mass: 0.8, capacity: 0, capabilities: ["wearable", "wearable", "wearable"], durability: 25,
+  } as never }).ok, true);
+  assert.deepEqual(
+    (twice.sim.worldView().getComponent("object:wrap", ObjectComponents.prototype) as Record<string, unknown>)?.capabilities,
+    ["wearable"],
+  );
 });
 
 test("a container can never contain itself or its own descendant", () => {

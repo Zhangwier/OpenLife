@@ -47,7 +47,7 @@ test("UX-P0: Web can only know villagers by real conversations, not one-click fr
     await act("friend", {}, false);
     assert.equal(s.relations.filter((r: { type: string }) => r.type === "family.friend_of").length, original);
     await act("settlement-locations.arrive", { placeId: "place:field", travelMode: "local" });
-    const yu = s.settlement.neighbours.find((r: { name: string }) => r.name === "阿予");
+    const yu = s.settlement.neighbours.find((r: { name: string }) => r.realName === "阿予");
     assert.ok(yu && yu.contact === "陌生");
     for (let i = 1; i <= 3; i++) {
       await act("settlement-locations.talk", { targetId: yu.id });
@@ -187,7 +187,7 @@ test("M3-D: Web lets player gather grain, ask the cook, refuse or accept the exa
       await act("settlement-locations.arrive", { placeId: "place:hearth-yard", travelMode: "local" });
       assert.equal(available("settlement-locations.barter.request")?.enabled, false,
         "the cook has no surplus bundle of his own");
-      const cook = state.settlement.neighbours.find((p: { name: string }) => p.name === "阿灶");
+      const cook = state.settlement.neighbours.find((p: { name: string }) => p.realName === "阿灶");
       assert.ok(cook);
       await act("settlement-locations.talk", { targetId: cook.id });
       await act("settlement-locations.hearth.help", { objectId: fuel.id });
@@ -291,7 +291,7 @@ test("M3-C: manual end-day and continuous batches share one persisted NPC day bo
     await action("settlement-locations.arrive", { placeId: "place:hearth-yard", travelMode: "local" });
     const cookedStock = () => state.settlement.yields
       .find((r: { resourceId: string }) => r.resourceId === "resource:cooked").stock;
-    const cook = () => state.settlement.neighbours.find((r: { name: string }) => r.name === "阿灶");
+    const cook = () => state.settlement.neighbours.find((r: { name: string }) => r.realName === "阿灶");
     const startTick = state.tick;
     const initialFood = cookedStock();
     assert.equal(cook()?.dailyNote ?? "", "");
@@ -326,7 +326,7 @@ test("M3-C: manual end-day and continuous batches share one persisted NPC day bo
     const tickSameDay = state.tick;
     await action("settlement-locations.arrive", { placeId: "place:field", travelMode: "local" });
     assert.equal(state.tick, tickSameDay);
-    const farmer = state.settlement.neighbours.find((r: { name: string }) => r.name === "阿予");
+    const farmer = state.settlement.neighbours.find((r: { name: string }) => r.realName === "阿予");
     assert.match(farmer?.dailyNote ?? "", /照料田地/);
     await action("settlement-locations.arrive", { placeId: "place:hearth-yard", travelMode: "local" });
     assert.equal(cookedStock(), initialFood - 1, "no double meal when player moves within one day");
@@ -403,16 +403,16 @@ test("M3-B: Web shows two bounded NPC routines and one persistent physical barte
       s = advanced.data.state;
     }
     assert.equal(s.tick, startTick + 6);
-    const cook = s.settlement.neighbours.find((p: { name: string }) => p.name === "阿灶");
+    const cook = s.settlement.neighbours.find((p: { name: string }) => p.realName === "阿灶");
     assert.ok(cook, "the cook is physically present at the communal hearth");
     assert.equal(cook.tradeCount, 0, "a trade cannot be forced by the sixth-day timer");
     assert.match(cook.dailyNote, /公灶|柴草/, "cook responds to material needs");    const saved = (await call("save", { label: "npc-barter" })).data.save;
     const restore = await call("load", { save: saved });
     assert.equal(restore.data.result.ok, true);
     s = restore.data.state;
-    assert.equal(s.settlement.neighbours.find((p: { name: string }) => p.name === "阿灶")?.tradeCount, 0);
+    assert.equal(s.settlement.neighbours.find((p: { name: string }) => p.realName === "阿灶")?.tradeCount, 0);
     await act("settlement-locations.arrive", { placeId: "place:field", travelMode: "local" });
-    const yu = s.settlement.neighbours.find((p: { name: string }) => p.name === "阿予");
+    const yu = s.settlement.neighbours.find((p: { name: string }) => p.realName === "阿予");
     assert.ok(yu);
     assert.equal(yu.tradeCount, 0, "the farmer was not forced into an arbitrary exchange");
     assert.match(yu.dailyNote, /照料田地/);    const client = await (await fetch(`${base}/settlement.js`)).text();
@@ -424,7 +424,7 @@ test("M3-B: Web shows two bounded NPC routines and one persistent physical barte
       expectedTick: s.tick, expectedActorId: actorId });
     assert.equal(next.status, 200);
     s = next.data.state;
-    assert.equal(s.settlement.neighbours.find((p: { name: string }) => p.name === "阿予")?.tradeCount, 0);
+    assert.equal(s.settlement.neighbours.find((p: { name: string }) => p.realName === "阿予")?.tradeCount, 0);
     assert.equal(stderr, "");
   } finally {
     child.kill();
@@ -455,7 +455,7 @@ test("M3-A: Web continuous simulation runs one autonomous farmer and exposes wit
       return { status: response.status, data: await response.json() as Record<string, any> };
     };
     let s = (await call("state")).data;
-    assert.equal(s.settlement.neighbours.some((p: { name: string }) => p.name === "阿予"), false,
+    assert.equal(s.settlement.neighbours.some((p: { name: string }) => p.realName === "阿予"), false,
       "the distant farmer is not shown as if nearby");
     const act = async (action: string, payload: Record<string, unknown>) => {
       const response = await call("action", {
@@ -484,7 +484,7 @@ test("M3-A: Web continuous simulation runs one autonomous farmer and exposes wit
     assert.equal(cooked(), beforeFood - 1, "NPC consumed the same real food stock visible to player");
     assert.equal(s.settlement.dailyActivity.used, 0, "player receives a fresh day, no stolen budget");
     assert.equal(s.character.alive, true);
-    assert.equal(s.settlement.neighbours.some((p: { name: string }) => p.name === "阿予"), false,
+    assert.equal(s.settlement.neighbours.some((p: { name: string }) => p.realName === "阿予"), false,
       "the player cannot see a distant NPC's private routine");
     const stale = await call("autosim", {
       mode: "continuous-batch", days: 1, expectedTick: beforeTick, expectedActorId: s.character.id,
@@ -493,7 +493,7 @@ test("M3-A: Web continuous simulation runs one autonomous farmer and exposes wit
     assert.equal(stale.status, 409);
     assert.equal(beforePlayerBudget, 1);
     await act("settlement-locations.arrive", { placeId: "place:field", travelMode: "local" });
-    const neighbor = s.settlement.neighbours.find((p: { name: string }) => p.name === "阿予");
+    const neighbor = s.settlement.neighbours.find((p: { name: string }) => p.realName === "阿予");
     assert.ok(neighbor, "player at the field can now encounter the same physical resident");
     assert.match(neighbor.dailyNote, /照料田地/, JSON.stringify({tick:s.tick, beforeTick, neighbor, batch:batch.data.result, allNeighbors:s.settlement.neighbours}));
     assert.match(neighbor.dailyNote, /吃一份熟食/);
@@ -502,7 +502,7 @@ test("M3-A: Web continuous simulation runs one autonomous farmer and exposes wit
     const restored = await call("load", { save: checkpoint });
     assert.equal(restored.data.result.ok, true);
     s = restored.data.state;
-    assert.equal(s.settlement.neighbours.find((p: { name: string }) => p.name === "阿予")?.dailyNote,
+    assert.equal(s.settlement.neighbours.find((p: { name: string }) => p.realName === "阿予")?.dailyNote,
       neighbor.dailyNote);
     const ui = await (await fetch(`${base}/settlement.js`)).text();
     assert.match(ui, /dailyNote/);
@@ -738,9 +738,10 @@ test("M2-B: Web weaves a carrying bag and sleeping mat with real storage and res
   }
 });
 
+// This walk measures the 8-unit day budget exactly, so it runs without the hunger toll.
 test("Web player walks the settlement, borrows a jar, fetches water and returns it", { timeout: 40000 }, async () => {
   const child = spawn(process.execPath, [fileURLToPath(new URL("../../apps/web/server.ts", import.meta.url))], {
-    env: { ...process.env, OPENLIFE_PERSISTENCE: "0", PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, OPENLIFE_PERSISTENCE: "0", PORT: "0", OPENLIFE_HUNGER_TOLL: "0" }, stdio: ["ignore", "pipe", "pipe"],
   });
   let stderr = "";
   child.stderr.on("data", (data) => { stderr += data; });
@@ -900,7 +901,7 @@ test("Web player walks the settlement, borrows a jar, fetches water and returns 
     assert.equal(s.settlement.carrying.find((r: { resourceId: string }) =>
       r.resourceId === "resource:grain")?.count, 3);
     const farmerTrades = s.settlement.neighbours.find((resident: { name: string }) =>
-      resident.name === "阿予")?.tradeCount ?? 0;
+      resident.realName === "阿予")?.tradeCount ?? 0;
     assert.equal(farmerTrades, 0, "harvest day does not mint a predetermined trade");
     const remainingGrain = s.settlement.yields.find((r: { resourceId: string }) =>
       r.resourceId === "resource:grain").stock;

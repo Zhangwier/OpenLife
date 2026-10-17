@@ -133,9 +133,47 @@ export interface SettlementPack {
   /** 村里一季一季的大事：年景、天灾、来客；村民之间结亲、添丁；渡口来的新人。 */
   storyteller?: {
     chance: number;
-    events: Array<{ id: string; seasons: string[]; text: string; yields?: Record<string, number> }>;
+    events: StoryEventSpec[];
     couple: string; npcBirth: string; newcomer: string; newcomerNames: string[]; newcomerFrom: string[];
   };
+}
+
+/**
+ * One village event. Beyond its season, an event may declare **preconditions**
+ * (`requires`) and a **cooldown**, so it can only happen where it makes sense:
+ * a bad harvest means nothing in a village with no field, and a wildfire should
+ * not come twice in a row. When several qualify, the pick is deterministic.
+ *
+ * `yields` is the observable consequence: it scales real gathering points, so
+ * the player can see and feel the event rather than only read about it.
+ */
+export interface StoryEventSpec {
+  id: string;
+  seasons: string[];
+  text: string;
+  yields?: Record<string, number>;
+  /** Only eligible when the village really is in this state. */
+  requires?: {
+    /** Living villagers, inclusive bounds. */
+    population?: { min?: number; max?: number };
+    /** Sum of a resource across every place is below this. */
+    stockBelow?: Array<{ resourceId: string; amount: number }>;
+    /** Sum of a resource across every place is at least this. */
+    stockAtLeast?: Array<{ resourceId: string; amount: number }>;
+    /** Some home's roof is leaking (or none is). */
+    roofLeaking?: boolean;
+  };
+  /** How many world years must pass before this same event may repeat. */
+  cooldownYears?: number;
+  /**
+   * Tie the story to a tracked hazard (world-hazard state on `at`): when the
+   * place is tracked, the story is told exactly when that hazard struck this
+   * season, and never otherwise. Untracked worlds keep the old random draw.
+   */
+  hazard?: "flood" | "drought";
+  at?: string;
+  /** Never told in a season when this tracked hazard struck (a bumper year after a drought). */
+  excludes?: "flood" | "drought";
 }
 
 export interface SeasonLifeSpec {
@@ -320,6 +358,37 @@ export function validateSettlementPack(pack: SettlementPack): string[] {
   for (const [r, v] of Object.entries(pack.exchange?.values ?? {})) {
     if (!pack.resourceLabels[r]) problems.push(`exchange value: unknown resource ${r}`);
     if (!(v > 0)) problems.push(`exchange value ${r}: must be positive`);
+  }
+  const storyIds = dup("story event", (pack.storyteller?.events ?? []).map((e) => e.id));
+  void storyIds;
+  for (const e of pack.storyteller?.events ?? []) {
+    if (!e.text) problems.push(`story ${e.id}: needs text`);
+    if (!Array.isArray(e.seasons) || !e.seasons.length) problems.push(`story ${e.id}: needs seasons`);
+    for (const s of e.seasons) if (!["春", "夏", "秋", "冬"].includes(s)) problems.push(`story ${e.id}: unknown season ${s}`);
+    for (const where of Object.keys(e.yields ?? {})) {
+      const parts = where.split(":");
+      // "place:<name>:<resource>:<sub>" - the place and resource must exist.
+      const placeId = parts.slice(0, 2).join(":");
+      const resourceId = parts.slice(2).join(":");
+      if (!places.has(placeId)) problems.push(`story ${e.id}: unknown place ${placeId}`);
+      if (!pack.yields.some((y) => y.placeId === placeId && y.resourceId === resourceId))
+        problems.push(`story ${e.id}: ${resourceId} is not yielded at ${placeId}`);
+    }
+    for (const key of ["stockBelow", "stockAtLeast"] as const) {
+      for (const cond of e.requires?.[key] ?? []) {
+        if (!pack.resourceLabels[cond.resourceId]) problems.push(`story ${e.id}: unknown resource ${cond.resourceId}`);
+        if (!(cond.amount >= 0)) problems.push(`story ${e.id}: ${key} amount must not be negative`);
+      }
+    }
+    const pop = e.requires?.population;
+    if (pop && (pop.min ?? 0) > (pop.max ?? Infinity)) problems.push(`story ${e.id}: population min exceeds max`);
+    if (e.cooldownYears !== undefined && !(e.cooldownYears >= 0)) problems.push(`story ${e.id}: cooldownYears must not be negative`);
+    // A hazard-tied story needs the place whose tracked state it reads.
+    for (const kind of [e.hazard, e.excludes]) {
+      if (kind === undefined) continue;
+      if (!["flood", "drought"].includes(kind)) problems.push(`story ${e.id}: unknown hazard ${kind}`);
+      if (!e.at || !places.has(e.at)) problems.push(`story ${e.id}: hazard ${kind} needs a known place in "at"`);
+    }
   }
   return problems;
 }

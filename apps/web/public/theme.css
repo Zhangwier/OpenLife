@@ -639,6 +639,8 @@ body[data-screen="activities"] .page-heading { display: none; }
 .memory-slot.auto-slot { background: var(--accent-soft); border-color: var(--accent-line); }
 .memory-slot strong { display: block; font: 600 15px var(--serif); }
 .memory-slot-copy, .memory-slot-meta { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
+/* SAVE-01: a failed disk write has to read as a warning, not as body copy. */
+.memory-health { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--danger-line); border-radius: var(--r-md); background: var(--danger-soft); color: var(--danger); font-size: 13px; line-height: 1.6; }
 .slot-actions { display: flex; gap: 6px; flex-shrink: 0; }
 .memory-close { width: 100%; }
 .daily-plan-editor { border: 1px solid var(--line); border-radius: var(--r-md); padding: 16px; margin: 16px 0; background: var(--surface-2); }

@@ -41,7 +41,8 @@ test("playable village: player meets cook, sources real fuel, helps, saves and r
       state = res.data.state;
     };
     await action("settlement-locations.arrive", { placeId: "place:hearth-yard", travelMode: "local" });
-    const cook = state.settlement.neighbours.find((p: { name: string }) => p.name === "阿灶");
+    // 陌生人显示为「陌生人」；身份本身在 realName 里，测试用它认人。
+    const cook = state.settlement.neighbours.find((p: { realName: string }) => p.realName === "阿灶");
     assert.ok(cook);
     await action("settlement-locations.talk", { targetId: cook.id });
     assert.equal(state.settlement.communitySituation.visible, true);

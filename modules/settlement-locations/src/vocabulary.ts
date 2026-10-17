@@ -28,6 +28,8 @@ export const SettlementCommands = {
   arrive: "settlement-locations.arrive",
   draw: "settlement-locations.draw",
   talk: "settlement-locations.talk",
+  /** 打听：问一个认识的人村里最近的事（谁病着、谁过生日、谁缺粮）。 */
+  askAbout: "settlement-locations.ask_about",
   drink: "settlement-locations.drink",
   eat: "settlement-locations.eat",
   cook: "settlement-locations.cook",

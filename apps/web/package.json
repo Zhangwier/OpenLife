@@ -24,6 +24,10 @@
     "@openlife/module-world-objects": "*",
     "@openlife/module-settlement-locations": "*",
     "@openlife/module-village-stories": "*",
-    "@openlife/life-contracts": "*"
+    "@openlife/life-contracts": "*",
+    "@openlife/module-world-hazard": "*",
+    "@openlife/module-fauna-bonds": "*",
+    "@openlife/module-settlement-nature": "*",
+    "@openlife/module-social-conflict": "*"
   }
 }

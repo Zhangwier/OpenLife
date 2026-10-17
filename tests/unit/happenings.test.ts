@@ -56,7 +56,9 @@ test("bringing food to an ill neighbour is remembered more than an ordinary gift
   let ill = illnessOn(sim.tick);
   for (let i = 0; i < 30 && !ill; i += 1) { sim.advanceBy(1); ill = illnessOn(sim.tick); }
   assert.ok(ill, "someone falls ill within a month");
-  assert.ok(homestead(sim.worldView(), me).happenings.some((t) => t.includes("着了凉")));
+  // 不认识的人病倒了，只该听说「村里有人病着」，名字得去打听。
+  const news = homestead(sim.worldView(), me).happenings.join(" | ");
+  assert.ok(/着了凉|村里有人病倒/.test(news), news);
   const fish = tradeableGoods(sim.worldView(), me)["resource:fish"]?.[0];
   assert.ok(fish, "still carrying the fish");
   const where = occupiedPlaceId(sim.worldView(), ill!.residentId);

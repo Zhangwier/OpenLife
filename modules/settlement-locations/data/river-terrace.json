@@ -33,10 +33,11 @@
   "yields": [
     {"placeId": "place:river", "resourceId": "resource:water", "label": "河水", "capacity": 40, "renewDays": 1, "unit": "份"},
     {"placeId": "place:claypits", "resourceId": "resource:clay", "label": "黏土", "capacity": 12, "renewDays": 20, "unit": "份"},
-    {"placeId": "place:reedbed", "resourceId": "resource:reed", "label": "芦苇", "capacity": 10, "renewDays": 45, "unit": "捆", "seasons": ["春", "夏", "秋"]},
+    {"placeId": "place:reedbed", "resourceId": "resource:reed", "label": "芦苇", "capacity": 10, "renewDays": 45, "unit": "捆", "seasons": ["春", "夏", "秋", "冬"]},
     {"placeId": "place:field", "resourceId": "resource:grain", "label": "粟", "capacity": 24, "renewDays": 30, "unit": "份", "perResidents": 4, "seasons": ["秋"]},
     {"placeId": "place:reedbed", "resourceId": "resource:fuel", "label": "柴草", "capacity": 14, "renewDays": 12, "unit": "捆", "seasons": ["夏", "秋", "冬"]},
     {"placeId": "place:kiln", "resourceId": "resource:fuel", "label": "窑边柴火", "capacity": 8, "renewDays": 20, "unit": "捆", "seasons": ["春", "夏", "秋"]},
+    {"placeId": "place:field", "resourceId": "resource:reed", "label": "田边干草", "capacity": 6, "renewDays": 30, "unit": "捆", "seasons": ["冬"]},
     {"placeId": "place:hearth-yard", "resourceId": "resource:cooked", "label": "熟食", "capacity": 12, "renewDays": 1, "unit": "份", "perResidents": 4}
   ],
   "prototypes": [
@@ -101,7 +102,9 @@
     "resource:cloth": "衣料",
     "resource:bag": "编织袋", "resource:basket": "粮筐", "resource:net": "渔网", "resource:greenware": "陶坯",
     "resource:dried-fish": "鱼干", "resource:millet-cake": "粟饼", "resource:instrument": "乐器",
-    "resource:screen": "帘", "resource:salt": "盐", "resource:herb": "草药", "resource:trap": "渔篓"
+    "resource:screen": "帘", "resource:salt": "盐", "resource:herb": "草药", "resource:trap": "渔篓",
+    "resource:cistern": "储水坑", "resource:millstone": "石磨盘",
+    "resource:fence": "木桩", "resource:kiln": "陶窑", "resource:hearth": "灶塘"
   },
   "instances": [
     {"id": "instance:jar:0:0", "prototypeId": "prototype:water-jar", "inId": "space:main-sleep", "quantity": 0, "owner": "elder"},
@@ -287,8 +290,9 @@
   "exchange": {
     "values": {"resource:grain": 2, "resource:cooked": 3, "resource:fuel": 1, "resource:reed": 1, "resource:water": 1,
                "resource:clay": 1, "resource:fiber": 2, "resource:rope": 2, "resource:mat": 4, "resource:bag": 4,
-               "resource:jar": 6, "resource:bowl": 4, "resource:cloth": 5,
-               "resource:fish": 2, "resource:greenware": 1, "resource:net": 5, "resource:tool": 3, "resource:basket": 4},
+               "resource:jar": 6, "resource:bowl": 4, "resource:cloth": 5, "resource:cookware": 7,
+               "resource:fish": 2, "resource:greenware": 1, "resource:net": 5, "resource:tool": 3, "resource:basket": 4,
+               "resource:trap": 4},
     "wants": {
       "cook": ["resource:fuel", "resource:grain"], "cook-helper": ["resource:fuel"],
       "yu": ["resource:fuel", "resource:jar"], "yu-brother": ["resource:clay"],
@@ -313,7 +317,16 @@
     {"id": "recipe:shape-greenware", "label": "捏一个陶坯", "hint": "两份黏土在晾坯架上捏成坯，要晾过一夜才能进窑。", "spaceId": "space:drying-rack", "inputs": [{"resourceId": "resource:clay", "count": 2}], "activity": 2, "output": {"prototypeId": "prototype:greenware", "name": "自己捏的陶坯", "durability": 10, "condition": "wet"}},
     {"id": "recipe:fire-jar", "label": "烧一个小陶罐", "hint": "一个晾干的陶坯加两捆柴进窑烧成小陶罐；下雨下雪窑火点不起来。", "spaceId": "space:kiln-mouth", "inputs": [{"resourceId": "resource:greenware", "count": 1, "minAgeDays": 1}, {"resourceId": "resource:fuel", "count": 2}], "activity": 3, "dryOnly": true, "output": {"prototypeId": "prototype:small-jar", "name": "自己烧的小陶罐", "durability": 45, "condition": "fired"}},
     {"id": "recipe:fire-bowl", "label": "烧一只陶碗", "hint": "一个晾干的陶坯加一捆柴进窑烧成陶碗；下雨下雪窑火点不起来。", "spaceId": "space:kiln-mouth", "inputs": [{"resourceId": "resource:greenware", "count": 1, "minAgeDays": 1}, {"resourceId": "resource:fuel", "count": 1}], "activity": 2, "dryOnly": true, "output": {"prototypeId": "prototype:bowl", "name": "自己烧的陶碗", "durability": 35, "condition": "fired"}},
-    {"id": "recipe:mend-roof", "label": "修补屋顶", "hint": "两份芦苇、一根草绳、一份黏土把漏的地方补上；屋顶会被雨雪慢慢淋坏，漏了的屋子雨夜睡不好。下雨下雪上不了屋顶。", "spaceId": "@home", "inputs": [{"resourceId": "resource:reed", "count": 2}, {"resourceId": "resource:rope", "count": 1}, {"resourceId": "resource:clay", "count": 1}], "activity": 3, "dryOnly": true, "repairs": "roof"}
+    {"id": "recipe:mend-roof", "label": "修补屋顶", "hint": "两份芦苇、一根草绳、一份黏土把漏的地方补上；屋顶会被雨雪慢慢淋坏，漏了的屋子雨夜睡不好。下雨下雪上不了屋顶。", "spaceId": "@home", "inputs": [{"resourceId": "resource:reed", "count": 2}, {"resourceId": "resource:rope", "count": 1}, {"resourceId": "resource:clay", "count": 1}], "activity": 3, "dryOnly": true, "repairs": "roof"},
+    {"id": "recipe:fire-water-jar", "label": "烧一个储水陶罐", "hint": "一个晾干的陶坯加两捆柴，烧出能装四份水的大罐；村里借你用的就是这种。", "spaceId": "space:kiln-mouth", "inputs": [{"resourceId": "resource:greenware", "count": 1, "minAgeDays": 1}, {"resourceId": "resource:fuel", "count": 2}], "activity": 3, "dryOnly": true, "output": {"prototypeId": "prototype:water-jar", "name": "自己烧的储水罐", "durability": 70, "condition": "fired"}, "provenance": {"kilnSpace": "space:kiln-mouth"}, "event": {"type": "settlement-locations.vessel_fired", "data": {"vesselId": "$output", "kind": "water-jar"}, "significance": 0.04}},
+    {"id": "recipe:fire-grain-jar", "label": "烧一口储粮陶瓮", "hint": "两个陶坯加一根草绳箍口，烧成能存八份粮食的大瓮；屋角有它，过冬心里就稳。", "spaceId": "space:kiln-mouth", "inputs": [{"resourceId": "resource:greenware", "count": 2, "minAgeDays": 1}, {"resourceId": "resource:rope", "count": 1}, {"resourceId": "resource:fuel", "count": 3}], "activity": 4, "dryOnly": true, "output": {"prototypeId": "prototype:grain-jar", "name": "自己烧的储粮瓮", "durability": 90, "condition": "fired"}, "provenance": {"kilnSpace": "space:kiln-mouth"}, "event": {"type": "settlement-locations.vessel_fired", "data": {"vesselId": "$output", "kind": "grain-jar"}, "significance": 0.05}},
+    {"id": "recipe:fire-cooking-pot", "label": "烧一只炊煮陶釜", "hint": "两个陶坯加两捆柴，烧出能架在灶上的陶釜。", "spaceId": "space:kiln-mouth", "inputs": [{"resourceId": "resource:greenware", "count": 2, "minAgeDays": 1}, {"resourceId": "resource:fuel", "count": 2}], "activity": 4, "dryOnly": true, "output": {"prototypeId": "prototype:cooking-pot", "name": "自己烧的陶釜", "durability": 55, "condition": "fired"}, "provenance": {"kilnSpace": "space:kiln-mouth"}, "event": {"type": "settlement-locations.vessel_fired", "data": {"vesselId": "$output", "kind": "cooking-pot"}, "significance": 0.05}},
+    {"id": "recipe:fire-sieve", "label": "烧一只陶筛", "hint": "一个陶坯加一捆柴烧成陶筛。", "spaceId": "space:kiln-mouth", "inputs": [{"resourceId": "resource:greenware", "count": 1, "minAgeDays": 1}, {"resourceId": "resource:fuel", "count": 1}], "activity": 2, "dryOnly": true, "output": {"prototypeId": "prototype:sieve", "name": "自己烧的陶筛", "durability": 35, "condition": "fired"}, "event": {"type": "settlement-locations.vessel_fired", "data": {"vesselId": "$output", "kind": "sieve"}, "significance": 0.03}},
+    {"id": "recipe:sew-cloak", "label": "缝一件兽皮披", "hint": "四束纤维做料，用骨针缝成一件厚披：穿着下田更省力气。", "spaceId": "space:reed-cut", "inputs": [{"resourceId": "resource:fiber", "count": 4}], "tool": "prototype:bone-needle", "activity": 4, "output": {"prototypeId": "prototype:hide-cloak", "name": "自己缝的厚披", "durability": 40, "condition": "sewn"}, "event": {"type": "settlement-locations.cloak_sewn", "data": {"cloakId": "$output"}, "significance": 0.04}},
+    {"id": "recipe:weave-trap", "label": "编一只渔篓", "hint": "三捆芦苇加一根草绳编成渔篓；篓子能下水，冬天也能凿开冰面下篓。", "spaceId": "space:reed-cut", "inputs": [{"resourceId": "resource:reed", "count": 3}, {"resourceId": "resource:rope", "count": 1}], "activity": 3, "output": {"prototypeId": "prototype:fish-trap", "name": "自己编的渔篓", "durability": 30, "condition": "woven"}, "event": {"type": "settlement-locations.trap_woven", "data": {"trapId": "$output"}, "significance": 0.03}},
+    {"id": "recipe:trap-fish", "label": "下一篓渔获", "hint": "把渔篓放进河里，等一阵再提起来；比下网省人力，收获看运气。", "spaceId": "space:bank", "inputs": [], "tool": "prototype:fish-trap", "activity": 2, "seasons": ["春", "夏", "秋"], "output": {"prototypeId": "prototype:fish", "name": "篓里提上来的鱼", "durability": 5}},
+    {"id": "recipe:ice-fish", "label": "凿冰下篓", "hint": "冬天河面结冰，凿开一个洞把渔篓放下去；冰下的鱼比夏天老实。", "spaceId": "space:bank", "inputs": [], "tool": "prototype:fish-trap", "activity": 3, "seasons": ["冬"], "output": {"prototypeId": "prototype:fish", "name": "冰洞下捞的鱼", "durability": 5}, "event": {"type": "settlement-locations.ice_fishing", "data": {"fishId": "$output"}, "significance": 0.03}},
+    {"id": "recipe:grind-grain", "label": "磨一份粟粉", "hint": "用石磨盘把一份粟磨细，磨过的粮食顶饿。", "spaceId": "space:hearth", "inputs": [{"resourceId": "resource:grain", "count": 1}], "tool": "prototype:grinding-stone", "activity": 1, "output": {"prototypeId": "prototype:cooked-food", "name": "磨好的粟粉", "durability": 0, "condition": "ground"}, "event": {"type": "settlement-locations.grain_ground", "data": {"mealId": "$output"}, "significance": 0.02}}
   ],
   "origins": [
     {"id": "potter-kin", "fulfilled": "窑口的灰还热着，你捧出那件属于自己的陶器。陶婶摸了摸罐沿，笑着说：“这下真是陶家的人了。”", "goal": {"kind": "crafted", "recipes": ["recipe:fire-jar", "recipe:fire-bowl"]}, "name": "陶家远亲", "story": "你是陶婶娘家那边的远房侄辈。去年秋天老家遭了水，你一个人背着两团黏土走到这里，陶叔陶婶收留了你，让你睡在主屋的角落。", "aspiration": "烧出第一件属于自己的陶器", "items": [{"prototypeId": "prototype:clay-batch", "count": 2}], "bonds": {"elder": {"familiarity": 4, "trust": 7}, "elder-wife": {"familiarity": 4, "trust": 7}}},
@@ -610,27 +623,29 @@
     "chance": 0.45,
     "events": [
       {
-        "id": "poor-harvest",
+        "id": "poor-harvest", "hazard": "drought", "at": "place:river",
         "seasons": [
           "秋"
         ],
         "text": "今年秋天雨水少，地里的粟只收了往年一半，各家都在算着过冬的口粮。",
         "yields": {
           "place:field:resource:grain": 0.4
-        }
+        },
+        "cooldownYears": 2
       },
       {
-        "id": "bumper",
+        "id": "bumper", "excludes": "drought", "at": "place:river",
         "seasons": [
           "秋"
         ],
         "text": "今年风调雨顺，地里的粟压弯了腰，各家的瓮都装得满满的。",
         "yields": {
           "place:field:resource:grain": 1.6
-        }
+        },
+        "cooldownYears": 2
       },
       {
-        "id": "flood",
+        "id": "flood", "hazard": "flood", "at": "place:river",
         "seasons": [
           "春",
           "夏"
@@ -638,7 +653,8 @@
         "text": "上游下了几天大雨，河水漫上来，把河湾的黏土坑淹了，好些天挖不了土。",
         "yields": {
           "place:claypits:resource:clay": 0
-        }
+        },
+        "cooldownYears": 2
       },
       {
         "id": "reed-fire",
@@ -650,17 +666,19 @@
         "yields": {
           "place:reedbed:resource:reed": 0.3,
           "place:reedbed:resource:fuel": 0.5
-        }
+        },
+        "cooldownYears": 3
       },
       {
-        "id": "drought",
+        "id": "drought", "hazard": "drought", "at": "place:river",
         "seasons": [
           "夏"
         ],
         "text": "一夏天没怎么下雨，河水浅了一大截，地里的苗也蔫了。",
         "yields": {
           "place:field:resource:grain": 0.6
-        }
+        },
+        "cooldownYears": 2
       },
       {
         "id": "south-traders",
@@ -668,7 +686,8 @@
           "春",
           "秋"
         ],
-        "text": "渡口来了几个南岸的人，拿盐和贝壳换走了几只陶碗，带来了下游的消息。"
+        "text": "渡口来了几个南岸的人，拿盐和贝壳换走了几只陶碗，带来了下游的消息。",
+        "cooldownYears": 1
       },
       {
         "id": "hard-winter",
@@ -678,7 +697,8 @@
         "text": "今年冬天格外冷，河边结了冰，柴草烧得比往年快。",
         "yields": {
           "place:reedbed:resource:fuel": 0.5
-        }
+        },
+        "cooldownYears": 2
       },
       {
         "id": "good-spring",
@@ -688,7 +708,94 @@
         "text": "开春暖得早，苇芽、野菜都冒了头，村里人心情都好。",
         "yields": {
           "place:reedbed:resource:reed": 1.4
-        }
+        },
+        "cooldownYears": 1
+      },
+      {
+        "id": "thin-larder",
+        "seasons": [
+          "冬",
+          "春"
+        ],
+        "text": "瓮底快刮干净了。阿灶把各家的口粮拢在一处，说这个春天得省着吃，先紧着孩子和老人。",
+        "requires": {
+          "stockBelow": [
+            {
+              "resourceId": "resource:grain",
+              "amount": 6
+            }
+          ]
+        },
+        "cooldownYears": 2
+      },
+      {
+        "id": "full-larder",
+        "seasons": [
+          "冬"
+        ],
+        "text": "入冬前各家把瓮都装满了。陶婶挨家看了一遍，难得没说什么，只说今年冬天不怕了。",
+        "requires": {
+          "stockAtLeast": [
+            {
+              "resourceId": "resource:grain",
+              "amount": 16
+            }
+          ]
+        },
+        "cooldownYears": 3
+      },
+      {
+        "id": "roof-season",
+        "seasons": [
+          "春",
+          "秋"
+        ],
+        "text": "一春的雨水过去，好几家的屋顶都松了。阿予领着人挨家上房，把漏的地方重新压了一遍。",
+        "requires": {
+          "roofLeaking": true
+        },
+        "cooldownYears": 1
+      },
+      {
+        "id": "ice-road",
+        "seasons": [
+          "冬"
+        ],
+        "text": "河面冻得结实，有人从冰上过了河。埴公站在岸上看了半天，说这条路一年也就这几天走得通。",
+        "requires": {
+          "population": {
+            "min": 8
+          }
+        },
+        "cooldownYears": 2
+      },
+      {
+        "id": "thin-village",
+        "seasons": [
+          "春",
+          "夏",
+          "秋",
+          "冬"
+        ],
+        "text": "村里的人比往年少了，几间屋子空着。岚母说，人手不够，地也该少种一片。",
+        "requires": {
+          "population": {
+            "max": 9
+          }
+        },
+        "cooldownYears": 2
+      },
+      {
+        "id": "clay-vein",
+        "seasons": [
+          "春",
+          "夏"
+        ],
+        "text": "河水退下去，露出河湾里一层没见过的青灰色细泥。阿埴捏了一点在手里，说这土能烧出不一样的东西。",
+        "yields": {
+          "place:claypits:resource:clay": 1.8
+        },
+        "cooldownYears": 2
       }
     ],
     "couple": "{a}和{b}成了亲，全村人都去道了喜。",

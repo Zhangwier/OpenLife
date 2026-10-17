@@ -188,6 +188,7 @@ export function renderSettlement(state, onAction) {
     `饥饿 ${s.hunger ?? 0}/10`,
     `今日活动 ${s.dailyActivity?.remaining ?? 0}/${s.dailyActivity?.capacity ?? 8} 格`,
     s.outfit ? `已穿：${s.outfit.name}` : "",
+    s.hungerToll?.line ? `${s.hungerToll.line}（今天少 ${s.hungerToll.units} 格）` : "",
     s.barter?.status === "offered" && s.barter.offeredAt === state.tick ? `${cookOf(s).name}正在等待你回复报价` : "",
   ];
   // 状态用量表而不是一句话：饥饿、今日活动格、随身负重一眼可读。
@@ -235,6 +236,21 @@ export function renderSettlement(state, onAction) {
     } else if (s.placeId === fuelPlace) {
       offer("采集眼前的柴草", available.find(a => a.id === "settlement-locations.draw" &&
         a.payload?.resourceId === "resource:fuel"));
+    }
+    // 河岸的天时与动物：大水、干旱、阿黄与狼。
+    const nature = s.nature;
+    if (nature && (nature.lines?.length || nature.animals?.length || nature.actions?.length)) {
+      story.insertAdjacentHTML("beforeend", `<div class="nature-box">
+        ${(nature.lines || []).map(line => `<p class="nature-line">${esc(line)}</p>`).join("")}
+        ${(nature.animals || []).map(a => `<p class="nature-animal">${esc(a.line)}</p>`).join("")}
+        ${nature.earthworks ? `<div class="hearth-story-foot">河边已有土堤 ${Number(nature.earthworks)} 段</div>` : ""}
+        <div class="hearth-story-actions">${(nature.actions || []).map((a, i) =>
+          `<button type="button" data-nature-action="${i}" ${a.enabled === false ? "disabled" : ""} title="${esc(a.enabled === false ? a.reason || "" : a.hint || "")}">${esc(a.label)}</button>`).join("")}</div>
+      </div>`);
+      story.querySelectorAll("[data-nature-action]").forEach(button => button.addEventListener("click", () => {
+        const chosen = nature.actions[Number(button.dataset.natureAction)];
+        if (chosen && chosen.enabled !== false) onAction(chosen.id, chosen.payload || {});
+      }));
     }
     if (options.length) {
       story.insertAdjacentHTML("beforeend", `<div class="hearth-story-actions">${options.map((option, i) =>
@@ -559,6 +575,7 @@ window.addEventListener("openlife:select-person", (event) => {
 
 export function describeSettlementResult(actionId, result, state) {
   if (result?.ok === false) return result.errors?.[0]?.message ?? "这件事现在做不了。";
+  if (typeof result?.message === "string") return result.message;
   if (actionId === "settlement-locations.exchange") {
     const last = state?.settlement?.exchange?.last;
     if (last) return last.accepted ? `换成了。${last.reason}。` : `没换成：${last.reason}。`;

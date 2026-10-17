@@ -39,6 +39,31 @@ async function post(base: string, route: string, body: unknown) {
   return response.json();
 }
 
+/**
+ * `saveHealth` describes this process's last disk write, not the world, so it
+ * legitimately differs across a restart. World-identity comparisons use this.
+ */
+function worldState(state: Record<string, any>): Record<string, any> {
+  const { saveHealth, ...rest } = state;
+  return rest;
+}
+
+/** Waits for the reported disk-write outcome to reach a wanted state. */
+async function waitForSaveHealth(
+  base: string,
+  wanted: (health: { state: string; reason: string; at: string }) => boolean,
+  deadlineMs = 10000,
+): Promise<{ state: string; reason: string; at: string }> {
+  const started = Date.now();
+  let last: { state: string; reason: string; at: string } = { state: "", reason: "", at: "" };
+  while (Date.now() - started < deadlineMs) {
+    last = (await (await fetch(base + "/api/state")).json()).saveHealth;
+    if (wanted(last)) return last;
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  return last;
+}
+
 test("disk save: reset/load survive hard restart; timer writes valid snapshots", { timeout: 60000 }, async () => {
   const dir = await mkdtemp(join(tmpdir(), "openlife-save-test-"));
   const path = join(dir, "save.json");
@@ -50,17 +75,24 @@ test("disk save: reset/load survive hard restart; timer writes valid snapshots",
     assert.equal(JSON.parse(await readFile(path, "utf8")).version, 1);
     await server.stop();
     server = await start(path);
-    assert.deepEqual(await (await fetch(server.base + "/api/state")).json(), original.state);
+    assert.deepEqual(worldState(await (await fetch(server.base + "/api/state")).json()), worldState(original.state));
+    assert.equal((await (await fetch(server.base + "/api/state")).json()).saveHealth.state, "ok",
+      "a restored world already has one good snapshot on disk");
     await post(server.base, "/api/reset", { seed: 321 });
     await post(server.base, "/api/load", { save: saved.save });
     await server.stop();
     server = await start(path, "100");
-    assert.deepEqual(await (await fetch(server.base + "/api/state")).json(), original.state);
+    assert.deepEqual(worldState(await (await fetch(server.base + "/api/state")).json()), worldState(original.state));
     const before = JSON.parse(await readFile(path, "utf8")).savedAt;
     await new Promise(resolve => setTimeout(resolve, 400));
     const after = JSON.parse(await readFile(path, "utf8"));
     assert.notEqual(after.savedAt, before);
     assert.ok(after.save.manifest);
+    // The timer keeps firing, so read the reported outcome only once it is a
+    // settled success: asserting at one instant races with the next write.
+    const settled = await waitForSaveHealth(server.base, h => h.state === "ok");
+    assert.equal(settled.state, "ok", `timer write never settled ok: ${settled.reason}`);
+    assert.ok(settled.at.length > 0);
   } finally { await server?.stop(); await rm(dir, { recursive: true, force: true }); }
 });
 
@@ -80,5 +112,56 @@ test("disk save: corrupt and unsupported saves are preserved before a new world 
       assert.equal(JSON.parse(await readFile(path, "utf8")).version, 1);
       await server.stop();
     }
+  } finally { await server?.stop(); await rm(dir, { recursive: true, force: true }); }
+});
+
+/**
+ * SAVE-01: a save that never reaches disk must be visible, not only logged.
+ *
+ * The world stays playable, so without a reported status the player cannot tell
+ * a safe world from one that will be lost on the next restart. Here the save
+ * path's parent is a regular file, so every write fails for a real reason.
+ */
+test("disk save: a failed write is reported to the client while the world stays playable", { timeout: 60000 }, async () => {
+  const dir = await mkdtemp(join(tmpdir(), "openlife-save-unwritable-"));
+  const blocker = join(dir, "blocker");
+  const path = join(blocker, "save.json");
+  let server: Awaited<ReturnType<typeof start>> | undefined;
+  try {
+    await writeFile(blocker, "this is a file, so it cannot be a save directory");
+    server = await start(path);
+    const health = async () => (await (await fetch(server!.base + "/api/state")).json()).saveHealth;
+    assert.equal((await health()).state, "off", "nothing has been written yet in this process");
+
+    await post(server.base, "/api/reset", { seed: 77 });
+    const failed = await health();
+    assert.equal(failed.state, "failed", "the rejected write must be reported, not silently dropped");
+    assert.ok(failed.reason.length > 0, "the report carries a concrete reason for the log");
+
+    // UI-004: the page must not be answered with a raw technical code or a
+    // server path, so the player-facing text is a separate, plain field.
+    assert.ok(failed.playerReason.length > 0, "a failed save must also explain itself to the player");
+    assert.ok(!/E[A-Z]{3,}/.test(failed.playerReason), `playerReason leaks an errno: ${failed.playerReason}`);
+    assert.ok(!/[A-Za-z]:[\\/]/.test(failed.playerReason), `playerReason leaks a path: ${failed.playerReason}`);
+    assert.ok(!failed.playerReason.includes("save.json"), "playerReason names an internal file");
+    const client = await (await fetch(server.base + "/app.js")).text();
+    assert.match(client, /playerReason/, "the client reads the player-facing field");
+    assert.ok(!/health\.reason\b/.test(client), "the client does not render the raw server error");
+
+    // Failure is a warning, not a crash: the same world keeps answering, and the
+    // browser-side manual save still works (it is independent of the disk copy).
+    assert.equal((await fetch(server.base + "/api/state")).status, 200);
+    const manual = await post(server.base, "/api/save", { label: "unwritable-disk" });
+    assert.ok(manual.save?.manifest, "a manual save still returns a real package");
+    assert.ok(manual.summary, "and a summary the save dialog can show");
+    assert.equal((await health()).state, "failed", "the condition persists until a write succeeds");
+
+    // A failed write must not poison the queue: once the obstruction is gone the
+    // very next autosave has to succeed and clear the warning.
+    await rm(blocker, { force: true });
+    await post(server.base, "/api/reset", { seed: 78 });
+    const recovered = await waitForSaveHealth(server.base, h => h.state === "ok");
+    assert.equal(recovered.state, "ok", `the queue never recovered: ${recovered.reason}`);
+    assert.equal(JSON.parse(await readFile(path, "utf8")).version, 1, "and a usable snapshot is on disk");
   } finally { await server?.stop(); await rm(dir, { recursive: true, force: true }); }
 });

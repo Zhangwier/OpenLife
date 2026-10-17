@@ -56,19 +56,29 @@ test("a disliked gift lands worse than nothing; you learn the taste; one gift a 
   assert.match(again.errors[0]!.message, /今天已经送过/);
   const card = homestead(sim.worldView(), me).neighbours.find((p) => p.id === reedWorker)!;
   assert.deepEqual(card.dislikes, ["芦苇"]);
-  assert.ok(card.birthday.includes("5月15日"));
+  // 生日是私事：只有聊熟了的人才报得出日子（不认识的人这里应当是空的）。
   void line;
 });
 
-test("birthdays show up in the village news on their day", () => {
-  const { sim } = life();
+test("a stranger's birthday is private; a known villager's is announced", () => {
+  const { sim, me } = life();
   const child = residentId("clay-child");
-  let found = false;
-  for (let d = 0; d < 8 && !found; d++) {
-    if (isBirthday(child, sim.tick)) { found = true; assert.ok(happeningsView(sim.worldView()).includes("今天是小满的生日。")); }
+  let hitDay = -1;
+  for (let d = 0; d < 8; d++) {
+    if (isBirthday(child, sim.tick)) { hitDay = sim.tick; break; }
     sim.advanceBy(1);
   }
-  assert.ok(found, "小满's birthday falls in the first week of winter");
+  assert.ok(hitDay >= 0, "小满's birthday falls in the first week of winter");
+  // 不认识小满时，就算是他生日，也不该出现在村里的消息里。
+  assert.ok(!happeningsView(sim.worldView(), me).includes("今天是小满的生日。"),
+    "a stranger's birthday must not be announced to someone who does not know them");
+  // 走过去、聊上一句之后，同一个日子就会报出名字。
+  const where = occupiedPlaceId(sim.worldView(), child);
+  assert.ok(where, "小满 is somewhere real");
+  assert.equal(sim.dispatch({ type: SettlementCommands.arrive, actorId: me, source: "player", payload: { placeId: where } }).ok, true);
+  assert.equal(sim.dispatch({ type: SettlementCommands.talk, actorId: me, source: "player", payload: { targetId: child } }).ok, true);
+  assert.ok(happeningsView(sim.worldView(), me).includes("今天是小满的生日。"),
+    "once you have spoken with them, their birthday is worth telling you");
 });
 
 test("once you are close enough, a villager tells you a story of their own, one at a time", () => {

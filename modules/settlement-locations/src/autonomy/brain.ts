@@ -39,6 +39,12 @@ const SPACE_NAME = new Map(PACK.places.flatMap((p) => p.spaces.map((s) => [s.id,
 /** 随身留着的东西：衣物工具袋子，以及做到一半的料（陶坯要晾、草绳纤维要接着用）。 */
 const KEEP = new Set(["resource:cloth", "resource:bag", "resource:tool", "resource:greenware", "resource:rope", "resource:fiber", "resource:net"]);
 const HOME_SPACES = new Set(PACK.residents.map((r) => r.homeSpace));
+/**
+ * Resources whose prototypes can be worn. A garment is carried like anything
+ * else, so the brain reasons about it by resource id; the concrete item is
+ * looked up from `spare` when the villager actually puts it on.
+ */
+const WEARABLE = new Set(PACK.prototypes.filter((p) => p.capabilities.includes("wearable")).map((p) => p.resourceId));
 const VALUES: Record<string, number> = PACK.exchange?.values ?? {};
 const OUTPUT_RESOURCE = new Map(PACK.prototypes.map((p) => [p.id, p.resourceId] as const));
 
@@ -242,6 +248,7 @@ type Step =
   | { kind: "visit"; placeId: string }
   | { kind: "ask"; targetId: string; resourceId: string; reason: string }
   | { kind: "give"; targetId: string; itemId: string }
+  | { kind: "wear"; itemId: string }
   | { kind: "rest" };
 
 interface Plan { first: Step; cost: number; why: string }
@@ -372,6 +379,18 @@ function options(s: Situation, m: Mind, blocked: Set<string>, today: Set<string>
     out.push({ id: "rest", utility: 100, plan: s.placeId === s.homePlace ? { first: { kind: "rest" }, cost: 0, why: "病着，躺着歇" }
       : { first: { kind: "go", placeId: s.homePlace }, cost: 1, why: "病着，回家躺下" }, motive: "病了" });
     return out.sort((x, y) => y.utility - x.utility || x.id.localeCompare(y.id));
+  }
+
+  // 天冷还光着身子：手上正好有件能穿的，就穿上。
+  // `desireFor` already made this villager want cloth in the cold, but nothing
+  // ever wore the garment that want produced — they would spin the fibre, sew
+  // the wrap, and then stand in the cold holding it.
+  if (s.cold && !s.wearing && !today.has("dressed")) {
+    const wearable = Object.entries(s.spare)
+      .filter(([r]) => WEARABLE.has(r) && !KEEP.has(r))
+      .sort((a, b) => (VALUES[b[0]] ?? 0) - (VALUES[a[0]] ?? 0) || a[0].localeCompare(b[0]))[0];
+    const itemId = wearable?.[1]?.[0];
+    if (itemId) push("wear", 55 + p.caution * 0.2, { first: { kind: "wear", itemId }, cost: 0, why: "天冷了，把衣物穿上" }, "天冷要穿件衣服");
   }
 
   // 家里人病着：先顾家里。打口水、带份吃的回去，递到病人手里；这几天也少往外跑。
@@ -660,6 +679,15 @@ export class BrainRun {
           blocked.add("eat-hearth");
         }
         break;
+      case "wear": {
+        // The rules only let someone wear a garment they own and hold, so the
+        // item is re-read from the world rather than trusted from planning time.
+        const item = sim.worldView().listRelations({ type: ObjectRelations.heldBy, to: actorId }).map((x) => x.from)
+          .find((id) => id === first.itemId);
+        ok = Boolean(item) && this.act(ObjectCommands.wear, { objectId: item }, `把${LABEL[prototypeOf(sim.worldView(), item!).resourceId] ?? "衣物"}穿上了`);
+        if (ok) today.add("dressed"); else blocked.add("wear");
+        break;
+      }
       case "store": {
         const items = sim.worldView().listRelations({ type: ObjectRelations.heldBy, to: actorId }).map((x) => x.from)
           .filter((id) => ownerOf(sim.worldView(), id) === actorId && !KEEP.has(prototypeOf(sim.worldView(), id).resourceId) &&

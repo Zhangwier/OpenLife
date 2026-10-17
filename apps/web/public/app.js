@@ -283,6 +283,28 @@ function renderMemorySlots() {
   }
 }
 
+/**
+ * SAVE-01: a world that stopped reaching disk must not look like a safe one.
+ * The server reports the last write outcome in `/api/state`; when it failed we
+ * say so in the save dialog, where the player is deciding whether to trust it.
+ * Only `playerReason` is shown: UI-004 forbids answering a player with a raw
+ * technical code, and the server keeps the exact error for its own log.
+ */
+function renderSaveHealth() {
+  const box = $("memoryHealth");
+  if (!box) return;
+  const health = state?.saveHealth;
+  if (!health || health.state !== "failed") {
+    box.hidden = true;
+    box.textContent = "";
+    return;
+  }
+  box.hidden = false;
+  box.textContent = `这台服务器上次没能把这个世界写到磁盘上：${health.playerReason || "原因还不清楚，服务器日志里有更详细的记录。"}`
+    + "现在仍然可以照常生活，但重启之后可能回不到这里。"
+    + "下面的「留住此刻」会把这一刻存到这台设备的浏览器里，不受服务器磁盘影响。";
+}
+
 async function captureMemory(slot, quiet = false) {
   const label = SLOT_LABELS[slot] || "OpenLife";
   const data = await api("/api/save", {
@@ -656,6 +678,7 @@ document.querySelectorAll("[data-auto]").forEach((button) => {
 });
 $("memoryButton").addEventListener("click", () => {
   renderMemorySlots();
+  renderSaveHealth();
   $("memoryModal").hidden = false;
 });
 $("closeMemory").addEventListener("click", () => $("memoryModal").hidden = true);

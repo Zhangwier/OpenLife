@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import type { SavePackage } from "@openlife/contracts";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Simulation } from "@openlife/simulation";
@@ -40,9 +40,16 @@ import {
 } from "./src/player.ts";
 import { worldCatalog } from "./src/catalog.ts";
 import { codex } from "./src/codex.ts";
+import { settlementNatureModule } from "@openlife/module-settlement-nature";
+import { worldHazardModule } from "@openlife/module-world-hazard";
+import { faunaBondsModule } from "@openlife/module-fauna-bonds";
+import { socialConflictModule } from "@openlife/module-social-conflict";
+import { ensureNature, runNatureAction, withNature } from "./src/nature.ts";
 const PORT = Number(process.env.PORT ?? 4173);
 const PUBLIC_DIR = fileURLToPath(new URL("./public/", import.meta.url));
 /** Which opening a brand-new life uses: the M1 settlement, or the older slice. */
+/** 饿肚子会少活动格（新开的人生默认打开；OPENLIFE_HUNGER_TOLL=0 关掉，供只测走动/器物的验收用）。 */
+const HUNGER_TOLL = process.env.OPENLIFE_HUNGER_TOLL !== "0";
 const START_MODE = process.env.OPENLIFE_START === "pottery" ? "pottery" : "settlement";
 const modules = [
   modernWorldModule,
@@ -51,6 +58,10 @@ const modules = [
   worldObjectsModule,
   settlementLocationsModule,
   villageStoriesModule,
+  settlementNatureModule,
+  worldHazardModule,
+  faunaBondsModule,
+  socialConflictModule,
   familyModule,
   modernScienceModule,
   earlyCivilizationModule,
@@ -85,13 +96,81 @@ interface DiskSaveFile {
   save: SavePackage;
 }
 
+/**
+ * The last disk-write outcome, so the page can show it.
+ *
+ * SAVE-01 asks that a save failure be visible rather than only logged: the
+ * server used to write `console.error` and the player saw nothing, so a world
+ * that had stopped reaching disk looked identical to one that was safe.
+ * `state` is "off" when persistence is disabled for this process.
+ *
+ * `reason` is developer-facing detail (`EEXIST: ... mkdir 'C:\...'`) and is for
+ * the console and diagnostics. `playerReason` is what the page may show:
+ * UI-004 forbids answering a player with a raw technical code or a server path.
+ */
+interface SaveHealth {
+  state: "off" | "ok" | "failed";
+  reason: string;
+  playerReason: string;
+  at: string;
+  path: string;
+}
+let saveHealth: SaveHealth = { state: "off", reason: "", playerReason: "", at: "", path: SAVE_PATH };
+
+/** A failure reason a player can act on: no errno, no file paths. */
+function describeSaveFailure(error: unknown): string {
+  const code = (error as NodeJS.ErrnoException).code ?? "";
+  const status = (error as { status?: number }).status;
+  if (code === "ENOSPC" || status === 507) return "这台设备的磁盘空间不够了。";
+  if (code === "EROFS" || code === "EACCES" || code === "EPERM") return "服务器没有权限把它写到磁盘上。";
+  if (code === "ENOTDIR" || code === "EEXIST") return "服务器上给它准备的存放位置不是一个可用的文件夹。";
+  if (code === "ENOENT") return "服务器上给它准备的存放文件夹不见了。";
+  if (code === "EBUSY") return "磁盘上的这一份一直被占用，腾不出手来写。";
+  return "原因还不清楚，服务器日志里有更详细的记录。";
+}
+
 /** Write the current world to disk atomically (temp file + rename). Never throws. */
 let saveQueue = Promise.resolve();
 let persistenceBlocked = false;
 function persistNow(reason: string): Promise<void> {
   if (process.env.OPENLIFE_PERSISTENCE === "0" || persistenceBlocked) return Promise.resolve();
-  saveQueue = saveQueue.then(() => writeSnapshot(reason));
+  // Serialised: the queue must survive a failed write, or one bad snapshot would
+  // stop every later autosave for the rest of the process's life.
+  saveQueue = saveQueue.then(() => writeSnapshot(reason), () => writeSnapshot(reason));
   return saveQueue;
+}
+
+/**
+ * Errors that mean "try again", not "this world cannot be saved".
+ *
+ * On Windows, `rename` over a destination that another handle currently holds
+ * open fails with EPERM/EACCES (measured: 20/20 failures while a reader is open,
+ * 20/20 successes once it closes). The autosave timer renames over the same path
+ * every interval, so a single transient lock must not be reported as a lost
+ * save. Only errors that persist across the retries below become failures.
+ */
+const TRANSIENT_SAVE_CODES = new Set(["EPERM", "EACCES", "EBUSY"]);
+const SAVE_RETRY_DELAYS_MS = [40, 120, 360];
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/** Atomically writes the snapshot, retrying a temporarily locked destination. */
+async function renameIntoPlace(tmpPath: string, body: string): Promise<void> {
+  await writeFile(tmpPath, body, "utf8");
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await rename(tmpPath, SAVE_PATH);
+      return;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code ?? "";
+      const last = attempt >= SAVE_RETRY_DELAYS_MS.length;
+      if (last || !TRANSIENT_SAVE_CODES.has(code)) {
+        await rm(tmpPath, { force: true });
+        throw error;
+      }
+      await sleep(SAVE_RETRY_DELAYS_MS[attempt]!);
+    }
+  }
 }
 
 async function writeSnapshot(reason: string): Promise<void> {
@@ -103,11 +182,18 @@ async function writeSnapshot(reason: string): Promise<void> {
       save,
     };
     await mkdir(dirname(SAVE_PATH), { recursive: true });
-    const tmpPath = `${SAVE_PATH}.${process.pid}.tmp`;
-    await writeFile(tmpPath, JSON.stringify(payload), "utf8");
-    await rename(tmpPath, SAVE_PATH);
+    await renameIntoPlace(`${SAVE_PATH}.${process.pid}.tmp`, JSON.stringify(payload));
+    saveHealth = { state: "ok", reason, playerReason: "", at: payload.savedAt, path: SAVE_PATH };
   } catch (error) {
-    console.error(`[openlife] autosave failed (${reason}):`, (error as Error).message);
+    const message = (error as Error).message;
+    saveHealth = {
+      state: "failed",
+      // Keep the first failure reason: later retries repeat it and would hide the cause.
+      reason: saveHealth.state === "failed" ? saveHealth.reason : message,
+      playerReason: saveHealth.state === "failed" ? saveHealth.playerReason : describeSaveFailure(error),
+      at: new Date().toISOString(), path: SAVE_PATH,
+    };
+    console.error(`[openlife] autosave failed (${reason}):`, message);
   }
 }
 
@@ -120,6 +206,9 @@ async function restoreFromDisk(): Promise<boolean> {
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
       persistenceBlocked = true;
+      saveHealth = { state: "failed", reason: (error as Error).message,
+        playerReason: "磁盘上的存档读不出来，这个世界暂时不会写盘。",
+        at: new Date().toISOString(), path: SAVE_PATH };
       console.error("[openlife] could not read autosave file:", (error as Error).message);
     }
     return false;
@@ -141,6 +230,9 @@ async function restoreFromDisk(): Promise<boolean> {
       return false;
     }
     simulation = loaded.simulation;
+    // A world restored from a good snapshot already has one safe copy on disk.
+    saveHealth = { state: "ok", reason: "restore", playerReason: "", at: String(parsed.savedAt ?? ""), path: SAVE_PATH };
+    ensureNature(simulation);
     console.log(
       `[openlife] restored world from ${SAVE_PATH} (saved at ${parsed.savedAt ?? "unknown"})`,
     );
@@ -158,6 +250,10 @@ async function restoreFromDisk(): Promise<boolean> {
 async function preserveRejectedSave(): Promise<void> {
   try { await rename(SAVE_PATH, `${SAVE_PATH}.rejected-${Date.now()}`); }
   catch { persistenceBlocked = true; }
+  // A refused save means this world is running without a recoverable copy.
+  saveHealth = { state: "failed", reason: "the previous disk save could not be read and was renamed aside",
+    playerReason: "上一份磁盘存档读不出来，已改名保留；这个世界暂时没有可恢复的快照。",
+    at: new Date().toISOString(), path: SAVE_PATH };
 }
 
 /** Start the periodic autosave timer and flush-on-shutdown hooks. */
@@ -227,7 +323,8 @@ export function createGame(options: NewLifeOptions = {}): Simulation {
     requireOk(runPlayerAction(sim, actorId, "life-enter"));
     return sim;
   }
-  requireOk(sim.dispatch({ type: "settlement-locations.found", payload: {}, source: "system" }));
+  requireOk(sim.dispatch({ type: "settlement-locations.found", payload: { hungerToll: HUNGER_TOLL }, source: "system" }));
+  ensureNature(sim);
   requireOk(sim.dispatch({
     type: "settlement-locations.arrive",
     actorId,
@@ -508,11 +605,13 @@ function gameState() {
       /** Borrowed objects and their due dates, so the UI can offer a return. */
       settlementLoans: characterId ? loansHeldBy(simulation, characterId) : [],
     },
-    settlement: settlementView(simulation, characterId),
+    settlement: withNature(simulation, settlementView(simulation, characterId), characterId),
     stories: storiesView(characterId),
     guide: guideView(characterId),
     originCatalog: originCatalog(),
     clock: clockReading(world),
+    /** SAVE-01: whether this world's last disk write actually succeeded. */
+    saveHealth,
     actions: world.getComponent(characterId, Life.state)
       ? playerActions(simulation, characterId)
       : [...playerActions(simulation, characterId), ...buildActions({ age, alive, learning, role, legacy, spouse, thoughtStage })],
@@ -613,6 +712,7 @@ function buildActions(input: {
 
   return actions;
 }
+
 function humanizeEvent(type: string, data: Record<string, unknown> = {}): string {
   if (typeof data.summary === "string") return data.summary;
   if (type === "craft-pottery.vessel_fired") return `完成一窑陶器：${qualityLabel(data.quality)}`;
@@ -693,7 +793,16 @@ function humanizeEvent(type: string, data: Record<string, unknown> = {}): string
 
 function runAction(action: string, payload: Record<string, unknown> = {}) {
   const id = activeCharacterId();
+  // The browser synthesises bare object and space verb ids. They are not
+  // registered commands: player.ts maps each one to its real command
+  // (world-objects.take / .place / .returnItem / .wear / .unwear / .store /
+  // .retrieve, world-space.move_within) and the handler runs on the fall-through
+  // below, so they never reach this switch as unknown actions.
   if (STORY_ACTIONS.has(action)) return simulation.dispatch({ type: action, actorId: id, source: "player", payload: payload as never });
+  // Nature/hazard actions (feeding an animal, taming it, raising earthworks)
+  // come from the nature view rather than the settlement one, so they are
+  // dispatched before the settlement registry is consulted.
+  if (action.startsWith("nature.")) return runNatureAction(simulation, id, action, payload);
   if (isSettlementAction(action)) {
     const request = runSettlementAction(simulation, id, action, payload);
     if (request.ok && action === SettlementCommands.playerBarterRequest) {
@@ -1285,6 +1394,7 @@ const server = createServer(async (req, res) => {
           return;
         }
         simulation = loaded.simulation;
+        ensureNature(simulation);
         await persistNow("load");
         res.end(JSON.stringify({ result: loaded.result, state: gameState() }));
         return;

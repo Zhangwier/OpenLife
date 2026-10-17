@@ -1024,6 +1024,55 @@ test("working at a worksite is only possible from that worksite", () => {
 // Projections and determinism
 // ---------------------------------------------------------------------------
 
+/**
+ * The projection and the command path must agree about the same object.
+ *
+ * Regression: the pack authorises one shared water jar as `loanPolicy:
+ * "public-visitor"`, but the field lives on `world-objects.object`, and
+ * `readObject` used to rebuild that component from a fixed field list that did
+ * not include it. The stored value survived, the read value did not, so the
+ * opening screen offered a jar the player could not take - while the very same
+ * take command, reached through the real owner's standing loan, succeeded.
+ */
+test("projection and command agree on whether the shared jar may be borrowed", () => {
+  const { sim, actorId } = world();
+  must(sim, { type: SpaceCommands.enter, actorId, payload: { placeId: "place:yard" } });
+  must(sim, { type: SpaceCommands.moveWithin, actorId, payload: { spaceId: "space:main-sleep" } });
+
+  const shared = "instance:jar:0:0";
+  const stored = sim.worldView().getComponent(shared, ObjectComponents.object);
+  assert.equal(stored?.loanPolicy, "public-visitor", "the pack declares the standing authorisation");
+
+  // The instance reader may not silently drop a field the pack wrote.
+  assert.equal(readObject(stored).loanPolicy, "public-visitor",
+    "readObject must surface the declared loan policy, not a lossy projection of it");
+
+  const card = homestead(sim.worldView(), actorId).objects.find((object) => object.id === shared);
+  assert.ok(card, "the shared jar is visible where it stands");
+  assert.equal(card.canTake, true, "the projection must offer what the command path allows");
+
+  // The command path is the authority: the owner lends, the player takes custody.
+  const owner = sim.worldView().listRelations({ type: ObjectRelations.ownedBy, from: shared })[0]?.to;
+  assert.ok(owner);
+  must(sim, { type: ObjectCommands.lend, actorId: owner, payload: { objectId: shared, borrowerId: actorId, dueAt: sim.tick + 60 } });
+  assert.equal(holderOf(sim.worldView(), shared), actorId);
+  assert.equal(
+    sim.worldView().listRelations({ type: ObjectRelations.ownedBy, from: shared })[0]?.to,
+    owner,
+    "borrowing moves custody, never ownership",
+  );
+
+  // A private jar keeps the ordinary consent rule, so the fix cannot have
+  // made every neighbour's belonging takeable.
+  const privateJar = homestead(sim.worldView(), actorId).objects
+    .find((object) => object.prototypeId === "prototype:small-jar");
+  assert.ok(privateJar, "a private household jar stands here too");
+  assert.equal(privateJar.canTake, false, "an unauthorised private object stays refused");
+  const refused = sim.dispatch({ type: ObjectCommands.take, actorId, payload: { objectId: privateJar.id } });
+  assert.equal(refused.ok, false);
+  assert.equal(refused.errors[0]?.code, "E_OBJECT_NOT_YOURS");
+});
+
 test("the homestead projection offers at least three legal answers to one shortage", () => {
   const { sim, actorId } = world();
   must(sim, { type: SpaceCommands.enter, actorId, payload: { placeId: "place:yard" } });

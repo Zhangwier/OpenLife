@@ -193,3 +193,121 @@ test("homes: rain and snow wear the roof down, a leaking roof spoils a wet night
   assert.equal(held("prototype:reed-bundle").length + held("prototype:rope").length + held("prototype:clay-batch").length, 0);
   assert.equal(run(SettlementCommands.craft, { recipeId: "recipe:mend-roof" }).ok, false, "a sound roof needs no mending");
 });
+
+/**
+ * The objects that used to be scenery.
+ *
+ * Ten authored prototypes had real instances in the village but no recipe could
+ * make them and no rule used them, so the water jar the player borrows on the
+ * first screen was impossible to own, and the grinding stone, fishing trap and
+ * thick cloak were pure decoration. These tests drive each one through the real
+ * command path, from gathering to the finished object.
+ */
+test("the shared water jar can be made, not only borrowed", () => {
+  const { sim, must, run, held, view } = life();
+  sim.advanceBy(90 - sim.tick);              // spring: reed grows, clay is available
+  const go = (placeId: string) => { if (view().placeId !== placeId) must(SettlementCommands.arrive, { placeId }); };
+
+  go("place:claypits");
+  must(SettlementCommands.draw, { placeId: "place:claypits", resourceId: "resource:clay", amount: 2 });
+  go("place:yard");
+  must("world-space.move_within", { spaceId: "space:drying-rack" });
+  must(SettlementCommands.craft, { recipeId: "recipe:shape-greenware" });
+  assert.equal(held("prototype:greenware").length, 1, "a greenware body is in hand");
+
+  // The kiln needs a dry day, and the body must have dried overnight.
+  sim.advanceBy(1);
+  while (["雨", "雪"].includes(skyOn(sim.tick))) sim.advanceBy(1);
+  go("place:reedbed");
+  must(SettlementCommands.draw, { placeId: "place:reedbed", resourceId: "resource:fuel", amount: 2 });
+  go("place:kiln");
+  must("world-space.move_within", { spaceId: "space:kiln-mouth" });
+  const card = view().actions.find((a: { payload: Record<string, unknown> }) =>
+    a.payload.recipeId === "recipe:fire-water-jar");
+  assert.ok(card, "the water jar is offered at the kiln mouth");
+  const fired = run(SettlementCommands.craft, { recipeId: "recipe:fire-water-jar" });
+  assert.equal(fired.ok, true, JSON.stringify(fired.errors));
+  assert.equal(held("prototype:water-jar").length, 1, "the player now owns the very jar they first borrowed");
+  assert.equal(held("prototype:greenware").length + held("prototype:fuel-bundle").length, 0, "inputs were consumed");
+});
+
+test("a second kiln load needs more bodies than one pair of hands can hold", () => {
+  const { sim, must, run, view } = life();
+  sim.advanceBy(90 - sim.tick);
+  const go = (placeId: string) => { if (view().placeId !== placeId) must(SettlementCommands.arrive, { placeId }); };
+  go("place:claypits");
+  must(SettlementCommands.draw, { placeId: "place:claypits", resourceId: "resource:clay", amount: 2 });
+  go("place:yard");
+  must("world-space.move_within", { spaceId: "space:drying-rack" });
+  must(SettlementCommands.craft, { recipeId: "recipe:shape-greenware" });
+  sim.advanceBy(1);
+  go("place:reedbed");
+  must(SettlementCommands.draw, { placeId: "place:reedbed", resourceId: "resource:reed", amount: 1 });
+  must(SettlementCommands.craft, { recipeId: "recipe:twist-rope" });
+  // Fetch the fuel for a single-body firing, so the only thing that can refuse
+  // the two-body recipes below is the number of bodies.
+  sim.advanceBy(1);
+  go("place:reedbed");
+  must(SettlementCommands.draw, { placeId: "place:reedbed", resourceId: "resource:fuel", amount: 3 });
+  go("place:kiln");
+  must("world-space.move_within", { spaceId: "space:kiln-mouth" });
+  // One body is not enough for a grain jar or a pot: both refuse with a reason.
+  const grainJar = run(SettlementCommands.craft, { recipeId: "recipe:fire-grain-jar" });
+  assert.equal(grainJar.ok, false);
+  assert.match(String(grainJar.errors[0]?.message), /陶坯/);
+  const pot = run(SettlementCommands.craft, { recipeId: "recipe:fire-cooking-pot" });
+  assert.equal(pot.ok, false, "one body cannot make a two-body pot either");
+  // The single-body recipes stay available on this same load, so the refusal is
+  // about the recipe, not about the situation.
+  const sieve = run(SettlementCommands.craft, { recipeId: "recipe:fire-sieve" });
+  assert.equal(sieve.ok, true, JSON.stringify(sieve.errors));
+});
+
+test("a winter reed supply keeps the fibre route alive through the cold season", () => {
+  const { sim, must, view } = life();
+  while (seasonOf(sim.tick) !== "冬") sim.advanceBy(1);
+  assert.equal(seasonOf(sim.tick), "冬");
+  must(SettlementCommands.arrive, { placeId: "place:reedbed" });
+  const reed = view().yields.find((y: { resourceId: string }) => y.resourceId === "resource:reed");
+  assert.ok(reed, "the reed flat still holds a reed point in winter");
+  assert.ok(reed!.stock > 0, `winter reeds should be available, saw ${reed!.stock}`);
+  must(SettlementCommands.draw, { placeId: "place:reedbed", resourceId: "resource:reed", amount: 1 });
+  // And the field edge offers dry straw in winter, so the fibre route has an alternative.
+  must(SettlementCommands.arrive, { placeId: "place:field" });
+  const straw = view().yields.find((y: { resourceId: string }) => y.resourceId === "resource:reed");
+  assert.ok(straw, "the field edge yields winter straw");
+  assert.ok(straw!.stock > 0);
+});
+
+test("ice fishing gives winter a food source the warm seasons cannot offer", () => {
+  const { sim, must, run, held, view } = life();
+  while (seasonOf(sim.tick) !== "冬") sim.advanceBy(1);
+  // Idempotent travel: the rules refuse "arrive" when already standing there,
+  // which is correct behaviour, so the test must not insist on repeating it.
+  const go = (placeId: string) => { if (view().placeId !== placeId) must(SettlementCommands.arrive, { placeId }); };
+  // Carrying is capped at four loose slots, so the whole chain is planned around
+  // it: four reeds in hand, one twisted into rope, the remaining three plus that
+  // rope become the trap - and the hand never exceeds its limit.
+  go("place:reedbed");
+  must(SettlementCommands.draw, { placeId: "place:reedbed", resourceId: "resource:reed", amount: 4 });
+  assert.equal(held("prototype:reed-bundle").length, 4, "the hand is exactly full");
+  must("world-space.move_within", { spaceId: "space:reed-cut" });
+  must(SettlementCommands.craft, { recipeId: "recipe:twist-rope" });
+  assert.equal(held("prototype:rope").length, 1, "one reed became the rope");
+  assert.equal(held("prototype:reed-bundle").length, 3, "three reeds remain for the trap");
+  const trap = run(SettlementCommands.craft, { recipeId: "recipe:weave-trap" });
+  assert.equal(trap.ok, true, JSON.stringify(trap.errors));
+  assert.equal(held("prototype:fish-trap").length, 1);
+  assert.equal(held("prototype:reed-bundle").length + held("prototype:rope").length, 0, "all inputs consumed");
+  // Take it to the bank and fish through the ice. Winter ice fishing costs a
+  // full three slots, so a day may turn over first - exactly as it would in play.
+  go("place:river");
+  if (view().spaceId !== "space:bank") must("world-space.move_within", { spaceId: "space:bank" });
+  for (let guard = 0; guard < 6 && !run(SettlementCommands.craft, { recipeId: "recipe:ice-fish" }).ok; guard += 1) {
+    assert.equal(seasonOf(sim.tick), "冬", "winter must last long enough to fish through the ice");
+    must(SettlementCommands.step);
+    sim.advanceBy(1);
+    if (view().spaceId !== "space:bank") must("world-space.move_within", { spaceId: "space:bank" });
+  }
+  assert.equal(held("prototype:fish").length, 1, "a real fish came out of the ice hole");
+});
