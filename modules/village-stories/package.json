@@ -1,0 +1,17 @@
+{
+  "name": "@openlife/module-village-stories",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Quest chains, dialogue trees, festival rites, limited-time events, incidents and achievements over the river-terrace settlement.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/life-contracts": "*",
+    "@openlife/module-settlement-locations": "*",
+    "@openlife/module-world-objects": "*",
+    "@openlife/module-world-space": "*"
+  }
+}

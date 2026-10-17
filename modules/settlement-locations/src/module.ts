@@ -144,7 +144,10 @@ export const settlementLocationsModule: OpenLifeModule = {
       run: runVillageAgent,
     });
     for (const id of Object.values(SettlementComponents)) {
-      ctx.registerComponent({ id, persist: true, description: `settlement-locations component ${id}` });
+      // village-stories (quests, dialogue trees, incidents) may move a resident's
+      // social memory when the player keeps a promise or makes a choice.
+      ctx.registerComponent({ id, persist: true, description: `settlement-locations component ${id}`,
+        ...(id === SettlementComponents.resident ? { writableBy: ["village-stories"] } : {}) });
     }
 
     for (const type of Object.values(SettlementCommands)) {

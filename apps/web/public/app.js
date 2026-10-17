@@ -1,6 +1,7 @@
 import { renderPlayer, renderActionButtons, installModalAccess, selectView } from "/player.js";
 import { installShell, renderShell, enterLife } from "/shell.js";
 import { renderSettlement, describeSettlementResult } from "/settlement.js";
+import { renderStories } from "/stories.js";
 import { renderFigure } from "/character-appearance.js";
 import { playActionFx } from "/action-fx.js";
 import { isTextMode } from "/view-mode.js";
@@ -80,6 +81,7 @@ function render(s, animate = false) {
   if (isTextMode()) { renderLifeLog(s); renderHopes(s); }
   updatePlanStatus(s);
   renderShell(s);
+  renderStories(s, performSettlementAction);
 }
 
 function renderActions(actions) {

@@ -8,7 +8,7 @@ import { renderSceneFx } from "/scene-fx.js";
 import { audioState, onAudioChange, setSoundMode, setVolume } from "/audio.js";
 import { loadCodex, installMusicToggle } from "/codex.js";
 
-const TITLES = { life: "人生概述", character: "人物", activities: "生活", people: "人际", works: "行囊", family: "家族谱", map: "地图与地点", world: "时代与世界", history: "记忆与历史", codex: "图鉴", modules: "模块管理" };
+const TITLES = { life: "人生概述", character: "人物", activities: "生活", people: "人际", stories: "故事", works: "行囊", family: "家族谱", map: "地图与地点", world: "时代与世界", history: "记忆与历史", codex: "图鉴", modules: "模块管理" };
 let active = "home", started = false, currentState, callbacks;
 let bagSelection = null;
 const $ = id => document.getElementById(id);
@@ -93,7 +93,7 @@ function showRoute(route) {
   $("homeScreen").hidden = route !== "home";
   $("applicationLayout").hidden = route === "home";
   document.querySelectorAll("[data-screen-panel]").forEach(el => el.hidden = el.dataset.screenPanel !== route);
-  const primary = ["activities", "works", "people", "character"].includes(route) ? route : route === "map" ? "activities" : "character";
+  const primary = ["activities", "works", "people", "stories", "character"].includes(route) ? route : route === "map" ? "activities" : "character";
   document.querySelectorAll("#appNavigation [data-route]").forEach(el => {
     const selected = el.dataset.route === route || (el.parentElement.id === "appNavigation" && el.dataset.route === primary); el.classList.toggle("selected", selected);
     if (selected) el.setAttribute("aria-current", "page"); else el.removeAttribute("aria-current");

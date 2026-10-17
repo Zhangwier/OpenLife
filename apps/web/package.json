@@ -23,6 +23,7 @@
     "@openlife/module-world-space": "*",
     "@openlife/module-world-objects": "*",
     "@openlife/module-settlement-locations": "*",
+    "@openlife/module-village-stories": "*",
     "@openlife/life-contracts": "*"
   }
 }

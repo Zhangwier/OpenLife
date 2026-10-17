@@ -974,5 +974,141 @@
         "warmth": 4
       }
     }
+  },
+  "healer": {
+    "sex": "female",
+    "loves": [
+      "resource:fiber",
+      "resource:reed"
+    ],
+    "likes": [
+      "resource:water",
+      "resource:cooked"
+    ],
+    "dislikes": [
+      "resource:fish"
+    ],
+    "birthday": {
+      "month": 4,
+      "day": 12
+    },
+    "giftLines": {
+      "love": "{name}把{item}凑到鼻子底下闻了闻，眯起眼：“好，干净，没沾泥。药就怕脏。”",
+      "dislike": "{name}摆摆手：“腥东西冲药气，拿走拿走。”"
+    },
+    "seasons": {
+      "春": [
+        "{name}蹲在苇滩边掐嫩芽：“开春的草最灵，过了这几天就老了。”"
+      ],
+      "夏": [
+        "{name}把晒干的草一束束挂在檐下：“夏天要防热病，喝水要烧开了凉着喝。”"
+      ],
+      "秋": [
+        "{name}捡着落下的草籽：“秋天收籽，明年才有药。”"
+      ],
+      "冬": [
+        "{name}守着一小罐熬了半天的汤：“冬天人容易咳，这罐给咳的人留着。”"
+      ]
+    },
+    "happy": [
+      "{name}难得哼起了一支谁也没听过的老调。"
+    ],
+    "low": [
+      "{name}坐在门口望着苇滩，半天没动。"
+    ],
+    "heartEvents": [
+      {
+        "hearts": 2,
+        "text": "{name}拉过你的手看了看掌心：“你手凉，夜里少吹风。”她从腰间解下一小包干草塞给你，“泡水喝。”"
+      },
+      {
+        "hearts": 5,
+        "text": "{name}忽然说：“我年轻时救不回一个孩子，到现在还梦见。”她顿了顿，“认草的本事，我想教给一个肯记的人。”"
+      },
+      {
+        "hearts": 8,
+        "text": "{name}把一只磨得发亮的小骨刀交给你：“掐草根用的，跟了我四十年。往后有人病了，你也能搭把手。”"
+      }
+    ],
+    "ties": {
+      "trader-elder": {
+        "relation": "弟弟",
+        "warmth": 4,
+        "line": "{name}说：“我那个弟弟，嘴上说走不动了，心里还惦着渡口。”"
+      },
+      "water-child": {
+        "relation": "常来缠她的孩子",
+        "warmth": 3,
+        "line": "{name}说：“小汲那孩子，问的比我知道的还多。”"
+      }
+    }
+  },
+  "stonesmith": {
+    "sex": "male",
+    "loves": [
+      "resource:rope",
+      "resource:cooked"
+    ],
+    "likes": [
+      "resource:tool",
+      "resource:fuel"
+    ],
+    "dislikes": [
+      "resource:mat"
+    ],
+    "birthday": {
+      "month": 7,
+      "day": 3
+    },
+    "giftLines": {
+      "love": "{name}接过{item}，一句话没说，冲你重重点了下头。",
+      "dislike": "{name}看了看{item}：“这个……我用不上。”"
+    },
+    "seasons": {
+      "春": [
+        "{name}在河湾翻着石头：“水退了，好石头才露出来。”"
+      ],
+      "夏": [
+        "{name}满头是汗还在敲：“天热石头脆，下手得轻。”"
+      ],
+      "秋": [
+        "{name}把打好的石刀一把把排开：“秋收要用刀，这几天活最多。”"
+      ],
+      "冬": [
+        "{name}搓着冻裂的手：“冬天手僵，打出来的刃也钝。”"
+      ]
+    },
+    "happy": [
+      "{name}敲石头的声音都比平常脆。"
+    ],
+    "low": [
+      "{name}对着一块打坏的石料发了半天呆。"
+    ],
+    "heartEvents": [
+      {
+        "hearts": 2,
+        "text": "{name}捡起一块石片，在你面前轻轻一磕，刃口立刻亮了：“看见没？石头有纹，顺着纹走。”"
+      },
+      {
+        "hearts": 5,
+        "text": "{name}闷声说：“我爹打了一辈子石头，最后一把刀没打完就走了。”他从包里摸出半块石坯，“我一直留着。”"
+      },
+      {
+        "hearts": 8,
+        "text": "{name}把一把新打的石刀塞给你：“我照我爹那块坯打的。你拿着，比我拿着有用。”"
+      }
+    ],
+    "ties": {
+      "clay-digger": {
+        "relation": "同住的表兄",
+        "warmth": 4,
+        "line": "{name}说：“阿埴挖土，我挑石头，咱俩一个坑里刨食。”"
+      },
+      "reed-worker": {
+        "relation": "抢河湾地方的对头",
+        "warmth": -2,
+        "line": "{name}皱眉：“阿苇总说我敲石头吓跑了苇滩的鸟。”"
+      }
+    }
   }
 }
