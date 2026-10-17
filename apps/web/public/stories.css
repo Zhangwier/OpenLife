@@ -1,0 +1,31 @@
+/* 「故事」页：任务、对话、节日、限时活动、突发事件、成就。沿用 theme.css 的颜色变量。 */
+#screen-stories { display: grid; gap: 14px; }
+#screen-stories .panel { padding: 16px 18px; }
+#screen-stories h3 { margin: 0 0 10px; font-size: 1.02rem; }
+#screen-stories h3 small { color: var(--ink-2); font-weight: 400; margin-left: 6px; }
+.story-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin: 0 0 10px; background: color-mix(in srgb, var(--accent-soft) 35%, transparent); }
+.story-card h4 { margin: 4px 0 6px; font-size: .98rem; }
+.story-card p { margin: 0 0 8px; color: var(--ink-2); line-height: 1.6; }
+.story-card.is-done { opacity: .7; padding: 8px 14px; }
+.story-card.is-offer { border-style: dashed; }
+.story-line { color: var(--ink) !important; font-style: italic; }
+.story-step { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0 10px; }
+.story-bar { display: inline-block; width: 120px; height: 6px; border-radius: 6px; background: var(--line); overflow: hidden; }
+.story-bar i { display: block; height: 100%; background: var(--accent); }
+.story-tag { display: inline-block; font-size: .72rem; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); border: 1px solid var(--accent-line); }
+.story-tag.story-main { background: var(--accent); color: #fff; border-color: var(--accent); }
+.story-tag.story-alert { background: #b4483b; color: #fff; border-color: #b4483b; }
+.story-tag.story-feast { background: #c99a2e; color: #fff; border-color: #c99a2e; }
+.story-tag.story-limited { background: #3e7a6b; color: #fff; border-color: #3e7a6b; }
+.story-choices { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.story-button { font: inherit; padding: 7px 14px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--paper, #fffaf2); color: var(--ink); cursor: pointer; }
+.story-button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-ink); }
+.story-button:disabled { opacity: .5; cursor: not-allowed; }
+.story-reason { color: var(--ink-2); font-size: .75rem; margin-right: 6px; }
+.story-incident { border-left: 4px solid #b4483b; }
+.story-festival { border-left: 4px solid #c99a2e; }
+.story-badges { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.story-badges li { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; opacity: .45; filter: grayscale(1); }
+.story-badges li.is-unlocked { opacity: 1; filter: none; border-color: var(--accent-line); background: var(--accent-soft); }
+.story-badges b { display: block; font-size: .9rem; }
+.story-badges small { color: var(--ink-2); font-size: .75rem; }

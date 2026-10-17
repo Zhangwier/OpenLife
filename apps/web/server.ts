@@ -26,6 +26,7 @@ import { worldClockModule } from "@openlife/module-world-clock";
 import { worldSpaceModule } from "@openlife/module-world-space";
 import { worldObjectsModule } from "@openlife/module-world-objects";
 import { settlementLocationsModule, SettlementCommands } from "@openlife/module-settlement-locations";
+import { villageStoriesModule, StoryCommands, StoryProjections } from "@openlife/module-village-stories";
 import { residentId, rollOrigin, originCatalog } from "@openlife/module-settlement-locations";
 import {
   playerView,
@@ -47,6 +48,7 @@ const modules = [
   worldSpaceModule,
   worldObjectsModule,
   settlementLocationsModule,
+  villageStoriesModule,
   familyModule,
   modernScienceModule,
   earlyCivilizationModule,
@@ -505,6 +507,7 @@ function gameState() {
       settlementLoans: characterId ? loansHeldBy(simulation, characterId) : [],
     },
     settlement: settlementView(simulation, characterId),
+    stories: storiesView(characterId),
     originCatalog: originCatalog(),
     clock: clockReading(world),
     actions: world.getComponent(characterId, Life.state)
@@ -525,6 +528,16 @@ function narrativeSince(seq: number, playerId: string): string[] {
     .map((event) => String(event.data.line))
     .slice(0, 6);
 }
+
+/** Quests, dialogue trees, festival, events, today's incident and achievements (village-stories). */
+function storiesView(characterId: string) {
+  if (!characterId || !simulation.worldView().getEntity("settlement-locations:settlement:river-terrace")) return null;
+  const projected = simulation.project({ id: StoryProjections.journal, params: { actorId: characterId } });
+  return projected.ok ? projected.data : null;
+}
+
+/** Story actions are plain validated commands; none of them moves the clock. */
+const STORY_ACTIONS = new Set<string>(Object.values(StoryCommands));
 
 /** Settlement actions the UI is allowed to send, and how long each takes. */
 const SETTLEMENT_ACTIONS: Record<string, number> = {
@@ -716,6 +729,7 @@ function humanizeEvent(type: string, data: Record<string, unknown> = {}): string
 
 function runAction(action: string, payload: Record<string, unknown> = {}) {
   const id = activeCharacterId();
+  if (STORY_ACTIONS.has(action)) return simulation.dispatch({ type: action, actorId: id, source: "player", payload: payload as never });
   if (isSettlementAction(action)) {
     const request = runSettlementAction(simulation, id, action, payload);
     if (request.ok && action === SettlementCommands.playerBarterRequest) {
