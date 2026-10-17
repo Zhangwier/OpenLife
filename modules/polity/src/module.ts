@@ -146,11 +146,14 @@ export const polityModule: OpenLifeModule = {
 
         // Debts: repaid in good years, defaulted after two bad ones; the dead take theirs along.
         const kept: Debt[] = [];
+        // A2: a yearly roll keyed by (module, purpose, year) — stable no matter
+        // what other commands ran this year.
+        const yearRoll = c.rng.keyed("polity", "year", Math.floor(c.world.tick / 360));
         for (const d of s.debts) {
           if (gone.has(d.debtor) || gone.has(d.creditor)) continue;
           const years = (c.world.tick - d.since) / 360;
-          if (surplus > 0 && c.rng.chance(0.6)) continue;
-          if (years >= 2 && c.rng.chance(0.5)) {
+          if (surplus > 0 && yearRoll.chance(0.6)) continue;
+          if (years >= 2 && yearRoll.chance(0.5)) {
             s.defaults += 1;
             emit("polity.debt_defaulted", { creditor: d.creditor, debtor: d.debtor, amount: d.amount }, 0.15, d.creditor, d.debtor);
             continue;
@@ -174,10 +177,10 @@ export const polityModule: OpenLifeModule = {
         for (const inst of INSTITUTIONS.institutions) {
           const ok = holds(inst.when);
           s.failing[inst.id] = ok || !s.institutions[inst.id] ? 0 : (s.failing[inst.id] ?? 0) + 1;
-          if (!s.institutions[inst.id] && ok && c.rng.chance(Math.min(1, INSTITUTIONS.adoptChance * (fate()?.stir(c.world, inst.id) ?? 1)))) {
+          if (!s.institutions[inst.id] && ok && yearRoll.chance(Math.min(1, INSTITUTIONS.adoptChance * (fate()?.stir(c.world, inst.id) ?? 1)))) {
             s.institutions[inst.id] = { since: c.world.tick };
             emit("polity.institution_adopted", { institutionId: inst.id, label: inst.label }, 0.3);
-          } else if (s.institutions[inst.id] && s.failing[inst.id]! >= 3 && c.rng.chance(INSTITUTIONS.lapseChance)) {
+          } else if (s.institutions[inst.id] && s.failing[inst.id]! >= 3 && yearRoll.chance(INSTITUTIONS.lapseChance)) {
             delete s.institutions[inst.id];
             s.failing[inst.id] = 0;
             emit("polity.institution_lapsed", { institutionId: inst.id, label: inst.label }, 0.3);

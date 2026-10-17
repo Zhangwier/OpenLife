@@ -134,7 +134,9 @@ export const villageChronicleModule: OpenLifeModule = {
         const knows = (id: string) => Object.keys(a.tech?.mind(c.world, id)?.knows ?? {});
         const caps = new Set(a.tech?.capabilities(c.world) ?? ["cap:pottery"]);
         let nextNeighbour = v.neighbours.length;
-        const result = chronicleYear(c.rng, {
+        // A2: a yearly roll keyed by (module, purpose, year) — not by the command id.
+        // Adding a plugin or a fate stir later must not rewrite this year's history.
+        const result = chronicleYear(c.rng.keyed("village-chronicle", "year", v.year + 1), {
           tick: c.world.tick, year: v.year + 1, people, stores: v.stores, contacts: v.contacts, neighbours: v.neighbours,
           ceiling: (id, t) => a.heredity?.ceiling(c.world, id, t) ?? 60,
           kinship: (x, y) => a.heredity?.kinship(c.world, x, y) ?? (sameParents(people, x, y) ? 0.25 : 0),

@@ -40,7 +40,7 @@ const MATERIAL_ALIASES: Record<string, string[]> = {
 };
 
 /** Map the village's real yields onto the material names the tech tree uses. */
-function materialsForTech(world: ReturnType<Simulation["worldView"]>): string[] {
+export function materialsForTech(world: ReturnType<Simulation["worldView"]>): string[] {
   const have = new Set(
     world.listEntities({ kind: "settlement-locations.yield-point" })
       .filter((e) => e.archivedAt === undefined && Number(e.components[SettlementComponents.yieldPoint]?.stock ?? 0) > 0)

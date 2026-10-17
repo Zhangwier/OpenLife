@@ -87,6 +87,11 @@ export interface DeterministicRngLike {
   chance(probability: number): boolean;
   pick<T>(items: readonly T[]): T;
   fork(label: string): DeterministicRngLike;
+  /**
+   * A stream keyed by parts alone — reproducible regardless of command order
+   * or draw count. Use for anything that must be stable across replays.
+   */
+  keyed(...parts: Array<string | number>): DeterministicRngLike;
   readonly drawCount: number;
 }
 

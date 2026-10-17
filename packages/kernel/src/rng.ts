@@ -43,6 +43,23 @@ export class DeterministicRng implements DeterministicRngLike {
     return new DeterministicRng(numericSeed, label);
   }
 
+  /**
+   * A stream whose seed is a pure function of (world seed, parts) — and nothing
+   * else. Not of the command order, not of the draw count.
+   *
+   * This is the A2 fix: the root fork keys were `command:${type}:${id}`, where
+   * the command id is globally increasing. Insert one command (a fate stir, a
+   * plugin's yearly command) and every random result after it moved, so
+   * `--compare` measured a different history rather than one changed variable.
+   *
+   * A keyed stream is reproducible by construction: the same parts always give
+   * the same stream, no matter what else happened in between.
+   */
+  static keyed(worldSeed: number, ...parts: Array<string | number>): DeterministicRng {
+    const seed = hashString([worldSeed, ...parts].join(":"));
+    return new DeterministicRng(seed, `keyed:${parts.join(":")}`);
+  }
+
   get drawCount(): number {
     return this.#draws;
   }
@@ -99,6 +116,22 @@ export class DeterministicRng implements DeterministicRngLike {
   fork(label: string): DeterministicRng {
     const seed = (hashString(`${this.label}|${label}|${this.#state}|${this.#draws}`) ^ this.#state) >>> 0;
     return new DeterministicRng(seed, label);
+  }
+
+  /**
+   * A stream keyed by parts alone — not by this stream's draw count.
+   *
+   * Use for anything that must be reproducible regardless of what else happened:
+   * a yearly roll, an inspiration, a gift's reception. The seed is a pure
+   * function of (this stream's label, parts), so two calls with the same parts
+   * give the same stream, no matter how many draws happened in between.
+   *
+   * The label carries the lineage (root, or a command fork), which is what
+   * makes the stream unique; the draw count is deliberately left out.
+   */
+  keyed(...parts: Array<string | number>): DeterministicRng {
+    const seed = hashString([this.label, ...parts].join(":"));
+    return new DeterministicRng(seed, `keyed:${parts.join(":")}`);
   }
 
   snapshot(): RngState {

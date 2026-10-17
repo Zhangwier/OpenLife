@@ -116,7 +116,9 @@ export const heredityModule: OpenLifeModule = {
         const hints = (c.command.payload.hints ?? {}) as Record<string, "high" | "low">;
         const origin = c.command.payload.origin === "migrant" ? "migrant" : "founder";
         const bornAt = Number(c.command.payload.bornAt ?? c.world.tick - 20 * 360);
-        const genome = founderGenome(c.rng, population, bornAt, hints, origin);
+        // A2: a founder's genome keyed by (module, purpose, person) — stable
+        // no matter when or how many founders came before.
+        const genome = founderGenome(c.rng.keyed("heredity", "founder", target), population, bornAt, hints, origin);
         return [{ kind: "setComponent", entityId: target, component: HeredityComponents.genome, value: genome as unknown as Record<string, JsonValue>, reason: `${origin} genome` }];
       },
     });
@@ -141,7 +143,9 @@ export const heredityModule: OpenLifeModule = {
         const fatherId = String(c.command.payload.fatherId);
         const fate = registry.capabilityImplementation("fate.perturbation") as BirthBlessingSource | undefined;
         const blessing = fate?.pendingBirth(c.world, motherId, fatherId);
-        const genome = childGenome(c.rng, readGenome(c.world, motherId)!, readGenome(c.world, fatherId)!, motherId, fatherId,
+        // A2: a child's genome keyed by (module, purpose, child) — stable no
+        // matter how many children came before.
+        const genome = childGenome(c.rng.keyed("heredity", "child", child), readGenome(c.world, motherId)!, readGenome(c.world, fatherId)!, motherId, fatherId,
           c.world.tick, kin(c.world, motherId, fatherId), blessing?.traits ?? []);
         const data: Record<string, JsonValue> = { motherId, fatherId, inbreeding: genome.inbreeding, mutations: genome.mutations };
         if (blessing) data.blessingId = blessing.blessingId;

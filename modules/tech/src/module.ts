@@ -227,7 +227,9 @@ export const techModule: OpenLifeModule = {
         const minds = mindsOf(c.world, v);
         const observers = ((c.command.payload.observers ?? v.members) as string[]);
         const boost = api.productivity(c.world, "observation");
-        const events = observeStep(c.rng, minds, v, CONTENT, phen, observers, (id) => aptitude(c.world)(id, "trait:perception"), boost);
+        // A2: observation keyed by (module, purpose, phenomenon, year) — stable
+        // no matter what other commands ran this season.
+        const events = observeStep(c.rng.keyed("tech", "observe", phen, Math.floor(c.world.tick / 90)), minds, v, CONTENT, phen, observers, (id) => aptitude(c.world)(id, "trait:perception"), boost);
         return writeBack(c.world, v, minds, events, `observed ${phen}`);
       },
     });
@@ -241,7 +243,7 @@ export const techModule: OpenLifeModule = {
         const f = fate();
         for (const inv of f?.encounters(c.world) ?? []) v.exposures[inv] = Math.max(v.exposures[inv] ?? 0, c.world.tick + 90);
         const inst = institutions();
-        const events = seasonStep(c.rng, minds, v, CONTENT, {
+        const events = seasonStep(c.rng.keyed("tech", "season", Math.floor(c.world.tick / 90)), minds, v, CONTENT, {
           tick: c.world.tick,
           people: ((c.command.payload.people ?? v.members) as string[]),
           busy: new Set((c.command.payload.busy ?? []) as string[]),

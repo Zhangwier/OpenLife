@@ -166,6 +166,18 @@ export class Kernel {
     return this.#rng;
   }
 
+  /**
+   * A stream whose seed is a pure function of (world seed, parts) — nothing
+   * else. Use this for anything that must be reproducible regardless of command
+   * order: a yearly roll, an inspiration, a gift's reception.
+   *
+   * The keyed form decouples a plugin's randomness from the world's command
+   * sequence, which is what `--compare` and `--without` need to be meaningful.
+   */
+  keyed(...parts: Array<string | number>): DeterministicRngLike {
+    return DeterministicRng.keyed(this.worldSeed, ...parts);
+  }
+
   recentTraces(): readonly DecisionTrace[] {
     return this.#traces;
   }
