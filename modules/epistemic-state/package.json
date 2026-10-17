@@ -8,5 +8,9 @@
   },
   "dependencies": {
     "@openlife/contracts": "*"
+  },
+  "openlife": {
+    "label": "人物认知",
+    "summary": "人物对知识与说法的接触、立场、置信度与来源。"
   }
 }

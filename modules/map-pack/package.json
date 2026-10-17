@@ -10,5 +10,9 @@
     "@openlife/contracts": "*",
     "@openlife/module-world-geography": "*",
     "@openlife/simulation": "*"
+  },
+  "openlife": {
+    "label": "地图包",
+    "summary": "装载和校验已有的地理数据。"
   }
 }

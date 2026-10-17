@@ -17,11 +17,8 @@
  * 从不碰玩家的东西，也不替玩家做决定。
  */
 import type { AgentHost as NpcHost, WorldView } from "@openlife/contracts";
-import {
-  SettlementCommands, SettlementComponents, SettlementId, dailyActivity, currentYields, hungerAt,
-  carrying, roofState, wornWrap, seasonOf, residentId, activityCostFor,
-  socialOf, openRequest, favourOwed, tradeableGoods, counterpartView,
-} from "../module.ts";
+import { SettlementCommands, SettlementComponents, SettlementId, residentId } from "../vocabulary.ts";
+import { dailyActivity, currentYields, hungerAt, carrying, roofState, wornWrap, seasonOf, activityCostFor, socialOf, openRequest, favourOwed, tradeableGoods, counterpartView } from "../module.ts";
 import { whoHas, bondOf, askEase, memoryDays, ASK_COOLDOWN, type SocialMemory } from "../social.ts";
 import { SpaceCommands, SpaceRelations, occupiedPlaceId, occupiedSpaceId } from "@openlife/module-world-space";
 import { ObjectCommands, ObjectRelations, ownerOf, prototypeOf } from "@openlife/module-world-objects";

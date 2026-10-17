@@ -71,7 +71,7 @@ export async function renderCatalog(): Promise<string> {
     for (const { exportName, manifest } of manifests) {
       rows.push({
         type: manifest.type,
-        line: `| \`${p.dir}\` | \`${manifest.id}\` (\`${exportName}\`) | ${list(manifest.provides)} | ${list(manifest.requires)} | ${cell(p.declared.map(short).join(", ") || "—")} |`,
+        line: `| \`${p.dir}\` | ${cell(p.label || "—")} | \`${manifest.id}\` (\`${exportName}\`) | ${list(manifest.provides)} | ${list(manifest.requires)} | ${cell(p.declared.map(short).join(", ") || "—")} |`,
       });
     }
   }
@@ -86,8 +86,8 @@ export async function renderCatalog(): Promise<string> {
   for (const type of types) {
     const group = rows.filter((r) => r.type === type);
     lines.push("", `### ${typeTitles[type] ?? type}（${group.length}）`, "",
-      "| 目录 | 模块 id（导出） | provides | requires | 依赖（workspace） |",
-      "| --- | --- | --- | --- | --- |",
+      "| 目录 | 名称 | 模块 id（导出） | provides | requires | 依赖（workspace） |",
+      "| --- | --- | --- | --- | --- | --- |",
       ...group.map((r) => r.line));
   }
 

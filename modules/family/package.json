@@ -9,5 +9,9 @@
   "dependencies": {
     "@openlife/contracts": "*",
     "@openlife/life-contracts": "*"
+  },
+  "openlife": {
+    "label": "家庭与关系",
+    "summary": "朋友、伴侣、亲子关系和家族延续。"
   }
 }

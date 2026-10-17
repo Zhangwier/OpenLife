@@ -8,5 +8,9 @@
   },
   "dependencies": {
     "@openlife/contracts": "*"
+  },
+  "openlife": {
+    "label": "机器人测试世界",
+    "summary": "用于验证不同实体和世界规则的测试内容。"
   }
 }

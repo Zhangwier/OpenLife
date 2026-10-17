@@ -8,5 +8,9 @@
   },
   "dependencies": {
     "@openlife/contracts": "*"
+  },
+  "openlife": {
+    "label": "思想与学派",
+    "summary": "想法的传播、分支和共同体影响。"
   }
 }

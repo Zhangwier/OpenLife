@@ -9,5 +9,9 @@
   "dependencies": {
     "@openlife/contracts": "*",
     "@openlife/life-contracts": "*"
+  },
+  "openlife": {
+    "label": "历史人物",
+    "summary": "历史人物及其出现的时间范围。"
   }
 }

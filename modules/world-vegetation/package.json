@@ -12,5 +12,9 @@
     "@openlife/module-world-climate": "*",
     "@openlife/module-world-hydrology": "*",
     "@openlife/module-world-ecology": "*"
+  },
+  "openlife": {
+    "label": "植被",
+    "summary": "自然植被与资源环境。"
   }
 }

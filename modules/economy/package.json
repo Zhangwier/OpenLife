@@ -9,5 +9,9 @@
   "dependencies": {
     "@openlife/contracts": "*",
     "@openlife/life-contracts": "*"
+  },
+  "openlife": {
+    "label": "经济",
+    "summary": "已有经济原型，接入古代生活前需要时代适配。"
   }
 }

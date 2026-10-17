@@ -9,5 +9,9 @@
   "dependencies": {
     "@openlife/contracts": "*",
     "@openlife/life-contracts": "*"
+  },
+  "openlife": {
+    "label": "职业原型",
+    "summary": "既有职业规则，尚未作为聚落生产体系接入。"
   }
 }

@@ -1,5 +1,6 @@
 id: xia_starter_v0_1
 name: Xia Starter World
+display_name: 初始地理包
 version: 0.1.0
 schema_version: "0.1"
 type: map_pack

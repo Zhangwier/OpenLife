@@ -3,7 +3,8 @@
  * reserve, gathers only if ecology allows, and explicitly responds when met.
  */
 import type { AgentHost as NpcHost } from "@openlife/contracts";
-import { SettlementCommands, SettlementComponents, residentId, dailyActivity } from "../module.ts";
+import { SettlementCommands, SettlementComponents, residentId } from "../vocabulary.ts";
+import { dailyActivity } from "../module.ts";
 import { SpaceCommands, occupiedPlaceId, occupiedSpaceId } from "@openlife/module-world-space";
 import { ObjectRelations, ownerOf, prototypeOf } from "@openlife/module-world-objects";
 import { chooseNpcIntent, shortagePressure } from "./npc-goals.ts";

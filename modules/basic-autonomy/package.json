@@ -9,5 +9,9 @@
   "dependencies": {
     "@openlife/contracts": "*",
     "@openlife/life-contracts": "*"
+  },
+  "openlife": {
+    "label": "人物自主行为",
+    "summary": "基于人物状态的基础自动决策。"
   }
 }

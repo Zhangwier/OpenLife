@@ -20,12 +20,7 @@ import {
   canCarryObject,
 } from "@openlife/module-world-objects";
 import { occupiedPlaceId } from "@openlife/module-world-space";
-import {
-  SettlementCommands,
-  SettlementComponents,
-  SettlementRejection,
-  residentId,
-} from "./module.ts";
+import { SettlementCommands, SettlementComponents, SettlementRejection, residentId } from "./vocabulary.ts";
 import { refuse, type Registration } from "./rules.ts";
 
 /**

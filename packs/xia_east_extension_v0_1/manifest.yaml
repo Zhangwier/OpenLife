@@ -1,5 +1,6 @@
 id: xia_east_extension_v0_1
 name: Xia East Extension
+display_name: 东部扩展地理包
 version: 0.1.0
 schema_version: "0.1"
 type: map_pack

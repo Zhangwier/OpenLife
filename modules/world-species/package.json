@@ -13,5 +13,9 @@
     "@openlife/module-world-hydrology": "*",
     "@openlife/module-world-ecology": "*",
     "@openlife/module-world-vegetation": "*"
+  },
+  "openlife": {
+    "label": "物种",
+    "summary": "物种及环境适应条件。"
   }
 }

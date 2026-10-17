@@ -11,5 +11,9 @@
     "@openlife/module-world-geography": "*",
     "@openlife/module-world-climate": "*",
     "@openlife/module-world-hydrology": "*"
+  },
+  "openlife": {
+    "label": "生态",
+    "summary": "生物与环境的变化。"
   }
 }

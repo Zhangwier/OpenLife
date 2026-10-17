@@ -8,5 +8,9 @@
   },
   "dependencies": {
     "@openlife/contracts": "*"
+  },
+  "openlife": {
+    "label": "历史留存",
+    "summary": "作品、证据、传播与被后人记住的痕迹。"
   }
 }

@@ -9,5 +9,9 @@
   "dependencies": {
     "@openlife/contracts": "*",
     "@openlife/life-contracts": "*"
+  },
+  "openlife": {
+    "label": "早期聚落生活",
+    "summary": "口传学习、聚落角色与技艺传承。"
   }
 }

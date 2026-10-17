@@ -13,5 +13,9 @@
     "@openlife/module-world-ecology": "*",
     "@openlife/module-world-vegetation": "*",
     "@openlife/module-world-species": "*"
+  },
+  "openlife": {
+    "label": "世界时间",
+    "summary": "自然世界的时间尺度。"
   }
 }

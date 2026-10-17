@@ -9,5 +9,9 @@
   "dependencies": {
     "@openlife/contracts": "*",
     "@openlife/life-contracts": "*"
+  },
+  "openlife": {
+    "label": "文明认知",
+    "summary": "文明已经建立的知识及其历史推进。"
   }
 }

@@ -8,5 +8,9 @@
   },
   "dependencies": {
     "@openlife/contracts": "*"
+  },
+  "openlife": {
+    "label": "魔法测试世界",
+    "summary": "用于验证不同世界观的独立测试内容。"
   }
 }

@@ -9,5 +9,9 @@
   "dependencies": {
     "@openlife/contracts": "*",
     "@openlife/module-practice-runtime": "*"
+  },
+  "openlife": {
+    "label": "自主参与活动",
+    "summary": "让自主行为参与持续活动的决策。"
   }
 }

@@ -42,6 +42,8 @@ export interface MapPackManifest {
   type: string;
   /** Optional human-readable origin of the map data. */
   description?: string;
+  /** Optional player-facing title (any language); UIs fall back to `name`. */
+  displayName?: string;
 }
 
 export interface MapPackRegion {

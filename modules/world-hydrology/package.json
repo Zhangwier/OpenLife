@@ -11,5 +11,9 @@
     "@openlife/module-world-geography": "*",
     "@openlife/module-world-geosphere": "*",
     "@openlife/module-world-weather": "*"
+  },
+  "openlife": {
+    "label": "水文",
+    "summary": "水体与水文状态。"
   }
 }

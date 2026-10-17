@@ -9,5 +9,9 @@
   "dependencies": {
     "@openlife/contracts": "*",
     "@openlife/module-world-geography": "*"
+  },
+  "openlife": {
+    "label": "地形与地质",
+    "summary": "自然地表与地质条件。"
   }
 }
