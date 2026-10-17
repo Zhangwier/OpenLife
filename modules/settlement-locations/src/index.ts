@@ -17,3 +17,5 @@ export * from "./origin.ts";
 export * from "./happenings.ts";
 export * from "./people.ts";
 export * from "./extensions.ts";
+export * from "./stock.ts";
+export * from "./knowledge.ts";

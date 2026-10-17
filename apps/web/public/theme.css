@@ -683,73 +683,139 @@ body[data-screen="activities"]:not(:has(.modal-backdrop:not([hidden]))) #toast {
   .module-list, .destination-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
-  body { font-size: 15px; }
-  .home-content h1 { font-size: 40px; margin-top: 12px; }
-  .home-intro { font-size: 14px; margin: 12px 0 20px; }
+  :where(html:not([data-layout="desktop"])) body { font-size: 15px; }
+  :where(html:not([data-layout="desktop"])) .home-content h1 { font-size: 40px; margin-top: 12px; }
+  :where(html:not([data-layout="desktop"])) .home-intro { font-size: 14px; margin: 12px 0 20px; }
 
-  .topbar { height: auto; min-height: 56px; padding: calc(8px + env(safe-area-inset-top)) 12px 8px 16px; gap: 8px; }
-  .brand { display: none; }
-  .time-ribbon { flex: 1; display: grid; gap: 0; }
-  .time-dot { display: none; }
-  .time-year { font-size: 16px; }
-  .time-copy { font-size: 12px; }
-  #autoButton { display: none; }
-  .top-actions .ghost-button { min-height: 40px; }
+  :where(html:not([data-layout="desktop"])) .topbar { height: auto; min-height: 56px; padding: calc(8px + env(safe-area-inset-top)) 12px 8px 16px; gap: 8px; }
+  :where(html:not([data-layout="desktop"])) .brand { display: none; }
+  :where(html:not([data-layout="desktop"])) .time-ribbon { flex: 1; display: grid; gap: 0; }
+  :where(html:not([data-layout="desktop"])) .time-dot { display: none; }
+  :where(html:not([data-layout="desktop"])) .time-year { font-size: 16px; }
+  :where(html:not([data-layout="desktop"])) .time-copy { font-size: 12px; }
+  :where(html:not([data-layout="desktop"])) #autoButton { display: none; }
+  :where(html:not([data-layout="desktop"])) .top-actions .ghost-button { min-height: 40px; }
 
-  .application-layout { display: block; padding: 12px 12px calc(var(--nav-h) + 20px + env(safe-area-inset-bottom)); }
-  #appNavigation.app-navigation {
+  :where(html:not([data-layout="desktop"])) .application-layout { display: block; padding: 12px 12px calc(var(--nav-h) + 20px + env(safe-area-inset-bottom)); }
+  :where(html:not([data-layout="desktop"])) #appNavigation.app-navigation {
     position: fixed; z-index: 90; left: 0; right: 0; bottom: 0; top: auto;
     display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px;
     padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
     background: var(--glass); backdrop-filter: blur(10px);
     border-top: 1px solid var(--line); box-shadow: 0 -6px 20px rgba(0, 0, 0, .08);
   }
-  #appNavigation .nav-caption, #appNavigation .nav-more { display: none; }
-  #appNavigation.app-navigation > button {
+  :where(html:not([data-layout="desktop"])) #appNavigation .nav-caption, :where(html:not([data-layout="desktop"])) #appNavigation .nav-more { display: none; }
+  :where(html:not([data-layout="desktop"])) #appNavigation.app-navigation > button {
     flex-direction: column; justify-content: center; gap: 2px; min-height: 52px; padding: 6px 0;
     font-size: 12px; text-align: center; border-radius: var(--r-md);
   }
-  #appNavigation.app-navigation > button::before { width: 22px; height: 22px; }
-  #appNavigation.app-navigation > button.selected { background: var(--primary-soft); }
+  :where(html:not([data-layout="desktop"])) #appNavigation.app-navigation > button::before { width: 22px; height: 22px; }
+  :where(html:not([data-layout="desktop"])) #appNavigation.app-navigation > button.selected { background: var(--primary-soft); }
 
-  .page-heading { margin: 6px 2px 14px; }
-  .page-heading > div > span, .page-heading > span { display: none; }
-  .page-heading h1 { font-size: 24px; }
+  :where(html:not([data-layout="desktop"])) .page-heading { margin: 6px 2px 14px; }
+  :where(html:not([data-layout="desktop"])) .page-heading > div > span, :where(html:not([data-layout="desktop"])) .page-heading > span { display: none; }
+  :where(html:not([data-layout="desktop"])) .page-heading h1 { font-size: 24px; }
   [data-screen-panel] > .panel, [data-screen-panel] > section.panel, .page-empty,
-  .portable-overview, .relationship-card, .lineage-card, .history-panel, .world-card, .catalog-intro, .map-pack, .personal-links { padding: 18px; }
+  :where(html:not([data-layout="desktop"])) .portable-overview, :where(html:not([data-layout="desktop"])) .relationship-card, :where(html:not([data-layout="desktop"])) .lineage-card, :where(html:not([data-layout="desktop"])) .history-panel, :where(html:not([data-layout="desktop"])) .world-card, :where(html:not([data-layout="desktop"])) .catalog-intro, :where(html:not([data-layout="desktop"])) .map-pack, :where(html:not([data-layout="desktop"])) .personal-links { padding: 18px; }
 
-  body[data-screen="activities"] .application-layout { padding-left: 0; padding-right: 0; padding-top: 0; }
-  #screen-activities .scene-summary { margin: 10px 12px; padding: 10px 14px; }
-  .scene-summary .hud { grid-template-columns: 1fr; gap: 6px; }
-  .hud-item { grid-template-columns: 36px minmax(0, 1fr) 60px; }
-  .hud-item b { text-align: right; }
-  .scene-theater { height: clamp(300px, 80vw, 380px); border-radius: 0; box-shadow: none; }
-  .scene-theater .scene-stage-top { padding: 14px 16px; }
-  .scene-stage-top strong { font-size: 24px; }
-  .interaction-dock { border-radius: 0; border-left: 0; border-right: 0; padding: 12px; }
-  .dock-tools button { padding: 10px 6px; font-size: 14px; }
-  .scene-quick-actions { max-height: min(42dvh, 340px); }
-  #communityFeed, .scene-ledger, .player-situation, .player-outcome, .legacy-choice-details { margin-left: 12px; margin-right: 12px; }
-  .scene-columns { grid-template-columns: 1fr; gap: 12px; }
-  .action-grid { grid-template-columns: 1fr; }
+  :where(html:not([data-layout="desktop"])) body[data-screen="activities"] .application-layout { padding-left: 0; padding-right: 0; padding-top: 0; }
+  :where(html:not([data-layout="desktop"])) #screen-activities .scene-summary { margin: 10px 12px; padding: 10px 14px; }
+  :where(html:not([data-layout="desktop"])) .scene-summary .hud { grid-template-columns: 1fr; gap: 6px; }
+  :where(html:not([data-layout="desktop"])) .hud-item { grid-template-columns: 36px minmax(0, 1fr) 60px; }
+  :where(html:not([data-layout="desktop"])) .hud-item b { text-align: right; }
+  :where(html:not([data-layout="desktop"])) .scene-theater { height: clamp(300px, 80vw, 380px); border-radius: 0; box-shadow: none; }
+  :where(html:not([data-layout="desktop"])) .scene-theater .scene-stage-top { padding: 14px 16px; }
+  :where(html:not([data-layout="desktop"])) .scene-stage-top strong { font-size: 24px; }
+  :where(html:not([data-layout="desktop"])) .interaction-dock { border-radius: 0; border-left: 0; border-right: 0; padding: 12px; }
+  :where(html:not([data-layout="desktop"])) .dock-tools button { padding: 10px 6px; font-size: 14px; }
+  :where(html:not([data-layout="desktop"])) .scene-quick-actions { max-height: min(42dvh, 340px); }
+  :where(html:not([data-layout="desktop"])) #communityFeed, :where(html:not([data-layout="desktop"])) .scene-ledger, :where(html:not([data-layout="desktop"])) .player-situation, :where(html:not([data-layout="desktop"])) .player-outcome, :where(html:not([data-layout="desktop"])) .legacy-choice-details { margin-left: 12px; margin-right: 12px; }
+  :where(html:not([data-layout="desktop"])) .scene-columns { grid-template-columns: 1fr; gap: 12px; }
+  :where(html:not([data-layout="desktop"])) .action-grid { grid-template-columns: 1fr; }
 
-  .life-rail { grid-template-columns: 84px minmax(0, 1fr); gap: 14px 16px; }
-  .portrait { width: 84px; height: 98px; border-radius: 42px 42px var(--r-md) var(--r-md); }
-  .identity h1 { font-size: 24px; }
-  .soft-stats { grid-template-columns: 1fr 1fr; gap: 0 16px; }
-  .portable-meter { grid-template-columns: 1fr; }
-  .portable-items { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .relationship-orbit, .people-list { grid-template-columns: 1fr; }
-  .menu-links { grid-template-columns: 1fr 1fr; }
-  .modal { padding: 22px 18px; border-radius: var(--r-lg); }
-  .field-row { grid-template-columns: 1fr 1fr; }
-  .memory-slot { flex-wrap: wrap; }
-  .toast { bottom: calc(var(--nav-h) + 24px + env(safe-area-inset-bottom)); }
-  .world-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .world-metrics strong { font-size: 22px; }
-  .history-item { grid-template-columns: 52px 1fr; }
-  .history-item:not(:last-child)::before { left: 25px; }
+  :where(html:not([data-layout="desktop"])) .life-rail { grid-template-columns: 84px minmax(0, 1fr); gap: 14px 16px; }
+  :where(html:not([data-layout="desktop"])) .portrait { width: 84px; height: 98px; border-radius: 42px 42px var(--r-md) var(--r-md); }
+  :where(html:not([data-layout="desktop"])) .identity h1 { font-size: 24px; }
+  :where(html:not([data-layout="desktop"])) .soft-stats { grid-template-columns: 1fr 1fr; gap: 0 16px; }
+  :where(html:not([data-layout="desktop"])) .portable-meter { grid-template-columns: 1fr; }
+  :where(html:not([data-layout="desktop"])) .portable-items { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  :where(html:not([data-layout="desktop"])) .relationship-orbit, :where(html:not([data-layout="desktop"])) .people-list { grid-template-columns: 1fr; }
+  :where(html:not([data-layout="desktop"])) .menu-links { grid-template-columns: 1fr 1fr; }
+  :where(html:not([data-layout="desktop"])) .modal { padding: 22px 18px; border-radius: var(--r-lg); }
+  :where(html:not([data-layout="desktop"])) .field-row { grid-template-columns: 1fr 1fr; }
+  :where(html:not([data-layout="desktop"])) .memory-slot { flex-wrap: wrap; }
+  :where(html:not([data-layout="desktop"])) .toast { bottom: calc(var(--nav-h) + 24px + env(safe-area-inset-bottom)); }
+  :where(html:not([data-layout="desktop"])) .world-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  :where(html:not([data-layout="desktop"])) .world-metrics strong { font-size: 22px; }
+  :where(html:not([data-layout="desktop"])) .history-item { grid-template-columns: 52px 1fr; }
+  :where(html:not([data-layout="desktop"])) .history-item:not(:last-child)::before { left: 25px; }
 }
+:where(html.is-phone) body { font-size: 15px; }
+:where(html.is-phone) .home-content h1 { font-size: 40px; margin-top: 12px; }
+:where(html.is-phone) .home-intro { font-size: 14px; margin: 12px 0 20px; }
+
+:where(html.is-phone) .topbar { height: auto; min-height: 56px; padding: calc(8px + env(safe-area-inset-top)) 12px 8px 16px; gap: 8px; }
+:where(html.is-phone) .brand { display: none; }
+:where(html.is-phone) .time-ribbon { flex: 1; display: grid; gap: 0; }
+:where(html.is-phone) .time-dot { display: none; }
+:where(html.is-phone) .time-year { font-size: 16px; }
+:where(html.is-phone) .time-copy { font-size: 12px; }
+:where(html.is-phone) #autoButton { display: none; }
+:where(html.is-phone) .top-actions .ghost-button { min-height: 40px; }
+
+:where(html.is-phone) .application-layout { display: block; padding: 12px 12px calc(var(--nav-h) + 20px + env(safe-area-inset-bottom)); }
+:where(html.is-phone) #appNavigation.app-navigation {
+    position: fixed; z-index: 90; left: 0; right: 0; bottom: 0; top: auto;
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    background: var(--glass); backdrop-filter: blur(10px);
+    border-top: 1px solid var(--line); box-shadow: 0 -6px 20px rgba(0, 0, 0, .08);
+  }
+:where(html.is-phone) #appNavigation .nav-caption, :where(html.is-phone) #appNavigation .nav-more { display: none; }
+:where(html.is-phone) #appNavigation.app-navigation > button {
+    flex-direction: column; justify-content: center; gap: 2px; min-height: 52px; padding: 6px 0;
+    font-size: 12px; text-align: center; border-radius: var(--r-md);
+  }
+:where(html.is-phone) #appNavigation.app-navigation > button::before { width: 22px; height: 22px; }
+:where(html.is-phone) #appNavigation.app-navigation > button.selected { background: var(--primary-soft); }
+
+:where(html.is-phone) .page-heading { margin: 6px 2px 14px; }
+:where(html.is-phone) .page-heading > div > span, :where(html.is-phone) .page-heading > span { display: none; }
+:where(html.is-phone) .page-heading h1 { font-size: 24px; }
+  [data-screen-panel] > .panel, [data-screen-panel] > section.panel, .page-empty,
+:where(html.is-phone) .portable-overview, :where(html.is-phone) .relationship-card, :where(html.is-phone) .lineage-card, :where(html.is-phone) .history-panel, :where(html.is-phone) .world-card, :where(html.is-phone) .catalog-intro, :where(html.is-phone) .map-pack, :where(html.is-phone) .personal-links { padding: 18px; }
+
+:where(html.is-phone) body[data-screen="activities"] .application-layout { padding-left: 0; padding-right: 0; padding-top: 0; }
+:where(html.is-phone) #screen-activities .scene-summary { margin: 10px 12px; padding: 10px 14px; }
+:where(html.is-phone) .scene-summary .hud { grid-template-columns: 1fr; gap: 6px; }
+:where(html.is-phone) .hud-item { grid-template-columns: 36px minmax(0, 1fr) 60px; }
+:where(html.is-phone) .hud-item b { text-align: right; }
+:where(html.is-phone) .scene-theater { height: clamp(300px, 80vw, 380px); border-radius: 0; box-shadow: none; }
+:where(html.is-phone) .scene-theater .scene-stage-top { padding: 14px 16px; }
+:where(html.is-phone) .scene-stage-top strong { font-size: 24px; }
+:where(html.is-phone) .interaction-dock { border-radius: 0; border-left: 0; border-right: 0; padding: 12px; }
+:where(html.is-phone) .dock-tools button { padding: 10px 6px; font-size: 14px; }
+:where(html.is-phone) .scene-quick-actions { max-height: min(42dvh, 340px); }
+:where(html.is-phone) #communityFeed, :where(html.is-phone) .scene-ledger, :where(html.is-phone) .player-situation, :where(html.is-phone) .player-outcome, :where(html.is-phone) .legacy-choice-details { margin-left: 12px; margin-right: 12px; }
+:where(html.is-phone) .scene-columns { grid-template-columns: 1fr; gap: 12px; }
+:where(html.is-phone) .action-grid { grid-template-columns: 1fr; }
+
+:where(html.is-phone) .life-rail { grid-template-columns: 84px minmax(0, 1fr); gap: 14px 16px; }
+:where(html.is-phone) .portrait { width: 84px; height: 98px; border-radius: 42px 42px var(--r-md) var(--r-md); }
+:where(html.is-phone) .identity h1 { font-size: 24px; }
+:where(html.is-phone) .soft-stats { grid-template-columns: 1fr 1fr; gap: 0 16px; }
+:where(html.is-phone) .portable-meter { grid-template-columns: 1fr; }
+:where(html.is-phone) .portable-items { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+:where(html.is-phone) .relationship-orbit, :where(html.is-phone) .people-list { grid-template-columns: 1fr; }
+:where(html.is-phone) .menu-links { grid-template-columns: 1fr 1fr; }
+:where(html.is-phone) .modal { padding: 22px 18px; border-radius: var(--r-lg); }
+:where(html.is-phone) .field-row { grid-template-columns: 1fr 1fr; }
+:where(html.is-phone) .memory-slot { flex-wrap: wrap; }
+:where(html.is-phone) .toast { bottom: calc(var(--nav-h) + 24px + env(safe-area-inset-bottom)); }
+:where(html.is-phone) .world-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+:where(html.is-phone) .world-metrics strong { font-size: 22px; }
+:where(html.is-phone) .history-item { grid-template-columns: 52px 1fr; }
+:where(html.is-phone) .history-item:not(:last-child)::before { left: 25px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
@@ -817,6 +883,7 @@ body, .panel, .modal, .topbar { transition: background-color .25s, color .25s, b
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .scene-backdrop, :root:not([data-theme="light"]) .home-landscape { filter: brightness(.82) saturate(.95); } }
 .scene-theater .painted-exit { bottom: 14px !important; }
 @media (max-width: 600px) { .scene-theater .painted-exit .exit-icon { width: 42px; height: 42px; } .scene-theater .painted-exit { bottom: 10px !important; } }
+:where(html.is-phone) .scene-theater .painted-exit .exit-icon { width: 42px; height: 42px; } .scene-theater .painted-exit { bottom: 10px !important; } 
 
 /* ================= 声音面板 ================= */
 #soundButton.is-on, #homeSoundButton.is-on { color: var(--primary); border-color: var(--primary); background: var(--primary-soft); }

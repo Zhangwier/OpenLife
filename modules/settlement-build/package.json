@@ -1,0 +1,19 @@
+{
+  "name": "@openlife/module-settlement-build",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/life-contracts": "*",
+    "@openlife/module-settlement-locations": "*",
+    "@openlife/module-world-space": "*"
+  },
+  "openlife": {
+    "label": "盖房子",
+    "summary": "抽象建造：备料、动工、落成。房子按人天推进，不做沙盒摆放。"
+  }
+}

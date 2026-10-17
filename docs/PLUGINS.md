@@ -98,7 +98,7 @@ content-packs/<packId>/
 {
   "id": "reed_baskets",
   "type": "settlement_extension",
-  "formatVersion": 1,
+  "formatVersion": 2,
   "name": "苇编小篓",
   "version": "0.1.0",
   "target": "river-terrace",
@@ -110,6 +110,63 @@ content-packs/<packId>/
 ```
 - `id`：小写字母开头，只含 `a-z 0-9 _`，2–48 位，全局唯一，等于目录名。
 - `target`：要扩展的聚落包 id，目前只有 `river-terrace`。
+- `formatVersion`：`1` 或 `2`。**格式 1 的包继续有效**，无需改动；新包用 `2`。
+
+### 3.2.1 格式 v2 新增的文件（全部可选）
+
+| 文件 | 内容 | 校验 |
+| --- | --- | --- |
+| `incidents.json` | 抉择事件 `{ incidents: [...] }` | 至少两个选项；每个选项至少改变一样东西（消耗/交情/旗标/名声/产出/后续事件）；命名空间 |
+| `residents.json` | 新居民 `{ residents: [...] }` | 住处空间必须真实存在（基础包或本包提供） |
+| `dialogue.json` | 对话片段 `{ dialogue: [...] }` | 必须挂在存在的居民身上 |
+| `places.json`（放在 `items.json` 里亦可） | 新地点 `places`、空间 `spaces`、产出点 `yields` | 空间归属明确；命名空间 |
+
+**抉择事件的最小形态**（`docs/examples/content-packs/share_grace/` 是完整例子）：
+
+```json
+{
+  "id": "incident:share_grace.share-winter-grain",
+  "seasons": ["秋", "冬"],
+  "cooldownYears": 2,
+  "requires": { "population": { "min": 6 },
+    "stockBelow": [{ "resourceId": "resource:grain", "amount": 12 }] },
+  "text": "收成不好。灶上的人说，可以把留给冬天的粟分给村东那家，但他们可能撑不到春天。",
+  "choices": [
+    { "id": "share", "label": "分一半出去",
+      "cost": { "resource:grain": 6 },
+      "bond": { "trust": 2 },
+      "flags": ["shared-winter-grain"],
+      "followUp": { "id": "incident:share_grace.hungry-spring", "afterSeasons": 1 },
+      "line": "那家人站在门口，半天没说出话。" },
+    { "id": "refuse", "label": "先顾自家",
+      "bond": { "grudge": 1 }, "reputation": -1, "line": "灶上的人叹了口气。" }
+  ]
+}
+```
+
+**写作标准**（评审会按这几条打回）：
+1. 至少两个选项都**有道理**——不存在明显的"正确答案"。
+2. 至少一个选项带**延迟后果**（`followUp`）。
+3. 正文不超过 80 字。
+4. **不出现玩家不认识的人名**——用"灶上的人""村东那家"这类称呼。
+5. 每个选项都要真的改变什么；"没有后果的选项"会被 `pack:check` 拦下。
+
+### 3.2.2 自检：`npm run pack:check`
+
+内容作者不必跑全量测试：
+
+```sh
+npm run pack:check                       # 检查 content-packs/ 下所有包
+npm run pack:check docs/examples/content-packs/share_grace   # 只查一个
+```
+
+它应用与游戏加载时**完全相同**的校验规则，逐条列出问题及其文件。
+
+### 3.2.3 存档与内容包
+
+建村时把用到的包记成 `id@version`。读档时若缺少某个包，`missingContentPacks()`
+会给出明确清单（"这份存档用到了 reed_baskets@0.1.0"），而不是在某个物品上莫名报错。
+**旧存档没有这个字段，视为只用基础包，不会报错。**
 
 ### 3.3 命名空间（强制）
 包新增的每个 id 都必须带包 id：

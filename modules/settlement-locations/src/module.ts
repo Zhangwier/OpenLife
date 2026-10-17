@@ -29,7 +29,7 @@ import { HUNGER_MIN_CAPACITY, hungerLevel, hungerToll } from "./hunger-toll.ts";
 export { HUNGER_MIN_CAPACITY, HUNGER_SICK_DAYS, hungerToll } from "./hunger-toll.ts";
 import { chooseSeasonStory, storyHistory } from "./story-pick.ts";
 import { acquaintanceOf, askedToday, contactConversations, happeningsView, heardAbout, knowsName, knownName, registerAskAbout, type Acquaintance } from "./knowledge.ts";
-export { acquaintanceOf, happeningsView, knowsName, knownName, type Acquaintance } from "./knowledge.ts";
+import { registerStock } from "./stock.ts";
 import { appraise, type CounterpartView, type Closeness } from "./exchange.ts";
 import { skyOn, isWet, OUTDOOR_PLACES, SKY_NOTE } from "./weather.ts";
 import {
@@ -104,7 +104,7 @@ const YIELDS: YieldSpec[] = RIVER_TERRACE_PACK.yields;
  */
 const PROTOTYPES: PrototypeSpec[] = RIVER_TERRACE_PACK.prototypes;
 
-const RESOURCE_LABELS: Record<string, string> = RIVER_TERRACE_PACK.resourceLabels;
+export const RESOURCE_LABELS: Record<string, string> = RIVER_TERRACE_PACK.resourceLabels;
 /** Named routine holders, sent to clients so they never hardcode a villager. */
 const ROLE_VIEW = Object.fromEntries(Object.entries(RIVER_TERRACE_PACK.autonomy).map(([role, key]) => {
   const resident = RIVER_TERRACE_PACK.residents.find((r) => r.key === key)!;
@@ -165,7 +165,7 @@ export const settlementLocationsModule: OpenLifeModule = {
     registerFound(ctx);
     registerArrive(ctx);
     registerTalk(ctx);
-    registerAskAbout(ctx);
+    registerAskAbout(ctx); registerStock(ctx);
     registerDraw(ctx);
     registerDrink(ctx);
     registerEat(ctx);
@@ -263,7 +263,7 @@ function registerFound(ctx: Registration): void {
             name: String(c.command.payload.name ?? "河岸台地聚落"),
             locationId,
             foundedAt: c.world.tick,
-            // 饿肚子要付代价是建村时定的规矩：新 Web 人生打开，旧存档与单机制测试世界不带。
+            // 建村时定下的规矩：饿肚子付代价（旧存档/单机制测试世界不带）。
             ...(c.command.payload.hungerToll === true ? { hungerToll: true } : {}),
           } as unknown as Record<string, never>,
         },
@@ -550,7 +550,7 @@ interface YieldState {
 /** Every yield point, with the stock that has regenerated since it was last drawn. */
 /** Cheap read of every gathering point's current stock (no object counting). */
 export function currentYields(world: WorldView): YieldState[] { return yieldPoints(world); }
-function yieldPoints(world: WorldView): YieldState[] {
+export function yieldPoints(world: WorldView): YieldState[] {
   return world
     .listEntities({ kind: "settlement-locations.yield-point" })
     .filter((entity) => entity.archivedAt === undefined)

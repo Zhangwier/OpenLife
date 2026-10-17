@@ -28,6 +28,8 @@
     "@openlife/module-world-hazard": "*",
     "@openlife/module-fauna-bonds": "*",
     "@openlife/module-settlement-nature": "*",
-    "@openlife/module-social-conflict": "*"
+    "@openlife/module-social-conflict": "*",
+    "@openlife/module-settlement-build": "*",
+    "@openlife/world-model": "*"
   }
 }

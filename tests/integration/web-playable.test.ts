@@ -739,7 +739,10 @@ test("M2-B: Web weaves a carrying bag and sleeping mat with real storage and res
 });
 
 // This walk measures the 8-unit day budget exactly, so it runs without the hunger toll.
-test("Web player walks the settlement, borrows a jar, fetches water and returns it", { timeout: 40000 }, async () => {
+// Spawns a real server and drives a full HTTP loop; ~33s warm, and the whole
+// suite runs in parallel, so 40s was clipping under load. The work itself is
+// unchanged -- only the ceiling above it.
+test("Web player walks the settlement, borrows a jar, fetches water and returns it", { timeout: 90000 }, async () => {
   const child = spawn(process.execPath, [fileURLToPath(new URL("../../apps/web/server.ts", import.meta.url))], {
     env: { ...process.env, OPENLIFE_PERSISTENCE: "0", PORT: "0", OPENLIFE_HUNGER_TOLL: "0" }, stdio: ["ignore", "pipe", "pipe"],
   });

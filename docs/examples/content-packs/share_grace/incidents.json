@@ -1,0 +1,62 @@
+{
+  "incidents": [
+    {
+      "id": "incident:share_grace.share-winter-grain",
+      "seasons": ["秋", "冬"],
+      "cooldownYears": 2,
+      "requires": {
+        "population": { "min": 6 },
+        "stockBelow": [{ "resourceId": "resource:grain", "amount": 12 }]
+      },
+      "text": "收成不好。灶上的人说，可以把留给冬天的粟分给村东那家，但他们自己可能撑不到春天。",
+      "choices": [
+        {
+          "id": "share",
+          "label": "分一半出去",
+          "line": "那家人站在门口，半天没说出话。",
+          "cost": { "resource:grain": 6 },
+          "bond": { "trust": 2, "familiarity": 1 },
+          "flags": ["shared-winter-grain"],
+          "followUp": { "id": "incident:share_grace.hungry-spring", "afterSeasons": 1 }
+        },
+        {
+          "id": "refuse",
+          "label": "先顾自家",
+          "line": "灶上的人叹了口气，没再提。",
+          "bond": { "grudge": 1 },
+          "reputation": -1
+        },
+        {
+          "id": "half",
+          "label": "只分三份，剩下的留种",
+          "line": "你数了三份出来。谁也没多说什么。",
+          "cost": { "resource:grain": 3 },
+          "bond": { "trust": 1 },
+          "reputation": 0
+        }
+      ]
+    },
+    {
+      "id": "incident:share_grace.hungry-spring",
+      "seasons": ["春"],
+      "cooldownYears": 3,
+      "text": "春天来得早，粮缸见底了。去年冬天分出去的那一半，现在成了悬在头顶的事。",
+      "choices": [
+        {
+          "id": "forage",
+          "label": "全村出去挖野菜",
+          "line": "孩子们拎着篮子出门，回来时篮底刚盖住。",
+          "yields": { "place:river:resource:reed": 0.7 },
+          "bond": { "familiarity": 1 }
+        },
+        {
+          "id": "borrow",
+          "label": "去渡口借粮",
+          "line": "渡口的人没多问，只说过河的日子要算清楚。",
+          "bond": { "trust": 1, "grudge": 1 },
+          "flags": ["owes-ferry"]
+        }
+      ]
+    }
+  ]
+}

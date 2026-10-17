@@ -16,7 +16,12 @@
  */
 import type { CommandIntent, ConstraintOutcome, Effect, OpenLifeModule, WorldView } from "@openlife/contracts";
 import { occupiedPlaceId } from "@openlife/module-world-space";
-import { SettlementComponents, SettlementId, feastOn, isIll, residentId } from "@openlife/module-settlement-locations";
+import {
+  SettlementComponents, SettlementId, feastOn, isIll, residentId, PACK_INCIDENTS,
+  yieldPoints, RESOURCE_LABELS,
+  type StoryEventSpec, type StoryChoiceSpec,
+} from "@openlife/module-settlement-locations";
+import { installPackIncidents, packChoice, packIncidentSource } from "./pack-incidents.ts";
 import { STORY_PACK, storyPackProblems, type QuestSpec } from "./spec.ts";
 import { bondsProblems } from "./bonds.ts";
 import { dailyGuide, guideProblems } from "./guide.ts";
@@ -26,7 +31,7 @@ import {
 } from "./people-rules.ts";
 import {
   Outcome, STORY_OWNER, StoryComponents, activePlayer, baseFor, consume, daysUntil, eventActive, handOver, heartsWith, incidentOn,
-  keyOf, meets, npcName, ownedInHand, progressOf, readJournal, resourceLabel, yearOf, type Journal,
+  keyOf, meets, npcName, ownedInHand, progressOf, readJournal, resourceLabel, yearOf, DAYS_PER_YEAR, type Journal,
 } from "./journal.ts";
 
 export const StoryCommands = {
@@ -148,6 +153,98 @@ const COUNTED: Record<string, (data: Record<string, unknown>, target: string) =>
   "settlement-locations.roof_mended": () => ["roof"],
 };
 
+/**
+ * Applies a content pack choice's consequences.
+ *
+ * The journal understands items, bonds and flags. A pack incident also speaks of
+ * costs, village standing, gathering yields and follow-ups -- KoDP's delayed
+ * consequence. Those are honoured here rather than by teaching the journal a new
+ * vocabulary for one format.
+ *
+ * Returns a short note to append to the aftermath line, so the player sees what
+ * the choice actually cost or changed.
+ */
+function applyPackChoice(
+  c: Ctx,
+  out: Outcome,
+  spec: StoryEventSpec,
+  choice: StoryChoiceSpec,
+): string {
+  const notes: string[] = [];
+
+  // 1. Cost: taken from the village's shared stock, floored at zero so an
+  //    under-supplied village loses what it has rather than going negative.
+  for (const [resourceId, amount] of Object.entries(choice.cost ?? {})) {
+    if (!(amount > 0)) continue;
+    const point = yieldPoints(c.world).find((y) => y.resourceId === resourceId);
+    if (!point) continue;
+    const taken = Math.min(point.stock, amount);
+    if (taken <= 0) continue;
+    out.effects.push({
+      kind: "setComponent",
+      entityId: `yield:${point.placeId}:${point.resourceId}`,
+      component: SettlementComponents.yieldPoint,
+      value: { ...point, stock: point.stock - taken } as never,
+      reason: `incident ${spec.id}: paid ${taken}`,
+    });
+    notes.push(`用掉 ${taken} 份${RESOURCE_LABELS[resourceId] ?? "东西"}`);
+  }
+
+  // 2. How the people this event is about feel afterwards.
+  if (choice.bond) {
+    const delta = choice.bond;
+    const any = Object.values(delta).some((n) => Number(n ?? 0) !== 0);
+    if (any) {
+      // The incident names no specific person in v2, so the change lands on
+      // every villager already in the player's circle; a stranger's opinion is
+      // not something the player could have moved.
+      out.bondAll(delta as BondChange, `突发：${spec.text.slice(0, 12)}`);
+      const parts: string[] = [];
+      if (delta.trust) parts.push(`信任 ${delta.trust > 0 ? "+" : ""}${delta.trust}`);
+      if (delta.grudge) parts.push(`怨气 ${delta.grudge > 0 ? "+" : ""}${delta.grudge}`);
+      if (delta.familiarity) parts.push(`交情 ${delta.familiarity > 0 ? "+" : ""}${delta.familiarity}`);
+      if (parts.length) notes.push(parts.join("，"));
+    }
+  }
+
+  // 3. Village standing, -3..3, recorded as a counter the guide can read.
+  if (choice.reputation) {
+    out.j = { ...out.j, counters: { ...out.j.counters, reputation: (out.j.counters.reputation ?? 0) + choice.reputation } };
+    notes.push(`名声 ${choice.reputation > 0 ? "+" : ""}${choice.reputation}`);
+  }
+
+  // 4. Yields: scale real gathering points, same semantics as a story's yields.
+  for (const [where, factor] of Object.entries(choice.yields ?? {})) {
+    if (!(factor > 0)) continue;
+    const [, placeId, resourceId] = where.match(/^(place:[^:]+):(.+)$/) ?? [];
+    if (!placeId || !resourceId) continue;
+    const point = yieldPoints(c.world).find((y) => y.placeId === placeId && y.resourceId === resourceId);
+    if (!point) continue;
+    out.effects.push({
+      kind: "setComponent",
+      entityId: `yield:${placeId}:${resourceId}`,
+      component: SettlementComponents.yieldPoint,
+      value: { ...point, stock: Math.min(point.capacity, Math.round(point.stock * factor)), lastRenewedAt: out.tick } as never,
+      reason: `incident ${spec.id}: yields x${factor}`,
+    });
+  }
+
+  // 5. Follow-up: queued as a pending flag so the storyteller (or the next
+  //    season turn) can pick it up. Stored as a counter keyed by id + due day,
+  //    which survives save/load without a new component.
+  if (choice.followUp) {
+    const dueInDays = (choice.followUp.afterSeasons ?? 0) * DAYS_PER_YEAR / 4 + (choice.followUp.afterDays ?? 0);
+    const due = Math.round(out.tick + dueInDays);
+    out.j = {
+      ...out.j,
+      counters: { ...out.j.counters, [`followUp:${choice.followUp.id}`]: due },
+    };
+    notes.push("这事还没完");
+  }
+
+  return notes.length ? `（${notes.join("；")}）` : "";
+}
+
 export const villageStoriesModule: OpenLifeModule = {
   manifest: {
     id: STORY_OWNER, version: "0.1.0", engineRange: "^0.1.0", type: "content-pack",
@@ -159,6 +256,9 @@ export const villageStoriesModule: OpenLifeModule = {
   register(ctx) {
     const problems = [...storyPackProblems(), ...bondsProblems(), ...guideProblems()];
     if (problems.length) throw new Error(`village-stories pack is invalid:\n${problems.join("\n")}`);
+    // Content packs (format v2) contribute choice events; a world without packs
+    // installs an empty list and behaves exactly as before.
+    installPackIncidents(PACK_INCIDENTS);
     ctx.registerComponent({ id: StoryComponents.journal, persist: true, description: "the player's quests, flags, achievements and story choices" });
     for (const type of Object.values(StoryCommands)) ctx.registerCommand({ type, description: "Village story action." });
 
@@ -264,9 +364,19 @@ export const villageStoriesModule: OpenLifeModule = {
         if (choice.consume && choice.requires?.resource) out.effects.push(...consume(ownedInHand(c.world, out.me, choice.requires.resource).slice(0, 1), out.me, `incident: ${incident.id}`));
         const got = out.reward(choice, `突发：${incident.title}`);
         out.flag(...(choice.setFlags ?? []));
+        // A content pack's incident carries consequences the journal has no
+        // vocabulary for: what it costs, how it moves people, what it queues.
+        // They are applied here, next to the journal bookkeeping, so the two
+        // halves of one choice land in the same transaction.
+        const packSpec = packIncidentSource(incident.id);
+        const packSide = packSpec ? packChoice(incident.id, choice.id) : undefined;
+        let packNote = "";
+        if (packSpec && packSide) {
+          packNote = applyPackChoice(c, out, packSpec, packSide);
+        }
         out.j = { ...out.j, incidents: { ...out.j.incidents, [String(out.tick)]: `${incident.id}:${choice.id}` } };
         out.count("incident");
-        out.say("village-stories.incident_resolved", `${choice.line}${got.length ? `（得到：${got.join("、")}）` : ""}`, { incidentId: incident.id, choiceId: choice.id });
+        out.say("village-stories.incident_resolved", `${choice.line}${got.length ? `（得到：${got.join("、")}）` : ""}${packNote}`, { incidentId: incident.id, choiceId: choice.id });
       });
 
     rule(StoryCommands.settleQuarrel,
