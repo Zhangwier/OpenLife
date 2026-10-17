@@ -1,4 +1,4 @@
-import { isTextMode } from "/view-mode.js";
+import { isTextMode, layoutMode, setLayoutMode, applyLayoutMode } from "/view-mode.js";
 import { html } from "/player.js";
 import { commandsForTarget } from "/settlement.js";
 import { objectKind, propSvg, fillRatio } from "/scene-props.js";
@@ -39,6 +39,7 @@ export function installShell(options) {
   $("menuButton").onclick = () => { $("menuModal").hidden = false; };
   $("closeMenu").onclick = () => { $("menuModal").hidden = true; };
   $("sceneTimeButton").onclick = () => $("autoButton").click();
+  installLayoutSwitch();
   document.addEventListener("click", event => {
     const control = event.target.closest("[data-control]");
     if (control) {
@@ -249,6 +250,30 @@ function paintThemeButtons() {
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.content = dark ? "#121a17" : "#f2ece1";
 }
+/**
+ * 版式切换：跟随窗口 → 手机 → 电脑 → 跟随窗口。
+ *
+ * 目的是让同一台设备上能直接对照两种版式：在大屏上锁定手机，就能看到
+ * 真机上的窄栏排法；在窗口里锁定电脑，就能确认双栏没有塌掉。
+ */
+const LAYOUT_LABEL = { auto: "跟随窗口", phone: "手机", desktop: "电脑" };
+const LAYOUT_NEXT = { auto: "phone", phone: "desktop", desktop: "auto" };
+function installLayoutSwitch() {
+  const paint = () => {
+    const mode = layoutMode();
+    const label = $("layoutLabel");
+    if (label) label.textContent = LAYOUT_LABEL[mode] ?? mode;
+    const button = document.querySelector('[data-control="layoutButton"]');
+    if (button) button.setAttribute("aria-pressed", String(mode !== "auto"));
+  };
+  $("layoutButton")?.addEventListener("click", () => {
+    setLayoutMode(LAYOUT_NEXT[layoutMode()] ?? "auto");
+    applyLayoutMode();
+    paint();
+  });
+  paint();
+}
+
 function installTheme() {
   const toggle = () => {
     const next = effectiveTheme() === "dark" ? "light" : "dark";
