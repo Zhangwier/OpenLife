@@ -959,6 +959,42 @@
                 ],
                 "line": "阿灶压低声音：“粟要先泡一夜，盐等快熟了再放。别告诉阿稷，让他自己琢磨。”"
               }
+            },
+            {
+              "id": "firewood",
+              "label": "问她和岚母为柴火的事",
+              "requires": {
+                "minTier": "acquaint"
+              },
+              "next": "firewood"
+            }
+          ]
+        },
+        "firewood": {
+          "text": "阿灶把勺子往锅沿一磕：“公灶的柴是大家凑的，谁家多烧一捆，别家就少一口热的。我管得严，是怕到了冬天断火。”",
+          "options": [
+            {
+              "id": "wall",
+              "label": "提议把各家凑的柴记在墙上",
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                },
+                "setFlags": [
+                  "hearth-tally-idea"
+                ],
+                "line": "阿灶愣了一下，慢慢点头：“记在墙上……谁也赖不掉。这法子好。”"
+              }
+            },
+            {
+              "id": "soft",
+              "label": "劝她对岚母松一松",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.3
+                },
+                "line": "阿灶哼了一声：“她要是先开口，我也不是不能让。”"
+              }
             }
           ]
         }
@@ -1258,6 +1294,513 @@
                   "familiarity": 0.5
                 },
                 "line": "阿砺嘴角动了动：“你也这么觉得？”"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "yu": {
+      "start": "root",
+      "nodes": {
+        "root": {
+          "text": "阿予蹲在地头捏着一把土：“今年墒情不错。你来看地？”",
+          "options": [
+            {
+              "id": "soil",
+              "label": "问他怎么看墒情",
+              "next": "soil"
+            },
+            {
+              "id": "help",
+              "label": "说改天帮他锄地",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.3
+                },
+                "line": "阿予咧嘴笑：“说话算数啊，锄头我给你留一把。”"
+              }
+            },
+            {
+              "id": "lan",
+              "label": "问他和阿岚是不是从小一起长大",
+              "requires": {
+                "minTier": "acquaint"
+              },
+              "next": "lan"
+            }
+          ]
+        },
+        "soil": {
+          "text": "“捏一把，攥成团、一碰就散，就是正好。攥不成团是旱，散不开是涝。”",
+          "options": [
+            {
+              "id": "try",
+              "label": "自己捏一把试试",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "setFlags": [
+                  "knows-soil"
+                ],
+                "line": "你捏的土团一碰就散了。阿予拍拍你：“你这手，种得了地。”"
+              }
+            }
+          ]
+        },
+        "lan": {
+          "text": "阿予挠挠头：“她小时候比我还野，掉河里都是我捞的。现在倒好，天天往南岸跑。”",
+          "options": [
+            {
+              "id": "tease",
+              "label": "笑他是不是舍不得",
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                },
+                "line": "阿予耳朵一红：“胡说！我是怕她船翻了。”"
+              }
+            },
+            {
+              "id": "quiet",
+              "label": "说阿岚心里有数",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.3
+                },
+                "line": "阿予叹了口气：“我知道。就是……路太远了。”"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "yu-brother": {
+      "start": "root",
+      "nodes": {
+        "root": {
+          "text": "阿石低着头，用树枝在地上画着什么，见你来，赶紧拿脚抹了。",
+          "options": [
+            {
+              "id": "ask",
+              "label": "问他画的是什么",
+              "next": "draw"
+            },
+            {
+              "id": "leave",
+              "label": "不打扰他",
+              "effects": {
+                "line": "你走开几步，回头看见他又蹲下去画了起来。"
+              }
+            },
+            {
+              "id": "clay",
+              "label": "提起那边颜色不一样的土",
+              "requires": {
+                "minTier": "acquaint"
+              },
+              "next": "clay"
+            }
+          ]
+        },
+        "draw": {
+          "text": "阿石憋了半天：“……陶罐上的花。我想画在罐子上。”",
+          "options": [
+            {
+              "id": "praise",
+              "label": "说想看他画完",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5,
+                  "trust": 0.3
+                },
+                "setFlags": [
+                  "shi-draws"
+                ],
+                "line": "阿石的嘴角动了一下，没说话，可又捡起了树枝。"
+              }
+            }
+          ]
+        },
+        "clay": {
+          "text": "“河湾北边那层，发红。”阿石难得说了一整句，“烧出来，应该是红的。”",
+          "options": [
+            {
+              "id": "tell",
+              "label": "说可以告诉陶叔",
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                },
+                "line": "阿石急忙摆手，又慢慢放下：“……你帮我说？”"
+              }
+            },
+            {
+              "id": "secret",
+              "label": "说先替他保密",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "阿石松了口气，冲你点了点头。"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "lan-mother": {
+      "start": "root",
+      "nodes": {
+        "root": {
+          "text": "岚母手里的席子没停：“坐。阿岚又不在家，跑哪儿疯去了。”",
+          "options": [
+            {
+              "id": "weave",
+              "label": "请她教你编席的花纹",
+              "next": "weave"
+            },
+            {
+              "id": "lan",
+              "label": "替阿岚说两句好话",
+              "effects": {
+                "bond": {
+                  "trust": 0.3
+                },
+                "line": "岚母哼了一声，手里的活却慢了些：“她爹走得早，我就怕她也走远。”"
+              }
+            },
+            {
+              "id": "hearth",
+              "label": "问她和阿灶为柴火拌嘴的事",
+              "requires": {
+                "minTier": "friend"
+              },
+              "next": "hearth"
+            }
+          ]
+        },
+        "weave": {
+          "text": "“压一挑二，再压二挑一，花就出来了。”岚母放慢了手。",
+          "options": [
+            {
+              "id": "learn",
+              "label": "跟着编一段",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "setFlags": [
+                  "knows-weave-pattern"
+                ],
+                "line": "你编歪了两回，第三回总算看出了花。岚母难得笑了：“手不笨。”"
+              }
+            }
+          ]
+        },
+        "hearth": {
+          "text": "岚母放下席子：“他管灶，我不说什么。可冬天孩子冷，多烧一捆柴也算错？”",
+          "options": [
+            {
+              "id": "fair",
+              "label": "说按人头凑柴最公道",
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                },
+                "line": "岚母想了想：“这么说倒也是。你去跟阿灶说说？”"
+              }
+            },
+            {
+              "id": "side",
+              "label": "说她没错",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "岚母点点头，又叹了口气：“理是这个理，可一个村子的，总不能老吵。”"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "reed-worker": {
+      "start": "root",
+      "nodes": {
+        "root": {
+          "text": "阿苇直起腰，望着苇滩：“又来割苇子？省着点割。”",
+          "options": [
+            {
+              "id": "why",
+              "label": "问他为什么苇子越来越稀",
+              "next": "why"
+            },
+            {
+              "id": "promise",
+              "label": "答应只割老苇、留下新芽",
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                },
+                "line": "阿苇看了你半天：“你要真这么做，我信你。”"
+              }
+            },
+            {
+              "id": "smith",
+              "label": "问他和阿砺怎么回事",
+              "requires": {
+                "minTier": "acquaint"
+              },
+              "next": "smith"
+            }
+          ]
+        },
+        "why": {
+          "text": "“割得多，烧得多，没人想着留根。鸟也少了，往年这时候一片白鹭。”",
+          "options": [
+            {
+              "id": "plan",
+              "label": "提议轮着割，一片歇一年",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5,
+                  "trust": 0.3
+                },
+                "setFlags": [
+                  "reed-rotation-idea"
+                ],
+                "line": "阿苇眼睛一亮：“你这法子……我怎么没想到。”"
+              }
+            }
+          ]
+        },
+        "smith": {
+          "text": "“他在河湾叮叮当当一天，鸟全惊了。”阿苇压低声音，“其实我也知道他没地方去。”",
+          "options": [
+            {
+              "id": "talk",
+              "label": "说可以找个两边都方便的时辰",
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                },
+                "line": "阿苇哼了一声：“他要肯，我也不是不讲理的人。”"
+              }
+            },
+            {
+              "id": "agree",
+              "label": "说阿砺确实太吵",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "阿苇像找到了知音：“对吧！”"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "clay-digger": {
+      "start": "root",
+      "nodes": {
+        "root": {
+          "text": "阿埴从土坑里探出头，满脸是泥：“当心脚下，这边软。”",
+          "options": [
+            {
+              "id": "layers",
+              "label": "问他怎么分辨好土",
+              "next": "layers"
+            },
+            {
+              "id": "man",
+              "label": "夸小满懂事",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.3
+                },
+                "line": "阿埴笑得露出白牙：“那丫头，捡石头比我挖土还勤快。”"
+              }
+            },
+            {
+              "id": "li",
+              "label": "问他表兄阿砺最近怎样",
+              "requires": {
+                "minTier": "acquaint"
+              },
+              "effects": {
+                "bond": {
+                  "familiarity": 0.3
+                },
+                "line": "阿埴往渡口那边努努嘴：“还在找他那块好石头。找到之前，谁劝也没用。”"
+              }
+            }
+          ]
+        },
+        "layers": {
+          "text": "“上面一层沙，中间一层黏，最下面发青的那层最好，可挖到要费半天劲。”",
+          "options": [
+            {
+              "id": "dig",
+              "label": "帮他往下挖一会儿",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5,
+                  "trust": 0.5
+                },
+                "line": "你们俩挖到发青的那层，阿埴把第一块递给你：“你挖到的，你先用。”"
+              }
+            },
+            {
+              "id": "note",
+              "label": "记下来",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.3
+                },
+                "setFlags": [
+                  "knows-clay-layers"
+                ],
+                "line": "阿埴笑：“记在心里比记在哪儿都牢。”"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "water-child": {
+      "start": "root",
+      "nodes": {
+        "root": {
+          "text": "小汲光着脚站在浅水里：“你知道河的那头是什么吗？”",
+          "options": [
+            {
+              "id": "guess",
+              "label": "说是更大的河",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.3
+                },
+                "line": "小汲摇头：“埴公说是海！海是什么？”你答不上来，她咯咯笑了。"
+              }
+            },
+            {
+              "id": "ask",
+              "label": "反问她觉得是什么",
+              "next": "dream"
+            },
+            {
+              "id": "healer",
+              "label": "问她为什么总缠着蓍婆",
+              "requires": {
+                "minTier": "acquaint"
+              },
+              "effects": {
+                "bond": {
+                  "familiarity": 0.3
+                },
+                "line": "小汲认真地说：“蓍婆认得一百种草！等我长大，我要认两百种。”"
+              }
+            }
+          ]
+        },
+        "dream": {
+          "text": "“是倒影里的那个村子。”小汲压低声音，“那里的人走路是倒着的，下雨是往天上下。”",
+          "options": [
+            {
+              "id": "believe",
+              "label": "说下次一起去看",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5,
+                  "trust": 0.5
+                },
+                "line": "小汲拉住你的手指：“说好了！不许告诉我娘。”"
+              }
+            },
+            {
+              "id": "laugh",
+              "label": "笑她想得多",
+              "effects": {
+                "line": "小汲撅起嘴：“你跟大人一样。”她转身去追一只青蛙了。"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "cook-helper": {
+      "start": "root",
+      "nodes": {
+        "root": {
+          "text": "阿稷蹲在灶边烧火，脸被熏得一道黑一道白：“你别跟阿灶说我在偷懒啊。”",
+          "options": [
+            {
+              "id": "cover",
+              "label": "答应替他瞒着",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.3
+                },
+                "line": "阿稷长出一口气：“好人！回头锅巴分你一块。”"
+              }
+            },
+            {
+              "id": "salt",
+              "label": "问他放盐的诀窍",
+              "requires": {
+                "minTier": "acquaint"
+              },
+              "next": "salt"
+            },
+            {
+              "id": "dream",
+              "label": "问他以后想做什么",
+              "next": "dream"
+            }
+          ]
+        },
+        "salt": {
+          "text": "阿稷四下看看：“一锅粥，三指捏一撮，起锅前放。阿灶从来不说，我偷看了半年。”",
+          "options": [
+            {
+              "id": "keep",
+              "label": "说这是他的本事，你不外传",
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                },
+                "setFlags": [
+                  "knows-salt-trick"
+                ],
+                "line": "阿稷挺起胸：“对，这是我的本事！”"
+              }
+            }
+          ]
+        },
+        "dream": {
+          "text": "“我想有自己的灶。不是公灶，是我自己的，想做什么就做什么。”",
+          "options": [
+            {
+              "id": "cheer",
+              "label": "说他一定行",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "阿稷用力点头，往灶里添了一把柴，火苗窜得老高。"
+              }
+            },
+            {
+              "id": "patience",
+              "label": "说先把阿灶的本事学全",
+              "effects": {
+                "bond": {
+                  "trust": 0.3
+                },
+                "line": "阿稷想了想：“……也对。那我再忍他两年。”"
               }
             }
           ]
@@ -1834,6 +2377,15 @@
           "served:healer",
           "served:stonesmith"
         ]
+      }
+    },
+    {
+      "id": "heard-everyone",
+      "name": "人人都愿意跟你说两句",
+      "text": "在村民的对话里做出二十次选择",
+      "condition": {
+        "counter": "dialogue",
+        "atLeast": 20
       }
     }
   ]

@@ -1,0 +1,50 @@
+{
+  "id": "river-terrace-guide",
+  "formatVersion": 1,
+  "note": "今日指引：从世界里真实存在的需要、今天限定的事和手头任务里，挑出最要紧的一件和至多三条可以直接去做的建议；做不成的事给出下一步；再预告明天。优先级与文案都是数据，判断由 guide.ts 读取真实状态完成。",
+  "maxSuggestions": 3,
+  "hunger": { "hungry": 5, "starving": 8 },
+  "priorities": {
+    "exhausted": 100,
+    "starving": 98,
+    "festival": 92,
+    "incident": 90,
+    "hungry": 86,
+    "ill": 84,
+    "quest-main": 80,
+    "quest-ready": 88,
+    "birthday": 76,
+    "event": 70,
+    "quarrel": 62,
+    "quest-side": 56,
+    "quest-new": 50,
+    "neighbour": 30,
+    "season": 20
+  },
+  "text": {
+    "exhausted": { "title": "今天的力气用完了", "why": "体力已经见底，再做什么都做不成。让这一天过去，明天会有满满的力气。" },
+    "starving": { "title": "饿得发慌，先吃东西", "why": "饥饿已经到了 {hunger}，再拖下去身体会垮。" },
+    "hungry": { "title": "肚子饿了", "why": "饥饿 {hunger}，趁还走得动先吃一口。" },
+    "festival": { "title": "今天是{name}", "why": "一年只有这一天：{label}。" },
+    "incident": { "title": "村里出事了：{title}", "why": "{text}" },
+    "ill": { "title": "{name}病倒了", "why": "去看看他，带碗热食或者草药汤，这份情会被记住。" },
+    "birthday": { "title": "今天是{name}的生日", "why": "送一样对方喜欢的东西（{likes}），生日的礼物分量格外重。" },
+    "event": { "title": "{name}正在进行", "why": "{intro}" },
+    "quarrel": { "title": "{a}和{b}吵起来了", "why": "去{place}看看，你站哪边会被记住；两边都当你是朋友，还能劝和。" },
+    "quest": { "title": "「{title}」", "why": "下一步：{step}（{done}/{target}）" },
+    "quest-ready": { "title": "「{title}」可以交付了", "why": "东西备齐了：{step}。" },
+    "quest-new": { "title": "{giver}有事相托：「{title}」", "why": "{summary}" },
+    "neighbour": { "title": "和{name}说说话", "why": "人就在你身边，今天还没搭过话。" },
+    "season": { "title": "想想这一季怎么过", "why": "选一件事一口气做下去，田、窑、编织、走动乡邻都行。" }
+  },
+  "recovery": [
+    { "match": "体力|力气|步行时间|今天已没有|结束这一天", "kind": "endDay", "text": "今天做不动了，先让这一天过去。" },
+    { "match": "饿", "kind": "eat", "text": "先填饱肚子：手里有吃的就吃，没有就去公用灶台。" },
+    { "match": "要到(.+?)(?:去做|去|下去做|才能)", "kind": "goTo", "text": "先走到{target}。" },
+    { "match": "缺少\\d*份?自己的(.+?)$|手里没有(.+?)$|没有(.+?)可", "kind": "source", "text": "缺{label}：{how}" },
+    { "match": "不在这儿|不在这里|没有面对面|当面", "kind": "findPerson", "text": "先找到人：在「村里的人」里看看对方此刻在哪。" },
+    { "match": "朋友|相识|知己|颗心", "kind": "bond", "text": "交情还不够：多说话、送对方喜欢的东西、在对方干活的地方搭把手。" },
+    { "match": "下雨|下雪|窑火点不起来", "kind": "weather", "text": "天不作美，换件屋檐下的活，或者等天晴。" }
+  ],
+  "containers": "陶罐要自己捏坯、晾干、进窑烧，也可以拿东西跟村民换一只。"
+}

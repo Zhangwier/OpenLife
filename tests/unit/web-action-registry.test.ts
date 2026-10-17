@@ -14,7 +14,9 @@ import { worldObjectsModule } from "@openlife/module-world-objects";
 import { settlementLocationsModule, SettlementCommands, homestead } from "@openlife/module-settlement-locations";
 
 const modules = [modernWorldModule, worldClockModule, worldSpaceModule, worldObjectsModule, settlementLocationsModule];
-const server = readFileSync(new URL("../../apps/web/server.ts", import.meta.url), "utf8");
+// The action whitelist lives in apps/web/src/actions.ts (split out of server.ts); read both.
+const server = readFileSync(new URL("../../apps/web/server.ts", import.meta.url), "utf8")
+  + readFileSync(new URL("../../apps/web/src/actions.ts", import.meta.url), "utf8");
 const player = readFileSync(new URL("../../apps/web/src/player.ts", import.meta.url), "utf8");
 const keyOf = (id: string) => Object.entries(SettlementCommands).find(([, v]) => v === id)?.[0];
 

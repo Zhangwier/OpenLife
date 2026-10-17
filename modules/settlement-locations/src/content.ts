@@ -344,11 +344,28 @@ export const RIVER_TERRACE_PACK: SettlementPack =
 // ---------------------------------------------------------------------------
 
 
+/**
+ * A recipe in a standalone recipe book (`<pack>-recipes.json`): prototypes in,
+ * prototypes out, at a place's space. Not the pack's own `recipes` list
+ * (RecipeSpec), which works in resources and carries its own command.
+ */
+export interface BookRecipeSpec {
+  id: string;
+  name: string;
+  description: string;
+  placeId: string;
+  spaceId: string;
+  inputs: Array<{ prototypeId: string; count: number }>;
+  outputs: Array<{ prototypeId: string; count: number }>;
+  tools?: string[];
+  skill?: string;
+}
+
 export interface RecipeBook {
   id: string;
   packId: string;
   formatVersion: number;
-  recipes: RecipeSpec[];
+  recipes: BookRecipeSpec[];
 }
 
 export const RECIPE_BOOK_FORMAT = 1;
@@ -394,3 +411,39 @@ export function loadRecipeBook(url: URL, pack: SettlementPack): RecipeBook {
 /** The River Terrace recipes shipped with this module. */
 export const RIVER_TERRACE_RECIPES: RecipeBook =
   loadRecipeBook(new URL("../data/river-terrace-recipes.json", import.meta.url), RIVER_TERRACE_PACK);
+
+/**
+ * The recipe book's recipes made playable: each becomes an ordinary pack
+ * recipe (resources in, a prototype out, at its space), so the existing craft
+ * command, its checks, the action list and the codex all pick it up. Before
+ * this the book was loaded and validated but nothing could ever cook from it.
+ */
+export function playableBookRecipes(book: RecipeBook, pack: SettlementPack): RecipeSpec[] {
+  const proto = (id: string) => pack.prototypes.find((p) => p.id === id) as { id: string; name?: string; resourceId?: string; durability?: number } | undefined;
+  return book.recipes.map((r) => {
+    const out = r.outputs[0]!;
+    const made = proto(out.prototypeId);
+    return {
+      id: r.id,
+      label: r.name,
+      hint: r.description,
+      spaceId: r.spaceId,
+      inputs: r.inputs.map((i) => ({ resourceId: String(proto(i.prototypeId)?.resourceId ?? ""), count: i.count })),
+      ...(r.tools?.[0] ? { tool: r.tools[0] } : {}),
+      // Firing needs a dry day, like every other kiln recipe.
+      ...(r.spaceId === "space:kiln-mouth" ? { dryOnly: true } : {}),
+      activity: r.inputs.reduce((n, i) => n + i.count, 0) >= 3 ? 2 : 1,
+      output: {
+        prototypeId: out.prototypeId,
+        name: String(made?.name ?? r.name),
+        durability: Number(made?.durability ?? 20),
+        ...(out.count > 1 ? { count: out.count } : {}),
+      },
+    };
+  });
+}
+
+for (const recipe of playableBookRecipes(RIVER_TERRACE_RECIPES, RIVER_TERRACE_PACK)) {
+  RIVER_TERRACE_PACK.recipes ??= [];
+  if (!RIVER_TERRACE_PACK.recipes.some((r) => r.id === recipe.id)) RIVER_TERRACE_PACK.recipes.push(recipe);
+}

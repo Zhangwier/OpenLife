@@ -58,6 +58,9 @@ test("Web: the 故事 page's quests and dialogue run end to end over HTTP", { ti
       assert.equal(said.result.ok, true, JSON.stringify(said.result.errors));
       assert.ok(said.narrative.length > 0, "the answer is told back");
     }
+    assert.ok(s.guide && (s.guide.focus || s.guide.suggestions.length >= 0), "the 今日指引 rides on every state");
+    assert.ok(s.guide.suggestions.length <= 3);
+    assert.ok(Array.isArray(s.guide.blocked) && Array.isArray(s.guide.tomorrow));
     assert.equal(s.stories.people.villagers.length, 16, "the 故事 page lists every villager with tier and ties");
     assert.ok(s.stories.people.villagers.some((v: any) => v.special === "巫医"));
     const service = await act("village-stories.service.use", { serviceId: "divine" });
