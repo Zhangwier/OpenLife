@@ -16,3 +16,4 @@ export * from "./social.ts";
 export * from "./origin.ts";
 export * from "./happenings.ts";
 export * from "./people.ts";
+export * from "./fixtures.ts";

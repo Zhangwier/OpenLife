@@ -171,6 +171,8 @@ export function runSettlementAction(sim: Simulation, actorId: string, action: st
       return dispatch(SettlementCommands.gift, { payload: { targetId: String(payload.targetId ?? ""), itemId: String(payload.itemId ?? "") } });
     case SettlementCommands.learn:
       return dispatch(SettlementCommands.learn, { payload: { targetId: String(payload.targetId ?? "") } });
+    case SettlementCommands.useFixture:
+      return dispatch(SettlementCommands.useFixture, { payload: { objectId: String(payload.objectId ?? ""), useId: String(payload.useId ?? "") } });
     case SettlementCommands.court:
     case SettlementCommands.wed:
     case SettlementCommands.handoff:

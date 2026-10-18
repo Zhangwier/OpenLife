@@ -20,12 +20,12 @@ import { loadMapPack, mapPackModule, registerMapPack } from "@openlife/module-ma
 const XIA = resolve(import.meta.dirname, "../../packs/xia_starter_v0_1");
 const NORTH = resolve(import.meta.dirname, "../../packs/xia_north_woods_v0_1");
 
-test("North Woods loads cleanly with three regions, twelve locations and twelve event points of every kind", () => {
+test("North Woods loads cleanly with three regions, twelve locations and twenty-four event points of every kind", () => {
   const result = loadMapPack(NORTH);
   assert.equal(result.ok, true, result.validation.issues.map((i) => i.message).join("; "));
   assert.deepEqual(result.validation.counts, { regions: 3, locations: 12, edges: 13, boundaryAnchors: 2 });
   const points = result.pack!.eventPoints!;
-  assert.equal(points.length, 12);
+  assert.equal(points.length, 24);
   const kinds = new Set(points.map((p) => p.kind));
   for (const kind of ["landmark", "gathering", "encounter", "hazard", "omen", "festival"]) assert.ok(kinds.has(kind as never), kind);
   const locations = new Set(result.pack!.locations.map((l) => l.id));

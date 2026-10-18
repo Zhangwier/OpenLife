@@ -1,0 +1,298 @@
+{
+  "id": "river-terrace-fixtures",
+  "packId": "river-terrace",
+  "formatVersion": 1,
+  "note": "房间里的家什怎么用：站在它所在的那间屋里才用得上。由 src/fixtures.ts 加载校验，命令 settlement-locations.use_fixture 执行；用一次发出 settlement-locations.fixture_used，村中故事按 fixture:<id> 计数。",
+  "uses": [
+    {
+      "id": "fixture:longhouse-sit",
+      "prototypeId": "prototype:fire-pit",
+      "label": "围着长屋火塘坐坐",
+      "hint": "在火塘边坐一会儿、搭几句话；在场的人都会熟络一点。",
+      "line": "你在火塘边坐下，有人往你手里塞了块烤热的石头暖手，话就这么聊开了。",
+      "activity": 1,
+      "cooldownDays": 1,
+      "bond": {
+        "familiarity": 0.3
+      }
+    },
+    {
+      "id": "fixture:longhouse-roast",
+      "prototypeId": "prototype:fire-pit",
+      "label": "就着火塘烤栗子",
+      "hint": "把自己的一捧栗子埋进火塘灰里焖熟，当一顿饭。",
+      "line": "栗子在灰里噼啪炸开，你剥了一个，烫得直吹手指。",
+      "activity": 1,
+      "cooldownDays": 1,
+      "needs": "resource:chestnut",
+      "gives": {
+        "prototypeId": "prototype:cooked-food",
+        "name": "灰里焖熟的栗子"
+      }
+    },
+    {
+      "id": "fixture:longhouse-rack",
+      "prototypeId": "prototype:smoking-rack",
+      "label": "帮阿蘩翻熏架",
+      "hint": "要阿蘩在长屋：踮脚把熏架上的肉翻个面，她会记着你。",
+      "line": "{name}在下面指挥：“左边那条再挪挪，烟要吃匀。”翻完，她冲你点了点头。",
+      "activity": 1,
+      "cooldownDays": 2,
+      "with": "longhouse-matron",
+      "bond": {
+        "trust": 0.3
+      }
+    },
+    {
+      "id": "fixture:urn-store",
+      "prototypeId": "prototype:big-urn",
+      "label": "往公用大瓮里存一份粟",
+      "hint": "长屋的规矩：各家往大瓮里放一点，谁家断了粮都能来取。存进去的就是大家的。",
+      "line": "你把一份粟倒进大瓮，瓮里沙沙地响。长屋里的人看在眼里。",
+      "activity": 0,
+      "cooldownDays": 3,
+      "needs": "resource:grain",
+      "bond": {
+        "trust": 0.4
+      }
+    },
+    {
+      "id": "fixture:east-tales",
+      "prototypeId": "prototype:earthen-bed",
+      "label": "坐在东间土台上听阿蘩讲南岸",
+      "hint": "要阿蘩在长屋：她讲起撑独木舟渡河的那一年。",
+      "line": "{name}盘腿坐在土台上，说起那年河上的雾有多大，说着说着自己也笑了。",
+      "activity": 1,
+      "cooldownDays": 3,
+      "with": "longhouse-matron",
+      "bond": {
+        "familiarity": 0.5
+      }
+    },
+    {
+      "id": "fixture:west-patterns",
+      "prototypeId": "prototype:cloth-chest",
+      "label": "看阿缫的旧布样",
+      "hint": "要阿缫在长屋：她打开织锦箱，一块块翻给你看。",
+      "line": "{name}把一块水波纹的旧布摊在膝上：“这是我娘织的最后一块。”她没再多说，把布叠好放了回去。",
+      "activity": 1,
+      "cooldownDays": 5,
+      "with": "weaver",
+      "bond": {
+        "familiarity": 0.5
+      }
+    },
+    {
+      "id": "fixture:spin",
+      "prototypeId": "prototype:spinning-bench",
+      "label": "坐上纺线凳纺一会儿线",
+      "hint": "把自己的一把麻纤维纺成一绞麻线。",
+      "line": "纺轮在膝前转个不停，线一点点从指间抽出来，越纺越匀。",
+      "activity": 1,
+      "cooldownDays": 1,
+      "needs": "resource:fiber",
+      "gives": {
+        "prototypeId": "prototype:thread",
+        "name": "自己纺的麻线"
+      }
+    },
+    {
+      "id": "fixture:waist-loom",
+      "prototypeId": "prototype:waist-loom",
+      "label": "跟阿缫学腰机",
+      "hint": "要阿缫在织坊：把腰机的带子系在腰上，她手把手教。",
+      "line": "{name}把腰带往你背后一勒：“身子往后仰，经线才绷得住。”你仰得太狠，差点坐到地上，她难得笑出了声。",
+      "activity": 2,
+      "cooldownDays": 2,
+      "with": "weaver",
+      "bond": {
+        "trust": 0.4
+      }
+    },
+    {
+      "id": "fixture:ret-reed",
+      "prototypeId": "prototype:retting-pit",
+      "label": "把芦苇压进沤麻池",
+      "hint": "把自己的一捆芦苇压进池里沤软，捞出一把纤维。",
+      "line": "你把苇子踩进池底，翻出一股青涩的水腥味，捞上来的苇皮已经能撕成丝了。",
+      "activity": 1,
+      "cooldownDays": 1,
+      "needs": "resource:reed",
+      "gives": {
+        "prototypeId": "prototype:fiber-bundle",
+        "name": "池里沤出的苇纤维"
+      }
+    },
+    {
+      "id": "fixture:loom-weave",
+      "prototypeId": "prototype:loom",
+      "label": "在立式织机上织一段",
+      "hint": "用自己的一绞麻线在织机上织一段布。要织机间里立着一架织机。",
+      "line": "梭子在经线间来回穿，咔嗒、咔嗒，一段布慢慢长出来。",
+      "activity": 2,
+      "cooldownDays": 1,
+      "needs": "resource:thread",
+      "gives": {
+        "prototypeId": "prototype:hemp-cloth",
+        "name": "织机上织的布"
+      }
+    },
+    {
+      "id": "fixture:count-years",
+      "prototypeId": "prototype:year-stone",
+      "label": "陪老祝数刻年石",
+      "hint": "要老祝在祠里：一道一道数过去，他会讲每一道是哪一年。",
+      "line": "{name}的手指停在一道很深的刻痕上：“这一年大水。”又往后挪了几道：“这一年，你来了。”",
+      "activity": 1,
+      "cooldownDays": 3,
+      "with": "shrine-keeper",
+      "bond": {
+        "familiarity": 0.5
+      }
+    },
+    {
+      "id": "fixture:offer-bowl",
+      "prototypeId": "prototype:altar-stone",
+      "label": "在祭台上献一只陶碗",
+      "hint": "把自己的一只陶碗摆上祭台。祠里的人都看得见。",
+      "line": "你把陶碗端端正正摆上祭台石，风从河上吹过来，碗沿嗡地响了一声。",
+      "activity": 0,
+      "cooldownDays": 7,
+      "needs": "resource:bowl",
+      "bond": {
+        "familiarity": 0.3,
+        "trust": 0.2
+      }
+    },
+    {
+      "id": "fixture:niche-stand",
+      "prototypeId": "prototype:bone-niche",
+      "label": "在祖骨龛前静立一会儿",
+      "hint": "什么也不做，站一会儿。守祠的人会记得。",
+      "line": "龛里的骨头被摆得整整齐齐。你站了很久，听见身后的河水声。",
+      "activity": 0,
+      "cooldownDays": 7,
+      "bond": {
+        "trust": 0.3
+      }
+    },
+    {
+      "id": "fixture:keep-vigil",
+      "prototypeId": "prototype:vigil-brazier",
+      "label": "替老祝守一阵夜火",
+      "hint": "要老祝在祠里：往火盆里添一捆自己的柴，让他打个盹。",
+      "line": "{name}靠着棚柱睡着了。你守着火盆，火光一跳一跳，直到他醒来冲你笑了笑。",
+      "activity": 1,
+      "cooldownDays": 2,
+      "with": "shrine-keeper",
+      "needs": "resource:fuel",
+      "bond": {
+        "trust": 0.5
+      }
+    },
+    {
+      "id": "fixture:carve-totem",
+      "prototypeId": "prototype:totem-pole",
+      "label": "在社木上刻下自己的记号",
+      "hint": "一辈子只刻一次：在社木上留下你的记号。",
+      "line": "你用石刀在社木上刻下自己的记号。刻完退后一步，它就在各家的记号中间。",
+      "activity": 1,
+      "cooldownDays": 9999,
+      "bond": {
+        "familiarity": 0.5,
+        "trust": 0.5
+      }
+    },
+    {
+      "id": "fixture:beat-drum",
+      "prototypeId": "prototype:shrine-drum",
+      "label": "敲一通社鼓",
+      "hint": "咚、咚、咚，整片台地都听得见。",
+      "line": "你抡起鼓槌，社鼓的声音顺着河面一路滚出去，远处有孩子跟着喊了起来。",
+      "activity": 0,
+      "cooldownDays": 1,
+      "bond": {
+        "familiarity": 0.2
+      }
+    },
+    {
+      "id": "fixture:run-stall",
+      "prototypeId": "prototype:stall-awning",
+      "label": "在摊棚下摆一天摊",
+      "hint": "拿自己的一张席子摆出来，等过路的人拿盐来换。",
+      "line": "你在摊棚下坐了大半天，一个南岸口音的人蹲下摸了摸席子，从怀里掏出一块盐。",
+      "activity": 2,
+      "cooldownDays": 5,
+      "needs": "resource:mat",
+      "gives": {
+        "prototypeId": "prototype:salt-cake",
+        "name": "摆摊换来的盐"
+      }
+    },
+    {
+      "id": "fixture:weigh-goods",
+      "prototypeId": "prototype:weigh-stone",
+      "label": "帮阿贾称一回货",
+      "hint": "要阿贾在交换场：抬秤石、报数，他会记得你的公道。",
+      "line": "{name}看着你报的数，一拍大腿：“分毫不差！往后这秤，你也能掌。”",
+      "activity": 1,
+      "cooldownDays": 1,
+      "with": "market-keeper",
+      "bond": {
+        "trust": 0.4
+      }
+    },
+    {
+      "id": "fixture:bench-gossip",
+      "prototypeId": "prototype:rest-bench",
+      "label": "在歇脚棚听过路人闲话",
+      "hint": "坐一会儿，听渡河的人讲下游和南岸的事。",
+      "line": "两个挑担的人说下游的村子换了个新头人，又说南岸今年盐多。你都记下了。",
+      "activity": 1,
+      "cooldownDays": 1,
+      "bond": {
+        "familiarity": 0.2
+      }
+    },
+    {
+      "id": "fixture:tidy-shelf",
+      "prototypeId": "prototype:goods-shelf",
+      "label": "替阿贾理货架",
+      "hint": "要阿贾在交换场：把货架上的东西按样分好。",
+      "line": "{name}在一旁看你把盐块、陶碗、草绳一样样码好，嘟囔着：“比我自己理得还齐。”",
+      "activity": 1,
+      "cooldownDays": 2,
+      "with": "market-keeper",
+      "bond": {
+        "familiarity": 0.4
+      }
+    },
+    {
+      "id": "fixture:offer-scute",
+      "prototypeId": "prototype:altar-stone",
+      "label": "把鳖甲片供上祭台",
+      "hint": "老鳖蜕下的甲最灵：供上一片自己的鳖甲片（或别的饰物），守祠人会记得。",
+      "line": "你把甲片摆在陶碗旁边，老祝远远看见，双手合在胸前拜了拜。",
+      "activity": 0,
+      "cooldownDays": 30,
+      "needs": "resource:ornament",
+      "bond": {
+        "trust": 0.6
+      }
+    },
+    {
+      "id": "fixture:offer-sandal",
+      "prototypeId": "prototype:bone-niche",
+      "label": "把山臊的草鞋压在祖骨龛下",
+      "hint": "老人说山臊丢了鞋就不敢再来：把那只独只草鞋压在龛下。",
+      "line": "你把草鞋塞进龛底的石缝。那天夜里，长屋的火塘边安安静静。",
+      "activity": 0,
+      "cooldownDays": 30,
+      "needs": "resource:curio",
+      "bond": {
+        "trust": 0.5,
+        "familiarity": 0.3
+      }
+    }
+  ]
+}

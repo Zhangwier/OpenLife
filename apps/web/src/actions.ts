@@ -36,6 +36,7 @@ export const SETTLEMENT_ACTIONS: Record<string, number> = {
   [SettlementCommands.court]: 0,
   [SettlementCommands.wed]: 0,
   [SettlementCommands.handoff]: 0,
+  [SettlementCommands.useFixture]: 0,
 };
 
 export function isSettlementAction(action: string): boolean {

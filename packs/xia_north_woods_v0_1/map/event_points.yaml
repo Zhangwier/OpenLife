@@ -1,5 +1,7 @@
 # 事件点：地点上的可写内容（地标、季节采集点、遭遇、险情、征兆、节庆）。
-# 由 map-pack 加载器校验 location_id / kind / season；注册地图包不会自动触发它们。
+# 由 map-pack 加载器校验 location_id / kind / season，以及可选细节：
+#   time（dawn/day/dusk/night/any）、creature（遇见的东西）、behavior（它怎么做）、drops（能留下什么）、danger（0 无害…3 致命）。
+# 注册地图包不会自动触发它们；村里对应的事件与掉落写在 river-terrace 数据包。
 event_points:
   - id: EP_CHESTNUT_FALL
     name: 栗子落地
@@ -7,6 +9,13 @@ event_points:
     kind: gathering
     season: autumn
     text: 霜降前后，老栗树林一夜之间落满刺壳。拿脚踩开、木棍拨出，一个上午能背回一袋。要赶在野猪和鹿前头。
+    time: dawn
+    creature: 野猪与梅花鹿
+    behavior: 天亮前下到栗林抢落果，人一来就退到林子深处，吃不饱的年份会和人僵持。
+    drops:
+      - 栗子
+      - 鹿角（蜕角的季节）
+    danger: 1
 
   - id: EP_DEER_DRINK
     name: 鹿群饮水
@@ -14,6 +23,12 @@ event_points:
     kind: encounter
     season: any
     text: 天刚亮和日落前，鹿群会下到鹿饮洼喝水。领头的公鹿总是最后一个低头。蹲在下风处不动，能看很久。
+    time: dawn
+    creature: 梅花鹿
+    behavior: 成群饮水，公鹿放哨；闻到人味就整群跃走，春天母鹿带崽时格外警觉。
+    drops:
+      - 蜕下的鹿角
+    danger: 0
 
   - id: EP_BOAR_SOW
     name: 护崽的母野猪
@@ -21,6 +36,12 @@ event_points:
     kind: hazard
     season: spring
     text: 春天野猪拱地带崽，母猪护崽时会不要命地冲人。看见被拱翻的新土和蹭秃的树皮，就绕到上风处走。
+    time: day
+    creature: 野猪
+    behavior: 护崽时正面冲撞，不绕弯；人躲到树后它就停，追不过三十步。
+    drops:
+      - 断獠牙（泥浴后常掉在泥里）
+    danger: 2
 
   - id: EP_FLINT_SEAM
     name: 燧石夹层
@@ -28,6 +49,8 @@ event_points:
     kind: gathering
     season: any
     text: 卵石滩的浅水里，敲起来声音发脆、断口像贝壳的就是燧石。开春崖壁化冻塌落后，新石头最多。
+    time: day
+    danger: 0
 
   - id: EP_KNAPPING_FLOOR
     name: 先人的打石场
@@ -35,6 +58,8 @@ event_points:
     kind: landmark
     season: any
     text: 崖下的沙地里埋着厚厚一层碎石片，比任何人记得的都早。打石的人到这里，会先在旧石片上敲三下，算是打招呼。
+    time: any
+    danger: 0
 
   - id: EP_OLD_TURTLE
     name: 鳖潭老鳖
@@ -42,6 +67,12 @@ event_points:
     kind: omen
     season: summer
     text: 鳖潭深处住着一只背甲长满青苔的老鳖。守祠人说它是河神看门的；它浮上来晒背的那年，河水不涨也不断。
+    time: day
+    creature: 老鳖
+    behavior: 正午浮上大石晒背，一晒一个时辰；有人靠近也不逃，只慢慢沉回潭底。从不咬人，也没人敢捉它。
+    drops:
+      - 鳖甲片（蜕下的）
+    danger: 0
 
   - id: EP_OTTER_ISLET
     name: 獭祭鱼
@@ -49,6 +80,13 @@ event_points:
     kind: encounter
     season: spring
     text: 开春水獭在獭洲上把捕到的鱼一条条摆开，像在祭祀。老人说看见獭祭鱼，就该准备下网了。
+    time: dawn
+    creature: 水獭
+    behavior: 开春把捕到的鱼摆成一排再吃；秋天会掏人家的渔篓、钻沤麻池。见人不慌，只在水边看。
+    drops:
+      - 鱼（它摆下的）
+      - 獭皮（下套才有）
+    danger: 0
 
   - id: EP_FOG_GATE
     name: 雾岭起雾
@@ -56,6 +94,8 @@ event_points:
     kind: hazard
     season: autumn
     text: 秋冬的午后，雾会从岭上一路漫下来，半个时辰就看不清脚下。猎人的规矩：雾起就往回走，不管追到哪儿。
+    time: dusk
+    danger: 2
 
   - id: EP_SHAN_SAO
     name: 山臊唤名
@@ -63,6 +103,12 @@ event_points:
     kind: omen
     season: any
     text: 雷劈树附近起雾时，有人听见雾里有人叫自己的名字，声音像家里人。老人说那是山臊，独脚、怕爆竹般的噼啪声，千万别应。
+    time: dusk
+    creature: 山臊
+    behavior: 起雾时学人喊名字，有人应就一路跟着；夜里蹲在人家火塘边偷烤着的虾蟹鱼。怕竹节在火里爆响和社鼓声，吃饱了就不闹。
+    drops:
+      - 独只草鞋
+    danger: 1
 
   - id: EP_WOLF_DEN
     name: 狼窝
@@ -70,6 +116,14 @@ event_points:
     kind: hazard
     season: winter
     text: 狼窝坡的石缝里有狼过冬。大雪封山那几天，狼群会沿着河滩下到北坡，叼走熏架上的肉。
+    time: night
+    creature: 狼
+    behavior: 冬天成群过冬，大雪后沿河滩下山；成群时围猎鹿，落单的老狼会远远跟着人。怕火，不怕喊。
+    drops:
+      - 狼皮
+      - 狼牙
+      - 狼群吃剩的鹿肉
+    danger: 3
 
   - id: EP_HUNTERS_VIGIL
     name: 初猎守夜
@@ -77,6 +131,8 @@ event_points:
     kind: festival
     season: winter
     text: 冬至前后，年轻人第一次独自猎到鹿，要在老栗树下守一夜火，把鹿骨刻上记号挂在树上。整片林子的老树上都挂着这样的骨片。
+    time: night
+    danger: 1
 
   - id: EP_RIDGE_PASS
     name: 北岭垭口
@@ -84,3 +140,154 @@ event_points:
     kind: landmark
     season: any
     text: 垭口上堆着一座谁也说不清来历的石堆，翻过去的人都会添一块石头。往北再走，就没有人回来讲过了。
+    time: day
+    danger: 2
+
+  - id: EP_WOLF_TRAIL
+    name: 河滩狼道
+    location_id: N0201
+    kind: hazard
+    season: winter
+    text: 大雪之后，卵石滩上会出现一串串整齐的大脚印，一只踩着一只的脚窝走——狼群排成一列下山了。
+    time: dusk
+    creature: 狼
+    behavior: 一头踩着一头的脚印走，看上去像一只；黄昏沿河滩下到北坡。
+    drops:
+      - 狼毛（挂在荆棘上）
+    danger: 3
+
+  - id: EP_LONE_WOLF
+    name: 尾随的孤狼
+    location_id: N0101
+    kind: hazard
+    season: winter
+    text: 走廊北口一带，常有饿极了的老狼远远跟着回村的人，隔着三四十步，你停它也停。
+    time: dusk
+    creature: 狼（孤狼）
+    behavior: 不靠近、不离开，只是跟；举起火它就退，背对它跑它就追。
+    drops:
+      - 狼皮
+      - 狼牙
+    danger: 2
+
+  - id: EP_DHOLE_PACK
+    name: 抢猎物的豺群
+    location_id: N0104
+    kind: encounter
+    season: autumn
+    text: 红棕色的豺五六只一群，专挑别人的猎物下手：套里的兔子、狼咬倒的鹿，都会被它们抢走。
+    time: night
+    creature: 豺
+    behavior: 成群偷袭套子和别的猛兽的猎物，听到骨哨或火光就一哄而散，不与人缠斗。
+    drops:
+      - 被扒开的绳套
+    danger: 1
+
+  - id: EP_SHAN_SAO_FIRE
+    name: 火塘边的独脚印
+    location_id: N0301
+    kind: omen
+    season: winter
+    text: 雾岭口的猎人窝棚边，冬天早上常能看见灰里一串只有一只脚的脚印，从火塘一直通到林子里。
+    time: night
+    creature: 山臊
+    behavior: 夜里蹲在火塘边偷烤着的鱼和虾蟹，被竹节爆响吓到就一蹦一蹦地跑掉。
+    drops:
+      - 独只草鞋
+    danger: 1
+
+  - id: EP_MIMIC_VOICE
+    name: 学舌的雾
+    location_id: N0302
+    kind: omen
+    season: autumn
+    text: 秋天傍晚，雷劈树一带的雾里会传来熟人的声音，有时叫名字，有时只是咳嗽一声。
+    time: dusk
+    creature: 山臊
+    behavior: 学的是你最熟的人的声音；你一应，声音就近一步。听见社鼓就断。
+    danger: 1
+
+  - id: EP_OTTER_SLIDE
+    name: 獭滑道
+    location_id: N0204
+    kind: encounter
+    season: winter
+    text: 獭洲的雪坡上有几道光溜溜的滑痕，水獭从坡顶趴着滑进水里，再爬上来接着滑，玩一整个早上。
+    time: dawn
+    creature: 水獭
+    behavior: 冬天在雪坡上滑着玩；渔篓放在这附近，第二天准被掏空。
+    drops:
+      - 獭毛
+    danger: 0
+
+  - id: EP_ANTLER_SHED
+    name: 蜕角林
+    location_id: N0103
+    kind: gathering
+    season: spring
+    text: 开春公鹿蜕角，鹿饮洼周围的灌木丛里常卡着带茸皮的鹿角。分三个叉的是领头公鹿的。
+    time: day
+    creature: 梅花鹿（公鹿）
+    behavior: 开春在灌木上蹭掉旧角，蹭的时候格外烦躁，别靠太近。
+    drops:
+      - 鹿角
+    danger: 0
+
+  - id: EP_BOAR_WALLOW
+    name: 野猪泥浴坑
+    location_id: N0104
+    kind: encounter
+    season: summer
+    text: 夏天最热的午后，野猪会在拱地边的泥坑里打滚，一滚就是半天，坑边的树干被蹭得油亮。
+    time: day
+    creature: 野猪
+    behavior: 夏天泥浴降暑，泥浴时懒得动，被惊动会冲出来；会跑去村里的沤麻池打滚。
+    drops:
+      - 断獠牙
+    danger: 1
+
+  - id: EP_LEOPARD_CAT
+    name: 豹猫的眼睛
+    location_id: N0102
+    kind: encounter
+    season: any
+    text: 夜里老栗树林的枝杈间偶尔亮起一对绿眼睛，是豹猫在等夜里出来的野兔。
+    time: night
+    creature: 豹猫
+    behavior: 独来独往，夜里伏在树杈上等兔子；从不靠近人，也不碰套子里的东西。
+    danger: 0
+
+  - id: EP_FOX_DEN
+    name: 狐狸洞
+    location_id: N0101
+    kind: encounter
+    season: spring
+    text: 走廊北口的土坡上有个狐狸洞，开春能看见几只小狐狸在洞口晒太阳打架。
+    time: dusk
+    creature: 赤狐
+    behavior: 春天带崽守洞，黄昏出来抓兔子和田鼠；会偷吃晾着的鱼干。
+    drops:
+      - 狐毛
+    danger: 0
+
+  - id: EP_HARE_RUN
+    name: 雪后兔道
+    location_id: N0101
+    kind: gathering
+    season: winter
+    text: 下雪后，走廊口的灌木丛间能看出一条条兔子踩出来的小道。下套就下在这种道上，第二天准有收获。
+    time: dawn
+    creature: 草兔
+    behavior: 走固定的小道，饿了胆子大；冬天最好套。
+    drops:
+      - 野兔
+    danger: 0
+
+  - id: EP_THUNDER_TREE_ASH
+    name: 雷劈树下的旧火堆
+    location_id: N0302
+    kind: landmark
+    season: any
+    text: 雷劈树下有一圈烧黑的石头和一只朽了的箭袋，是阿犴的父亲最后一次生火的地方。猎人路过，都会往火堆里添一根枯枝。
+    time: any
+    danger: 1

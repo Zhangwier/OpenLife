@@ -199,6 +199,24 @@
       "b": "weaver",
       "type": "friend",
       "label": "长屋邻居"
+    },
+    {
+      "a": "hunter",
+      "b": "longhouse-matron",
+      "type": "friend",
+      "label": "常在火塘边吃饭的"
+    },
+    {
+      "a": "shrine-keeper",
+      "b": "longhouse-matron",
+      "type": "friend",
+      "label": "一起熬冬夜的老人"
+    },
+    {
+      "a": "weaver",
+      "b": "hunter",
+      "type": "friend",
+      "label": "换皮子和麻线的"
     }
   ],
   "routines": {
@@ -263,23 +281,57 @@
       }
     },
     "weaver": {
-      "暮": "place:longhouse",
-      "雨": "place:weaving-shed",
+      "晨": "space:retting-pool",
+      "午": "space:loom-room",
+      "暮": "space:longhouse-west",
+      "雨": "space:spinning-porch",
       "encounters": {
-        "暮": "阿缫坐在长屋火塘边就着火光纺线，见你进来，往旁边挪了挪。"
+        "晨": "阿缫挽着裤腿站在沤麻池里，正把泡透的麻秆一根根捞上岸，见你来，抬了抬下巴示意你搭把手。",
+        "午": "织机间里咔嗒咔嗒响，阿缫头也不回：“坐，别碰经线。”",
+        "暮": "西间里点着一小盏油，阿缫坐在土台上就着光补衣裳，把你的袖子也拉过去看了看。",
+        "雨": "下雨天阿缫挪到纺线廊下纺线，雨水顺着檐滴成一排，她纺线的节拍跟雨点一样匀。"
       }
     },
     "market-keeper": {
-      "暮": "place:longhouse",
-      "雨": "place:longhouse",
+      "晨": "space:goods-shed",
+      "午": "space:market-row",
+      "暮": "space:longhouse-east",
+      "雨": "space:rest-shed",
       "encounters": {
-        "暮": "阿贾在火塘边数着今天换来的东西，冲你晃晃一块盐：“猜猜这是拿什么换的？”"
+        "晨": "货棚里阿贾正一样样清点昨天换来的东西，嘴里念着数：“三块盐、两张席……”",
+        "午": "摊位行上阿贾的嗓门最大：“盐！南岸的好盐！拿柴拿麻都能换！”",
+        "暮": "东间里阿贾盘腿坐着，把今天换来的海贝一枚枚摆在土台上，摆成一个圈。",
+        "雨": "下雨天集上没人，阿贾缩在歇脚棚里跟过路的挑夫聊天，见你来，往边上挪了挪。"
       }
     },
     "shrine-keeper": {
-      "暮": "place:shrine",
+      "晨": "space:shrine-court",
+      "午": "space:altar",
+      "暮": "space:vigil-hut",
       "encounters": {
-        "暮": "天擦黑，老祝在祭台前点起一盏小火，示意你过来一起坐坐。"
+        "晨": "老祝拿着苇扫帚在祠前空场扫落叶，扫一下，停一下，看一眼河。",
+        "午": "老祝跪在祭台前，把昨天的陶碗换成新的，嘴里念着谁也听不清的话。",
+        "暮": "守夜棚里火盆已经点上了，老祝拍拍身边的草垫：“坐。今晚的河声好听。”"
+      }
+    },
+    "longhouse-matron": {
+      "晨": "space:longhouse-hall",
+      "午": "space:longhouse-loft",
+      "暮": "space:longhouse-hall",
+      "雨": "space:longhouse-hall",
+      "encounters": {
+        "晨": "阿蘩蹲在火塘边拨开昨夜埋的炭，火苗一下子窜起来：“来得正好，帮我递根柴。”",
+        "午": "储物阁上传来阿蘩的声音：“上来帮我数数，这瓮里还剩几份粟？”",
+        "暮": "火塘边已经围了一圈人，阿蘩往锅里又添了一瓢水：“多一个人，多一把米的事。”",
+        "雨": "雨天长屋里挤满了人，阿蘩在火塘边忙得脚不沾地，还不忘冲你招手。"
+      }
+    },
+    "hunter": {
+      "暮": "space:longhouse-hall",
+      "雨": "space:hunter-hut",
+      "encounters": {
+        "暮": "阿犴一身露水地进了长屋，把一串野兔挂上熏架，在火塘边蹲下烤手。",
+        "雨": "雨天阿犴不进林子，蹲在窝棚口削箭杆，削好一根就对着天光瞄一瞄。"
       }
     }
   },
@@ -487,6 +539,81 @@
       "reward": {
         "flags": [
           "longhouse-fire-taught"
+        ]
+      }
+    },
+    {
+      "npc": "weaver",
+      "tier": "acquaint",
+      "text": "阿缫第一次主动跟你说话：“你那根腰带要断了。”第二天，你的门口多了一根新编的麻绳腰带。"
+    },
+    {
+      "npc": "weaver",
+      "tier": "bosom",
+      "text": "阿缫在织机前给你留了一个位置，教你织她娘的水波纹：“这个花样，我只教一个人。”",
+      "reward": {
+        "flags": [
+          "weaver-wave-pattern"
+        ]
+      }
+    },
+    {
+      "npc": "hunter",
+      "tier": "acquaint",
+      "text": "阿犴在林缘冲你点了下头，算是打过招呼。走了几步又回头：“那边有窝蜂，别去。”"
+    },
+    {
+      "npc": "hunter",
+      "tier": "bosom",
+      "text": "阿犴把他爹留下的那张旧弓给你看，弓背上刻着一排小记号：“一道一头鹿。他想等我刻满另一张。”",
+      "reward": {
+        "flags": [
+          "hunter-father-bow"
+        ]
+      }
+    },
+    {
+      "npc": "shrine-keeper",
+      "tier": "acquaint",
+      "text": "老祝记住了你的名字，扫地时顺口念了一句：“今天你也来了。”"
+    },
+    {
+      "npc": "shrine-keeper",
+      "tier": "bosom",
+      "text": "老祝把祖骨龛的钥匙——一根磨光的鹿骨——挂在你脖子上：“我走了以后，这龛你来守。”",
+      "reward": {
+        "flags": [
+          "shrine-heir"
+        ]
+      }
+    },
+    {
+      "npc": "market-keeper",
+      "tier": "acquaint",
+      "text": "阿贾记住了你，远远就喊：“哎！上回那位！”"
+    },
+    {
+      "npc": "market-keeper",
+      "tier": "bosom",
+      "text": "阿贾把南岸带来的最后一枚大海贝交给你：“我娘说，这是我爹的。给你，比放在我这儿有用。”",
+      "reward": {
+        "flags": [
+          "market-father-shell"
+        ]
+      }
+    },
+    {
+      "npc": "longhouse-matron",
+      "tier": "acquaint",
+      "text": "阿蘩开始叫你“孩子”，跟叫长屋里其他人一样。"
+    },
+    {
+      "npc": "longhouse-matron",
+      "tier": "bosom",
+      "text": "阿蘩在长屋的墙上给你刻了一个位置：“长屋接出来的第三间，往后留给你。”",
+      "reward": {
+        "flags": [
+          "longhouse-room-promised"
         ]
       }
     }

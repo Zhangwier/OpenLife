@@ -114,7 +114,38 @@
     {"id": "prototype:game", "name": "野兔", "material": "game", "resourceId": "resource:game", "unit": "只", "mass": 1.6, "capacity": 0, "capabilities": ["carryable", "raw-food"], "durability": 0},
     {"id": "prototype:hide", "name": "兽皮", "material": "rawhide", "resourceId": "resource:hide", "unit": "张", "mass": 0.9, "capacity": 0, "capabilities": ["carryable", "workable"], "durability": 30},
     {"id": "prototype:smoked-meat", "name": "熏肉", "material": "smoked-meat", "resourceId": "resource:smoked-meat", "unit": "条", "mass": 0.3, "capacity": 0, "capabilities": ["carryable", "edible", "storage"], "durability": 0},
-    {"id": "prototype:chestnut", "name": "栗子", "material": "chestnut", "resourceId": "resource:chestnut", "unit": "捧", "mass": 0.3, "capacity": 0, "capabilities": ["carryable", "edible", "storage"], "durability": 0}
+    {"id": "prototype:chestnut", "name": "栗子", "material": "chestnut", "resourceId": "resource:chestnut", "unit": "捧", "mass": 0.3, "capacity": 0, "capabilities": ["carryable", "edible", "storage"], "durability": 0},
+    {"id": "prototype:raft", "name": "木筏", "material": "lashed-logs", "resourceId": "resource:raft", "unit": "张", "mass": 120, "capacity": 10, "capabilities": ["container", "vessel", "storage"], "durability": 160, "visible": true},
+    {"id": "prototype:shrine-drum", "name": "社鼓", "material": "hide-and-hollow-log", "resourceId": "resource:drum", "unit": "面", "mass": 22, "capacity": 0, "capabilities": ["fixture", "ritual", "instrument"], "durability": 180, "visible": true},
+    {"id": "prototype:fish-rack", "name": "晾鱼大架", "material": "lashed-timber", "resourceId": "resource:fish-rack", "unit": "座", "mass": 20, "capacity": 8, "capabilities": ["fixture", "workstation", "storage"], "durability": 120, "visible": true},
+    {"id": "prototype:fire-pit", "name": "长屋火塘", "material": "stone-ring", "resourceId": "resource:furniture", "unit": "件", "mass": 0, "capacity": 0, "capabilities": ["fixture", "hearth", "warm"], "durability": 300, "visible": true},
+    {"id": "prototype:earthen-bed", "name": "土台床", "material": "rammed-earth", "resourceId": "resource:furniture", "unit": "件", "mass": 0, "capacity": 0, "capabilities": ["fixture", "bed"], "durability": 300, "visible": true},
+    {"id": "prototype:cloth-chest", "name": "织锦箱", "material": "woven-reed-box", "resourceId": "resource:furniture", "unit": "件", "mass": 6, "capacity": 4, "capabilities": ["fixture", "container", "storage"], "durability": 120, "visible": true},
+    {"id": "prototype:spinning-bench", "name": "纺线凳", "material": "split-log", "resourceId": "resource:furniture", "unit": "件", "mass": 9, "capacity": 0, "capabilities": ["fixture", "workstation", "seat"], "durability": 150, "visible": true},
+    {"id": "prototype:waist-loom", "name": "腰机", "material": "wood-and-cord", "resourceId": "resource:furniture", "unit": "件", "mass": 3, "capacity": 0, "capabilities": ["fixture", "workstation"], "durability": 90, "visible": true},
+    {"id": "prototype:retting-pit", "name": "沤麻池", "material": "clay-lined-pit", "resourceId": "resource:furniture", "unit": "件", "mass": 0, "capacity": 0, "capabilities": ["fixture", "water", "workstation"], "durability": 300, "visible": true},
+    {"id": "prototype:year-stone", "name": "刻年石", "material": "river-stone", "resourceId": "resource:furniture", "unit": "件", "mass": 0, "capacity": 0, "capabilities": ["fixture", "landmark", "ritual"], "durability": 1000, "visible": true},
+    {"id": "prototype:altar-stone", "name": "祭台石", "material": "flat-stone", "resourceId": "resource:furniture", "unit": "件", "mass": 0, "capacity": 0, "capabilities": ["fixture", "ritual"], "durability": 1000, "visible": true},
+    {"id": "prototype:bone-niche", "name": "祖骨龛", "material": "dug-niche", "resourceId": "resource:furniture", "unit": "件", "mass": 0, "capacity": 2, "capabilities": ["fixture", "ritual", "storage"], "durability": 1000, "visible": true},
+    {"id": "prototype:vigil-brazier", "name": "守夜火盆", "material": "fired-clay", "resourceId": "resource:furniture", "unit": "件", "mass": 11, "capacity": 0, "capabilities": ["fixture", "hearth", "warm"], "durability": 120, "visible": true},
+    {"id": "prototype:weigh-stone", "name": "秤石", "material": "polished-stone", "resourceId": "resource:furniture", "unit": "件", "mass": 15, "capacity": 0, "capabilities": ["fixture", "workstation"], "durability": 1000, "visible": true},
+    {"id": "prototype:rest-bench", "name": "歇脚长凳", "material": "split-log", "resourceId": "resource:furniture", "unit": "件", "mass": 16, "capacity": 0, "capabilities": ["fixture", "seat"], "durability": 150, "visible": true},
+    {"id": "prototype:goods-shelf", "name": "货架", "material": "lashed-timber", "resourceId": "resource:furniture", "unit": "件", "mass": 12, "capacity": 6, "capabilities": ["fixture", "storage"], "durability": 120, "visible": true},
+    {"id": "prototype:thread", "name": "麻线", "material": "spun-hemp", "resourceId": "resource:thread", "unit": "绞", "mass": 0.1, "capacity": 0, "capabilities": ["carryable", "workable"], "durability": 20},
+    {"id": "prototype:chestnut-flour", "name": "栗粉", "material": "ground-chestnut", "resourceId": "resource:flour", "unit": "包", "mass": 0.3, "capacity": 0, "capabilities": ["carryable", "storage"], "durability": 0},
+    {"id": "prototype:chestnut-cake", "name": "栗粉饼", "material": "baked-chestnut", "resourceId": "resource:chestnut-cake", "unit": "块", "mass": 0.3, "capacity": 0, "capabilities": ["carryable", "edible", "storage"], "durability": 0},
+    {"id": "prototype:water-skin", "name": "皮囊", "material": "sewn-hide", "resourceId": "resource:skin-bag", "unit": "只", "mass": 0.4, "capacity": 1, "capabilities": ["carryable", "container", "liquid-holder"], "durability": 50},
+    {"id": "prototype:wolf-pelt", "name": "狼皮", "material": "wolf-fur", "resourceId": "resource:hide", "unit": "张", "mass": 1.4, "capacity": 0, "capabilities": ["carryable", "workable", "warm"], "durability": 40},
+    {"id": "prototype:otter-pelt", "name": "獭皮", "material": "otter-fur", "resourceId": "resource:hide", "unit": "张", "mass": 0.4, "capacity": 0, "capabilities": ["carryable", "workable", "warm"], "durability": 40},
+    {"id": "prototype:wolf-fang", "name": "狼牙", "material": "fang", "resourceId": "resource:ornament", "unit": "颗", "mass": 0.02, "capacity": 0, "capabilities": ["carryable", "ornament"], "durability": 0},
+    {"id": "prototype:boar-tusk", "name": "野猪獠牙", "material": "tusk", "resourceId": "resource:ornament", "unit": "枚", "mass": 0.1, "capacity": 0, "capabilities": ["carryable", "ornament", "workable"], "durability": 0},
+    {"id": "prototype:turtle-scute", "name": "鳖甲片", "material": "shell", "resourceId": "resource:ornament", "unit": "片", "mass": 0.1, "capacity": 0, "capabilities": ["carryable", "ornament", "ritual"], "durability": 0},
+    {"id": "prototype:antler", "name": "鹿角", "material": "antler", "resourceId": "resource:antler", "unit": "支", "mass": 0.8, "capacity": 0, "capabilities": ["carryable", "workable"], "durability": 0},
+    {"id": "prototype:straw-sandal", "name": "独只草鞋", "material": "twisted-straw", "resourceId": "resource:curio", "unit": "只", "mass": 0.1, "capacity": 0, "capabilities": ["carryable", "curio"], "durability": 10},
+    {"id": "prototype:fang-necklace", "name": "狼牙项链", "material": "fang-and-thread", "resourceId": "resource:ornament", "unit": "串", "mass": 0.05, "capacity": 0, "capabilities": ["carryable", "wearable", "ornament"], "durability": 60},
+    {"id": "prototype:antler-pick", "name": "鹿角锄", "material": "antler-and-cord", "resourceId": "resource:tool", "unit": "把", "mass": 0.9, "capacity": 0, "capabilities": ["carryable", "tool"], "durability": 70},
+    {"id": "prototype:fur-hat", "name": "獭皮帽", "material": "otter-fur", "resourceId": "resource:cloth", "unit": "顶", "mass": 0.3, "capacity": 0, "capabilities": ["carryable", "wearable", "warm"], "durability": 45},
+    {"id": "prototype:tusk-pendant", "name": "獠牙坠", "material": "tusk-and-thread", "resourceId": "resource:ornament", "unit": "枚", "mass": 0.1, "capacity": 0, "capabilities": ["carryable", "wearable", "ornament"], "durability": 80}
   ],
   "resourceLabels": {
     "resource:water": "水",
@@ -148,7 +179,18 @@
     "resource:mortar": "木臼",
     "resource:totem": "社木",
     "resource:rack": "熏架",
-    "resource:awning": "摊棚"
+    "resource:awning": "摊棚",
+    "resource:furniture": "家什",
+    "resource:thread": "麻线",
+    "resource:flour": "栗粉",
+    "resource:chestnut-cake": "栗粉饼",
+    "resource:skin-bag": "皮囊",
+    "resource:ornament": "饰物",
+    "resource:antler": "鹿角",
+    "resource:curio": "怪东西",
+    "resource:raft": "筏",
+    "resource:drum": "鼓",
+    "resource:fish-rack": "鱼架"
   },
   "instances": [
     {"id": "instance:jar:0:0", "prototypeId": "prototype:water-jar", "inId": "space:main-sleep", "quantity": 0, "owner": "elder"},
@@ -347,7 +389,26 @@
     {"id": "instance:market:salt", "prototypeId": "prototype:salt-cake", "owner": "market-keeper", "inId": "space:goods-shed"},
     {"id": "instance:market:mat", "prototypeId": "prototype:mat", "owner": "market-keeper", "inId": "space:rest-shed"},
     {"id": "instance:stone:shed-axe", "prototypeId": "prototype:stone-axe", "owner": "shrine-keeper", "inId": "space:knapping-shed"},
-    {"id": "instance:ford:old-dugout", "prototypeId": "prototype:dugout", "owner": "trader-elder", "inId": "space:ford-landing", "quantity": 0}
+    {"id": "instance:ford:old-dugout", "prototypeId": "prototype:dugout", "owner": "trader-elder", "inId": "space:ford-landing", "quantity": 0},
+    {"id": "instance:longhouse:fire-pit", "prototypeId": "prototype:fire-pit", "owner": "longhouse-matron", "inId": "space:longhouse-hall"},
+    {"id": "instance:longhouse:bed-east", "prototypeId": "prototype:earthen-bed", "owner": "market-keeper", "inId": "space:longhouse-east"},
+    {"id": "instance:longhouse:bed-west", "prototypeId": "prototype:earthen-bed", "owner": "weaver", "inId": "space:longhouse-west"},
+    {"id": "instance:longhouse:cloth-chest", "prototypeId": "prototype:cloth-chest", "owner": "weaver", "inId": "space:longhouse-west"},
+    {"id": "instance:longhouse:loft-rope", "prototypeId": "prototype:rope", "owner": "longhouse-matron", "inId": "space:longhouse-loft"},
+    {"id": "instance:weaving:bench", "prototypeId": "prototype:spinning-bench", "owner": "weaver", "inId": "space:spinning-porch"},
+    {"id": "instance:weaving:waist-loom", "prototypeId": "prototype:waist-loom", "owner": "weaver", "inId": "space:loom-room"},
+    {"id": "instance:weaving:retting-pit", "prototypeId": "prototype:retting-pit", "owner": "weaver", "inId": "space:retting-pool"},
+    {"id": "instance:weaving:thread", "prototypeId": "prototype:thread", "owner": "weaver", "inId": "space:loom-room"},
+    {"id": "instance:shrine:year-stone", "prototypeId": "prototype:year-stone", "owner": "shrine-keeper", "inId": "space:shrine-court"},
+    {"id": "instance:shrine:altar-stone", "prototypeId": "prototype:altar-stone", "owner": "shrine-keeper", "inId": "space:altar"},
+    {"id": "instance:shrine:bone-niche", "prototypeId": "prototype:bone-niche", "owner": "shrine-keeper", "inId": "space:ancestor-niche"},
+    {"id": "instance:shrine:brazier", "prototypeId": "prototype:vigil-brazier", "owner": "shrine-keeper", "inId": "space:vigil-hut"},
+    {"id": "instance:shrine:scute", "prototypeId": "prototype:turtle-scute", "owner": "shrine-keeper", "inId": "space:altar"},
+    {"id": "instance:market:weigh-stone", "prototypeId": "prototype:weigh-stone", "owner": "market-keeper", "inId": "space:weigh-stone"},
+    {"id": "instance:market:bench", "prototypeId": "prototype:rest-bench", "owner": "market-keeper", "inId": "space:rest-shed"},
+    {"id": "instance:market:shelf", "prototypeId": "prototype:goods-shelf", "owner": "market-keeper", "inId": "space:goods-shed"},
+    {"id": "instance:market:tusk", "prototypeId": "prototype:boar-tusk", "owner": "market-keeper", "inId": "space:goods-shed"},
+    {"id": "instance:wood:antler", "prototypeId": "prototype:antler", "owner": "hunter", "inId": "space:hunter-hut"}
   ],
   "exchange": {
     "values": {
@@ -375,7 +436,14 @@
       "resource:game": 3,
       "resource:hide": 4,
       "resource:smoked-meat": 4,
-      "resource:snare": 3
+      "resource:snare": 3,
+      "resource:thread": 2,
+      "resource:flour": 3,
+      "resource:chestnut-cake": 4,
+      "resource:skin-bag": 5,
+      "resource:ornament": 5,
+      "resource:antler": 3,
+      "resource:curio": 1
     },
     "wants": {
       "cook": [
@@ -434,15 +502,17 @@
       ],
       "hunter": [
         "resource:rope",
-        "resource:stone"
+        "resource:stone",
+        "resource:thread"
       ],
       "shrine-keeper": [
         "resource:bowl",
         "resource:cooked"
       ],
       "market-keeper": [
-        "resource:salt",
-        "resource:mat"
+        "resource:mat",
+        "resource:ornament",
+        "resource:salt"
       ],
       "longhouse-matron": [
         "resource:game",
@@ -466,7 +536,10 @@
     {"id": "recipe:fire-bowl", "label": "烧一只陶碗", "hint": "一个晾干的陶坯加一捆柴进窑烧成陶碗；下雨下雪窑火点不起来。", "spaceId": "space:kiln-mouth", "inputs": [{"resourceId": "resource:greenware", "count": 1, "minAgeDays": 1}, {"resourceId": "resource:fuel", "count": 1}], "activity": 2, "dryOnly": true, "output": {"prototypeId": "prototype:bowl", "name": "自己烧的陶碗", "durability": 35, "condition": "fired"}},
     {"id": "recipe:mend-roof", "label": "修补屋顶", "hint": "两份芦苇、一根草绳、一份黏土把漏的地方补上；屋顶会被雨雪慢慢淋坏，漏了的屋子雨夜睡不好。下雨下雪上不了屋顶。", "spaceId": "@home", "inputs": [{"resourceId": "resource:reed", "count": 2}, {"resourceId": "resource:rope", "count": 1}, {"resourceId": "resource:clay", "count": 1}], "activity": 3, "dryOnly": true, "repairs": "roof"},
     {"id": "recipe:snare-hare", "label": "林缘下套", "hint": "在兔子常走的小道上下好绳套，守半天，多半能套到一只野兔。手边要有绳套。", "spaceId": "space:wood-edge", "inputs": [], "tool": "prototype:snare", "activity": 3, "output": {"prototypeId": "prototype:game", "name": "套到的野兔", "durability": 0, "condition": "fresh"}, "event": {"type": "settlement-locations.game_caught", "data": {"objectId": "$output", "how": "snare"}, "significance": 0.03}},
-    {"id": "recipe:hunt-deer", "label": "进林子追鹿", "hint": "秋冬鹿下山找栗子，带上木弓在老栗树下守一整天，能带回两份野味。", "spaceId": "space:old-chestnut", "inputs": [], "tool": "prototype:bow", "activity": 6, "seasons": ["秋", "冬"], "output": {"prototypeId": "prototype:game", "name": "鹿肉", "durability": 0, "condition": "fresh", "count": 2}, "event": {"type": "settlement-locations.game_caught", "data": {"objectId": "$output", "how": "bow", "count": "$count"}, "significance": 0.06}}
+    {"id": "recipe:hunt-deer", "label": "进林子追鹿", "hint": "秋冬鹿下山找栗子，带上木弓在老栗树下守一整天，能带回两份野味。", "spaceId": "space:old-chestnut", "inputs": [], "tool": "prototype:bow", "activity": 6, "seasons": ["秋", "冬"], "output": {"prototypeId": "prototype:game", "name": "鹿肉", "durability": 0, "condition": "fresh", "count": 2}, "event": {"type": "settlement-locations.game_caught", "data": {"objectId": "$output", "how": "bow", "count": "$count"}, "significance": 0.06}},
+    {"id": "recipe:fell-oak", "label": "伐一棵枯栎", "hint": "拿石斧在老栗树下放倒一棵枯死的栎树，截成两段木料。比拾倒木慢，但不靠存量。", "spaceId": "space:old-chestnut", "inputs": [], "tool": "prototype:stone-axe", "activity": 3, "output": {"prototypeId": "prototype:log", "name": "新伐的栎木", "durability": 60, "count": 2}},
+    {"id": "recipe:dugout-fishing", "label": "撑独木舟撒网", "hint": "把渡口的独木舟撑到河心，在深水里撒一网，能带回两条鱼。冬天河面冷，不下水。", "spaceId": "space:ford-landing", "inputs": [], "tool": "prototype:dugout", "activity": 4, "seasons": ["春", "夏", "秋"], "output": {"prototypeId": "prototype:fish", "name": "河心的鱼", "durability": 0, "condition": "fresh", "count": 2}},
+    {"id": "recipe:raft-fishing", "label": "放筏下网", "hint": "木筏比独木舟稳，能拖一张大网，一回带回三条鱼。要渡口岸边停着一张木筏。", "spaceId": "space:ford-landing", "inputs": [], "tool": "prototype:raft", "activity": 5, "seasons": ["春", "夏", "秋"], "output": {"prototypeId": "prototype:fish", "name": "筏上拖来的鱼", "durability": 0, "condition": "fresh", "count": 3}}
   ],
   "origins": [
     {"id": "potter-kin", "fulfilled": "窑口的灰还热着，你捧出那件属于自己的陶器。陶婶摸了摸罐沿，笑着说：“这下真是陶家的人了。”", "goal": {"kind": "crafted", "recipes": ["recipe:fire-jar", "recipe:fire-bowl"]}, "name": "陶家远亲", "story": "你是陶婶娘家那边的远房侄辈。去年秋天老家遭了水，你一个人背着两团黏土走到这里，陶叔陶婶收留了你，让你睡在主屋的角落。", "aspiration": "烧出第一件属于自己的陶器", "items": [{"prototypeId": "prototype:clay-batch", "count": 2}], "bonds": {"elder": {"familiarity": 4, "trust": 7}, "elder-wife": {"familiarity": 4, "trust": 7}}},
@@ -1007,6 +1080,6 @@
       "原先在山里打猎，想换个活法"
     ]
   },
-  "rawPrototypes": {"resource:wood": "prototype:log", "resource:stone": "prototype:flint-stone", "resource:chestnut": "prototype:chestnut", "resource:game": "prototype:game", "resource:hide": "prototype:hide"},
-  "food": {"resource:chestnut": 2, "resource:smoked-meat": 4}
+  "rawPrototypes": {"resource:wood": "prototype:log", "resource:stone": "prototype:flint-stone", "resource:chestnut": "prototype:chestnut", "resource:game": "prototype:game", "resource:hide": "prototype:hide", "resource:antler": "prototype:antler", "resource:thread": "prototype:thread"},
+  "food": {"resource:chestnut": 2, "resource:smoked-meat": 4, "resource:chestnut-cake": 4}
 }
