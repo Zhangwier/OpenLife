@@ -372,12 +372,15 @@ body[data-screen="activities"] .page-heading { display: none; }
 #screen-activities .scene-summary { order: -4; }
 #screen-activities .scene-theater { order: -3; }
 #screen-activities .interaction-dock { order: -2; }
-#screen-activities #lifeLog { order: -1; }
-#screen-activities #communityFeed { order: 0; }
-#screen-activities #hopes { order: 1; }
-#screen-activities .scene-ledger { order: 2; }
-#screen-activities .scene-action-area { order: 3; }
-#screen-activities .player-situation, #screen-activities .player-outcome { order: 4; }
+/* 此刻页的阅读顺序：处境 → 请求 → 选择 → 成本 → 后果 → 下一步。
+   行动区紧跟眼前这一幕，不再排到日志与物资明细之后——否则玩家要滚过
+   一整页才知道自己能做什么。 */
+#screen-activities .scene-action-area { order: -1; }
+#screen-activities #lifeLog { order: 1; }
+#screen-activities #communityFeed { order: 2; }
+#screen-activities #hopes { order: 3; }
+#screen-activities .scene-ledger { order: 4; }
+#screen-activities .player-situation, #screen-activities .player-outcome { order: 5; }
 
 /* 此刻页整列收在 760：之前每个块各自居中/各自满宽，左边缘对不齐，
    一屏里出现三条不同的起跑线——这就是"乱"的主要来源之一。
@@ -564,7 +567,11 @@ body[data-screen="activities"] .page-heading { display: none; }
 .hearth-story p { margin: 8px 0; font-size: var(--fs-body); line-height: var(--lh-body); color: var(--ink-narration); }
 .hearth-story-foot { font-size: var(--fs-fine); color: var(--muted); }
 .hearth-story-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.scene-shortcuts, .scene-action-area, .scene-sheet-mask { display: none !important; }
+/* scene-shortcuts 是旧的快捷区，已被 sceneQuickActions 取代；scene-sheet-mask
+   是遮罩，settlement.js 里恒 hidden = true。**但 .scene-action-area 必须显示**——
+   它就是"现在可以做什么"，以前跟它们一起被 display:none 隐藏了，玩家因此
+   看不到任何可选行动。 */
+.scene-shortcuts, .scene-sheet-mask { display: none !important; }
 
 /* 明细折叠 */
 .scene-ledger { margin-top: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 0 18px; box-shadow: var(--shadow-sm); }

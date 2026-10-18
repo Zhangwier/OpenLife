@@ -59,12 +59,18 @@
     </header>
     <div id="applicationLayout" class="application-layout" hidden>
       <nav id="appNavigation" class="app-navigation" aria-label="主导航">        <div class="nav-caption">我的人生</div>
+        <!--
+          四个主页面，按"玩家来这里解决什么问题"分：
+          此刻=我现在能做什么 / 行囊=我有什么 / 熟人=我认识谁 / 人生=我成了谁。
+          故事仍可进入，但它不是第五个主页面——故事是这四个页面里的内容组织方式，
+          不该让玩家到单独页面去领取本应发生在眼前的事。
+        -->
         <button data-route="activities">此刻</button>
         <button data-route="works">行囊</button>
         <button data-route="people">熟人</button>
-        <button data-route="stories">故事</button>
         <button data-route="character">人生</button>
         <details class="nav-more"><summary>更多资料</summary>
+          <button data-route="stories">故事与约定</button>
           <button data-route="family">家族谱</button>
           <button data-route="map">地图与地点</button>
           <button data-route="world">时代与世界</button>
@@ -148,6 +154,15 @@
           <section class="interaction-dock" id="interactionDock" aria-label="当前操作">
             <p id="actionFeedback" class="action-feedback" role="status" aria-live="polite">轻触人物或物件，看看可以做什么。</p>
             <div id="sceneQuickActions" class="scene-quick-actions" role="region" aria-label="场景操作" hidden></div>
+            <!--
+              当前能做什么，紧跟在眼前这一幕后面。
+              以前它排在日志、愿望、物资明细之后，玩家要滚过一整页才知道自己
+              能做什么。阅读顺序固定为：处境 → 请求 → 选择 → 成本 → 后果 → 下一步。
+            -->
+            <div class="scene-action-area">
+              <div class="eyebrow">现在可以做什么</div>
+              <div id="sceneActions"></div>
+            </div>
             <div class="dock-tools" id="dockTools">
               <button id="sceneMapButton" type="button" aria-label="移动到别的地点"><svg class="ol-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.3"/></svg><span>移动</span><small class="dock-sub">去别处</small></button>
               <button id="sceneWorkButton" type="button" aria-label="劳动与休息"><svg class="ol-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6 4 4"/><path d="m11.5 8.5 6-6 4 4-6 6Z"/><path d="m13 11-9.5 9.5"/></svg><span>劳动</span><small class="dock-sub">做活与歇息</small></button>
@@ -183,10 +198,6 @@
           </div>
 
           </details>
-          <div class="scene-action-area">
-            <div class="eyebrow">先选目标，再做动作</div>
-            <div id="sceneActions"></div>
-          </div>
         </section>
         <div id="playerOutcome" class="player-outcome" role="status" aria-live="polite"></div>
         <div class="decision-area">
