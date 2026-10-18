@@ -25,7 +25,7 @@ import {
   workAlongside, type QuarrelSide,
 } from "./people-rules.ts";
 import {
-  Outcome, STORY_OWNER, StoryComponents, activePlayer, baseFor, consume, daysUntil, eventActive, handOver, heartsWith, incidentOn,
+  Outcome, STORY_OWNER, StoryComponents, activePlayer, baseFor, consume, daysUntil, eventActive, handOver, heartsWith, incidentGate, incidentOn,
   keyOf, meets, npcName, ownedInHand, progressOf, readJournal, resourceLabel, yearOf, type Journal,
 } from "./journal.ts";
 
@@ -94,15 +94,17 @@ function currentNode(j: Journal, key: string) {
   return { id, node: tree.nodes[id]!, tree };
 }
 
-function riteToday(world: WorldView) {
+/** Today's feast and the ways to keep it; `riteId` picks one (none = the first). */
+function riteToday(world: WorldView, riteId = "") {
   const feast = feastOn(world.tick);
-  const rite = feast ? STORY_PACK.festivalRites.find((r) => r.feast === feast.id) : undefined;
-  return feast && rite ? { feast, rite } : undefined;
+  const rites = feast ? STORY_PACK.festivalRites.filter((r) => r.feast === feast.id) : [];
+  const rite = rites.find((r) => (r.id ?? "") === riteId) ?? (riteId ? undefined : rites[0]);
+  return feast && rite ? { feast, rite, rites } : undefined;
 }
 
-function riteProblem(world: WorldView, me: string, j: Journal): string {
-  const today = riteToday(world);
-  if (!today) return "今天不是节日";
+function riteProblem(world: WorldView, me: string, j: Journal, riteId = ""): string {
+  const today = riteToday(world, riteId);
+  if (!today) return feastOn(world.tick) ? "节日里没有这样的过法" : "今天不是节日";
   if (j.rites[today.feast.id] === yearOf(world.tick)) return "今年已经做过了";
   if (here(world, me) !== today.feast.placeId) return "要到过节的地方去";
   return meets(world, me, j, today.rite.requires);
@@ -117,11 +119,12 @@ function offerProblem(world: WorldView, me: string, j: Journal, eventId: string,
   const offer = e.offers.find((o) => o.id === offerId);
   if (!offer) return "没有这个选项";
   if (offer.give && ownedInHand(world, me, offer.give).length === 0) return `手里要有${resourceLabel(offer.give)}`;
-  return "";
+  return meets(world, me, j, offer.requires);
 }
 
 function incidentProblem(world: WorldView, me: string, j: Journal, incidentId: string, choiceId: string): string {
-  const today = incidentOn(world.tick);
+  const today = incidentOn(world.tick, incidentGate(world, me, j));
+  if (j.incidents[String(world.tick)]?.startsWith(`${incidentId}:`)) return "这件事已经应对过了";
   if (!today || today.id !== incidentId) return "这件事没有发生，或者已经过去了";
   if (j.incidents[String(world.tick)]) return "这件事已经应对过了";
   const choice = today.choices.find((c) => c.id === choiceId);
@@ -234,13 +237,14 @@ export const villageStoriesModule: OpenLifeModule = {
       });
 
     rule(StoryCommands.rite,
-      (c, me, j) => riteProblem(c.world, me, j),
+      (c, me, j) => riteProblem(c.world, me, j, str(c, "riteId")),
       (c, out) => {
-        const { feast, rite } = riteToday(c.world)!;
+        const { feast, rite } = riteToday(c.world, str(c, "riteId"))!;
         if (rite.requires?.resource) out.effects.push(...consume(ownedInHand(c.world, out.me, rite.requires.resource).slice(0, 1), out.me, `rite: ${feast.id}`));
         const got = out.reward(rite.reward, `节日：${feast.name}`);
         out.j = { ...out.j, rites: { ...out.j.rites, [feast.id]: yearOf(out.tick) } };
         out.count("rite");
+        out.count(`rite:${feast.id}`);
         out.say("village-stories.rite", `${rite.line}${got.length ? `（得到：${got.join("、")}）` : ""}`, { feast: feast.id });
       });
 
@@ -261,13 +265,14 @@ export const villageStoriesModule: OpenLifeModule = {
     rule(StoryCommands.resolveIncident,
       (c, me, j) => incidentProblem(c.world, me, j, str(c, "incidentId"), str(c, "choiceId")),
       (c, out) => {
-        const incident = incidentOn(out.tick)!;
+        const incident = incidentOn(out.tick, incidentGate(c.world, out.me, out.j))!;
         const choice = incident.choices.find((x) => x.id === str(c, "choiceId"))!;
         if (choice.consume && choice.requires?.resource) out.effects.push(...consume(ownedInHand(c.world, out.me, choice.requires.resource).slice(0, 1), out.me, `incident: ${incident.id}`));
         const got = out.reward(choice, `突发：${incident.title}`);
         out.flag(...(choice.setFlags ?? []));
         out.j = { ...out.j, incidents: { ...out.j.incidents, [String(out.tick)]: `${incident.id}:${choice.id}` } };
         out.count("incident");
+        out.count(`incident:${incident.id}`);
         out.say("village-stories.incident_resolved", `${choice.line}${got.length ? `（得到：${got.join("、")}）` : ""}`, { incidentId: incident.id, choiceId: choice.id });
       });
 
@@ -366,26 +371,35 @@ export function storyView(world: WorldView, me: string) {
       };
     });
   const today = riteToday(world);
-  const incident = incidentOn(tick);
+  const incident = incidentOn(tick, incidentGate(world, me, j));
+  const seenToday = j.incidents[String(tick)];
+  const shown = incident ?? (seenToday ? STORY_PACK.incidents.list.find((i) => seenToday.startsWith(`${i.id}:`)) : undefined);
   return {
     tick,
     quests,
     dialogues,
     festival: today ? { feast: today.feast.id, name: today.feast.name, label: today.rite.label, placeId: today.feast.placeId,
-      done: j.rites[today.feast.id] === year, enabled: !riteProblem(world, me, j), reason: riteProblem(world, me, j) } : null,
+      done: j.rites[today.feast.id] === year, enabled: !riteProblem(world, me, j), reason: riteProblem(world, me, j),
+      rites: today.rites.map((r) => ({ id: r.id ?? "", label: r.label, enabled: !riteProblem(world, me, j, r.id ?? ""), reason: riteProblem(world, me, j, r.id ?? "") })) } : null,
     events: STORY_PACK.limitedEvents.map((e) => ({
       id: e.id, name: e.name, intro: e.intro, placeId: e.placeId, window: e.window,
       active: eventActive(tick, e), inDays: daysUntil(tick, e), joined: j.events[e.id] === year,
       offers: e.offers.map((o) => ({ id: o.id, label: o.label ?? `用${resourceLabel(o.give ?? "")}换${o.get?.name ?? ""}`,
         enabled: !offerProblem(world, me, j, e.id, o.id), reason: offerProblem(world, me, j, e.id, o.id) })),
     })),
-    incident: incident ? {
-      id: incident.id, title: incident.title, text: incident.text, resolved: j.incidents[String(tick)] ?? null,
-      choices: incident.choices.map((c) => ({ id: c.id, label: c.label,
-        enabled: !incidentProblem(world, me, j, incident.id, c.id), reason: incidentProblem(world, me, j, incident.id, c.id) })),
+    incident: shown ? {
+      id: shown.id, title: shown.title, text: shown.text, resolved: seenToday ?? null, chained: Boolean(shown.requires), once: Boolean(shown.once),
+      choices: shown.choices.map((c) => ({ id: c.id, label: c.label,
+        enabled: !incidentProblem(world, me, j, shown.id, c.id), reason: incidentProblem(world, me, j, shown.id, c.id) })),
     } : null,
-    achievements: STORY_PACK.achievements.map((a) => ({ id: a.id, name: a.name, text: a.text,
-      unlocked: j.achievements[a.id] !== undefined, at: j.achievements[a.id] ?? null })),
+    achievements: STORY_PACK.achievements.map((a) => {
+      const unlocked = j.achievements[a.id] !== undefined;
+      const c = a.condition;
+      const progress = "counter" in c ? { have: Math.min(c.atLeast, j.counters[c.counter] ?? 0), need: c.atLeast } : null;
+      return { id: a.id, category: a.category ?? "其他", hidden: Boolean(a.hidden) && !unlocked,
+        name: a.hidden && !unlocked ? "？？？" : a.name, text: a.hidden && !unlocked ? "还没有人知道这件事。" : a.text,
+        unlocked, at: j.achievements[a.id] ?? null, progress: a.hidden && !unlocked ? null : progress };
+    }),
     people: peopleView(world, me, j),
     counters: j.counters,
     flags: j.flags,

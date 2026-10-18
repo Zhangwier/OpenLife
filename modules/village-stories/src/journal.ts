@@ -7,7 +7,7 @@
 import type { ComponentData, Effect, JsonValue, WorldView } from "@openlife/contracts";
 import { DAYS_PER_MONTH } from "@openlife/life-contracts";
 import {
-  SettlementComponents, bondOf, heartsOf, residentId, socialOf, toJson, withBond, calendarDate, seasonOf, RIVER_TERRACE_PACK,
+  SettlementComponents, bondOf, heartsOf, residentId, socialOf, toJson, withBond, calendarDate, seasonOf, isWet, RIVER_TERRACE_PACK,
 } from "@openlife/module-settlement-locations";
 import { ObjectComponents, ObjectKinds, ObjectRelations, holderOf, ownerOf, prototypeOf } from "@openlife/module-world-objects";
 import {
@@ -15,7 +15,7 @@ import {
 } from "./bonds.ts";
 import type { Bond } from "@openlife/module-settlement-locations";
 import {
-  STORY_PACK, type AchievementCondition, type BondChange, type ItemGrant, type Objective, type QuestSpec, type Requirements, type Reward,
+  STORY_PACK, type AchievementCondition, type BondChange, type IncidentSpec, type ItemGrant, type Objective, type QuestSpec, type Requirements, type Reward,
 } from "./spec.ts";
 
 export const STORY_OWNER = "village-stories";
@@ -128,6 +128,8 @@ export function meets(world: WorldView, me: string, j: Journal, r: Requirements 
     const spec = STORY_PACK.quests.find((s) => s.id === q);
     if (state?.status !== "active" || spec?.steps[state.step]?.id !== step) return "时候未到";
   }
+  if (r.season && !r.season.includes(seasonOf(world.tick))) return `要到${r.season.join("、")}天`;
+  if (r.weather && isWet(world.tick) !== (r.weather === "wet")) return r.weather === "wet" ? "要等下雨下雪的日子" : "要等天晴";
   if (r.resource && ownedInHand(world, me, r.resource).length === 0) return `手里要有${resourceLabel(r.resource)}`;
   return "";
 }
@@ -148,6 +150,7 @@ function objectiveValue(world: WorldView, me: string, j: Journal, o: Objective, 
     case "flag": return j.flags.includes(o.flag) ? 1 : 0;
     case "hearts": return heartsOf(bond(o.npc));
     case "deliver": return ownedInHand(world, me, o.resource).length;
+    case "questDone": return j.quests[o.quest]?.status === "done" ? 1 : 0;
   }
 }
 
@@ -161,7 +164,7 @@ export function progressOf(world: WorldView, me: string, j: Journal, q: QuestSpe
   const step = state?.status === "active" ? q.steps[state.step] : undefined;
   if (!step) return undefined;
   const o = step.objective;
-  const target = o.type === "flag" ? 1 : o.type === "hearts" ? o.atLeast : o.count;
+  const target = o.type === "flag" || o.type === "questDone" ? 1 : o.type === "hearts" ? o.atLeast : o.count;
   const raw = objectiveValue(world, me, j, o, bond);
   const done = o.type === "counter" || o.type === "talk" || o.type === "distinctTalks" ? raw - state!.base : raw;
   return { done: Math.max(0, Math.min(target, done)), target, auto: o.type !== "deliver" };
@@ -390,11 +393,29 @@ function mix(a: number, b: number): number {
   return (h ^ (h >>> 15)) >>> 0;
 }
 
-/** The incident that happens on this day, if any: same day, same incident (no RNG draw). */
-export function incidentOn(tick: number) {
+/** Whether an incident's trigger holds for this player now (story requirements, and `once`). */
+export type IncidentGate = (incident: IncidentSpec) => boolean;
+export function incidentGate(world: WorldView, me: string, j: Journal): IncidentGate {
+  const seen = new Set(Object.values(j.incidents).map((v) => v.split(":")[0]!));
+  return (i) => !(i.once && seen.has(i.id)) && !meets(world, me, j, i.requires);
+}
+/** Incidents nobody's story can trigger: only season and weather gate them (used for a forecast with no player). */
+const untriggered: IncidentGate = (i) => !i.requires && !i.once;
+
+/**
+ * The incident that happens on this day, if any: same day, same draw (no RNG
+ * state). The pool is every incident whose season, weather and trigger hold;
+ * heavier ones come up more often.
+ */
+export function incidentOn(tick: number, gate: IncidentGate = untriggered): IncidentSpec | undefined {
   const spec = STORY_PACK.incidents;
   if (mix(tick, 1) % 1000 >= Math.round(spec.chance * 1000)) return undefined;
   const season = seasonOf(tick);
-  const pool = spec.list.filter((i) => !i.seasons || i.seasons.includes(season));
-  return pool.length ? pool[mix(tick, 2) % pool.length] : undefined;
+  const wet = isWet(tick);
+  const pool = spec.list.filter((i) => (!i.seasons || i.seasons.includes(season)) && (!i.weather || (i.weather === "wet") === wet) && gate(i));
+  const total = pool.reduce((n, i) => n + (i.weight ?? 1), 0);
+  if (!total) return undefined;
+  let roll = mix(tick, 2) % total;
+  for (const i of pool) { roll -= i.weight ?? 1; if (roll < 0) return i; }
+  return undefined;
 }

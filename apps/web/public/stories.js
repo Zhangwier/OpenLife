@@ -81,10 +81,10 @@ export function renderStories(state, perform) {
   const events = s.events.filter((e) => e.active || e.inDays <= 10);
 
   screen.innerHTML = `
-    ${s.incident ? `<section class="panel story-incident"><span class="story-tag story-alert">突发</span><h3>${html(s.incident.title)}</h3><p>${html(s.incident.text)}</p>
+    ${s.incident ? `<section class="panel story-incident"><span class="story-tag story-alert">突发</span>${s.incident.chained ? '<span class="story-tag story-limited">后续</span>' : ""}<h3>${html(s.incident.title)}</h3><p>${html(s.incident.text)}</p>
       <div class="story-choices">${s.incident.resolved ? "<small>这件事你已经应对过了。</small>" : s.incident.choices.map((c) => button(c.label, "village-stories.incident.resolve", { incidentId: s.incident.id, choiceId: c.id }, c.enabled, c.reason)).join("")}</div></section>` : ""}
     ${s.festival ? `<section class="panel story-festival"><span class="story-tag story-feast">节日</span><h3>今天是${html(s.festival.name)}</h3>
-      <p>在${html(PLACE[s.festival.placeId] ?? s.festival.placeId)}：${html(s.festival.label)}</p>${s.festival.done ? "<small>今年的仪式你已经做过了。</small>" : button(s.festival.label, "village-stories.festival.rite", {}, s.festival.enabled, s.festival.reason)}</section>` : ""}
+      <p>在${html(PLACE[s.festival.placeId] ?? s.festival.placeId)}：${html(s.festival.label)}</p>${s.festival.done ? "<small>今年的仪式你已经做过了。</small>" : `<div class="story-choices">${(s.festival.rites?.length ? s.festival.rites : [{ id: "", label: s.festival.label, enabled: s.festival.enabled, reason: s.festival.reason }]).map((r) => button(r.label, "village-stories.festival.rite", r.id ? { riteId: r.id } : {}, r.enabled, r.reason)).join("")}</div>${s.festival.rites?.length > 1 ? "<small>每年只能选一种过法。</small>" : ""}`}</section>` : ""}
     ${events.length ? `<section class="panel story-events"><h3>限时活动</h3>${events.map((e) => `<article class="story-card"><span class="story-tag story-limited">${e.active ? "进行中" : `${e.inDays} 天后`}</span><h4>${html(e.name)}</h4>
       <p>${html(e.intro)}（${e.window.month} 月 ${e.window.from}–${e.window.to} 日 · ${html(PLACE[e.placeId] ?? e.placeId)}）</p>
       ${e.active ? (e.joined ? "<small>今年已经参加过了。</small>" : `<div class="story-choices">${e.offers.map((o) => button(o.label, "village-stories.event.join", { eventId: e.id, offerId: o.id }, o.enabled, o.reason)).join("")}</div>`) : ""}</article>`).join("")}</section>` : ""}
@@ -95,5 +95,5 @@ export function renderStories(state, perform) {
       ${offers.length ? `<h3>可以接下的事</h3>${offers.map(questCard).join("")}` : ""}
       ${done.length ? `<details><summary>办完的事（${done.length}）</summary>${done.map(questCard).join("")}</details>` : ""}</section>
     <section class="panel story-achievements"><h3>成就 <small>${unlocked}/${s.achievements.length}</small></h3>
-      <ul class="story-badges">${s.achievements.map((a) => `<li class="${a.unlocked ? "is-unlocked" : ""}" title="${html(a.text)}"><b>${html(a.name)}</b><small>${html(a.text)}</small></li>`).join("")}</ul></section>`;
+      ${[...new Set(s.achievements.map((a) => a.category ?? "其他"))].map((cat) => `<h4>${html(cat)}</h4><ul class="story-badges">${s.achievements.filter((a) => (a.category ?? "其他") === cat).map((a) => `<li class="${a.unlocked ? "is-unlocked" : ""}${a.hidden ? " is-hidden" : ""}" title="${html(a.text)}"><b>${html(a.name)}</b><small>${html(a.text)}${a.progress && !a.unlocked ? `（${a.progress.have}/${a.progress.need}）` : ""}</small></li>`).join("")}</ul>`).join("")}</section>`;
 }

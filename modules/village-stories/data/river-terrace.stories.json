@@ -903,6 +903,197 @@
         ]
       },
       "completeLine": "阿贾站在筏子上冲岸上的阿蘩挥手，阿蘩嘴上骂着，手里却塞给他一包熏肉。木筏晃晃悠悠往南岸去了，三天后，带回来两块雪白的泉盐。"
+    },
+    {
+      "id": "main-4-longhouse",
+      "kind": "main",
+      "chapter": 4,
+      "title": "长屋的冬天",
+      "giver": "longhouse-matron",
+      "requires": {
+        "questsDone": [
+          "main-3-ford"
+        ]
+      },
+      "summary": "南岸的客人走了，冬天要来了。阿蘩说：河岸人多了，过冬得靠长屋的火和长屋的瓮。",
+      "acceptLine": "阿蘩把你拉到火塘边：“人一多，冬天就难。你在村里走得多，帮我把长屋撑起来。”",
+      "steps": [
+        {
+          "id": "sit",
+          "text": "在长屋火塘边坐一坐，听大家说说今年的难处",
+          "objective": {
+            "type": "counter",
+            "counter": "fixture:fixture:longhouse-sit",
+            "count": 1
+          }
+        },
+        {
+          "id": "store",
+          "text": "办完「长屋的冬储」",
+          "objective": {
+            "type": "questDone",
+            "quest": "side-matron-winter"
+          }
+        },
+        {
+          "id": "friends",
+          "text": "和五位村民成为「朋友」",
+          "objective": {
+            "type": "tiers",
+            "tier": "friend",
+            "count": 5
+          }
+        },
+        {
+          "id": "solstice",
+          "text": "冬至那天，到公灶边和大家守一夜火",
+          "objective": {
+            "type": "counter",
+            "counter": "rite:winter-solstice",
+            "count": 1
+          }
+        }
+      ],
+      "reward": {
+        "items": [
+          {
+            "prototype": "prototype:hide-cloak",
+            "name": "长屋众人缝的兽皮披"
+          }
+        ],
+        "bondAll": {
+          "familiarity": 0.5
+        },
+        "bond": {
+          "longhouse-matron": {
+            "trust": 2
+          }
+        },
+        "flags": [
+          "chapter-4-done"
+        ]
+      },
+      "completeLine": "冬至的火烧到天亮。阿蘩把一件大家一起缝的兽皮披搭在你肩上：“过冬的人，一个都没少。”"
+    },
+    {
+      "id": "main-5-fog",
+      "kind": "main",
+      "chapter": 5,
+      "title": "雾岭",
+      "giver": "hunter",
+      "requires": {
+        "questsDone": [
+          "main-4-longhouse"
+        ]
+      },
+      "summary": "开春以后，北坡的狼越来越近，雾岭里又有人听见喊名字的声音。阿犴说该弄清楚雾那边到底有什么。",
+      "acceptLine": "阿犴把骨哨挂到你脖子上：“狼往下走，是因为上面出了事。我们上去看看。”",
+      "steps": [
+        {
+          "id": "hunt",
+          "text": "下套或拉弓，猎到一回野味",
+          "objective": {
+            "type": "counter",
+            "counter": "hunt",
+            "count": 1
+          }
+        },
+        {
+          "id": "fog",
+          "text": "办完「雾岭之约」",
+          "objective": {
+            "type": "questDone",
+            "quest": "side-hunter-fog"
+          }
+        },
+        {
+          "id": "drum",
+          "text": "在河神祠前蒙一面社鼓——雾里迷路的人，听着鼓声就能回来",
+          "objective": {
+            "type": "counter",
+            "counter": "craft:recipe:shrine-drum",
+            "count": 1
+          }
+        }
+      ],
+      "reward": {
+        "items": [
+          {
+            "prototype": "prototype:wolf-fang",
+            "name": "阿犴给的狼牙"
+          }
+        ],
+        "bond": {
+          "hunter": {
+            "trust": 2
+          },
+          "shrine-keeper": {
+            "trust": 1
+          }
+        },
+        "flags": [
+          "chapter-5-done"
+        ]
+      },
+      "completeLine": "社鼓第一次在祠前响起，北坡的雾好像也退了几步。阿犴说：“往后谁在雾里走丢了，就敲它。”"
+    },
+    {
+      "id": "main-6-south",
+      "kind": "main",
+      "chapter": 6,
+      "title": "往南岸去",
+      "giver": "market-keeper",
+      "requires": {
+        "questsDone": [
+          "main-5-fog"
+        ]
+      },
+      "summary": "阿贾的筏子要过河了。这一回，是河岸的人去南岸——带着河岸自己做的东西。",
+      "acceptLine": "阿贾站在渡口：“以前都是南岸的人来。这回，咱们去。”",
+      "steps": [
+        {
+          "id": "raft",
+          "text": "办完「往南岸去的筏子」",
+          "objective": {
+            "type": "questDone",
+            "quest": "side-market-raft"
+          }
+        },
+        {
+          "id": "boat",
+          "text": "南岸船来的那几天，去渡口和他们做一回买卖",
+          "objective": {
+            "type": "counter",
+            "counter": "event:south-boat",
+            "count": 1
+          }
+        },
+        {
+          "id": "village",
+          "text": "和八位村民成为「朋友」——让南岸看看河岸人有多齐心",
+          "objective": {
+            "type": "tiers",
+            "tier": "friend",
+            "count": 8
+          }
+        }
+      ],
+      "reward": {
+        "items": [
+          {
+            "prototype": "prototype:salt-cake",
+            "name": "南岸头人送的泉盐"
+          }
+        ],
+        "bondAll": {
+          "familiarity": 0.5,
+          "trust": 0.5
+        },
+        "flags": [
+          "chapter-6-done"
+        ]
+      },
+      "completeLine": "南岸的头人摸着河岸的布和陶碗，说了一句：“原来北岸也有好手。”回来的筏子上，大家一路唱着。"
     }
   ],
   "dialogues": {
@@ -1285,6 +1476,21 @@
                 "minTier": "acquaint"
               },
               "next": "firewood"
+            },
+            {
+              "id": "season-winter",
+              "label": "问冬至吃什么",
+              "requires": {
+                "season": [
+                  "冬"
+                ]
+              },
+              "effects": {
+                "bond": {
+                  "familiarity": 0.2
+                },
+                "line": "“守夜的人得吃顶饿的。粟饭、熏肉，再烙一锅栗粉饼。”"
+              }
             }
           ]
         },
@@ -2185,6 +2391,34 @@
                 "minTier": "acquaint"
               },
               "next": "trade"
+            },
+            {
+              "id": "season-rain",
+              "label": "说下雨天织布正好",
+              "requires": {
+                "weather": "wet"
+              },
+              "effects": {
+                "bond": {
+                  "familiarity": 0.2
+                },
+                "line": "阿缫点头：“潮气重，线不起毛。晴天反倒要往经线上喷水。”"
+              }
+            },
+            {
+              "id": "season-summer",
+              "label": "问她夏天沤麻臭不臭",
+              "requires": {
+                "season": [
+                  "夏"
+                ]
+              },
+              "effects": {
+                "bond": {
+                  "familiarity": 0.2
+                },
+                "line": "“臭。”阿缫面无表情，“臭过了，才白。”"
+              }
             }
           ]
         },
@@ -2386,6 +2620,37 @@
                 ]
               },
               "next": "bow"
+            },
+            {
+              "id": "season-snow",
+              "label": "问他下雪天还进不进林子",
+              "requires": {
+                "weather": "wet",
+                "season": [
+                  "冬"
+                ]
+              },
+              "effects": {
+                "bond": {
+                  "familiarity": 0.2
+                },
+                "line": "“进。雪地上什么都藏不住，兔子的脚印比白天还清楚。”"
+              }
+            },
+            {
+              "id": "season-autumn",
+              "label": "问他秋天林子里有什么",
+              "requires": {
+                "season": [
+                  "秋"
+                ]
+              },
+              "effects": {
+                "bond": {
+                  "familiarity": 0.2
+                },
+                "line": "“栗子、野猪、鹿，还有跟着鹿的狼。秋天谁都想吃饱。”"
+              }
             }
           ]
         },
@@ -2575,6 +2840,34 @@
                 "minTier": "close"
               },
               "next": "sister"
+            },
+            {
+              "id": "season-rain",
+              "label": "问他下雨天河神高兴不高兴",
+              "requires": {
+                "weather": "wet"
+              },
+              "effects": {
+                "bond": {
+                  "familiarity": 0.2
+                },
+                "line": "老祝望着雨笑：“雨是河神在喝水。喝饱了，就不跟咱们抢了。”"
+              }
+            },
+            {
+              "id": "season-spring",
+              "label": "问他开春该做什么",
+              "requires": {
+                "season": [
+                  "春"
+                ]
+              },
+              "effects": {
+                "bond": {
+                  "familiarity": 0.2
+                },
+                "line": "“看獭祭鱼，等鱼汛。四月十二，记着去渡口。”"
+              }
             }
           ]
         },
@@ -2759,6 +3052,36 @@
                 "minTier": "acquaint"
               },
               "next": "scale"
+            },
+            {
+              "id": "season-summer",
+              "label": "问他夏天集上卖什么好",
+              "requires": {
+                "season": [
+                  "夏"
+                ]
+              },
+              "effects": {
+                "bond": {
+                  "familiarity": 0.2
+                },
+                "line": "“盐！鱼干！天热东西放不住，有盐有干货的人说了算。”"
+              }
+            },
+            {
+              "id": "season-autumn",
+              "label": "问栗子集什么时候开",
+              "requires": {
+                "season": [
+                  "秋"
+                ]
+              },
+              "effects": {
+                "bond": {
+                  "familiarity": 0.2
+                },
+                "line": "“栗子一落地就开，九月二十前后。你多拾点，我给你个好价。”"
+              }
             }
           ]
         },
@@ -2937,6 +3260,34 @@
                 "minTier": "acquaint"
               },
               "next": "fire"
+            },
+            {
+              "id": "season-winter",
+              "label": "问冬天长屋里最怕什么",
+              "requires": {
+                "season": [
+                  "冬"
+                ]
+              },
+              "effects": {
+                "bond": {
+                  "familiarity": 0.2
+                },
+                "line": "“怕火灭，怕瓮空，怕有人病了不说。”阿蘩数着手指，“三样都看着呢。”"
+              }
+            },
+            {
+              "id": "season-rain",
+              "label": "说下雨天长屋真暖和",
+              "requires": {
+                "weather": "wet"
+              },
+              "effects": {
+                "bond": {
+                  "familiarity": 0.2
+                },
+                "line": "“人挤人，能不暖和吗。”阿蘩笑着往火里又添了根柴。"
+              }
             }
           ]
         },
@@ -3165,6 +3516,143 @@
           "familiarity": 0.2
         }
       }
+    },
+    {
+      "feast": "spring-rite",
+      "id": "seed",
+      "label": "把自己的一把种粟埋进公田第一垄",
+      "requires": {
+        "resource": "resource:grain"
+      },
+      "line": "你蹲下把粟种按进土里，盖上一层薄土。埴公说：“第一垄是大家的，种下去的人，秋天先尝。”",
+      "reward": {
+        "bondAll": {
+          "trust": 0.3
+        },
+        "flags": [
+          "spring-seed-sown"
+        ]
+      }
+    },
+    {
+      "feast": "she-day",
+      "id": "totem",
+      "label": "在社木上添一道今年的记号",
+      "requires": {
+        "flags": [
+          "totem-raised"
+        ]
+      },
+      "line": "你在去年的记号旁边又刻了一道。老祝念你名字时，声音比去年大。",
+      "reward": {
+        "bond": {
+          "shrine-keeper": {
+            "trust": 1
+          }
+        },
+        "bondAll": {
+          "familiarity": 0.3
+        }
+      }
+    },
+    {
+      "feast": "winter-solstice",
+      "id": "longhouse",
+      "label": "到长屋火塘边守夜",
+      "requires": {
+        "tierWith": {
+          "longhouse-matron": "acquaint"
+        }
+      },
+      "line": "长屋的火塘边挤满了人，阿蘩一锅一锅地煮栗子，一直煮到天亮。",
+      "reward": {
+        "items": [
+          {
+            "prototype": "prototype:chestnut-cake",
+            "name": "冬至夜的栗粉饼"
+          }
+        ],
+        "bond": {
+          "longhouse-matron": {
+            "familiarity": 1
+          }
+        }
+      }
+    },
+    {
+      "feast": "fish-run",
+      "label": "先放一条鱼回河",
+      "requires": {
+        "resource": "resource:fish"
+      },
+      "line": "你把鱼轻轻放进水里，它摆了摆尾巴就不见了。老祝高声喊：“还河了——”大家一起应：“下网——”",
+      "reward": {
+        "bondAll": {
+          "familiarity": 0.3
+        },
+        "bond": {
+          "shrine-keeper": {
+            "trust": 0.5
+          }
+        }
+      }
+    },
+    {
+      "feast": "fish-run",
+      "id": "net",
+      "label": "跟大家一起拉鱼汛第一网",
+      "line": "十几个人拽着一张大网往岸上拖，网里的鱼蹦得老高。你分到一条最大的。",
+      "reward": {
+        "items": [
+          {
+            "prototype": "prototype:fish",
+            "name": "鱼汛第一网的鱼"
+          }
+        ],
+        "bondAll": {
+          "familiarity": 0.2
+        }
+      }
+    },
+    {
+      "feast": "first-hunt",
+      "label": "在老栗树下守一夜火",
+      "requires": {
+        "resource": "resource:fuel"
+      },
+      "line": "你添了一夜的柴。天亮时，阿犴把一片刻着你记号的骨片挂上了老栗树。",
+      "reward": {
+        "bond": {
+          "hunter": {
+            "trust": 1
+          }
+        },
+        "flags": [
+          "first-hunt-vigil"
+        ]
+      }
+    },
+    {
+      "feast": "first-hunt",
+      "id": "bone",
+      "label": "献上今年猎到的野味，刻一片骨片",
+      "requires": {
+        "resource": "resource:game"
+      },
+      "line": "大家分着吃了你的野味，阿犴帮你在骨片上刻了第一道：“一道一头。往后自己刻。”",
+      "reward": {
+        "bond": {
+          "hunter": {
+            "familiarity": 1
+          }
+        },
+        "bondAll": {
+          "familiarity": 0.3
+        },
+        "flags": [
+          "first-hunt-vigil"
+        ]
+      }
     }
   ],
   "limitedEvents": [
@@ -3253,6 +3741,146 @@
             }
           },
           "line": "你守了一整天大窑，开窑时陶叔挑了一只最周正的小罐给你。"
+        }
+      ]
+    },
+    {
+      "id": "south-boat",
+      "name": "南岸船来",
+      "window": {
+        "month": 7,
+        "from": 1,
+        "to": 7
+      },
+      "placeId": "place:ford",
+      "intro": "七月头上，南岸的独木舟一只接一只靠了渡口，带着泉盐和海贝，想换北岸的布和陶。",
+      "offers": [
+        {
+          "id": "cloth",
+          "give": "resource:cloth",
+          "get": {
+            "prototype": "prototype:salt-cake",
+            "name": "南岸的泉盐"
+          },
+          "line": "南岸人摸着你的布，连说了三声“好”。",
+          "bond": {
+            "market-keeper": {
+              "familiarity": 0.5
+            }
+          }
+        },
+        {
+          "id": "bowl",
+          "give": "resource:bowl",
+          "get": {
+            "prototype": "prototype:salt-cake",
+            "name": "换陶碗的盐"
+          },
+          "line": "他们把陶碗举起来对着太阳看，看了很久。"
+        },
+        {
+          "id": "talk",
+          "label": "陪阿蘩问问南岸的老熟人",
+          "requires": {
+            "tierWith": {
+              "longhouse-matron": "friend"
+            }
+          },
+          "line": "阿蘩在船边认出了一个儿时的伙伴，两个老太太抱在一起，又哭又笑。",
+          "bond": {
+            "longhouse-matron": {
+              "trust": 1.5
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "fog-lift",
+      "name": "雾散日",
+      "window": {
+        "month": 10,
+        "from": 8,
+        "to": 12
+      },
+      "placeId": "place:chestnut-wood",
+      "intro": "十月里有几天，雾岭的雾会散得干干净净，从北坡一眼能望到北岭垭口。猎人们趁这几天进山。",
+      "offers": [
+        {
+          "id": "torch",
+          "give": "resource:fuel",
+          "get": {
+            "prototype": "prototype:antler",
+            "name": "雾散时捡到的鹿角"
+          },
+          "line": "你给进山的人送了一捆柴做火把，他们回来时给你带了一支鹿角。",
+          "bond": {
+            "hunter": {
+              "familiarity": 0.5
+            }
+          }
+        },
+        {
+          "id": "food",
+          "give": "resource:smoked-meat",
+          "label": "给进山的阿犴送一条熏肉",
+          "line": "阿犴把熏肉塞进怀里：“回来分你一半。”",
+          "bond": {
+            "hunter": {
+              "trust": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "chestnut-fair",
+      "name": "栗子集",
+      "window": {
+        "month": 9,
+        "from": 20,
+        "to": 26
+      },
+      "placeId": "place:market",
+      "intro": "栗子落地以后，交换场上会开几天栗子集，各家拿栗子换盐换席，阿贾嗓门比平时还大。",
+      "offers": [
+        {
+          "id": "chestnut",
+          "give": "resource:chestnut",
+          "get": {
+            "prototype": "prototype:salt-cake",
+            "name": "栗子换来的盐"
+          },
+          "line": "阿贾掂了掂你的栗子：“个大！换一块整盐。”",
+          "bond": {
+            "market-keeper": {
+              "familiarity": 0.5
+            }
+          }
+        },
+        {
+          "id": "cake",
+          "give": "resource:chestnut-cake",
+          "get": {
+            "prototype": "prototype:mat",
+            "name": "换栗粉饼的苇席"
+          },
+          "line": "栗粉饼一摆出来就被抢光了，有人用一张新苇席换走了最后一块。"
+        },
+        {
+          "id": "scale",
+          "label": "替阿贾掌一天秤",
+          "requires": {
+            "tierWith": {
+              "market-keeper": "friend"
+            }
+          },
+          "line": "你掌了一天秤，一笔都没出错。收摊时阿贾说：“明年栗子集，秤归你。”",
+          "bond": {
+            "market-keeper": {
+              "trust": 1.5
+            }
+          }
         }
       ]
     }
@@ -3742,7 +4370,10 @@
               "hunter": {
                 "trust": 1
               }
-            }
+            },
+            "setFlags": [
+              "old-wolf-taken"
+            ]
           },
           {
             "id": "back",
@@ -3828,7 +4459,10 @@
               "longhouse-matron": {
                 "trust": 1
               }
-            }
+            },
+            "setFlags": [
+              "shan-sao-scared"
+            ]
           },
           {
             "id": "fish",
@@ -3967,7 +4601,10 @@
               "water-carrier": {
                 "familiarity": 0.3
               }
-            }
+            },
+            "setFlags": [
+              "otters-befriended"
+            ]
           }
         ]
       },
@@ -4228,6 +4865,399 @@
             }
           }
         ]
+      },
+      {
+        "id": "shan-sao-return",
+        "title": "来找草鞋的",
+        "once": true,
+        "weight": 3,
+        "requires": {
+          "flags": [
+            "shan-sao-scared"
+          ]
+        },
+        "text": "那只独脚的东西又来了。它不偷鱼，只蹲在长屋门外，一声一声地学阿蘩的嗓子喊：“鞋——鞋——”",
+        "choices": [
+          {
+            "id": "return",
+            "label": "把那只草鞋放到门外",
+            "requires": {
+              "resource": "resource:curio"
+            },
+            "consume": true,
+            "setFlags": [
+              "shan-sao-pact"
+            ],
+            "line": "第二天草鞋不见了，门槛上多了一道湿漉漉的独脚印。老祝说：“它拿回了鞋，往后就是邻居了。”",
+            "bond": {
+              "shrine-keeper": {
+                "trust": 1
+              },
+              "longhouse-matron": {
+                "familiarity": 0.5
+              }
+            }
+          },
+          {
+            "id": "drum",
+            "label": "跑去祠前敲社鼓把它吓走",
+            "setFlags": [
+              "shan-sao-driven"
+            ],
+            "line": "鼓声一响，门外的喊声就断了。可往后好几个晚上，雾岭那边都传来委屈似的叫声。",
+            "bond": {
+              "shrine-keeper": {
+                "familiarity": 0.5
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "shan-sao-gift",
+        "title": "门口的螃蟹",
+        "once": true,
+        "weight": 3,
+        "requires": {
+          "flags": [
+            "shan-sao-pact"
+          ]
+        },
+        "text": "一早推开长屋的门，门槛上用草绳拴着一串活螃蟹，旁边一道独脚印，一直通到河边。",
+        "choices": [
+          {
+            "id": "take",
+            "label": "收下，煮给大家吃",
+            "setFlags": [
+              "shan-sao-neighbour"
+            ],
+            "items": [
+              {
+                "prototype": "prototype:fish",
+                "name": "山臊送来的螃蟹"
+              },
+              {
+                "prototype": "prototype:fish",
+                "name": "山臊送来的螃蟹"
+              }
+            ],
+            "line": "阿蘩一边煮一边念叨“作孽作孽”，自己却吃了三只。",
+            "bondAll": {
+              "familiarity": 0.2
+            }
+          },
+          {
+            "id": "return-gift",
+            "label": "在门外回放一条熏鱼",
+            "requires": {
+              "resource": "resource:dried-fish"
+            },
+            "consume": true,
+            "setFlags": [
+              "shan-sao-neighbour"
+            ],
+            "line": "第二天熏鱼没了，螃蟹又多了一串。老祝笑得胡子直抖：“你们这算是走上亲戚了。”",
+            "bond": {
+              "shrine-keeper": {
+                "trust": 1
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "wolf-cubs",
+        "title": "狼窝坡的哭声",
+        "once": true,
+        "weight": 3,
+        "seasons": [
+          "春",
+          "夏"
+        ],
+        "requires": {
+          "flags": [
+            "old-wolf-taken"
+          ]
+        },
+        "text": "开春以后，狼窝坡的石缝里传来细细的哭声。阿犴听了很久：“是那头老狼的崽。它们的娘去年冬天就没了。”",
+        "choices": [
+          {
+            "id": "feed",
+            "label": "在石缝外放一条熏肉",
+            "requires": {
+              "resource": "resource:smoked-meat"
+            },
+            "consume": true,
+            "setFlags": [
+              "wolf-cubs-fed"
+            ],
+            "line": "熏肉放下没多久，石缝里探出两个灰脑袋。阿犴叹了口气：“喂了，它们就记得你了——是好是坏，我也不知道。”",
+            "bond": {
+              "hunter": {
+                "trust": 1
+              }
+            }
+          },
+          {
+            "id": "mark",
+            "label": "让阿犴在窝边插上记号，往后绕着走",
+            "setFlags": [
+              "wolf-den-marked"
+            ],
+            "line": "阿犴插了三根削尖的木桩：“井水不犯河水。”",
+            "bond": {
+              "hunter": {
+                "familiarity": 0.5
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "wolf-guardian",
+        "title": "雪地里的灰狼",
+        "once": true,
+        "weight": 3,
+        "seasons": [
+          "冬"
+        ],
+        "requires": {
+          "flags": [
+            "wolf-cubs-fed"
+          ]
+        },
+        "text": "你在林缘被五六只豺围住了，正举着柴捆往后退，一头年轻的灰狼从雪坡上冲下来，豺群一下子散了。灰狼站在坡上看了你一眼，转身走了。",
+        "choices": [
+          {
+            "id": "thank",
+            "label": "把手里的猎物分一半留在雪地上",
+            "setFlags": [
+              "wolf-friend"
+            ],
+            "items": [
+              {
+                "prototype": "prototype:game",
+                "name": "豺群丢下的野兔"
+              }
+            ],
+            "line": "你留下一半，带着另一半回村。阿犴听完，半天才说：“它还记得那条熏肉。”",
+            "bond": {
+              "hunter": {
+                "trust": 1
+              }
+            }
+          },
+          {
+            "id": "run",
+            "label": "赶紧跑回村",
+            "line": "你一口气跑回长屋，阿蘩给你灌了一碗热汤。那天夜里，北坡只有一声狼嚎。"
+          }
+        ]
+      },
+      {
+        "id": "otter-lead",
+        "title": "领路的水獭",
+        "once": true,
+        "weight": 3,
+        "seasons": [
+          "春",
+          "夏"
+        ],
+        "requires": {
+          "flags": [
+            "otters-befriended"
+          ]
+        },
+        "text": "吃过你鱼干的那几只水獭，今天在渡口冲你叫，叫一声游一段，回头看你。",
+        "choices": [
+          {
+            "id": "follow",
+            "label": "跟着它们沿河走",
+            "setFlags": [
+              "otter-fishing-hole"
+            ],
+            "items": [
+              {
+                "prototype": "prototype:fish",
+                "name": "回水湾里的大鱼"
+              },
+              {
+                "prototype": "prototype:fish",
+                "name": "回水湾里的大鱼"
+              }
+            ],
+            "line": "它们把你领到一处谁也不知道的回水湾，鱼多得能用手捞。你捞了两条，剩下的留给它们。",
+            "bond": {
+              "water-carrier": {
+                "familiarity": 0.5
+              }
+            }
+          },
+          {
+            "id": "stay",
+            "label": "笑着摆摆手，回去干活",
+            "line": "水獭们叫了几声，又自己游走了。"
+          }
+        ]
+      },
+      {
+        "id": "flash-flood",
+        "title": "河水暴涨",
+        "weather": "wet",
+        "seasons": [
+          "夏"
+        ],
+        "weight": 2,
+        "text": "连着下了几天雨，河水一夜之间漫上了取水点的石阶，浑黄的水里卷着断枝。",
+        "choices": [
+          {
+            "id": "altar",
+            "label": "帮老祝把祭台上的陶碗搬到高处",
+            "line": "你们刚把最后一只碗搬上坡，水就漫过了祭台。老祝拍着你的背：“碗在，河神就认这个村。”",
+            "bond": {
+              "shrine-keeper": {
+                "trust": 1
+              }
+            }
+          },
+          {
+            "id": "longhouse",
+            "label": "帮阿蘩往长屋门口堆土挡水",
+            "line": "土堆刚好挡住了漫上来的水。阿蘩累得坐在门槛上，冲你笑：“长屋的火，保住了。”",
+            "bond": {
+              "longhouse-matron": {
+                "trust": 1
+              }
+            }
+          },
+          {
+            "id": "fish",
+            "label": "趁浑水去浅滩捞鱼",
+            "items": [
+              {
+                "prototype": "prototype:fish",
+                "name": "大水冲来的鱼"
+              }
+            ],
+            "line": "浑水里的鱼晕头转向，你捞了一条，裤腿全湿透了。"
+          }
+        ]
+      },
+      {
+        "id": "dry-spell",
+        "title": "沤麻池见了底",
+        "weather": "dry",
+        "seasons": [
+          "夏",
+          "秋"
+        ],
+        "text": "一连多日没下雨，织坊的沤麻池见了底，泡着的麻秆晒得发白。阿缫急得在池边转圈。",
+        "choices": [
+          {
+            "id": "water",
+            "label": "从河里挑一罐水倒进池里",
+            "requires": {
+              "resource": "resource:water"
+            },
+            "consume": true,
+            "line": "一罐水不多，可阿缫看你一趟趟地挑，眼圈红了。",
+            "bond": {
+              "weaver": {
+                "trust": 1
+              }
+            }
+          },
+          {
+            "id": "move",
+            "label": "帮她把麻秆挪到河边浅水里沤",
+            "line": "你们把麻秆一捆捆搬到河湾，用石头压住。阿缫说：“河里沤的麻，倒是更白。”",
+            "bond": {
+              "weaver": {
+                "familiarity": 0.5
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "loom-gossip",
+        "title": "宽布传开了",
+        "once": true,
+        "weight": 2,
+        "requires": {
+          "flags": [
+            "weaver-loom-built"
+          ]
+        },
+        "text": "阿缫织机上那匹两臂宽的布传遍了全村，好几户人家拿着东西来织坊门口问：能不能也给我织一匹？阿缫躲在织机后面不出来。",
+        "choices": [
+          {
+            "id": "queue",
+            "label": "帮阿缫排个先后，一家一家来",
+            "line": "你在织坊门口用炭条画了一排记号。阿缫探出头看了一眼，小声说：“……这样好。”",
+            "bond": {
+              "weaver": {
+                "trust": 1
+              }
+            },
+            "bondAll": {
+              "familiarity": 0.2
+            }
+          },
+          {
+            "id": "teach",
+            "label": "提议阿缫开个织布课",
+            "line": "阿缫瞪了你一眼，第二天却真的在纺线廊下教起了三个孩子。",
+            "bond": {
+              "weaver": {
+                "familiarity": 0.5
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "south-visitors",
+        "title": "南岸回访",
+        "once": true,
+        "weight": 3,
+        "requires": {
+          "questsDone": [
+            "side-market-raft"
+          ]
+        },
+        "text": "阿贾的筏子回来后没几天，南岸的两只独木舟靠了渡口——他们是专程来看北岸的织坊和窑的。",
+        "choices": [
+          {
+            "id": "guide",
+            "label": "领着他们在村里转一圈",
+            "line": "南岸人在织坊前站了很久，在窑口又站了很久。临走时，他们留下一包泉盐。",
+            "items": [
+              {
+                "prototype": "prototype:salt-cake",
+                "name": "南岸人留下的泉盐"
+              }
+            ],
+            "bond": {
+              "market-keeper": {
+                "trust": 1
+              }
+            }
+          },
+          {
+            "id": "feast",
+            "label": "张罗大家在公灶边请他们吃一顿",
+            "line": "公灶边热闹到半夜。阿蘩说，这是她来北岸以后，第一次有南岸人坐在她的火边。",
+            "bond": {
+              "longhouse-matron": {
+                "trust": 1
+              },
+              "cook": {
+                "familiarity": 0.5
+              }
+            }
+          }
+        ]
       }
     ]
   },
@@ -4239,7 +5269,8 @@
       "condition": {
         "counter": "talk",
         "atLeast": 1
-      }
+      },
+      "category": "人情"
     },
     {
       "id": "chatterbox",
@@ -4248,7 +5279,8 @@
       "condition": {
         "counter": "talk",
         "atLeast": 30
-      }
+      },
+      "category": "人情"
     },
     {
       "id": "everyone",
@@ -4256,7 +5288,8 @@
       "text": "和十个不同的人说过话",
       "condition": {
         "distinctTalks": 10
-      }
+      },
+      "category": "人情"
     },
     {
       "id": "water-bearer",
@@ -4265,7 +5298,8 @@
       "condition": {
         "counter": "water",
         "atLeast": 20
-      }
+      },
+      "category": "手艺与生计"
     },
     {
       "id": "maker",
@@ -4274,7 +5308,8 @@
       "condition": {
         "counter": "craft",
         "atLeast": 5
-      }
+      },
+      "category": "手艺与生计"
     },
     {
       "id": "generous",
@@ -4283,7 +5318,8 @@
       "condition": {
         "counter": "gift",
         "atLeast": 5
-      }
+      },
+      "category": "人情"
     },
     {
       "id": "feast-goer",
@@ -4292,7 +5328,8 @@
       "condition": {
         "counter": "feast",
         "atLeast": 3
-      }
+      },
+      "category": "节日与活动"
     },
     {
       "id": "devout",
@@ -4301,7 +5338,8 @@
       "condition": {
         "counter": "rite",
         "atLeast": 2
-      }
+      },
+      "category": "节日与活动"
     },
     {
       "id": "market-day",
@@ -4310,7 +5348,8 @@
       "condition": {
         "counter": "event",
         "atLeast": 1
-      }
+      },
+      "category": "节日与活动"
     },
     {
       "id": "steady-hand",
@@ -4319,7 +5358,8 @@
       "condition": {
         "counter": "incident",
         "atLeast": 3
-      }
+      },
+      "category": "手艺与生计"
     },
     {
       "id": "good-neighbour",
@@ -4330,7 +5370,8 @@
           "kind": "side",
           "atLeast": 3
         }
-      }
+      },
+      "category": "人情"
     },
     {
       "id": "chapter-1",
@@ -4338,7 +5379,8 @@
       "text": "完成主线第一章「初到河岸」",
       "condition": {
         "questDone": "main-1-arrival"
-      }
+      },
+      "category": "主线"
     },
     {
       "id": "chapter-2",
@@ -4346,7 +5388,8 @@
       "text": "完成主线第二章「窑火传人」",
       "condition": {
         "questDone": "main-2-kiln"
-      }
+      },
+      "category": "主线"
     },
     {
       "id": "chapter-3",
@@ -4354,7 +5397,8 @@
       "text": "完成主线第三章「渡口来客」",
       "condition": {
         "questDone": "main-3-ford"
-      }
+      },
+      "category": "主线"
     },
     {
       "id": "kindred",
@@ -4362,7 +5406,8 @@
       "text": "和一位村民的交情到八颗心",
       "condition": {
         "anyHearts": 8
-      }
+      },
+      "category": "人情"
     },
     {
       "id": "secret-keeper",
@@ -4370,7 +5415,8 @@
       "text": "替阿岚守住一个秘密",
       "condition": {
         "flag": "lan-secret-kept"
-      }
+      },
+      "category": "人情"
     },
     {
       "id": "tier-friend",
@@ -4381,7 +5427,8 @@
           "tier": "friend",
           "atLeast": 1
         }
-      }
+      },
+      "category": "人情"
     },
     {
       "id": "tier-five-friends",
@@ -4392,7 +5439,8 @@
           "tier": "friend",
           "atLeast": 5
         }
-      }
+      },
+      "category": "人情"
     },
     {
       "id": "peacemaker",
@@ -4401,7 +5449,8 @@
       "condition": {
         "counter": "mediate",
         "atLeast": 1
-      }
+      },
+      "category": "人情"
     },
     {
       "id": "night-owl",
@@ -4410,7 +5459,8 @@
       "condition": {
         "counter": "encounter",
         "atLeast": 5
-      }
+      },
+      "category": "奇遇"
     },
     {
       "id": "specialist",
@@ -4422,7 +5472,8 @@
           "served:healer",
           "served:stonesmith"
         ]
-      }
+      },
+      "category": "人情"
     },
     {
       "id": "heard-everyone",
@@ -4431,7 +5482,8 @@
       "condition": {
         "counter": "dialogue",
         "atLeast": 20
-      }
+      },
+      "category": "人情"
     },
     {
       "id": "longhouse-regular",
@@ -4440,7 +5492,8 @@
       "condition": {
         "counter": "fixture:fixture:longhouse-sit",
         "atLeast": 5
-      }
+      },
+      "category": "手艺与生计"
     },
     {
       "id": "furniture-user",
@@ -4449,7 +5502,8 @@
       "condition": {
         "counter": "fixture",
         "atLeast": 10
-      }
+      },
+      "category": "手艺与生计"
     },
     {
       "id": "loom-raised",
@@ -4457,7 +5511,8 @@
       "text": "帮阿缫架起了立式织机",
       "condition": {
         "questDone": "side-weaver-loom"
-      }
+      },
+      "category": "手艺与生计"
     },
     {
       "id": "fog-walker",
@@ -4465,7 +5520,8 @@
       "text": "陪阿犴走进了雾岭",
       "condition": {
         "flag": "fog-ridge-walked"
-      }
+      },
+      "category": "支线"
     },
     {
       "id": "totem-raised",
@@ -4473,7 +5529,8 @@
       "text": "在祠前立起社木，刻下第一个记号",
       "condition": {
         "flag": "totem-raised"
-      }
+      },
+      "category": "支线"
     },
     {
       "id": "south-raft",
@@ -4481,7 +5538,8 @@
       "text": "帮阿贾扎好去南岸的筏子",
       "condition": {
         "questDone": "side-market-raft"
-      }
+      },
+      "category": "支线"
     },
     {
       "id": "trapper",
@@ -4490,7 +5548,8 @@
       "condition": {
         "counter": "hunt",
         "atLeast": 3
-      }
+      },
+      "category": "手艺与生计"
     },
     {
       "id": "newcomers-friends",
@@ -4504,7 +5563,124 @@
           "longhouse-winter-stocked",
           "south-raft-ready"
         ]
-      }
+      },
+      "category": "人情"
+    },
+    {
+      "id": "chapter-4",
+      "name": "长屋的冬天",
+      "text": "主线第四章：陪长屋熬过一个冬天",
+      "condition": {
+        "questDone": "main-4-longhouse"
+      },
+      "category": "主线"
+    },
+    {
+      "id": "chapter-5",
+      "name": "雾岭",
+      "text": "主线第五章：让社鼓在祠前响起",
+      "condition": {
+        "questDone": "main-5-fog"
+      },
+      "category": "主线"
+    },
+    {
+      "id": "chapter-6",
+      "name": "往南岸去",
+      "text": "主线第六章：河岸的人去了南岸",
+      "condition": {
+        "questDone": "main-6-south"
+      },
+      "category": "主线"
+    },
+    {
+      "id": "all-feasts",
+      "name": "一年到头",
+      "text": "过了八回节日",
+      "condition": {
+        "counter": "rite",
+        "atLeast": 8
+      },
+      "category": "节日与活动"
+    },
+    {
+      "id": "fish-run",
+      "name": "还河一条",
+      "text": "过了一回鱼汛祭",
+      "condition": {
+        "counter": "rite:fish-run",
+        "atLeast": 1
+      },
+      "category": "节日与活动"
+    },
+    {
+      "id": "first-hunt",
+      "name": "骨片上的记号",
+      "text": "在初猎守夜里守过火或献过野味",
+      "condition": {
+        "flag": "first-hunt-vigil"
+      },
+      "category": "节日与活动"
+    },
+    {
+      "id": "timed-three",
+      "name": "赶集的人",
+      "text": "参加了三回限时活动",
+      "condition": {
+        "counter": "event",
+        "atLeast": 3
+      },
+      "category": "节日与活动"
+    },
+    {
+      "id": "south-trader",
+      "name": "南岸来客",
+      "text": "南岸船来时做成一回买卖",
+      "condition": {
+        "counter": "event:south-boat",
+        "atLeast": 1
+      },
+      "category": "节日与活动"
+    },
+    {
+      "id": "incident-ten",
+      "name": "见过世面",
+      "text": "应对了十回突发的事",
+      "condition": {
+        "counter": "incident",
+        "atLeast": 10
+      },
+      "category": "奇遇"
+    },
+    {
+      "id": "shan-sao-neighbour",
+      "name": "和山臊做邻居",
+      "text": "把草鞋还给山臊，还收到了回礼",
+      "condition": {
+        "flag": "shan-sao-neighbour"
+      },
+      "hidden": true,
+      "category": "奇遇"
+    },
+    {
+      "id": "wolf-friend",
+      "name": "狼记得你",
+      "text": "喂过的狼崽长大了，在雪地里救了你",
+      "condition": {
+        "flag": "wolf-friend"
+      },
+      "hidden": true,
+      "category": "奇遇"
+    },
+    {
+      "id": "otter-hole",
+      "name": "水獭的秘密",
+      "text": "跟着水獭找到了回水湾",
+      "condition": {
+        "flag": "otter-fishing-hole"
+      },
+      "hidden": true,
+      "category": "奇遇"
     }
   ]
 }
