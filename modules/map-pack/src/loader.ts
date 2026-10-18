@@ -27,6 +27,7 @@ import {
   MAP_PACK_OPTIONAL_FILES,
   EVENT_POINT_KINDS,
   EVENT_POINT_SEASONS,
+  EVENT_POINT_TIMES,
   type MapPackEventPoint,
   MAP_PACK_SCHEMA_VERSION,
   MAP_PACK_TYPE,
@@ -449,7 +450,28 @@ function parseEventPoints(directory: string, locations: MapPackLocation[], issue
       return;
     }
     if (id === undefined || name === undefined || locationId === undefined || kind === undefined || text === undefined || season === undefined) return;
-    out.push({ id, name, locationId, kind: kind as MapPackEventPoint["kind"], season: season as MapPackEventPoint["season"], text });
+    // Optional details (time of day, creature, behaviour, drops, danger): checked when present, absent otherwise.
+    const detail: Partial<MapPackEventPoint> = {};
+    const bad = (field: string, message: string) => issues.push(fileIssue(file, MapPackIssueCode.InvalidField, `event point "${id}" ${message}`, { index, field, objectId: id }));
+    if (raw.time !== undefined) {
+      if (typeof raw.time === "string" && (EVENT_POINT_TIMES as readonly string[]).includes(raw.time)) detail.time = raw.time as MapPackEventPoint["time"];
+      else bad("time", `time must be one of ${EVENT_POINT_TIMES.join("/")}`);
+    }
+    for (const field of ["creature", "behavior"] as const) {
+      if (raw[field] === undefined) continue;
+      if (typeof raw[field] === "string" && (raw[field] as string).trim()) detail[field] = raw[field] as string;
+      else bad(field, `${field} must be a non-empty string`);
+    }
+    if (raw.drops !== undefined) {
+      if (Array.isArray(raw.drops) && raw.drops.length > 0 && raw.drops.every((d) => typeof d === "string" && d.trim())) detail.drops = raw.drops as string[];
+      else bad("drops", "drops must be a non-empty list of names");
+    }
+    if (raw.danger !== undefined) {
+      if (typeof raw.danger === "number" && Number.isInteger(raw.danger) && raw.danger >= 0 && raw.danger <= 3) detail.danger = raw.danger;
+      else bad("danger", "danger must be an integer 0-3");
+    }
+    if ((detail.behavior || detail.drops) && !detail.creature) bad("creature", "behavior and drops need a creature");
+    out.push({ id, name, locationId, kind: kind as MapPackEventPoint["kind"], season: season as MapPackEventPoint["season"], text, ...detail });
   });
   return out;
 }

@@ -585,6 +585,324 @@
         ]
       },
       "completeLine": "埴公听完，慢慢点头：“好。往后村里议事，你也来坐一坐。”"
+    },
+    {
+      "id": "side-weaver-loom",
+      "kind": "side",
+      "title": "一架真正的织机",
+      "giver": "weaver",
+      "requires": {
+        "flags": [
+          "loom-promised"
+        ]
+      },
+      "summary": "阿缫想要一架能织两臂宽布的立式织机：要石斧、橡木和草绳。",
+      "acceptLine": "阿缫把一根炭条递给你，在地上画了织机的样子：“柱子要直，梁要稳。东西齐了，就在织机间里架。”",
+      "steps": [
+        {
+          "id": "axe",
+          "text": "去上游石滩磨一把石斧",
+          "objective": {
+            "type": "counter",
+            "counter": "craft:recipe:stone-axe",
+            "count": 1
+          }
+        },
+        {
+          "id": "wood",
+          "text": "去北坡栗林拾两回木料（或伐一棵枯栎）",
+          "objective": {
+            "type": "counter",
+            "counter": "gather:resource:wood",
+            "count": 2
+          }
+        },
+        {
+          "id": "loom",
+          "text": "在织坊的织机间架起立式织机",
+          "objective": {
+            "type": "counter",
+            "counter": "craft:recipe:loom",
+            "count": 1
+          },
+          "doneLine": "织机立起来了。阿缫绕着它走了三圈，伸手摸了摸横梁，没说话。"
+        },
+        {
+          "id": "tell",
+          "text": "去跟阿缫说一声",
+          "objective": {
+            "type": "talk",
+            "npc": "weaver",
+            "count": 1
+          }
+        }
+      ],
+      "reward": {
+        "items": [
+          {
+            "prototype": "prototype:hemp-cloth",
+            "name": "织机上的第一匹宽布"
+          }
+        ],
+        "bond": {
+          "weaver": {
+            "familiarity": 2,
+            "trust": 2
+          },
+          "market-keeper": {
+            "familiarity": 0.5
+          }
+        },
+        "flags": [
+          "weaver-loom-built"
+        ]
+      },
+      "completeLine": "阿缫把织机上织下的第一匹布叠好塞给你：“两臂宽，不用拼。……这是我娘以后，第一匹。”"
+    },
+    {
+      "id": "side-hunter-fog",
+      "kind": "side",
+      "title": "雾岭之约",
+      "giver": "hunter",
+      "requires": {
+        "flags": [
+          "fog-ridge-promise"
+        ]
+      },
+      "summary": "阿犴想去雾岭找他爹最后到过的地方。得先让老祝点头，再带上火把。",
+      "acceptLine": "阿犴把骨哨在手里转了一圈：“雾散的日子不多。先去跟舅舅说一声，不然他要念叨一辈子。”",
+      "steps": [
+        {
+          "id": "bless",
+          "text": "去河神祠，告诉老祝你要陪阿犴进雾岭",
+          "objective": {
+            "type": "flag",
+            "flag": "keeper-blessed-fog"
+          }
+        },
+        {
+          "id": "torch",
+          "text": "给阿犴送一捆柴草做火把",
+          "objective": {
+            "type": "deliver",
+            "npc": "hunter",
+            "resource": "resource:fuel",
+            "count": 1
+          }
+        },
+        {
+          "id": "walk",
+          "text": "跟阿犴说雾散了，一起进雾岭",
+          "objective": {
+            "type": "flag",
+            "flag": "fog-walked"
+          }
+        }
+      ],
+      "reward": {
+        "items": [
+          {
+            "prototype": "prototype:antler",
+            "name": "雷劈树下拾到的鹿角"
+          }
+        ],
+        "bond": {
+          "hunter": {
+            "familiarity": 2,
+            "trust": 2
+          },
+          "shrine-keeper": {
+            "trust": 1
+          }
+        },
+        "flags": [
+          "fog-ridge-walked"
+        ]
+      },
+      "completeLine": "回到长屋，阿犴把一支鹿角挂在你床头：“雷劈树下捡的。我爹要是知道有人陪我去，会高兴的。”"
+    },
+    {
+      "id": "side-keeper-totem",
+      "kind": "side",
+      "title": "社木上的记号",
+      "giver": "shrine-keeper",
+      "requires": {
+        "flags": [
+          "totem-promised"
+        ]
+      },
+      "summary": "老祝想在祠前立一根社木，让各家都刻上记号。要三段橡木、一根草绳。",
+      "acceptLine": "老祝把刻年石上的灰吹开：“三段橡木，绑成一根。立起来那天，你第一个刻。”",
+      "steps": [
+        {
+          "id": "wood",
+          "text": "从北坡栗林弄回三回木料",
+          "objective": {
+            "type": "counter",
+            "counter": "gather:resource:wood",
+            "count": 3
+          }
+        },
+        {
+          "id": "raise",
+          "text": "在祠前空场立起社木",
+          "objective": {
+            "type": "counter",
+            "counter": "craft:recipe:totem-pole",
+            "count": 1
+          }
+        },
+        {
+          "id": "carve",
+          "text": "在社木上刻下自己的记号",
+          "objective": {
+            "type": "counter",
+            "counter": "fixture:fixture:carve-totem",
+            "count": 1
+          }
+        }
+      ],
+      "reward": {
+        "bondAll": {
+          "familiarity": 0.3
+        },
+        "bond": {
+          "shrine-keeper": {
+            "familiarity": 2,
+            "trust": 2
+          }
+        },
+        "flags": [
+          "totem-raised"
+        ]
+      },
+      "completeLine": "老祝摸着你刻的记号，又摸摸旁边空着的地方：“往后每家都会来刻。人会走，木头替大家记着。”"
+    },
+    {
+      "id": "side-matron-winter",
+      "kind": "side",
+      "title": "长屋的冬储",
+      "giver": "longhouse-matron",
+      "requires": {
+        "hearts": {
+          "longhouse-matron": 2
+        }
+      },
+      "summary": "阿蘩担心长屋的冬储：熏架上还差两条熏肉，大瓮里也该存点粟。",
+      "acceptLine": "阿蘩掰着手指头：“两条熏肉、一份粟。不急，入冬前就行。”",
+      "steps": [
+        {
+          "id": "meat",
+          "text": "给阿蘩送两条熏肉",
+          "objective": {
+            "type": "deliver",
+            "npc": "longhouse-matron",
+            "resource": "resource:smoked-meat",
+            "count": 2
+          }
+        },
+        {
+          "id": "urn",
+          "text": "往长屋储物阁的公用大瓮里存一份粟",
+          "objective": {
+            "type": "counter",
+            "counter": "fixture:fixture:urn-store",
+            "count": 1
+          }
+        }
+      ],
+      "reward": {
+        "items": [
+          {
+            "prototype": "prototype:chestnut-cake",
+            "name": "阿蘩烙的栗粉饼"
+          },
+          {
+            "prototype": "prototype:chestnut-cake",
+            "name": "阿蘩烙的栗粉饼"
+          }
+        ],
+        "bond": {
+          "longhouse-matron": {
+            "familiarity": 2,
+            "trust": 1
+          },
+          "market-keeper": {
+            "familiarity": 0.5
+          }
+        },
+        "flags": [
+          "longhouse-winter-stocked"
+        ]
+      },
+      "completeLine": "阿蘩把熏肉挂上熏架，退后两步看了看：“满了。今年冬天，谁家断了粮都来这儿。”"
+    },
+    {
+      "id": "side-market-raft",
+      "kind": "side",
+      "title": "往南岸去的筏子",
+      "giver": "market-keeper",
+      "requires": {
+        "hearts": {
+          "market-keeper": 3
+        }
+      },
+      "summary": "阿贾想扎一张大筏子去南岸摆摊。得先跟阿蘩说好，再扎筏子、备一匹布。",
+      "acceptLine": "阿贾压低嗓门：“我娘那边……你先帮我去说说。她听你的。”",
+      "steps": [
+        {
+          "id": "mother",
+          "text": "去长屋跟阿蘩谈谈阿贾想去南岸的事",
+          "objective": {
+            "type": "flag",
+            "flag": "matron-blessing"
+          }
+        },
+        {
+          "id": "raft",
+          "text": "在渡口扎一张木筏",
+          "objective": {
+            "type": "counter",
+            "counter": "craft:recipe:raft",
+            "count": 1
+          }
+        },
+        {
+          "id": "cloth",
+          "text": "给阿贾送一匹布（南岸人稀罕麻布）",
+          "objective": {
+            "type": "deliver",
+            "npc": "market-keeper",
+            "resource": "resource:cloth",
+            "count": 1
+          }
+        }
+      ],
+      "reward": {
+        "items": [
+          {
+            "prototype": "prototype:salt-cake",
+            "name": "南岸的泉盐"
+          },
+          {
+            "prototype": "prototype:salt-cake",
+            "name": "南岸的泉盐"
+          }
+        ],
+        "bond": {
+          "market-keeper": {
+            "familiarity": 2,
+            "trust": 2
+          },
+          "longhouse-matron": {
+            "trust": 1
+          }
+        },
+        "flags": [
+          "south-raft-ready"
+        ]
+      },
+      "completeLine": "阿贾站在筏子上冲岸上的阿蘩挥手，阿蘩嘴上骂着，手里却塞给他一包熏肉。木筏晃晃悠悠往南岸去了，三天后，带回来两块雪白的泉盐。"
     }
   ],
   "dialogues": {
@@ -1838,6 +2156,35 @@
                 "minTier": "friend"
               },
               "next": "mother"
+            },
+            {
+              "id": "loom-quest",
+              "label": "说你想帮她架一架立式织机",
+              "requires": {
+                "minTier": "friend",
+                "notFlags": [
+                  "weaver-loom-built"
+                ]
+              },
+              "next": "loom-plan"
+            },
+            {
+              "id": "wave",
+              "label": "请她教你水波纹",
+              "requires": {
+                "flags": [
+                  "weaver-wave-pattern"
+                ]
+              },
+              "next": "wave"
+            },
+            {
+              "id": "hunter-hide",
+              "label": "问她和阿犴是怎么换东西的",
+              "requires": {
+                "minTier": "acquaint"
+              },
+              "next": "trade"
             }
           ]
         },
@@ -1893,6 +2240,90 @@
               }
             }
           ]
+        },
+        "loom-plan": {
+          "text": "阿缫停下梭子，第一次正眼看你：“两段橡木作柱，一根草绳绑梁，还得有把石斧——上游石滩的燧石磨的那种。”",
+          "options": [
+            {
+              "id": "promise",
+              "label": "说你这就去准备",
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                },
+                "line": "阿缫低下头继续织，过了好一会儿才说：“……别砍杂木，杂木会弯。”",
+                "setFlags": [
+                  "loom-promised"
+                ]
+              }
+            },
+            {
+              "id": "ask-why",
+              "label": "问她为什么非要立式织机",
+              "next": "loom-why"
+            }
+          ]
+        },
+        "loom-why": {
+          "text": "“腰机织的布只有一臂宽，做一件衣裳要拼三块。”她摸了摸身上的补丁，“我娘的织机能织两臂宽。我想织一匹不用拼的。”",
+          "options": [
+            {
+              "id": "understand",
+              "label": "说你明白了",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "阿缫“嗯”了一声，嘴角松了些。",
+                "setFlags": [
+                  "loom-promised"
+                ]
+              }
+            }
+          ]
+        },
+        "wave": {
+          "text": "“三挑两压，七梭错一位。”阿缫把着你的手，“错的时候别慌，退回去重来。我娘说，布不怕错，怕将就。”",
+          "options": [
+            {
+              "id": "learn",
+              "label": "跟着她织完一整道",
+              "effects": {
+                "bond": {
+                  "trust": 1
+                },
+                "line": "你们织到天黑，一道水波纹终于在布上连了起来。阿缫看了很久，什么也没说，眼圈有点红。",
+                "setFlags": [
+                  "learned-wave"
+                ]
+              }
+            }
+          ]
+        },
+        "trade": {
+          "text": "“他拿皮子，我拿线。”阿缫说，“他话少，我也话少，换东西的时候一句话不用说。”",
+          "options": [
+            {
+              "id": "tease",
+              "label": "说那你们倒挺合得来",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "阿缫手一抖，织错了一梭，瞪了你一眼：“去去去。”"
+              }
+            },
+            {
+              "id": "nod",
+              "label": "点点头",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.3
+                },
+                "line": "“嗯。”她继续织。"
+              }
+            }
+          ]
         }
       }
     },
@@ -1927,6 +2358,34 @@
                 "minTier": "friend"
               },
               "next": "fog"
+            },
+            {
+              "id": "fog-go",
+              "label": "说雾散了，该去雾岭了",
+              "requires": {
+                "quest": {
+                  "side-hunter-fog": "walk"
+                }
+              },
+              "next": "fog-walk"
+            },
+            {
+              "id": "wolves",
+              "label": "问他冬天的狼",
+              "requires": {
+                "minTier": "acquaint"
+              },
+              "next": "wolves"
+            },
+            {
+              "id": "bow",
+              "label": "问他爹的那张弓",
+              "requires": {
+                "flags": [
+                  "hunter-father-bow"
+                ]
+              },
+              "next": "bow"
             }
           ]
         },
@@ -1985,6 +2444,77 @@
               }
             }
           ]
+        },
+        "fog-walk": {
+          "text": "阿犴把骨哨咬在嘴里，领你走进雾岭口。雾在脚踝边打转，雷劈树的影子在前面若隐若现。",
+          "options": [
+            {
+              "id": "on",
+              "label": "跟着他一直走到雷劈树下",
+              "effects": {
+                "bond": {
+                  "trust": 1
+                },
+                "line": "树下有一圈烧过的灰和一只朽了的箭袋。阿犴蹲下摸了很久，最后把箭袋埋回土里：“走吧。他不在这儿。”",
+                "setFlags": [
+                  "fog-walked"
+                ]
+              }
+            },
+            {
+              "id": "call",
+              "label": "朝雾里喊他爹的名字",
+              "effects": {
+                "bond": {
+                  "trust": 1
+                },
+                "line": "雾里静了一会儿，什么也没有应。阿犴拍拍你的肩：“谢谢。走吧。”",
+                "setFlags": [
+                  "fog-walked"
+                ]
+              }
+            }
+          ]
+        },
+        "wolves": {
+          "text": "“狼不傻。”阿犴说，“它们跟着鹿走，鹿跟着栗子走。栗子好的年份，冬天狼就少下山。”",
+          "options": [
+            {
+              "id": "fang",
+              "label": "问狼牙能做什么",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "“穿在麻线上挂脖子。山里人说狼闻得出你不好惹。”他笑了一下，“其实是给自己壮胆的。”"
+              }
+            },
+            {
+              "id": "scared",
+              "label": "说你有点怕狼",
+              "effects": {
+                "bond": {
+                  "trust": 0.3
+                },
+                "line": "“怕就对了。”他说，“不怕狼的人，才回不来。”"
+              }
+            }
+          ]
+        },
+        "bow": {
+          "text": "阿犴摸着弓背上的刻痕：“三十一道。我才刻了九道。”",
+          "options": [
+            {
+              "id": "together",
+              "label": "说以后你陪他一起刻满",
+              "effects": {
+                "bond": {
+                  "trust": 1
+                },
+                "line": "阿犴没说话，把弓轻轻放进你手里，让你拉了一下：“劲儿还小。多吃点熏肉。”"
+              }
+            }
+          ]
         }
       }
     },
@@ -2019,6 +2549,32 @@
                 "minTier": "friend"
               },
               "next": "totem"
+            },
+            {
+              "id": "fog-bless",
+              "label": "告诉他你要陪阿犴进雾岭",
+              "requires": {
+                "quest": {
+                  "side-hunter-fog": "bless"
+                }
+              },
+              "next": "fog-bless"
+            },
+            {
+              "id": "shansao",
+              "label": "问他山臊到底是什么",
+              "requires": {
+                "minTier": "acquaint"
+              },
+              "next": "shansao"
+            },
+            {
+              "id": "sister",
+              "label": "问他姐姐的苇披",
+              "requires": {
+                "minTier": "close"
+              },
+              "next": "sister"
             }
           ]
         },
@@ -2074,6 +2630,77 @@
               }
             }
           ]
+        },
+        "fog-bless": {
+          "text": "老祝沉默了很久，从祖骨龛里取出一节竹子塞给你：“山臊怕这个。扔进火里，噼啪一响，它就跑。……替我看着那孩子。”",
+          "options": [
+            {
+              "id": "vow",
+              "label": "郑重地答应",
+              "effects": {
+                "bond": {
+                  "trust": 1
+                },
+                "line": "老祝在你额头上抹了一道河泥：“去吧。河神看着呢。”",
+                "setFlags": [
+                  "keeper-blessed-fog"
+                ]
+              }
+            }
+          ]
+        },
+        "shansao": {
+          "text": "“一只脚，人那么高，爱蹲在别人家火边偷烤着的虾蟹。”老祝说，“它不害人，就是爱学人说话。你一应，它就跟着你。”",
+          "options": [
+            {
+              "id": "salt",
+              "label": "问怎么才能让它走",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "“烧竹子，噼啪一响就跑。或者……给它留一条鱼，它吃饱了也就走了。”"
+              }
+            },
+            {
+              "id": "seen",
+              "label": "问他见过没有",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "老祝笑了笑：“见过一只草鞋。就一只。”"
+              }
+            }
+          ]
+        },
+        "sister": {
+          "text": "“她叫阿蒲，比我大三岁，编苇披是一绝。”老祝说，“她说下游有更好的地，走了就没回来。我总想，万一她回来，祠还在，人还在，她就认得路。”",
+          "options": [
+            {
+              "id": "ask-traders",
+              "label": "说你会托过路的人打听",
+              "effects": {
+                "bond": {
+                  "trust": 1
+                },
+                "line": "老祝的手抖了一下：“……好。好孩子。”",
+                "setFlags": [
+                  "asked-after-apu"
+                ]
+              }
+            },
+            {
+              "id": "sit",
+              "label": "陪他坐着听河",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "你们坐到天黑。老祝最后说：“说出来，心里轻了一半。”"
+              }
+            }
+          ]
         }
       }
     },
@@ -2108,6 +2735,30 @@
                 "minTier": "friend"
               },
               "next": "south"
+            },
+            {
+              "id": "raft",
+              "label": "问他想去南岸摆摊的事",
+              "requires": {
+                "minTier": "friend"
+              },
+              "next": "raft"
+            },
+            {
+              "id": "mother",
+              "label": "问他阿蘩年轻时什么样",
+              "requires": {
+                "minTier": "acquaint"
+              },
+              "next": "mother"
+            },
+            {
+              "id": "scale",
+              "label": "请他教你看秤",
+              "requires": {
+                "minTier": "acquaint"
+              },
+              "next": "scale"
             }
           ]
         },
@@ -2163,6 +2814,71 @@
               }
             }
           ]
+        },
+        "raft": {
+          "text": "“独木舟装不了几样东西。”阿贾比划着，“得扎一张大筏子，三段木料、一根草绳就够。再带一匹好布——南岸人最稀罕咱们的麻布。”",
+          "options": [
+            {
+              "id": "help",
+              "label": "说你来扎筏子",
+              "effects": {
+                "bond": {
+                  "trust": 1
+                },
+                "line": "阿贾一拍大腿：“成！筏子扎好了，你就是头一个跟我过河的人！”"
+              }
+            },
+            {
+              "id": "risky",
+              "label": "说过河有点险",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "“险？我娘抱着我在河上漂了一天一夜。”他笑着，“那才叫险。”"
+              }
+            }
+          ]
+        },
+        "mother": {
+          "text": "“比我还能嚷。”阿贾笑，“刚来那年，她一个人把长屋的第一根柱子立起来，谁劝都不听。”",
+          "options": [
+            {
+              "id": "respect",
+              "label": "说她真了不起",
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                },
+                "line": "阿贾的笑收了收：“嗯。我这辈子最怕的，就是她老了。”"
+              }
+            },
+            {
+              "id": "tell",
+              "label": "说你要去告诉阿蘩他这么说",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "“别别别！”阿贾一把拉住你，“她要知道，又要笑我一年。”"
+              }
+            }
+          ]
+        },
+        "scale": {
+          "text": "阿贾把秤石放在你手心：“先掂一掂自己的手。手知道多重，心就不慌。”",
+          "options": [
+            {
+              "id": "try",
+              "label": "掂了掂，报出个数",
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                },
+                "line": "阿贾一称，只差半两：“好手！做买卖的料。”"
+              }
+            }
+          ]
         }
       }
     },
@@ -2197,6 +2913,30 @@
                 "minTier": "friend"
               },
               "next": "south"
+            },
+            {
+              "id": "winter",
+              "label": "问长屋过冬还缺什么",
+              "requires": {
+                "minTier": "acquaint"
+              },
+              "next": "winter"
+            },
+            {
+              "id": "son",
+              "label": "问她怎么看阿贾想去南岸",
+              "requires": {
+                "minTier": "friend"
+              },
+              "next": "son"
+            },
+            {
+              "id": "fire",
+              "label": "请她教你埋火",
+              "requires": {
+                "minTier": "acquaint"
+              },
+              "next": "fire"
             }
           ]
         },
@@ -2249,6 +2989,77 @@
                   "familiarity": 0.5
                 },
                 "line": "阿蘩讲到火塘里的柴都烧成了炭，才拍拍膝盖：“哎呀，又说多了。”"
+              }
+            }
+          ]
+        },
+        "winter": {
+          "text": "“熏肉不够，盐也不够。”阿蘩掰着指头，“熏架上再挂两条，货棚里再有一块盐，这个冬天就踏实了。”",
+          "options": [
+            {
+              "id": "help",
+              "label": "说你去想办法",
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                },
+                "line": "阿蘩拍拍你的手背：“好孩子，不急。别为了这个去惹狼。”"
+              }
+            },
+            {
+              "id": "ask",
+              "label": "问熏肉从哪儿来",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.3
+                },
+                "line": "“阿犴打的野兔，挂上去熏两天两夜。你要是会下套，自己也能熏。”"
+              }
+            }
+          ]
+        },
+        "son": {
+          "text": "阿蘩往火塘里添了根柴，半天才开口：“他爹就是在河上没的。他要去，我拦不住。……你要是跟着去，就替我看着他。”",
+          "options": [
+            {
+              "id": "promise",
+              "label": "答应她",
+              "effects": {
+                "bond": {
+                  "trust": 1
+                },
+                "line": "阿蘩的手在你手背上停了很久：“回来的时候，我在火塘边等你们。”",
+                "setFlags": [
+                  "matron-blessing"
+                ]
+              }
+            },
+            {
+              "id": "comfort",
+              "label": "说阿贾会小心的",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "“他哪回小心过。”阿蘩笑了，眼角却湿了。"
+              }
+            }
+          ]
+        },
+        "fire": {
+          "text": "“炭拨成一堆，盖三指厚的灰。”阿蘩手把手地教，“盖薄了天亮就灭，盖厚了闷死。”",
+          "options": [
+            {
+              "id": "try",
+              "label": "自己试着埋一遍",
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                },
+                "line": "第二天一早，你拨开灰，炭还红着。阿蘩远远看见，冲你竖了竖大拇指。",
+                "setFlags": [
+                  "can-bank-fire"
+                ]
               }
             }
           ]
@@ -2885,6 +3696,538 @@
             }
           }
         ]
+      },
+      {
+        "id": "wolf-stalker",
+        "title": "跟在身后的狼",
+        "seasons": [
+          "冬"
+        ],
+        "text": "从北坡回来的路上，一头孤狼远远跟着，你停它也停，你走它也走，始终隔着三四十步。",
+        "choices": [
+          {
+            "id": "torch",
+            "label": "点着柴捆举高，慢慢往村里走",
+            "requires": {
+              "resource": "resource:fuel"
+            },
+            "consume": true,
+            "line": "火光一亮，狼在原地转了两圈，终于掉头钻回了林子。你回到村里，腿还在抖。",
+            "bond": {
+              "hunter": {
+                "familiarity": 0.5
+              }
+            }
+          },
+          {
+            "id": "trap",
+            "label": "带阿犴回来，在它的必经之路下套",
+            "requires": {
+              "tierWith": {
+                "hunter": "acquaint"
+              }
+            },
+            "line": "阿犴在狼走过的雪道上下了一副大套。第三天早上，套里是一头瘦得皮包骨的老狼。阿犴剥下皮给你：“它饿疯了才跟人。”",
+            "items": [
+              {
+                "prototype": "prototype:wolf-pelt",
+                "name": "老狼的皮"
+              },
+              {
+                "prototype": "prototype:wolf-fang",
+                "name": "老狼的牙"
+              }
+            ],
+            "bond": {
+              "hunter": {
+                "trust": 1
+              }
+            }
+          },
+          {
+            "id": "back",
+            "label": "面朝它一步步往后退",
+            "line": "你退了半里地，狼才停下，在雪地里坐着看你走远。"
+          }
+        ]
+      },
+      {
+        "id": "wolves-kill",
+        "title": "雪地里的狼群",
+        "seasons": [
+          "冬"
+        ],
+        "text": "林缘外的雪地上，四五头狼围倒了一头鹿，正撕扯着。风从你这边往那边吹。",
+        "choices": [
+          {
+            "id": "wait",
+            "label": "等狼吃饱走了，去捡剩下的",
+            "line": "狼群吃饱散去，雪地上只剩一副骨架和几块没啃净的肉。你捡了能用的，回去的路上一直回头。",
+            "items": [
+              {
+                "prototype": "prototype:game",
+                "name": "狼群剩下的鹿肉"
+              }
+            ]
+          },
+          {
+            "id": "scare",
+            "label": "点火、敲石头把狼轰走",
+            "requires": {
+              "resource": "resource:fuel"
+            },
+            "consume": true,
+            "line": "狼群退到林边，龇着牙看你。你拖走了大半头鹿，阿蘩见了直念叨：“胆子太大了，太大了。”",
+            "items": [
+              {
+                "prototype": "prototype:game",
+                "name": "从狼嘴里抢下的鹿肉"
+              },
+              {
+                "prototype": "prototype:game",
+                "name": "从狼嘴里抢下的鹿肉"
+              }
+            ],
+            "bond": {
+              "longhouse-matron": {
+                "trust": 0.5
+              }
+            }
+          },
+          {
+            "id": "leave",
+            "label": "绕开走",
+            "line": "你绕了一大圈回村。那天夜里，北坡的狼嚎了很久。"
+          }
+        ]
+      },
+      {
+        "id": "shan-sao-fire",
+        "title": "火塘边的独脚印",
+        "seasons": [
+          "秋",
+          "冬"
+        ],
+        "text": "早上长屋的火塘边少了两条烤着的鱼，灰上留着一串只有一只脚的脚印，一直通到门外。阿蘩脸都白了。",
+        "choices": [
+          {
+            "id": "bamboo",
+            "label": "夜里守在火塘边，往火里扔竹节",
+            "requires": {
+              "resource": "resource:fuel"
+            },
+            "consume": true,
+            "line": "半夜竹节在火里噼啪炸响，门外一声怪叫，有什么东西一蹦一蹦地跑远了。天亮后，门槛外落着一只草鞋，只有一只。",
+            "items": [
+              {
+                "prototype": "prototype:straw-sandal",
+                "name": "山臊落下的草鞋"
+              }
+            ],
+            "bond": {
+              "longhouse-matron": {
+                "trust": 1
+              }
+            }
+          },
+          {
+            "id": "fish",
+            "label": "照老祝说的，门外放一条鱼",
+            "requires": {
+              "resource": "resource:fish"
+            },
+            "consume": true,
+            "line": "第二天鱼不见了，火塘边再没少过东西。老祝听说了，点点头：“它吃饱了，就不来闹了。”",
+            "setFlags": [
+              "shan-sao-fed"
+            ],
+            "bond": {
+              "shrine-keeper": {
+                "trust": 1
+              }
+            }
+          },
+          {
+            "id": "laugh",
+            "label": "说准是阿犴半夜偷吃",
+            "line": "阿犴被冤枉得直瞪眼，可那串独脚印谁也解释不了。",
+            "bond": {
+              "hunter": {
+                "grudge": 0.3
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "shan-sao-mimic",
+        "title": "学人说话的",
+        "seasons": [
+          "秋"
+        ],
+        "text": "傍晚织坊外有人喊“阿缫——”，声音跟阿蘩一模一样。阿缫刚要应，阿蘩却从长屋那头走过来，一脸茫然。",
+        "choices": [
+          {
+            "id": "hush",
+            "label": "一把捂住阿缫的嘴",
+            "line": "外头又喊了两声，渐渐远了。阿缫攥着你的手，半天没松开。",
+            "bond": {
+              "weaver": {
+                "trust": 1
+              }
+            }
+          },
+          {
+            "id": "drum",
+            "label": "跑去河神祠敲社鼓",
+            "line": "社鼓一响，喊声就断了。老祝说：“鼓声它最怕。往后天黑了，别随便应人。”",
+            "bond": {
+              "shrine-keeper": {
+                "familiarity": 0.5
+              },
+              "weaver": {
+                "familiarity": 0.5
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "otter-offering",
+        "title": "獭祭鱼",
+        "seasons": [
+          "春"
+        ],
+        "text": "开春的早上，獭洲的石头上整整齐齐摆着一排鱼，几只水獭蹲在水边，像在看你。",
+        "choices": [
+          {
+            "id": "take",
+            "label": "取一条，留下其余",
+            "line": "你只拿了最小的一条。水獭们看着你走远，才一条条叼回水里。",
+            "items": [
+              {
+                "prototype": "prototype:fish",
+                "name": "水獭摆下的鱼"
+              }
+            ]
+          },
+          {
+            "id": "leave",
+            "label": "一条也不动，回去告诉老祝",
+            "line": "老祝听完高兴得直拍腿：“獭祭鱼！今年的鱼汛错不了。”",
+            "bond": {
+              "shrine-keeper": {
+                "trust": 0.5
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "otter-thief",
+        "title": "偷渔篓的水獭",
+        "seasons": [
+          "秋"
+        ],
+        "text": "渡口的渔篓接连几天被掏空，篓口的苇条被咬得乱七八糟，岸边全是水獭的爪印。",
+        "choices": [
+          {
+            "id": "snare",
+            "label": "跟阿犴在篓边下套",
+            "requires": {
+              "tierWith": {
+                "hunter": "acquaint"
+              }
+            },
+            "line": "第二天套住了一只肥水獭。阿犴剥了皮递给你：“獭皮不透水，缝顶帽子过冬。”",
+            "items": [
+              {
+                "prototype": "prototype:otter-pelt",
+                "name": "偷鱼贼的皮"
+              }
+            ],
+            "bond": {
+              "hunter": {
+                "familiarity": 0.5
+              }
+            }
+          },
+          {
+            "id": "share",
+            "label": "每天往岸边丢一条鱼干",
+            "requires": {
+              "resource": "resource:dried-fish"
+            },
+            "consume": true,
+            "line": "水獭吃了鱼干，就不再掏篓子了。阿汲说你心软，老祝说你做得对。",
+            "bond": {
+              "shrine-keeper": {
+                "trust": 0.5
+              },
+              "water-carrier": {
+                "familiarity": 0.3
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "boar-wallow",
+        "title": "沤麻池里的野猪",
+        "seasons": [
+          "夏"
+        ],
+        "text": "一头野猪钻进了织坊的沤麻池打滚，泡着的麻秆被压得稀烂，池边全是泥。",
+        "choices": [
+          {
+            "id": "wait",
+            "label": "等它走了，帮阿缫清池",
+            "line": "野猪走后，你在池底的烂泥里摸到一截断了的獠牙。阿缫看着一池烂麻叹气，又看看你满身泥，忍不住笑了。",
+            "items": [
+              {
+                "prototype": "prototype:boar-tusk",
+                "name": "泥里摸到的獠牙"
+              }
+            ],
+            "bond": {
+              "weaver": {
+                "trust": 0.5
+              }
+            }
+          },
+          {
+            "id": "chase",
+            "label": "抄起木棍把它赶走",
+            "line": "野猪被你撵进了芦苇滩，可它冲过来那一下，你的腿到天黑还软着。",
+            "bond": {
+              "weaver": {
+                "familiarity": 0.5
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "antler-shed",
+        "title": "林缘的鹿角",
+        "seasons": [
+          "春"
+        ],
+        "text": "林缘的灌木丛里卡着一支刚蜕下的鹿角，还带着一点茸皮。",
+        "choices": [
+          {
+            "id": "take",
+            "label": "捡回去",
+            "line": "鹿角分了三个叉，沉甸甸的。阿砺看见了，说绑上柄就是一把好锄头。",
+            "items": [
+              {
+                "prototype": "prototype:antler",
+                "name": "公鹿蜕下的角"
+              }
+            ]
+          },
+          {
+            "id": "hunter",
+            "label": "拿去给阿犴看",
+            "line": "阿犴摸着鹿角上的纹：“是那头领头的公鹿。它今年又活过了一冬。”他把角还给你，“留着吧，好兆头。”",
+            "items": [
+              {
+                "prototype": "prototype:antler",
+                "name": "领头公鹿的角"
+              }
+            ],
+            "bond": {
+              "hunter": {
+                "familiarity": 0.5
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "turtle-sun",
+        "title": "老鳖晒背",
+        "seasons": [
+          "夏"
+        ],
+        "text": "鳖潭边的大石头上，那只背甲长满青苔的老鳖浮上来晒背，一动不动。石头边掉着一片它蜕下的甲。",
+        "choices": [
+          {
+            "id": "scute",
+            "label": "轻轻捡起那片甲，送去河神祠",
+            "line": "老祝捧着鳖甲片，手都抖了：“它浮上来晒背，今年的河不涨也不断。”他把甲片供上祭台，又分了你一片小的。",
+            "items": [
+              {
+                "prototype": "prototype:turtle-scute",
+                "name": "老鳖蜕下的甲片"
+              }
+            ],
+            "bond": {
+              "shrine-keeper": {
+                "trust": 1
+              }
+            }
+          },
+          {
+            "id": "watch",
+            "label": "远远看着，不去惊动",
+            "line": "老鳖晒了一个时辰，慢慢沉回潭底。水面上只剩一圈圈的波纹。"
+          }
+        ]
+      },
+      {
+        "id": "dhole-raid",
+        "title": "抢猎物的豺",
+        "seasons": [
+          "秋",
+          "冬"
+        ],
+        "text": "阿犴下的套接连被扒开，套住的野兔只剩一撮毛。雪地上的脚印比狐狸大、比狼小，一群一群的——是豺。",
+        "choices": [
+          {
+            "id": "vigil",
+            "label": "陪阿犴在套边守一夜",
+            "requires": {
+              "tierWith": {
+                "hunter": "acquaint"
+              }
+            },
+            "line": "后半夜，五六只红棕色的豺从林子里溜出来。阿犴一声骨哨，它们一哄而散。天亮时套里是一只完好的野兔。",
+            "items": [
+              {
+                "prototype": "prototype:game",
+                "name": "守夜守来的野兔"
+              }
+            ],
+            "bond": {
+              "hunter": {
+                "trust": 1
+              }
+            }
+          },
+          {
+            "id": "move",
+            "label": "劝阿犴把套挪到别处",
+            "line": "阿犴想了想，把套挪到了石滩那边。豺没再来，可兔子也少了。",
+            "bond": {
+              "hunter": {
+                "familiarity": 0.3
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "longhouse-fire-out",
+        "title": "长屋的火灭了",
+        "seasons": [
+          "冬"
+        ],
+        "text": "一夜大风，长屋火塘里的火竟灭了。阿蘩急得团团转——长屋的火从她来那年就没断过。阿缫和阿贾都围在边上。",
+        "choices": [
+          {
+            "id": "bank",
+            "label": "照阿蘩教的，从灰里找还红着的炭",
+            "requires": {
+              "flags": [
+                "can-bank-fire"
+              ]
+            },
+            "line": "你拨开灰，在最底下找到一颗还红着的炭，吹了几口，火苗又窜了起来。阿蘩一把抱住你：“火没断，火没断！”",
+            "bond": {
+              "longhouse-matron": {
+                "trust": 2
+              },
+              "weaver": {
+                "familiarity": 0.5
+              },
+              "market-keeper": {
+                "familiarity": 0.5
+              }
+            }
+          },
+          {
+            "id": "shrine",
+            "label": "跑去河神祠借守夜火盆的火",
+            "line": "你捧着一块火炭一路跑回来，手都烫红了。阿蘩说：“借的火也是火，只要不断就好。”老祝那晚多添了一捆柴。",
+            "bond": {
+              "longhouse-matron": {
+                "trust": 1
+              },
+              "shrine-keeper": {
+                "familiarity": 0.5
+              }
+            }
+          },
+          {
+            "id": "flint",
+            "label": "拿燧石重新打火",
+            "requires": {
+              "resource": "resource:stone"
+            },
+            "line": "火是重新点着了，阿蘩却在火塘边坐了很久：“新火也好……新火也好。”",
+            "bond": {
+              "longhouse-matron": {
+                "familiarity": 0.5
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "hunter-lost",
+        "title": "阿犴没回来",
+        "seasons": [
+          "秋",
+          "冬"
+        ],
+        "text": "雾岭起了大雾，天黑了阿犴还没回长屋。老祝在祠前坐立不安，阿蘩一遍遍往北坡张望。",
+        "choices": [
+          {
+            "id": "search",
+            "label": "举着火把、吹着骨哨上山找",
+            "requires": {
+              "tierWith": {
+                "hunter": "friend"
+              }
+            },
+            "line": "你在雾岭口吹了一声哨，过了很久，雾里传来一声回哨。阿犴拖着一条伤腿从雾里走出来，看见你，咧嘴笑了：“我就知道是你。”",
+            "bond": {
+              "hunter": {
+                "trust": 2
+              },
+              "shrine-keeper": {
+                "trust": 1
+              },
+              "longhouse-matron": {
+                "familiarity": 0.5
+              }
+            }
+          },
+          {
+            "id": "drum",
+            "label": "去祠前敲一夜社鼓给他引路",
+            "line": "鼓声敲到后半夜，阿犴循着声音摸回来了，一身霜。他什么也没说，只是在鼓边坐下，把手伸向火盆。",
+            "bond": {
+              "hunter": {
+                "trust": 1
+              },
+              "shrine-keeper": {
+                "trust": 0.5
+              }
+            }
+          },
+          {
+            "id": "wait",
+            "label": "陪老祝在祠前等",
+            "line": "天亮时阿犴自己回来了。老祝一句话没说，把他按在火盆边，眼泪顺着皱纹往下淌。",
+            "bond": {
+              "shrine-keeper": {
+                "familiarity": 0.5
+              }
+            }
+          }
+        ]
       }
     ]
   },
@@ -3088,6 +4431,79 @@
       "condition": {
         "counter": "dialogue",
         "atLeast": 20
+      }
+    },
+    {
+      "id": "longhouse-regular",
+      "name": "长屋常客",
+      "text": "在长屋火塘边坐了五回",
+      "condition": {
+        "counter": "fixture:fixture:longhouse-sit",
+        "atLeast": 5
+      }
+    },
+    {
+      "id": "furniture-user",
+      "name": "屋里屋外",
+      "text": "用过十回各屋的家什",
+      "condition": {
+        "counter": "fixture",
+        "atLeast": 10
+      }
+    },
+    {
+      "id": "loom-raised",
+      "name": "织机响了",
+      "text": "帮阿缫架起了立式织机",
+      "condition": {
+        "questDone": "side-weaver-loom"
+      }
+    },
+    {
+      "id": "fog-walker",
+      "name": "雾里走过",
+      "text": "陪阿犴走进了雾岭",
+      "condition": {
+        "flag": "fog-ridge-walked"
+      }
+    },
+    {
+      "id": "totem-raised",
+      "name": "社木立起",
+      "text": "在祠前立起社木，刻下第一个记号",
+      "condition": {
+        "flag": "totem-raised"
+      }
+    },
+    {
+      "id": "south-raft",
+      "name": "南岸来回",
+      "text": "帮阿贾扎好去南岸的筏子",
+      "condition": {
+        "questDone": "side-market-raft"
+      }
+    },
+    {
+      "id": "trapper",
+      "name": "猎手",
+      "text": "下套或拉弓猎到三回野味",
+      "condition": {
+        "counter": "hunt",
+        "atLeast": 3
+      }
+    },
+    {
+      "id": "newcomers-friends",
+      "name": "长屋的人",
+      "text": "和阿缫、阿犴、老祝、阿贾、阿蘩都成了朋友",
+      "condition": {
+        "flags": [
+          "weaver-loom-built",
+          "fog-ridge-walked",
+          "totem-raised",
+          "longhouse-winter-stocked",
+          "south-raft-ready"
+        ]
       }
     }
   ]

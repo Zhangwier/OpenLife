@@ -105,12 +105,23 @@ export function slotOf(world: WorldView, me: string): Slot {
   return used < 3 ? "晨" : used < 6 ? "午" : "暮";
 }
 
-/** Where a villager habitually is at this hour and weather, if their routine says so. */
-export function routinePlace(key: string, slot: Slot, tick: number): string {
+/** A routine names a place, or a room inside one ("space:loom-room"): the place it belongs to. */
+export const placeOfRoutineSpot = (spot: string) => spot.startsWith("space:")
+  ? RIVER_TERRACE_PACK.places.find((p) => p.spaces.some((s) => s.id === spot))?.id ?? "" : spot;
+function routineSpot(key: string, slot: Slot, tick: number): string {
   const r = BONDS_PACK.routines[key];
   if (!r) return "";
   if (isWet(tick) && r["雨"]) return r["雨"];
   return r[slot] ?? "";
+}
+/** Where a villager habitually is at this hour and weather, if their routine says so. */
+export function routinePlace(key: string, slot: Slot, tick: number): string {
+  return placeOfRoutineSpot(routineSpot(key, slot, tick));
+}
+/** The room they keep to then: the one the routine names, or the place's entrance. */
+export function routineSpace(key: string, slot: Slot, tick: number): string {
+  const spot = routineSpot(key, slot, tick);
+  return spot.startsWith("space:") ? spot : entrySpaceOf(spot);
 }
 export function encounterLine(key: string, slot: Slot, tick: number): string {
   const r = BONDS_PACK.routines[key];
@@ -198,7 +209,7 @@ export function bondsProblems(pack: BondsPack = BONDS_PACK): string[] {
   }
   for (const [k, r] of Object.entries(pack.routines)) {
     if (!keys.has(k)) out.push(`routine: unknown resident ${k}`);
-    for (const slot of ["晨", "午", "暮", "雨"] as const) if (r[slot] && !places.has(r[slot]!)) out.push(`routine ${k}.${slot}: unknown place`);
+    for (const slot of ["晨", "午", "暮", "雨"] as const) if (r[slot] && !places.has(placeOfRoutineSpot(r[slot]!))) out.push(`routine ${k}.${slot}: unknown place or room`);
     if (Object.values(RIVER_TERRACE_PACK.autonomy).includes(k)) out.push(`routine ${k}: bespoke village roles keep their own day`);
   }
   for (const t of pack.tierEvents) {

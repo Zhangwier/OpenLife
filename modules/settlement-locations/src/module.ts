@@ -1,5 +1,6 @@
 import { refuse, type Registration } from "./rules.ts";
 import { registerNpcBarter, registerPlayerBarter, tradeReady } from "./barter.ts";
+import { fixtureActions, registerFixtures } from "./fixtures.ts";
 /**
  * Settlement Locations - the first inhabited content layer (MAP-001).
  *
@@ -80,8 +81,6 @@ import {
 } from "./marriage.ts";
 export { socialOf } from "./world-reads.ts";
 export { COURT_HEARTS, WED_AFTER_DAYS, romanceOf, spouseOf } from "./marriage.ts";
-
-
 
 /** Places of the settlement, each with a purpose and a cost to reach. */
 // Open outdoor arrival spots allow villagers and visitors to pass; 0 is the
@@ -188,6 +187,7 @@ export const settlementLocationsModule: OpenLifeModule = {
     registerGift(ctx);
     registerSeasonLife(ctx);
     registerMarriage(ctx);
+    registerFixtures(ctx, dailyActivity);
     registerFamilyLife(ctx);
     registerPassing(ctx);
     registerStoryteller(ctx);
@@ -210,7 +210,6 @@ export const settlementLocationsModule: OpenLifeModule = {
     });
   },
 };
-
 
 // ---------------------------------------------------------------------------
 // Founding
@@ -730,7 +729,6 @@ function carriedFood(world: WorldView, actorId: string, objectId: string): strin
   const resourceId = prototypeOf(world, objectId).resourceId;
   return resourceId in HUNGER_EASED ? resourceId : "";
 }
-
 
 /**
  * Seasons shape farming. Millet sown in spring or summer ripens in 30 days;
@@ -2111,6 +2109,7 @@ function homesteadActions(
     { spaceId },
   );
 
+  actions.push(...fixtureActions(world, actorId, dailyActivity));
   add(SettlementCommands.step, "让这一天过去", "时间向前走一天，聚落里的其他人也会继续过日子。", 1, true, "", {});
   actionAddExits(add, world, placeId);
   return actions;

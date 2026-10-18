@@ -5,12 +5,12 @@
  * and writes into an Outcome for resolution and reaction rules.
  */
 import type { WorldView } from "@openlife/contracts";
-import { SpaceComponents, SpaceRelations, moveEffects, occupiedPlaceId, readSpace } from "@openlife/module-world-space";
+import { SpaceComponents, SpaceRelations, moveEffects, occupiedPlaceId, occupiedSpaceId, readSpace } from "@openlife/module-world-space";
 import {
   RIVER_TERRACE_PACK, SettlementComponents, bondOf, heartsOf, illnessOn, isWet, residentId, skyOn, socialOf,
 } from "@openlife/module-settlement-locations";
 import {
-  BONDS_PACK, canKeepRoutine, edgesOf, encounterLine, entrySpaceOf, isFeud, pairId, quarrelOn, remarkFor, routinePlace, slotOf,
+  BONDS_PACK, canKeepRoutine, edgesOf, encounterLine, entrySpaceOf, isFeud, pairId, quarrelOn, remarkFor, routinePlace, routineSpace, placeOfRoutineSpot, slotOf,
   tierIndex, tierOfHearts, npcLabel, type ServiceSpec,
 } from "./bonds.ts";
 import { Outcome, consume, incidentOn, ownedInHand, resourceLabel, type Journal } from "./journal.ts";
@@ -64,8 +64,7 @@ export function keepRoutines(out: Outcome, arrived: boolean): void {
   if (turned) out.j = { ...out.j, bonds: { ...out.j.bonds, slotKey } };
   const arriving = new Map<string, number>();
   /** Never fill a place: a routine leaves at least one spot for the player to walk in. */
-  const roomAt = (placeId: string) => {
-    const space = entrySpaceOf(placeId);
+  const roomAt = (placeId: string, space = entrySpaceOf(placeId)) => {
     const capacity = readSpace(out.world.getComponent(space, SpaceComponents.space)).capacity;
     if (!(capacity > 0)) return true;
     const standing = out.world.listRelations({ type: SpaceRelations.standingIn, to: space }).filter((r) => r.from !== out.me).length;
@@ -76,9 +75,10 @@ export function keepRoutines(out: Outcome, arrived: boolean): void {
     const rid = residentId(key);
     const target = routinePlace(key, slot, out.tick);
     if (!target) continue;
+    const room = routineSpace(key, slot, out.tick);
     let moved = false;
-    if (turned && here(out.world, rid) !== target && roomAt(target)) {
-      out.effects.push(...moveEffects(out.world, rid, target, entrySpaceOf(target), out.tick));
+    if (turned && (here(out.world, rid) !== target || occupiedSpaceId(out.world, rid) !== room) && roomAt(target, room)) {
+      out.effects.push(...moveEffects(out.world, rid, target, room, out.tick));
       arriving.set(target, (arriving.get(target) ?? 0) + 1);
       moved = true;
     }
@@ -198,8 +198,8 @@ export function peopleView(world: WorldView, me: string, j: Journal) {
         nextTier: next ? { id: next.id, name: next.name, hearts: next.minHearts } : null,
         feud: isFeud(bond), bond: { familiarity: bond.familiarity, trust: bond.trust, grudge: bond.grudge },
         relations: edgesOf(r.key, j.bonds.reconciled).map((e) => ({ npc: e.other, name: npcLabel(e.other), type: e.type, label: e.label })),
-        routine: BONDS_PACK.routines[r.key] ? { 晨: BONDS_PACK.routines[r.key]!["晨"] ?? null, 午: BONDS_PACK.routines[r.key]!["午"] ?? null,
-          暮: BONDS_PACK.routines[r.key]!["暮"] ?? null, 雨: BONDS_PACK.routines[r.key]!["雨"] ?? null, now: routinePlace(r.key, slot, world.tick) || null } : null,
+        routine: BONDS_PACK.routines[r.key] ? { ...Object.fromEntries((["晨", "午", "暮", "雨"] as const).map((k) => [k, placeOfRoutineSpot(BONDS_PACK.routines[r.key]![k] ?? "") || null])) as Record<"晨" | "午" | "暮" | "雨", string | null>,
+          now: routinePlace(r.key, slot, world.tick) || null } : null,
         special: BONDS_PACK.services.find((s) => s.npc === r.key)?.title ?? null,
       };
     }),
