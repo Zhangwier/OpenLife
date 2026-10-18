@@ -176,7 +176,10 @@ export const travelModule: OpenLifeModule = {
       id: `${TravelCommands.arrive}.resolve`, commandType: TravelCommands.arrive,
       resolve: (c): Effect[] => {
         const journey = readJourney(c.world)!;
-        return [
+        // Arriving somewhere is the same as walking there in the settlement:
+        // reuse the settlement's own move logic so the place, its yields and
+        // its people are all real, not a parallel copy.
+        const effects: Effect[] = [
           save(c.world, null, "arrived and settled"),
           {
             kind: "emitEvent", eventType: "travel.settled", actorId: journey.who,
@@ -184,6 +187,15 @@ export const travelModule: OpenLifeModule = {
             historicalSignificance: 0.1,
           },
         ];
+        // If the destination is a real settlement place, walk there for real.
+        if (String(journey.to).startsWith("place:")) {
+          effects.push({
+            kind: "emitEvent", eventType: "settlement-locations.arrived", actorId: journey.who,
+            data: { placeId: journey.to, via: "travel" },
+            historicalSignificance: 0.05,
+          });
+        }
+        return effects;
       },
     });
 
@@ -235,13 +247,29 @@ export const travelModule: OpenLifeModule = {
 
     ctx.registerProjection({
       id: TravelProjections.destinations,
-      description: "Where you can go from here.",
+      description: "Where you can go from here, read from the world's real geography.",
       build: ({ world }: { world: WorldView }): Record<string, JsonValue> => {
         const journey = readJourney(world);
+        // The real map: locations registered by map packs, and the adjacency
+        // between them. A destination is any location you can reach from here.
+        const locations = world.listEntities({ kind: "world-geography.location" })
+          .filter((e) => e.archivedAt === undefined);
+        const adjacency = world.listRelations({ type: "world-geography.adjacent_to" });
+        const here = String(world.getComponent("settlement-locations:settlement", "settlement-locations.settlement")?.placeId ?? "");
+        const reachable = adjacency
+          .filter((r) => r.from === here || r.to === here)
+          .map((r) => (r.from === here ? r.to : r.from));
+        const destinations = locations
+          .filter((e) => reachable.includes(e.id))
+          .map((e) => ({
+            id: e.id,
+            name: String(e.components["world-geography.location"]?.name ?? e.id),
+            type: String(e.components["world-geography.location"]?.type ?? ""),
+          }));
         return {
           travelling: Boolean(journey),
-          destinations: [] as unknown as JsonValue,   // filled by map-pack when installed
-          line: journey ? "正在路上。" : "可以说走就走。",
+          destinations: destinations as unknown as JsonValue,
+          line: journey ? "正在路上。" : destinations.length ? `可以说走就走，去${destinations[0]?.name ?? "别处"}。` : "附近没有可去的地方。",
         };
       },
     });
