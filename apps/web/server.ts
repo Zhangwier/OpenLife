@@ -30,7 +30,7 @@ import { worldCatalog } from "./src/catalog.ts";
 import { codex } from "./src/codex.ts";
 import { humanizeEvent } from "./src/humanize.ts";
 import { ensureNature, runNatureAction, withNature } from "./src/nature.ts";
-import { startHistory, historyDay, historySeason, officeViews } from "./src/history-bridge.ts";import { webModules } from "./src/modules.ts";
+import { startHistory, historyDay, historySeason, officeViews } from "./src/history-bridge.ts"; import { markModuleOff, markModuleOn } from "./src/module-switch.ts";import { webModules } from "./src/modules.ts";
 const PORT = Number(process.env.PORT ?? 4173);
 const PUBLIC_DIR = fileURLToPath(new URL("./public/", import.meta.url));
 /** Which opening a brand-new life uses: the M1 settlement, or the older slice. */
@@ -44,13 +44,8 @@ if (modulePlan.disabled.length + modulePlan.cascaded.length > 0) {
 }
 let simulation = createGame();
 
-// ---------------------------------------------------------------------------
-// Server-side persistence: the world is autosaved to disk on an interval and
-// restored on startup, so a process restart no longer wipes everyone's game.
-// The browser-side /api/save + /api/load flow is unchanged.
-//
+// Server-side persistence: autosaved to disk and restored on startup.
 //   OPENLIFE_SAVE_PATH        where the autosave lives
-//                             (default: ./data/openlife-save.json next to server.ts)
 //   OPENLIFE_SAVE_INTERVAL_MS autosave period, 0 disables the timer
 //                             (default: 300000 = 5 minutes)
 // ---------------------------------------------------------------------------
@@ -1119,9 +1114,11 @@ const server = createServer(async (req, res) => {
       if (req.method === "POST" && !String(req.headers["content-type"] ?? "application/json").includes("json")) {
         throw new HttpError(415, "请求体必须是 JSON");
       }
-      if (req.method === "GET" && url.pathname === "/api/catalog") {
-        res.end(JSON.stringify(await worldCatalog(simulation)));
-        return;
+      if (req.method === "GET" && url.pathname === "/api/catalog") { res.end(JSON.stringify(await worldCatalog(simulation))); return; }
+      if (req.method === "POST" && url.pathname === "/api/module/toggle") {
+        const body = await readJson(req); const id = String(body.moduleId ?? "");
+        if (body.enabled === false) markModuleOff(id); else markModuleOn(id);
+        res.end(JSON.stringify({ ok: true, moduleId: id, enabled: body.enabled !== false })); return;
       }
       if (req.method === "GET" && url.pathname === "/api/codex") {
         res.end(JSON.stringify(codex(simulation, activeCharacterId())));

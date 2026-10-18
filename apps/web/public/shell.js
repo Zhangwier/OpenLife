@@ -7,6 +7,7 @@ import { icon } from "/icons.js";
 import { renderSceneFx } from "/scene-fx.js";
 import { audioState, onAudioChange, setSoundMode, setVolume } from "/audio.js";
 import { installOffice } from "/office-panel.js";
+import { markModuleOff, markModuleOn, markedOff } from "/module-switch.js";
 import { loadCodex, installMusicToggle } from "/codex.js";
 
 const TITLES = { life: "人生概述", character: "人生", activities: "此刻", people: "熟人", stories: "故事", works: "行囊", family: "家族谱", map: "地图与地点", world: "时代与世界", history: "记忆与历史", codex: "图鉴", modules: "模块管理" };
@@ -208,14 +209,30 @@ async function loadModules() {
   try {
     const response = await fetch("/api/catalog"); if (!response.ok) throw new Error("模块资料读取失败");
     const data = await response.json();
-    screen.innerHTML = `<div class="catalog-intro panel"><h2>这个世界的组成</h2><p>当前人生使用「早期聚落」组合。这里显示真实加载状态与本地可用模块；更换组合与运行中启停将在依赖、存档兼容检查完成后开放。</p><span class="catalog-total">${data.modules.filter(m => m.loaded).length} 个已加载 · ${data.modules.length} 个本地模块</span></div>${(() => { const card = m => `<article class="module-card panel"><div><h3>${html(m.label)}</h3><span class="module-status ${m.loaded ? "loaded" : ""}">${m.loaded ? "当前世界已加载" : "本地已有 · 当前未接入"}</span></div><p>${html(m.description)}</p><details><summary>模块信息</summary><p>${html(m.id)} · ${html(m.version)}</p><p>${m.loaded ? `依赖能力：${html(m.requires.join("、") || "无")}` : "接入前需核对依赖与世界规则。"}</p></details></article>`;
-      const on = data.modules.filter(m => m.loaded), off = data.modules.filter(m => !m.loaded);
+    // markedOff is async (it goes through the API); read it once, then render
+    // synchronously. Calling it per-card returned a Promise, which is truthy,
+    // so every module looked marked and the switch buttons never appeared.
+    const off = new Set(await markedOff());
+    screen.innerHTML = `<div class="catalog-intro panel"><h2>这个世界的组成</h2><p>当前人生使用「早期聚落」组合。这里显示真实加载状态与本地可用模块；更换组合与运行中启停将在依赖、存档兼容检查完成后开放。</p><span class="catalog-total">${data.modules.filter(m => m.loaded).length} 个已加载 · ${data.modules.length} 个本地模块</span></div>${(() => {
+      const on = data.modules.filter(m => m.loaded), offList = data.modules.filter(m => !m.loaded);
       const core = on.filter(m => m.core === true), optional = on.filter(m => m.core !== true);
+      const switchBtn = (m, marked) => marked
+        ? `<button class="module-switch" data-module-on="${m.id}">开</button>`
+        : m.core ? "" : `<button class="module-switch is-on" data-module-off="${m.id}">关</button>`;
       const coreCard = m => `<article class="module-card panel is-core"><div><h3>${html(m.label)}</h3><span class="module-status loaded">核心 · 关掉世界会乱</span></div><p>${html(m.description)}</p></article>`;
-      const optCard = m => `<article class="module-card panel"><div><h3>${html(m.label)}</h3><span class="module-status loaded">当前世界已加载 · 可关</span></div><p>${html(m.description)}</p></article>`;
+      const optCard = m => `<article class="module-card panel"><div><h3>${html(m.label)}</h3><span class="module-status loaded">当前世界已加载 · 可关</span>${switchBtn(m, off.has(m.id))}</div><p>${html(m.description)}</p>${off.has(m.id) ? `<p class="module-note">下次启动时关掉。</p>` : ""}</article>`;
+      const card = m => `<article class="module-card panel"><div><h3>${html(m.label)}</h3><span class="module-status">本地已有 · 当前未接入</span></div><p>${html(m.description)}</p></article>`;
       return `<h3 class="module-group">核心 · ${core.length}</h3><div class="module-list">${core.map(coreCard).join("")}</div>` +
         `<h3 class="module-group">当前世界已加载 · ${optional.length}</h3><div class="module-list">${optional.map(optCard).join("")}</div>` +
-        (off.length ? `<details class="module-fold"><summary>本地已有、当前未接入 · ${off.length}</summary><div class="module-list">${off.map(card).join("")}</div></details>` : ""); })()}`;
+        (offList.length ? `<details class="module-fold"><summary>本地已有、当前未接入 · ${offList.length}</summary><div class="module-list">${offList.map(card).join("")}</div></details>` : ""); })()}`;
+      screen.querySelectorAll("[data-module-off]").forEach((b) => b.addEventListener("click", () => {
+        markModuleOff(b.dataset.moduleOff);
+        loadModules();
+      }));
+      screen.querySelectorAll("[data-module-on]").forEach((b) => b.addEventListener("click", () => {
+        markModuleOn(b.dataset.moduleOn);
+        loadModules();
+      }));
   } catch (error) { screen.innerHTML = `<p class="page-empty panel">${html(error.message)}</p>`; }
 }
 const TERRAIN_LABELS = {

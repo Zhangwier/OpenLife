@@ -82,6 +82,15 @@ export function readDisabledModules(configPath: string, env: Record<string, stri
     for (const id of (parsed.disabled as unknown[] | undefined) ?? []) ids.push(String(id));
   }
   for (const id of (env.OPENLIFE_DISABLE_MODULES ?? "").split(",")) if (id.trim()) ids.push(id.trim());
+  // The in-game plugin switch: marked in the browser, persisted next to the save,
+  // read here so a module stays off across restarts.
+  const switchPath = new URL("../data/module-switches.json", import.meta.url);
+  if (existsSync(switchPath)) {
+    try {
+      const parsed = JSON.parse(readFileSync(switchPath, "utf8")) as { off?: unknown };
+      for (const id of (parsed.off as unknown[] | undefined) ?? []) ids.push(String(id));
+    } catch { /* a broken switch file is ignored, not fatal */ }
+  }
   return [...new Set(ids)];
 }
 
