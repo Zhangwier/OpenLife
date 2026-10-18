@@ -16,6 +16,7 @@ import { worldObjectsModule } from "@openlife/module-world-objects";
 import {
   settlementLocationsModule, SettlementCommands, SettlementComponents, people,
   VILLAGE_DAY_AGENT, type VillageDayBoundary,
+  RIVER_TERRACE_PACK,
 } from "@openlife/module-settlement-locations";
 
 const modules = [modernWorldModule, worldClockModule, worldSpaceModule, worldObjectsModule, settlementLocationsModule];
@@ -33,7 +34,7 @@ test("M4-B: a 30-day advanceBy (debug console path) lives 30 village days", () =
   const sim = village(4401);
   sim.advanceBy(30);
   const counts = dailyCounts(sim);
-  assert.equal(counts.length, 16);
+  assert.equal(counts.length, RIVER_TERRACE_PACK.residents.length);
   assert.ok(counts.every((n) => n === 30), `every resident lived each day: ${counts}`);
   const report = sim.agentReport(VILLAGE_DAY_AGENT);
   assert.equal(report?.tick, sim.tick);

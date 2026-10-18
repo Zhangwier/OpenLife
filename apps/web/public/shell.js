@@ -214,6 +214,8 @@ const TERRAIN_LABELS = {
   basin_rim: "盆缘", frontier_bank: "边地河岸", frontier_post: "边地哨所", slope: "山坡", ridge: "山脊", pass: "垭口",
   hill_slope: "丘陵坡地", oak_slope: "栎树坡", cave: "洞穴", bamboo_valley: "竹谷", bamboo_grove: "竹林", stream_ford: "溪滩",
   valley_floor: "谷底", waterfall_pool: "瀑潭", salt_spring_terrace: "盐泉台地", salt_spring: "盐泉", salt_flat: "盐滩",
+  chestnut_slope: "栗林坡地", stone_bar_reach: "石滩河段", misty_ridge: "雾岭", chestnut_grove: "栗树林", rooting_ground: "野猪拱地",
+  cobble_bar: "卵石滩", knapping_cliff: "打石崖", deep_pool: "深潭", river_islet: "河洲", lightning_tree: "雷劈树", wolf_den: "狼窝",
 };
 const EVENT_KIND_LABELS = { landmark: "地标", gathering: "采集", encounter: "相遇", hazard: "险情", omen: "征兆", festival: "节庆" };
 const SEASON_LABELS = { any: "四季", spring: "春", summer: "夏", autumn: "秋", winter: "冬" };

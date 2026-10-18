@@ -66,7 +66,7 @@
 | `modules/world-vegetation` | 植被 | `world-vegetation` (`worldVegetationModule`) | `world.vegetation` | `world.geography`, `world.climate-profile`, `world.hydrology-state`, `world.ecology-state` | contracts, module-world-climate, module-world-ecology, module-world-geography, module-world-hydrology |
 | `modules/world-weather` | 天气 | `world-weather` (`worldWeatherModule`) | `world.weather-current` | `world.geography`, `world.climate-profile` | contracts, module-world-climate, module-world-geography |
 
-### Content Pack · 具体内容（6）
+### Content Pack · 具体内容（7）
 
 | 目录 | 名称 | 模块 id（导出） | provides | requires | 依赖（workspace） |
 | --- | --- | --- | --- | --- | --- |
@@ -76,6 +76,7 @@
 | `modules/settlement-life` | 聚落生活活动 | `settlement-life` (`settlementLifeModule`) | `life.settlement-playable` | `life.population`, `family.relationship_provider`, `practice.runtime`, `craft.pottery-practice` | contracts, life-contracts, module-craft-pottery, module-practice-runtime |
 | `modules/settlement-locations` | 河岸聚落 | `settlement-locations` (`settlementLocationsModule`) | `life.settlement` | `world.space`, `world.objects`, `time.life-scale` | contracts, life-contracts, module-world-objects, module-world-space |
 | `modules/village-stories` | 村中故事 | `village-stories` (`villageStoriesModule`) | `settlement.stories` | `life.settlement` | contracts, life-contracts, module-settlement-locations, module-world-objects, module-world-space |
+| `modules/world-species` | 物种 | `xia-fauna` (`xiaFaunaModule`) | — | `world.vegetation`, `world.species` | contracts, module-world-climate, module-world-ecology, module-world-geography, module-world-hydrology, module-world-vegetation |
 
 ## apps/ · 应用
 

@@ -1,0 +1,86 @@
+# 事件点：地点上的可写内容（地标、季节采集点、遭遇、险情、征兆、节庆）。
+# 由 map-pack 加载器校验 location_id / kind / season；注册地图包不会自动触发它们。
+event_points:
+  - id: EP_CHESTNUT_FALL
+    name: 栗子落地
+    location_id: N0102
+    kind: gathering
+    season: autumn
+    text: 霜降前后，老栗树林一夜之间落满刺壳。拿脚踩开、木棍拨出，一个上午能背回一袋。要赶在野猪和鹿前头。
+
+  - id: EP_DEER_DRINK
+    name: 鹿群饮水
+    location_id: N0103
+    kind: encounter
+    season: any
+    text: 天刚亮和日落前，鹿群会下到鹿饮洼喝水。领头的公鹿总是最后一个低头。蹲在下风处不动，能看很久。
+
+  - id: EP_BOAR_SOW
+    name: 护崽的母野猪
+    location_id: N0104
+    kind: hazard
+    season: spring
+    text: 春天野猪拱地带崽，母猪护崽时会不要命地冲人。看见被拱翻的新土和蹭秃的树皮，就绕到上风处走。
+
+  - id: EP_FLINT_SEAM
+    name: 燧石夹层
+    location_id: N0201
+    kind: gathering
+    season: any
+    text: 卵石滩的浅水里，敲起来声音发脆、断口像贝壳的就是燧石。开春崖壁化冻塌落后，新石头最多。
+
+  - id: EP_KNAPPING_FLOOR
+    name: 先人的打石场
+    location_id: N0202
+    kind: landmark
+    season: any
+    text: 崖下的沙地里埋着厚厚一层碎石片，比任何人记得的都早。打石的人到这里，会先在旧石片上敲三下，算是打招呼。
+
+  - id: EP_OLD_TURTLE
+    name: 鳖潭老鳖
+    location_id: N0203
+    kind: omen
+    season: summer
+    text: 鳖潭深处住着一只背甲长满青苔的老鳖。守祠人说它是河神看门的；它浮上来晒背的那年，河水不涨也不断。
+
+  - id: EP_OTTER_ISLET
+    name: 獭祭鱼
+    location_id: N0204
+    kind: encounter
+    season: spring
+    text: 开春水獭在獭洲上把捕到的鱼一条条摆开，像在祭祀。老人说看见獭祭鱼，就该准备下网了。
+
+  - id: EP_FOG_GATE
+    name: 雾岭起雾
+    location_id: N0301
+    kind: hazard
+    season: autumn
+    text: 秋冬的午后，雾会从岭上一路漫下来，半个时辰就看不清脚下。猎人的规矩：雾起就往回走，不管追到哪儿。
+
+  - id: EP_SHAN_SAO
+    name: 山臊唤名
+    location_id: N0302
+    kind: omen
+    season: any
+    text: 雷劈树附近起雾时，有人听见雾里有人叫自己的名字，声音像家里人。老人说那是山臊，独脚、怕爆竹般的噼啪声，千万别应。
+
+  - id: EP_WOLF_DEN
+    name: 狼窝
+    location_id: N0303
+    kind: hazard
+    season: winter
+    text: 狼窝坡的石缝里有狼过冬。大雪封山那几天，狼群会沿着河滩下到北坡，叼走熏架上的肉。
+
+  - id: EP_HUNTERS_VIGIL
+    name: 初猎守夜
+    location_id: N0102
+    kind: festival
+    season: winter
+    text: 冬至前后，年轻人第一次独自猎到鹿，要在老栗树下守一夜火，把鹿骨刻上记号挂在树上。整片林子的老树上都挂着这样的骨片。
+
+  - id: EP_RIDGE_PASS
+    name: 北岭垭口
+    location_id: N0304
+    kind: landmark
+    season: any
+    text: 垭口上堆着一座谁也说不清来历的石堆，翻过去的人都会添一块石头。往北再走，就没有人回来讲过了。

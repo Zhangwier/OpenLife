@@ -46,6 +46,8 @@ const P = {
 const PLACE = {
   "place:yard": "house", "place:hearth-yard": "flame", "place:river": "waves", "place:field": "sprout",
   "place:kiln": "kiln", "place:claypits": "clay", "place:reedbed": "reeds", "place:ford": "bridge",
+  "place:longhouse": "house", "place:weaving-shed": "weave", "place:shrine": "bowl", "place:market": "swap",
+  "place:chestnut-wood": "sprout", "place:stone-beach": "hammer",
 };
 // Spaces inside a place, matched by the words of their name.
 const SPACE_WORDS = [[/寝|卧|床/, "bed"], [/粮|仓/, "granary"], [/架|晾/, "rack"]];

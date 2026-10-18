@@ -1,0 +1,12 @@
+# 三个区域：由南向北，从走廊口的缓坡上到栗林，再沿河上溯到石滩，最后进入雾岭。
+# 与 v0.1 规范一致，区域只记录身份；气候、物种、资源属于其他模块。
+regions:
+  - id: N01
+    name: 栗林北坡
+    type: chestnut_slope
+  - id: N02
+    name: 上游石滩
+    type: stone_bar_reach
+  - id: N03
+    name: 雾岭
+    type: misty_ridge

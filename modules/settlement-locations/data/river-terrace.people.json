@@ -415,6 +415,11 @@
         "relation": "一起看着芦苇滩的",
         "warmth": 3,
         "line": "{name}说：“阿苇说得对，苇子不能这么割了。”"
+      },
+      "weaver": {
+        "relation": "一起沤麻的姐妹",
+        "warmth": 4,
+        "line": "{name}说：“阿缫的线纺得匀，我眼神不好了，全靠她。”"
       }
     },
     "court": {
@@ -486,6 +491,11 @@
       "lan-mother": {
         "relation": "懂他的人",
         "warmth": 3
+      },
+      "hunter": {
+        "relation": "常一起拾柴的伴",
+        "warmth": 2,
+        "line": "{name}说：“阿犴进林子从不说话，跟他拾柴省心。”"
       }
     },
     "court": {
@@ -972,6 +982,11 @@
       "water-child": {
         "relation": "小听众",
         "warmth": 4
+      },
+      "market-keeper": {
+        "relation": "带出来的后生",
+        "warmth": 3,
+        "line": "{name}说：“阿贾那小子，嗓门比我年轻时还大。”"
       }
     }
   },
@@ -1108,6 +1123,355 @@
         "relation": "抢河湾地方的对头",
         "warmth": -2,
         "line": "{name}皱眉：“阿苇总说我敲石头吓跑了苇滩的鸟。”"
+      }
+    }
+  },
+  "weaver": {
+    "sex": "female",
+    "loves": [
+      "resource:fiber",
+      "resource:hide"
+    ],
+    "likes": [
+      "resource:cloth",
+      "resource:cooked"
+    ],
+    "dislikes": [
+      "resource:clay"
+    ],
+    "birthday": {
+      "month": 9,
+      "day": 9
+    },
+    "giftLines": {
+      "love": "{name}把{item}捻在指间搓了搓，眼睛亮了：“好东西，够我织半天的。”",
+      "dislike": "{name}往后缩了缩手：“泥巴沾上线就洗不掉了，你收着吧。”"
+    },
+    "seasons": {
+      "春": [
+        "{name}挽着袖子在沤麻池边：“开春的麻嫩，沤出来的线最白。”"
+      ],
+      "夏": [
+        "{name}坐在纺线廊的阴凉里，纺轮转个不停：“夏天线干得快，得多纺些。”"
+      ],
+      "秋": [
+        "{name}把新麻一把把捶开：“秋麻韧，织冬衣正好。”"
+      ],
+      "冬": [
+        "{name}在织机前搓着冻红的手：“冬天谁家缺衣裳，我心里都有数。”"
+      ]
+    },
+    "happy": [
+      "{name}一边织一边哼着长屋里传下来的织布调。"
+    ],
+    "low": [
+      "{name}对着织坏的一截布发呆，半天没动梭子。"
+    ],
+    "heartEvents": [
+      {
+        "hearts": 2,
+        "text": "{name}拉过你的袖子量了量：“你这件太短了，入冬前我给你织一件。”"
+      },
+      {
+        "hearts": 5,
+        "text": "{name}说起她娘：“我娘在下游的织坊做了一辈子，大水来那年，织机连人一起冲走了。我只抢出来这只纺轮。”"
+      },
+      {
+        "hearts": 8,
+        "text": "{name}把一块织着水波纹的布塞给你：“这个花样只有我娘会，现在你也有一块了。别弄丢。”"
+      }
+    ],
+    "ties": {
+      "lan-mother": {
+        "relation": "一起沤麻的姐妹",
+        "warmth": 4,
+        "line": "{name}说：“岚母的手比我还巧，就是眼睛不如从前了。”"
+      },
+      "market-keeper": {
+        "relation": "长屋的邻居",
+        "warmth": 2,
+        "line": "{name}说：“阿贾那张嘴，隔着一道墙都吵得我数错线。”"
+      }
+    },
+    "court": {
+      "accept": "{name}低头把手里的线绕成一团，好一会儿才说：“那……往后你的衣裳都归我织。”",
+      "notYet": "{name}没抬头：“我还没织完这匹布。等织完了，你再问一遍。”"
+    }
+  },
+  "hunter": {
+    "sex": "male",
+    "loves": [
+      "resource:smoked-meat",
+      "resource:stone"
+    ],
+    "likes": [
+      "resource:rope",
+      "resource:chestnut"
+    ],
+    "dislikes": [
+      "resource:bowl"
+    ],
+    "birthday": {
+      "month": 11,
+      "day": 3
+    },
+    "giftLines": {
+      "love": "{name}掂了掂{item}，难得咧嘴笑了：“这个好。进山的人就缺这个。”",
+      "dislike": "{name}把陶碗推回来：“山里带不了这么脆的东西，一摔就碎。”"
+    },
+    "seasons": {
+      "春": [
+        "{name}蹲在林缘看新冒的脚印：“开春母鹿带崽，这阵子不打鹿。”"
+      ],
+      "夏": [
+        "{name}抹着汗劈木料：“夏天林子里蚊子比兔子多。”"
+      ],
+      "秋": [
+        "{name}背着一袋栗子下山：“栗子落了，鹿和野猪都要下来抢，得赶在它们前头。”"
+      ],
+      "冬": [
+        "{name}拍掉身上的雪：“冬天下套最准，兔子饿了，胆子就大。”"
+      ]
+    },
+    "happy": [
+      "{name}吹着骨哨从林子里出来，一路都没停。"
+    ],
+    "low": [
+      "{name}坐在窝棚门口擦弓，一句话也不说。"
+    ],
+    "heartEvents": [
+      {
+        "hearts": 2,
+        "text": "{name}在林缘停下，指着一棵树皮被蹭秃的橡树：“野猪蹭痒的地方。看见这种树，就绕着走。”"
+      },
+      {
+        "hearts": 5,
+        "text": "{name}望着北坡深处：“我爹是在雾岭那边没的。那天起了大雾，他说听见有人叫他名字，就往雾里去了。”"
+      },
+      {
+        "hearts": 8,
+        "text": "{name}把一块刻着鹿的骨片给你：“这是我第一头鹿的骨头。猎人只给一个人看这个。”"
+      }
+    ],
+    "ties": {
+      "shrine-keeper": {
+        "relation": "舅舅",
+        "warmth": 3,
+        "line": "{name}说：“舅舅老念叨让我别进雾岭。我知道，我就是想去看看。”"
+      },
+      "reed-worker": {
+        "relation": "常一起拾柴的伴",
+        "warmth": 2,
+        "line": "{name}说：“阿苇的柴捆打得最紧，我学不来。”"
+      }
+    }
+  },
+  "shrine-keeper": {
+    "sex": "male",
+    "loves": [
+      "resource:bowl",
+      "resource:herb"
+    ],
+    "likes": [
+      "resource:cooked",
+      "resource:water"
+    ],
+    "dislikes": [
+      "resource:game"
+    ],
+    "birthday": {
+      "month": 6,
+      "day": 6
+    },
+    "giftLines": {
+      "love": "{name}捧着{item}看了很久：“这个，配得上祭台。”",
+      "dislike": "{name}摇摇头：“祠前不见血。拿去给阿犴吧。”"
+    },
+    "seasons": {
+      "春": [
+        "{name}在祠前插新苇：“春社快到了，各家的记号都该刻新的了。”"
+      ],
+      "夏": [
+        "{name}量着河边的石阶：“水涨到第三级了，再涨就要祭河。”"
+      ],
+      "秋": [
+        "{name}把晒干的草药收进祖骨龛：“秋天收的药，是留给冬天的。”"
+      ],
+      "冬": [
+        "{name}守着祠里一盏小火：“冬夜最长，总得有人醒着。”"
+      ]
+    },
+    "happy": [
+      "{name}坐在祠前，用指头敲着膝盖数一年的好日子。"
+    ],
+    "low": [
+      "{name}对着祖骨龛低声说了很久的话。"
+    ],
+    "heartEvents": [
+      {
+        "hearts": 2,
+        "text": "{name}领你看祠前一块刻满横道的石头：“一道是一年。这一道，是大水的那年。”"
+      },
+      {
+        "hearts": 5,
+        "text": "{name}说：“我年轻时也想走，去下游、去南岸。后来我姐姐走了，我就留下来守着，替她记着这里。”"
+      },
+      {
+        "hearts": 8,
+        "text": "{name}在社木的草图上给你留了一块空：“这一块，以后刻你的记号。你已经是这里的人了。”"
+      }
+    ],
+    "ties": {
+      "hunter": {
+        "relation": "外甥",
+        "warmth": 4,
+        "line": "{name}说：“那孩子跟他爹一个样，越不让去的地方越想去。”"
+      },
+      "trader-elder": {
+        "relation": "一起讲古的老伙计",
+        "warmth": 3,
+        "line": "{name}说：“埴公讲的古，一半是真的，一半是他想要是真的。”"
+      }
+    }
+  },
+  "market-keeper": {
+    "sex": "male",
+    "loves": [
+      "resource:salt",
+      "resource:jar"
+    ],
+    "likes": [
+      "resource:mat",
+      "resource:smoked-meat"
+    ],
+    "dislikes": [
+      "resource:reed"
+    ],
+    "birthday": {
+      "month": 5,
+      "day": 13
+    },
+    "giftLines": {
+      "love": "{name}掂着{item}直点头：“好货！拿到集上能换三样东西。”",
+      "dislike": "{name}笑着摆手：“苇子满滩都是，换不出价，你留着编席吧。”"
+    },
+    "seasons": {
+      "春": [
+        "{name}扯着嗓子吆喝：“开春了，谁家有种子换的，都拿来！”"
+      ],
+      "夏": [
+        "{name}在摊棚下扇着扇子：“南岸的船快来了，我得先把摊位排好。”"
+      ],
+      "秋": [
+        "{name}数着秋收换来的东西：“今年粟多，盐就贵了。”"
+      ],
+      "冬": [
+        "{name}守着冷清的摊位：“冬天集上人少，可越少的时候，越有人急着要东西。”"
+      ]
+    },
+    "happy": [
+      "{name}敲着秤石唱起了南岸的号子。"
+    ],
+    "low": [
+      "{name}对着空摊位叹气：“今天一桩也没成。”"
+    ],
+    "heartEvents": [
+      {
+        "hearts": 2,
+        "text": "{name}悄悄跟你说：“秤石是我自己磨的，一点不差。做买卖的人，秤就是脸。”"
+      },
+      {
+        "hearts": 5,
+        "text": "{name}说起南岸：“我是从南岸撑独木舟过来的，舟后来沉了。我没回去，在这儿摆了第一个摊。”"
+      },
+      {
+        "hearts": 8,
+        "text": "{name}把一枚穿孔的海贝塞给你：“南岸人认这个。哪天你过河，拿给他们看，就说是阿贾的朋友。”"
+      }
+    ],
+    "ties": {
+      "trader-elder": {
+        "relation": "带他入行的老人",
+        "warmth": 4,
+        "line": "{name}说：“埴公教我的头一句话：东西会说谎，人不能。”"
+      },
+      "weaver": {
+        "relation": "长屋的邻居",
+        "warmth": 2,
+        "line": "{name}说：“阿缫嫌我吵。可她织的布，十匹有九匹是我帮着换出去的。”"
+      },
+      "longhouse-matron": {
+        "relation": "母亲",
+        "warmth": 4,
+        "line": "{name}说：“我娘那火塘，比我的集还热闹。”"
+      }
+    }
+  },
+  "longhouse-matron": {
+    "sex": "female",
+    "loves": [
+      "resource:game",
+      "resource:fuel"
+    ],
+    "likes": [
+      "resource:salt",
+      "resource:chestnut"
+    ],
+    "dislikes": [
+      "resource:clay"
+    ],
+    "birthday": {
+      "month": 1,
+      "day": 20
+    },
+    "giftLines": {
+      "love": "{name}接过{item}，眉开眼笑：“好！今晚火塘边又能多几个人吃饱。”",
+      "dislike": "{name}瞅了瞅：“泥巴我可熏不熟。拿去给陶叔吧。”"
+    },
+    "seasons": {
+      "春": [
+        "{name}把熏架上剩下的最后几条肉取下来：“开春了，这些分给下地的人。”"
+      ],
+      "夏": [
+        "{name}在长屋门口晾着草席：“夏天火塘只留一点火种，人都去河边睡了。”"
+      ],
+      "秋": [
+        "{name}一条条往熏架上挂野味：“秋天挂上去的，冬天才吃得上。”"
+      ],
+      "冬": [
+        "{name}守着火塘添柴：“冬夜长，火不能断，断了就有人冻着。”"
+      ]
+    },
+    "happy": [
+      "{name}一边翻肉一边哼着长屋里谁都会唱的老调。"
+    ],
+    "low": [
+      "{name}对着半空的熏架发愁：“今年冬天怕是不够。”"
+    ],
+    "heartEvents": [
+      {
+        "hearts": 2,
+        "text": "{name}从熏架上取下一小条肉塞给你：“路上嚼。别跟阿贾说，他要拿去换盐的。”"
+      },
+      {
+        "hearts": 5,
+        "text": "{name}说起南岸：“我是跟阿贾他爹撑独木舟过来的。舟沉了，他爹没上来。我带着阿贾，在这儿生了第一堆火。”"
+      },
+      {
+        "hearts": 8,
+        "text": "{name}把一根磨得发亮的火棍交给你：“这是长屋第一堆火用的。往后我老了，火塘就交给你照看。”"
+      }
+    ],
+    "ties": {
+      "market-keeper": {
+        "relation": "儿子",
+        "warmth": 4,
+        "line": "{name}说：“阿贾那张嘴随他爹，心倒是随我。”"
+      },
+      "weaver": {
+        "relation": "长屋的邻居",
+        "warmth": 3,
+        "line": "{name}说：“阿缫那孩子话少，可她织的布，长屋每个人身上都有一件。”"
       }
     }
   }

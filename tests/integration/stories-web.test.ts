@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { RIVER_TERRACE_PACK } from "@openlife/module-settlement-locations";
 import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -61,7 +62,7 @@ test("Web: the 故事 page's quests and dialogue run end to end over HTTP", { ti
     assert.ok(s.guide && (s.guide.focus || s.guide.suggestions.length >= 0), "the 今日指引 rides on every state");
     assert.ok(s.guide.suggestions.length <= 3);
     assert.ok(Array.isArray(s.guide.blocked) && Array.isArray(s.guide.tomorrow));
-    assert.equal(s.stories.people.villagers.length, 16, "the 故事 page lists every villager with tier and ties");
+    assert.equal(s.stories.people.villagers.length, RIVER_TERRACE_PACK.residents.length, "the 故事 page lists every villager with tier and ties");
     assert.ok(s.stories.people.villagers.some((v: any) => v.special === "巫医"));
     const service = await act("village-stories.service.use", { serviceId: "divine" });
     assert.equal(service.result.ok, false, "a stranger cannot ask the healer to read tomorrow");
