@@ -17,7 +17,7 @@
 import type { CommandIntent, ConstraintOutcome, Effect, OpenLifeModule, WorldView } from "@openlife/contracts";
 import { occupiedPlaceId } from "@openlife/module-world-space";
 import { SettlementComponents, SettlementId, feastOn, isIll, residentId } from "@openlife/module-settlement-locations";
-import { STORY_PACK, storyPackProblems, type QuestSpec } from "./spec.ts";
+import { STORY_PACK, saidFlag, storyPackProblems, type QuestSpec } from "./spec.ts";
 import { bondsProblems } from "./bonds.ts";
 import { dailyGuide, guideProblems } from "./guide.ts";
 import {
@@ -188,7 +188,7 @@ export const villageStoriesModule: OpenLifeModule = {
         const q = quest(str(c, "questId"))!;
         const first = q.steps[0]!;
         out.j = { ...out.j, quests: { ...out.j.quests, [q.id]: { status: "active", step: 0, base: baseFor(c.world, out.me, out.j, first.objective), startedAt: out.tick } } };
-        out.say("village-stories.quest_accepted", `${q.acceptLine}（「${q.title}」：${first.text}）`, { questId: q.id, kind: q.kind },
+        out.say("village-stories.quest_accepted", `${q.acceptLine}${first.intro ?? ""}（「${q.title}」：${first.text}）`, { questId: q.id, kind: q.kind },
           q.giver ? residentId(q.giver) : undefined);
       });
 
@@ -215,6 +215,7 @@ export const villageStoriesModule: OpenLifeModule = {
         if (str(c, "node") && str(c, "node") !== at.id) return "话头已经变了，重新听一遍";
         const option = at.node.options.find((o) => o.id === str(c, "option"));
         if (!option) return "没有这句话";
+        if (option.once && j.flags.includes(saidFlag(key, at.id, option.id))) return "这话已经说过了";
         return meets(c.world, me, j, option.requires, key);
       },
       (c, out) => {
@@ -227,6 +228,9 @@ export const villageStoriesModule: OpenLifeModule = {
           out.bond(key, option.effects?.bond, `对话：${option.label}`);
           out.j = { ...out.j, bonds: { ...out.j.bonds, chatDay: { ...out.j.bonds.chatDay, [key]: out.tick } } };
         }
+        // Words that travel: praise reaches a friend, a slight reaches a rival. Once-only words always land.
+        if (warms || option.once) for (const [k, b] of Object.entries(option.effects?.bondOthers ?? {})) out.bond(k, b, `${npcName(key)}那里的话传到了耳朵里`);
+        if (option.once) { out.flag(saidFlag(key, at.id, option.id)); out.count("heart-to-heart"); }
         out.flag(...(option.effects?.setFlags ?? []));
         out.count("dialogue");
         const next = option.next ?? at.tree.start;
@@ -350,7 +354,7 @@ export function storyView(world: WorldView, me: string) {
       id: q.id, kind: q.kind, chapter: q.chapter ?? null, title: q.title, summary: q.summary,
       giver: q.giver ?? null, giverName: q.giver ? npcName(q.giver) : null,
       status: state?.status ?? "available",
-      step: step ? { id: step.id, text: step.text, done: p?.done ?? 0, target: p?.target ?? 1, index: state!.step, of: q.steps.length,
+      step: step ? { id: step.id, text: step.text, intro: step.intro ?? null, done: p?.done ?? 0, target: p?.target ?? 1, index: state!.step, of: q.steps.length,
         deliver: o?.type === "deliver" ? { npc: o.npc, npcName: npcName(o.npc), resources: [o.resource].flat() } : null,
         turnIn: o?.type === "deliver" ? { enabled: !turnInProblem(world, me, j, q), reason: turnInProblem(world, me, j, q) } : null } : null,
       accept: state ? null : { enabled: !acceptProblem(world, me, j, q), reason: acceptProblem(world, me, j, q) },
@@ -364,9 +368,9 @@ export function storyView(world: WorldView, me: string) {
       return {
         npc: key, name: npcName(key), hearts: heartsWith(world, key, me), node: at.id, text: at.node.text,
         remark: remarkFor(world, me, key, j.bonds.reconciled) || null,
-        options: at.node.options.map((o) => {
+        options: at.node.options.filter((o) => !(o.once && j.flags.includes(saidFlag(key, at.id, o.id)))).map((o) => {
           const why = withMe(world, me, key) || meets(world, me, j, o.requires, key);
-          return { id: o.id, label: o.label, enabled: !why, reason: why };
+          return { id: o.id, label: o.label, enabled: !why, reason: why, once: Boolean(o.once) };
         }),
       };
     });

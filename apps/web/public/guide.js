@@ -14,7 +14,7 @@ function act(a) {
   return a ? `<button class="guide-go" data-guide-action="${html(a.type)}" data-guide-payload="${enc(a.payload)}">${html(a.label)}</button>` : "";
 }
 function item(s, lead) {
-  return `<li class="guide-item${lead ? " is-focus" : ""}" data-kind="${html(s.kind)}"><div><strong>${html(s.title)}</strong><p>${html(s.why)}</p></div>${act(s.action)}</li>`;
+  return `<li class="guide-item${lead ? " is-focus" : ""}" data-kind="${html(s.kind)}"><div><strong>${html(s.title)}</strong><p>${html(s.why)}</p></div>${s.options?.length > 1 ? `<div class="guide-options">${s.options.map((o) => o.action ? act(o.action) : `<small title="${html(o.reason)}">${html(o.label)}：${html(o.reason)}</small>`).join("")}</div>` : act(s.action)}</li>`;
 }
 
 export function renderGuide(state, perform) {

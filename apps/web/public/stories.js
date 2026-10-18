@@ -29,7 +29,10 @@ function peopleSection(p) {
   const rows = p.villagers.map((v) => `<li class="story-person${v.feud ? " is-feud" : ""}"><b>${html(v.name)}</b>${v.special ? `<span class="story-tag story-limited">${html(v.special)}</span>` : ""}
     <span class="story-tag">${html(v.feud ? "心存芥蒂" : v.tierName)}</span><small>${"♥".repeat(Math.min(10, v.hearts))}${v.nextTier ? ` · 再 ${v.nextTier.hearts - v.hearts} 颗心成「${html(v.nextTier.name)}」` : ""}</small>
     <small class="story-where">在${html(PLACE[v.placeId] ?? "家里")}${v.routine?.now ? ` · 这个时辰常在${html(PLACE[v.routine.now] ?? v.routine.now)}` : ""}</small>
-    <span class="story-ties">${v.relations.map((r) => `<i class="tie-${r.type}" title="${html(r.label)}">${TIE[r.type] ?? ""}·${html(r.name)}</i>`).join("")}</span></li>`).join("");
+    <span class="story-ties">${v.relations.map((r) => `<i class="tie-${r.type}" title="${html(r.label)}">${TIE[r.type] ?? ""}·${html(r.name)}</i>`).join("")}</span>
+    ${v.warmth ? `<details class="story-warmth"><summary>交情怎么涨 · 涨了有什么${v.warmth.next ? `（下一个：${html(v.warmth.next.tierName)}解锁${html(v.warmth.next.kind)}）` : ""}</summary>
+      <ul>${v.warmth.ways.map((w) => `<li>${html(w)}</li>`).join("")}</ul>
+      <ul class="story-unlocks">${v.warmth.unlocks.map((u) => `<li class="${u.reached ? "is-reached" : ""}${u.done ? " is-done" : ""}"><span class="story-tag">${html(u.tierName)}</span>${html(u.kind)}：${html(u.what)}${u.done ? " ✓" : u.reached ? "" : " 🔒"}</li>`).join("")}</ul></details>` : ""}</li>`).join("");
   return `${quarrel}<section class="panel story-people"><h3>村里的人 <small>${html(p.slot)} · ${html(p.weather)}</small></h3>
     <ul class="story-roster">${rows}</ul><h3>能人相助</h3>${services}<h3>最近的来往</h3>${log}</section>`;
 }
@@ -47,7 +50,7 @@ function questCard(q) {
   const tag = `<span class="story-tag story-${q.kind}">${KIND[q.kind] ?? q.kind}${q.chapter ? ` · 第${q.chapter}章` : ""}</span>`;
   if (q.status === "active" && q.step) {
     return `<article class="story-card">${tag}<h4>${html(q.title)}</h4><p>${html(q.summary)}</p>
-      <div class="story-step"><b>第 ${q.step.index + 1}/${q.step.of} 步</b> ${html(q.step.text)} ${q.step.deliver ? "" : bar(q.step.done, q.step.target)}</div>
+      ${q.step.intro ? `<p class="story-line">${html(q.step.intro)}</p>` : ""}<div class="story-step"><b>第 ${q.step.index + 1}/${q.step.of} 步</b> ${html(q.step.text)} ${q.step.deliver ? "" : bar(q.step.done, q.step.target)}</div>
       ${q.step.turnIn ? button(`交给${q.step.deliver.npcName}`, "village-stories.quest.turn_in", { questId: q.id }, q.step.turnIn.enabled, q.step.turnIn.reason) : ""}</article>`;
   }
   if (q.status === "available") {
@@ -89,7 +92,7 @@ export function renderStories(state, perform) {
       <p>${html(e.intro)}（${e.window.month} 月 ${e.window.from}–${e.window.to} 日 · ${html(PLACE[e.placeId] ?? e.placeId)}）</p>
       ${e.active ? (e.joined ? "<small>今年已经参加过了。</small>" : `<div class="story-choices">${e.offers.map((o) => button(o.label, "village-stories.event.join", { eventId: e.id, offerId: o.id }, o.enabled, o.reason)).join("")}</div>`) : ""}</article>`).join("")}</section>` : ""}
     <section class="panel story-dialogues"><h3>身边的人</h3>${s.dialogues.length ? s.dialogues.map((d) => `<article class="story-card story-talk"><h4>${html(d.name)} <small>${"♥".repeat(Math.min(10, d.hearts))}</small></h4><p class="story-line">${html(d.text)}</p>${d.remark ? `<p class="story-remark">${html(d.remark)}</p>` : ""}
-      <div class="story-choices">${d.options.map((o) => button(o.label, "village-stories.dialogue.choose", { npc: d.npc, node: d.node, option: o.id }, o.enabled, o.reason)).join("")}</div></article>`).join("") : "<p>这里没有能深谈的人。到村里别处走走，或者等他们过来。</p>"}</section>
+      <div class="story-choices">${d.options.map((o) => button(o.once ? `${o.label} ✦` : o.label, "village-stories.dialogue.choose", { npc: d.npc, node: d.node, option: o.id }, o.enabled, o.reason)).join("")}</div></article>`).join("") : "<p>这里没有能深谈的人。到村里别处走走，或者等他们过来。</p>"}</section>
     ${peopleSection(s.people)}
     <section class="panel story-quests"><h3>正在办的事</h3>${active.length ? active.map(questCard).join("") : "<p>手上没有正在办的事。</p>"}
       ${offers.length ? `<h3>可以接下的事</h3>${offers.map(questCard).join("")}` : ""}

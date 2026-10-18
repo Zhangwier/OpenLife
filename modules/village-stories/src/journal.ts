@@ -329,6 +329,8 @@ export class Outcome {
   advance(q: QuestSpec): void {
     const state = this.j.quests[q.id]!;
     const next = state.step + 1;
+    const was = q.steps[state.step];
+    if (was?.doneLine && was.objective.type !== "deliver") this.say("village-stories.quest_step_done", was.doneLine, { questId: q.id, step: was.id });
     if (next >= q.steps.length) {
       this.j = { ...this.j, quests: { ...this.j.quests, [q.id]: { ...state, status: "done", step: next, doneAt: this.tick } } };
       const got = this.reward(q.reward, `「${q.title}」办成了`);
@@ -340,7 +342,7 @@ export class Outcome {
     const step = q.steps[next]!;
     const base = baseFor(this.world, this.me, this.j, step.objective);
     this.j = { ...this.j, quests: { ...this.j.quests, [q.id]: { ...state, step: next, base } } };
-    this.say("village-stories.quest_step", `「${q.title}」下一步：${step.text}。`, { questId: q.id, step: step.id });
+    this.say("village-stories.quest_step", `${step.intro ? `${step.intro}` : ""}「${q.title}」下一步：${step.text}。`, { questId: q.id, step: step.id });
   }
 
   #settleQuests(): boolean {

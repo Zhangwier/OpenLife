@@ -54,17 +54,24 @@ export interface Reward {
   flags?: string[];
 }
 
-export interface QuestStep { id: string; text: string; objective: Objective; doneLine?: string }
+/** `intro` is told when the step begins; `doneLine` when it is done (a hand-over tells its own). */
+export interface QuestStep { id: string; text: string; objective: Objective; doneLine?: string; intro?: string }
 export interface QuestSpec {
   id: string; kind: "main" | "side"; chapter?: number; title: string;
   giver?: string; autoOffer?: boolean; requires?: Requirements;
   summary: string; acceptLine: string; steps: QuestStep[]; reward?: Reward; completeLine: string;
 }
 
+/**
+ * `once`: a thing said only once in a life (it then disappears, and sets the
+ * flag `said:<npc>.<node>.<option>`). `bondOthers`: what you say reaches other
+ * villagers too (praise travels to a friend, a slight to a rival).
+ */
 export interface DialogueOption {
-  id: string; label: string; next?: string; requires?: Requirements;
-  effects?: { bond?: BondChange; setFlags?: string[]; line?: string };
+  id: string; label: string; next?: string; requires?: Requirements; once?: boolean;
+  effects?: { bond?: BondChange; bondOthers?: Record<string, BondChange>; setFlags?: string[]; line?: string };
 }
+export const saidFlag = (npc: string, node: string, option: string) => `said:${npc}.${node}.${option}`;
 export interface DialogueTree { start: string; nodes: Record<string, { text: string; options: DialogueOption[] }> }
 
 /** A way to keep a feast. A feast may have several; the player keeps it once a year, in one of them. */
@@ -132,6 +139,9 @@ export function storyPackProblems(story: StoryPack = STORY_PACK, pack: Settlemen
   for (const i of story.incidents.list) for (const c of i.choices) for (const f of c.setFlags ?? []) settable.add(f);
   for (const t of BONDS_PACK.tierEvents) for (const f of t.reward?.flags ?? []) settable.add(f);
   for (const r of story.festivalRites) for (const f of r.reward?.flags ?? []) settable.add(f);
+  for (const [k, t] of Object.entries(story.dialogues)) for (const [nid, n] of Object.entries(t.nodes)) for (const o of n.options) if (o.once) settable.add(saidFlag(k, nid, o.id));
+  // Taking a side in (or settling) a quarrel between two villagers: quarrel:<a>~<b>:<a|b|mediate>, plus :sided for either side.
+  for (const e of BONDS_PACK.network) if (e.quarrel) for (const side of ["a", "b", "mediate", "sided"]) settable.add(`quarrel:${e.a}~${e.b}:${side}`);
 
   const npc = (key: string, where: string) => { if (!residents.has(key)) problems.push(`${where}: unknown resident ${key}`); };
   const item = (g: ItemGrant, where: string) => { if (!prototypes.has(g.prototype)) problems.push(`${where}: unknown prototype ${g.prototype}`); };
@@ -178,9 +188,11 @@ export function storyPackProblems(story: StoryPack = STORY_PACK, pack: Settlemen
     if (!tree.nodes[tree.start]) problems.push(`dialogue ${key}: start node ${tree.start} missing`);
     for (const [nodeId, node] of Object.entries(tree.nodes)) {
       if (!node.options.length) problems.push(`dialogue ${key}.${nodeId}: no options (dead end)`);
+      if (node.options.length && node.options.every((o) => o.once)) problems.push(`dialogue ${key}.${nodeId}: every option is once-only (would end as a dead end)`);
       for (const o of node.options) {
         if (o.next && !tree.nodes[o.next]) problems.push(`dialogue ${key}.${nodeId}.${o.id}: next ${o.next} missing`);
         requires(o.requires, `dialogue ${key}.${nodeId}.${o.id}`);
+        for (const k of Object.keys(o.effects?.bondOthers ?? {})) { npc(k, `dialogue ${key}.${nodeId}.${o.id}`); if (k === key) problems.push(`dialogue ${key}.${nodeId}.${o.id}: bondOthers names the speaker`); }
       }
     }
   }

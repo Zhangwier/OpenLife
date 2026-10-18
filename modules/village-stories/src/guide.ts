@@ -35,6 +35,8 @@ export interface Suggestion {
   id: string; kind: string; priority: number; title: string; why: string;
   /** A click that is valid right now, or null when only words help. */
   action: GuideAction | null;
+  /** Other ways to do the same thing today (every way to keep a feast): each a click, or the reason it can't be done yet. */
+  options?: { label: string; action: GuideAction | null; reason: string }[];
 }
 export interface Blocked { actionId: string; label: string; reason: string; next: string; action: GuideAction | null }
 
@@ -121,8 +123,8 @@ export function dailyGuide(world: WorldView, me: string, story: StoryView) {
   const tick = world.tick;
   const P = GUIDE_PACK.priorities;
   const out: Suggestion[] = [];
-  const add = (id: string, kind: string, text: { title: string; why: string }, action: GuideAction | null, priority = P[kind] ?? 0) =>
-    out.push({ id, kind, priority, ...text, action });
+  const add = (id: string, kind: string, text: { title: string; why: string }, action: GuideAction | null, priority = P[kind] ?? 0,
+    options?: Suggestion["options"]) => out.push({ id, kind, priority, ...text, action, ...(options ? { options } : {}) });
 
   if (h.exists) {
     // Body and strength.
@@ -136,8 +138,15 @@ export function dailyGuide(world: WorldView, me: string, story: StoryView) {
 
   // Today only: festival, incident, a limited event, a quarrel.
   if (story.festival && !story.festival.done) {
-    add(`festival:${story.festival.feast}`, "festival", say("festival", { name: story.festival.name, label: story.festival.label }),
-      story.festival.enabled ? { type: "village-stories.festival.rite", payload: {}, label: story.festival.label } : walkTo(h, story.festival.placeId));
+    // Every way to keep the feast, not only the first: each one doable now is a button; the rest say what they still need.
+    const f = story.festival;
+    const rites = f.rites?.length ? f.rites : [{ id: "", label: f.label, enabled: f.enabled, reason: f.reason }];
+    const riteAction = (r: { id: string; label: string }): GuideAction => ({ type: "village-stories.festival.rite", payload: r.id ? { riteId: r.id } : {}, label: r.label });
+    const options = rites.map((r) => ({ label: r.label, action: r.enabled ? riteAction(r) : null, reason: r.enabled ? "" : r.reason }));
+    const first = rites.find((r) => r.enabled);
+    const ways = rites.map((r) => r.enabled ? r.label : `${r.label}（${r.reason}）`).join("；");
+    add(`festival:${f.feast}`, "festival", say("festival", { name: f.name, label: rites.length > 1 ? `${rites.length} 种过法，选一种——${ways}` : f.label }),
+      first ? riteAction(first) : walkTo(h, f.placeId), undefined, options);
   }
   if (story.incident && !story.incident.resolved) {
     const c = story.incident.choices.find((x) => x.enabled);
@@ -248,7 +257,11 @@ export function tomorrowOf(world: WorldView, me: string, foresight: boolean): st
   const t = world.tick + 1;
   const lines: string[] = [];
   const feast = feastOn(t);
-  if (feast) lines.push(`明天是${feast.name}，记得去${PLACE_NAME[feast.placeId] ?? "过节的地方"}。`);
+  if (feast) {
+    const rites = STORY_PACK.festivalRites.filter((r) => r.feast === feast.id);
+    const prep = rites.map((r) => `${r.label}${r.requires?.resource ? `（备好${resourceLabel(r.requires.resource)}）` : ""}`).join("，或");
+    lines.push(`明天是${feast.name}，记得去${PLACE_NAME[feast.placeId] ?? "过节的地方"}${prep ? `：可以${prep}` : ""}。`);
+  }
   for (const e of STORY_PACK.limitedEvents) {
     const d = calendarDate(t);
     if (e.window.month === d.month && e.window.from === d.day) lines.push(`明天起${e.name}开始（${e.window.month}/${e.window.from}–${e.window.to}）。`);
