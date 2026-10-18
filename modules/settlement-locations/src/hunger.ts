@@ -3,6 +3,8 @@
  * much one portion of each food eases it.
  */
 
+import { RIVER_TERRACE_PACK } from "./content.ts";
+
 /** Hunger grows by one point every HUNGER_DAYS_PER_POINT days since the last meal, capped at 10. */
 export const HUNGER_DAYS_PER_POINT = 2;
 export function hungerAt(base: number, since: number, tick: number, daysPerPoint = HUNGER_DAYS_PER_POINT): number {
@@ -15,4 +17,6 @@ export function hungerAt(base: number, since: number, tick: number, daysPerPoint
  */
 export const HUNGER_EASED: Record<string, number> = {
   "resource:cooked": 4, "resource:millet-cake": 4, "resource:dried-fish": 3, "resource:grain": 2, "resource:fish": 2,
+  // Foods the content pack adds (chestnuts, smoked meat, ...), validated there.
+  ...(RIVER_TERRACE_PACK.food ?? {}),
 };

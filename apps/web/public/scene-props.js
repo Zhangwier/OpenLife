@@ -77,7 +77,13 @@ const slots={
  "place:field":{object:[[68,79],[79,74]],yield:[[47,72]]},
  "place:kiln":{object:[[58,76],[79,75]],yield:[[43,69]]},
  "place:claypits":{object:[[59,79]],yield:[[43,71]]},
- "place:ford":{object:[[60,79]],yield:[[40,70]]}
+ "place:ford":{object:[[60,79]],yield:[[40,70]]},
+ "place:longhouse":{object:[[34,78],[56,80],[76,76]],yield:[[48,72]]},
+ "place:weaving-shed":{object:[[40,78],[62,80],[80,74]],yield:[[28,72]]},
+ "place:shrine":{object:[[50,70],[30,80],[72,80]],yield:[[60,74]]},
+ "place:market":{object:[[30,78],[50,80],[70,78],[86,74]],yield:[[60,72]]},
+ "place:chestnut-wood":{object:[[58,80],[78,74]],yield:[[36,70],[70,66]]},
+ "place:stone-beach":{object:[[62,80]],yield:[[38,72]]}
 };
 export function slotFor(place,kind,index){
  const a=slots[place]?.[kind]||[[45,75],[70,75]];

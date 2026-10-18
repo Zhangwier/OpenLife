@@ -8,6 +8,7 @@
  * reads the sky goes through skyOn(), so swapping the source later is one place.
  */
 import { DAYS_PER_MONTH } from "@openlife/life-contracts";
+import { RIVER_TERRACE_PACK } from "./content.ts";
 
 export type Sky = "晴" | "阴" | "雨" | "雪";
 
@@ -40,7 +41,8 @@ export function isWet(day: number): boolean {
 }
 
 /** Outdoor places where rain and snow make work heavier. */
-export const OUTDOOR_PLACES = new Set(["place:field", "place:reedbed", "place:claypits", "place:river", "place:ford"]);
+export const OUTDOOR_PLACES = new Set(["place:field", "place:reedbed", "place:claypits", "place:river", "place:ford",
+  ...RIVER_TERRACE_PACK.places.filter((p) => p.outdoor).map((p) => p.id)]);
 
 export const SKY_NOTE: Record<Sky, string> = {
   "晴": "天晴，适合下地和烧窑。",

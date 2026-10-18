@@ -12,6 +12,8 @@ const PLACE_AMBIENCE = {
   "place:river": "water", "place:ford": "water", "place:reedbed": "reeds",
   "place:hearth-yard": "fire", "place:kiln": "fire", "place:field": "wind",
   "place:claypits": "wind", "place:yard": "yard",
+  "place:longhouse": "fire", "place:weaving-shed": "yard", "place:shrine": "water", "place:market": "yard",
+  "place:chestnut-wood": "wind", "place:stone-beach": "water",
 };
 const hz = m => 440 * Math.pow(2, (m - 69) / 12);
 

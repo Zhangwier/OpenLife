@@ -1,0 +1,7 @@
+id: xia_north_woods_v0_1
+name: 北坡栗林与雾岭
+display_name: 北坡栗林与雾岭
+version: 0.1.0
+schema_version: "0.1"
+type: map_pack
+description: 夏境以北的林地扩展包。从北部陆路走廊上坡，经过栗树成林的北坡、上游的卵石河滩，进入常年起雾的雾岭。附带事件点文件 map/event_points.yaml（含猎物、野兽与山臊传说）。

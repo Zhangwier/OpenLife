@@ -1786,7 +1786,7 @@ const PURPOSE: Record<string, string> = {
   "place:kiln": "烧制陶器",
   "place:claypits": "取黏土",
   "place:reedbed": "割芦苇与柴草",
-  "place:ford": "过河与交换",
+  "place:ford": "过河与交换", ...Object.fromEntries(RIVER_TERRACE_PACK.places.filter((p) => p.purpose).map((p) => [p.id, p.purpose!])),
 };
 
 function homesteadActions(
@@ -3460,7 +3460,7 @@ export function prototypeForResource(resourceId: string): string {
     "resource:reed": "prototype:reed-bundle",
     "resource:cooked": "prototype:cooked-food",
     "resource:fish": "prototype:fish",
-    "resource:fiber": "prototype:fiber-bundle",
+    "resource:fiber": "prototype:fiber-bundle", ...(RIVER_TERRACE_PACK.rawPrototypes ?? {}),
   };
   return mapping[resourceId] ?? "prototype:grain";
 }
