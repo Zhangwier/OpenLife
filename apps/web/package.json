@@ -49,6 +49,7 @@
     "@openlife/module-civilization": "*",
     "@openlife/module-world-deposits": "*",
     "@openlife/module-culture": "*",
-    "@openlife/module-economy": "*"
+    "@openlife/module-economy": "*",
+    "@openlife/module-travel": "*"
   }
 }
