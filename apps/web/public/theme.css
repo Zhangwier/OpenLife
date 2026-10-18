@@ -503,8 +503,17 @@ body[data-screen="activities"] .page-heading { display: none; }
 }
 .choice-card .choice-label .ol-icon { width: 19px; height: 19px; flex-shrink: 0; color: var(--primary); }
 .choice-card .choice-cost { font-size: var(--fs-fine); color: var(--muted); line-height: var(--lh-ui); }
-/* 世界给出的原因（"会得罪阿石"这类）比"要花多久"更值得读，给一点重量。 */
-.choice-card .choice-cost.is-reason { color: var(--accent-ink); }
+/*
+ * 原因与成本是两层信息，各答一个问题，不互相顶掉。
+ * 原因在前（为什么值得做），成本在后（要付出什么），字重与颜色区分开。
+ */
+.choice-card .choice-reason {
+  display: block;
+  font-size: var(--fs-fine);
+  color: var(--accent-ink);
+  line-height: var(--lh-ui);
+}
+/* 世界给出的原因（"会得罪阿石"这类）比"要花多久"更值得读，给一点重量。 */.choice-card .choice-cost.is-reason { color: var(--accent-ink); }
 .choice-card .choice-cost.is-muted { color: var(--muted); }
 /* 禁用：灰掉但不降透明度（深色下会读不出），并写明原因，绝不只靠颜色区分。 */
 .choice-card:disabled {

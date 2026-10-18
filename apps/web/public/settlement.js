@@ -202,13 +202,18 @@ function renderInSceneMenu(s, heading, candidates, onAction) {
       : Number(action.days) > 0 ? (Number(action.days) === 1 ? "要过一夜" : `要过 ${Number(action.days)} 夜`)
       : "随手就做";
     const hint = String(action.hint || "").trim();
-    // 第二行：有 hint 用 hint（那是世界里真实的原因），没有才退回时间成本。
-    const costLine = hint || pace;
-    const costTone = why ? "is-muted" : hint ? "is-reason" : "";
+    /*
+     * 原因和成本是两件事，各答一个问题：「为什么做」「要付出什么」。
+     * 以前写成 `hint || pace`，有原因就把成本顶掉了，玩家看不到要花多少时间；
+     * 反过来只给成本，又不知道为什么值得。两行都留，各占一行的位置。
+     */
+    const reasonLine = hint;
+    const costLine = pace;
     return '<button type="button" class="choice-card' + (primary ? ' is-primary' : "") + '" data-scene-quick="' + i + '"' +
       (why ? ' disabled aria-disabled="true" aria-label="' + esc(label) + '（' + esc(why) + '）"' : '') + '>' +
       '<span class="choice-label">' + icon(actionIconName(action)) + '<span>' + esc(label) + '</span></span>' +
-      '<span class="choice-cost ' + costTone + '">' + esc(costLine) + '</span>' +
+      (reasonLine ? '<span class="choice-reason">' + esc(reasonLine) + '</span>' : "") +
+      '<span class="choice-cost">' + esc(costLine) + '</span>' +
       (why ? '<span class="choice-blocker">' + esc(why) + '</span>' : "") +
       '</button>';
   };
