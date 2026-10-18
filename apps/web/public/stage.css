@@ -13,12 +13,12 @@
   padding: 19px 26px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
   color: #fff1d6; pointer-events: none;}
 .scene-stage-top>div {display: grid; gap: 4px;}
-.scene-stage-kicker {font-size: 10px; font-weight: 650; letter-spacing: .18em; color: #d9d8bb;}
+.scene-stage-kicker {font-size: 12px; font-weight: 650; letter-spacing: .18em; color: #d9d8bb;}
 .scene-stage-top strong {font: 500 clamp(26px, 3.1vw, 39px)/1.2 "Noto Serif SC","SimSun",serif; letter-spacing: .09em; text-shadow: 0 2px 18px #081d19;}
-.scene-stage-season {font-size: 11px; white-space: nowrap; border: 1px solid #f5e4c761; border-radius: 30px; background: #0e261f75; padding: 7px 11px;}
+.scene-stage-season {font-size: 12px; white-space: nowrap; border: 1px solid #f5e4c761; border-radius: 30px; background: #0e261f75; padding: 7px 11px;}
 .scene-theater .scene-stage-foot {position: absolute; z-index: 5; bottom: 0; left: 0; right: 0;
   display: flex; justify-content: space-between; align-items: flex-end; gap: 8px;
-  padding: 24px 19px 16px; font-size: 11px; letter-spacing: .06em; color: #efe9d1; pointer-events: none;}
+  padding: 24px 19px 16px; font-size: 12px; letter-spacing: .06em; color: #efe9d1; pointer-events: none;}
 .scene-stage-foot span:first-child {opacity: .79;}
 .scene-theater .scene-hotspots {position: absolute; z-index: 3; inset: 0;}
 .painted-actor, .painted-avatar, .painted-item, .painted-resource, .painted-exit, .painted-feature {position: absolute; z-index: 2; appearance: none; font: inherit;}
@@ -41,10 +41,10 @@
 .painted-actor-name, .painted-avatar-name {background: #182922d9; color: #faf0d4; border: 1px solid #e3cb8b7a;
   border-radius: 40px; padding: 4px 11px; white-space: nowrap;
   font-size: 12px; font-weight: 650; line-height: 1.3; box-shadow: 0 3px 14px #13251c75;}
-.painted-actor-hint {color: #ecedd5; font-size: 9px; white-space: nowrap; text-shadow: 0 2px 4px #172518;}
+.painted-actor-hint {color: #ecedd5; font-size: 12px; white-space: nowrap; text-shadow: 0 2px 4px #172518;}
 .painted-item, .painted-resource, .painted-exit, .painted-feature {display: flex; gap: 5px; align-items: center; border: 1px solid #f0deaa72;
   border-radius: 40px; background: #142c23cd; color: #fdf2d6;
-  padding: 8px 12px; font-size: 11px; white-space: nowrap;
+  padding: 8px 12px; font-size: 12px; white-space: nowrap;
   backdrop-filter: blur(4px); box-shadow: 0 3px 16px #08130a70;
   transition: transform .2s ease, background .2s ease;}
 .painted-item:hover, .painted-resource:hover, .painted-exit:hover, .painted-feature:hover, .painted-item:focus-visible, .painted-resource:focus-visible, .painted-exit:focus-visible, .painted-feature:focus-visible {transform: translateY(-4px); background: #46624a; outline: 2px solid #f1d58c; outline-offset: 2px;}
@@ -58,7 +58,7 @@
 .painted-exit {bottom: 7%; border-color: #e1e7c168; background: #27473dcd; z-index: 4;}
 .painted-exit--0 {right: 3%;}
 .painted-exit--1 {right: 20%;}
-.painted-exit span {font-size: 15px; color: #d7c488;}
+.painted-exit span {font-size: 16px; color: #d7c488;}
 .painted-feature {left: 52%; top: 50%; transform: translate(-50%, -50%); background: #382b22c9;}
 .painted-feature:hover, .painted-feature:focus-visible {transform: translate(-50%,-55%);}
 @keyframes scene-breath { 0%,100% { opacity: .16; } 50% { opacity: .35; } }
@@ -71,10 +71,10 @@
 }
 @media (max-width:600px) {
   .scene-theater .scene-backdrop {object-position: 53% center;}
-  .scene-stage-top strong {font-size: 27px;}
+  .scene-stage-top strong {font-size: 28px;}
   .scene-theater .scene-stage-top {padding: 18px 17px;}
-  .scene-stage-season {font-size: 10px; padding: 7px;}
-  .scene-theater .scene-stage-foot {padding: 20px 12px 13px; font-size: 9px;}
+  .scene-stage-season {font-size: 12px; padding: 7px;}
+  .scene-theater .scene-stage-foot {padding: 20px 12px 13px; font-size: 12px;}
   .scene-theater .scene-stage-foot span:first-child {display: none;}
   .scene-theater .scene-stage-foot span:last-child {width: 100%; text-align: center;}
   .painted-actor, .painted-avatar {width: 100px; min-height: 122px; height: 33%;}
@@ -83,16 +83,16 @@
   .actor-pos-1 {left: 38%; bottom: 22%;}
   .actor-pos-2 {left: 75%; bottom: 36%;}
   .actor-pos-3 {left: 23%; bottom: 32%;}
-  .painted-actor-name, .painted-avatar-name {font-size: 11px; padding: 3px 8px;}
+  .painted-actor-name, .painted-avatar-name {font-size: 12px; padding: 3px 8px;}
   .painted-item {left: 40%;}
   .painted-item--0 {bottom: 12%;}
   .painted-item--1 {bottom: 22%; left: 31%;}
   .painted-resource--0 {left: 40%; bottom: 45%;}
   .painted-resource--1 {left: 56%; bottom: 37%;}
-  .painted-exit {font-size: 10px; bottom: 7%; padding: 7px 9px;}
+  .painted-exit {font-size: 12px; bottom: 7%; padding: 7px 9px;}
   .painted-exit--0 {right: 4%;}
   .painted-exit--1 {right: 32%;}
-  .painted-feature {left: 54%; top: 52%; font-size: 10px;}
+  .painted-feature {left: 54%; top: 52%; font-size: 12px;}
 }
 .scene-theater[data-location="hearth"]::after {content: ""; z-index: 1; position: absolute; left: 43%; top: 43%;
   width: 260px; height: 230px; pointer-events: none;
@@ -107,7 +107,7 @@
   .painted-feature {width: 44px; height: 44px; left: 54%; top: 63%;
     justify-content: center; border-radius: 50%; background: #372c20af;}
   .painted-feature span {display: none;}
-  .painted-feature::before {content: "✦"; color: #ffe2a0; font-size: 21px;}
+  .painted-feature::before {content: "✦"; color: #ffe2a0; font-size: 20px;}
   .painted-item--1, .painted-resource--1 {display: none;}
   .painted-item--0 {left: 38%; bottom: 15%;}
 }
@@ -129,7 +129,7 @@
  z-index:6;pointer-events:none;
  max-width:180px;min-width:max-content;white-space:nowrap;
  padding:7px 11px;border:1px solid #efd8a49a;border-radius:7px;
- background:#1b3027e8;color:#fff0d1;font-size:11px;
+ background:#1b3027e8;color:#fff0d1;font-size: 12px;
  opacity:0;visibility:hidden;transition:opacity .2s,transform .2s;
  box-shadow:0 5px 14px #091914b0;}
 .scene-prop:hover .scene-prop-tooltip, .scene-prop:focus-visible .scene-prop-tooltip, .scene-prop[aria-pressed="true"] .scene-prop-tooltip, .scene-landmark:hover .scene-prop-tooltip, .scene-landmark:focus-visible .scene-prop-tooltip {opacity:1;visibility:visible;transform:translate(-50%,0);}
@@ -155,9 +155,9 @@
   .scene-theater .scene-prop {width:94px;height:101px;}
   .scene-theater .scene-prop--cistern {width:121px;height:108px;}
   .scene-theater .scene-prop--source {width:107px;height:112px;}
-  .scene-theater .painted-actor-name {font-size:11px;}
+  .scene-theater .painted-actor-name {font-size: 12px;}
   .scene-theater .scene-landmark {width:46px;height:46px;left:52%;top:53%;}
-  .scene-theater .scene-prop-tooltip {font-size:10px;max-width:155px;}
+  .scene-theater .scene-prop-tooltip {font-size: 12px;max-width:155px;}
   .scene-theater .scene-prop:focus-visible {outline-width:2px;}
   .scene-theater .scene-prop--jar {top:calc(var(--sy) - 5%);}
 }

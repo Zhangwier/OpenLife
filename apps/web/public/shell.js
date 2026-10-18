@@ -1,4 +1,4 @@
-import { isTextMode, layoutMode, setLayoutMode, applyLayoutMode } from "/view-mode.js";
+import { isTextMode, viewMode, toggleViewMode, layoutMode, setLayoutMode, applyLayoutMode, consumeViewModeScroll } from "/view-mode.js";
 import { html } from "/player.js";
 import { commandsForTarget } from "/settlement.js";
 import { objectKind, propSvg, fillRatio } from "/scene-props.js";
@@ -10,38 +10,64 @@ import { installOffice } from "/office-panel.js";
 import { markModuleOff, markModuleOn, markedOff } from "/module-switch.js";
 import { loadCodex, installMusicToggle } from "/codex.js";
 
-const TITLES = { life: "人生概述", character: "人生", activities: "此刻", people: "熟人", stories: "故事", works: "行囊", family: "家族谱", map: "地图与地点", world: "时代与世界", history: "记忆与历史", codex: "图鉴", modules: "模块管理" };
+// life 已删：它只是"人生"页的重复版本，没有入口却会建出一个空页面。
+const TITLES = { character: "人生", activities: "此刻", people: "熟人", stories: "故事", works: "行囊", family: "家族谱", map: "地图与地点", world: "时代与世界", history: "记忆与历史", codex: "图鉴", modules: "模块管理" };
 let active = "home", started = false, currentState, callbacks;
 let bagSelection = null;
 const $ = id => document.getElementById(id);
 
 export function installShell(options) {
   callbacks = options;
+  /*
+   * Wire the switches first. Everything below rearranges the DOM and can throw
+   * on markup that has moved on; when it did, the layout button was left
+   * unbound and looked broken. Buttons the player presses must not depend on
+   * a later cosmetic step succeeding.
+   */
+  installLayoutSwitch();
+  installViewModeSwitch();
   const destinations = { character: ".life-rail", activities: ".life-stage", people: ".relationship-card", works: ".works-card", family: ".lineage-card", world: ".world-card", history: ".history-panel" };
   for (const route of Object.keys(TITLES)) {
     const screen = document.createElement("section");
     screen.id = `screen-${route}`; screen.dataset.screenPanel = route; screen.hidden = true;
     if (destinations[route]) {
       const panel = document.querySelector(destinations[route]);
-      panel.hidden = false; panel.removeAttribute("data-view-panel"); screen.append(panel);
+      if (panel) { panel.hidden = false; panel.removeAttribute("data-view-panel"); screen.append(panel); }
     }
     $("pageScreens").append(screen);
   }
-  $("legacyLayout").remove();
+  // legacyLayout is gone from the markup; calling .remove() on null threw and
+  // aborted installShell before installLayoutSwitch() ran -- which is why the
+  // layout button never did anything.
+  $("legacyLayout")?.remove();
   installMusicToggle();
-  $("screen-character").insertAdjacentHTML("beforeend", `<section class="panel personal-links"><h3>人生手账</h3><div class="menu-links"><button data-route="life">人生概述</button><button data-route="family">家族与传承</button><button data-route="history">往日记忆</button><button data-route="world">时代与世界</button></div></section>`);
+  /*
+   * 「人生手账」这一块本来就是重复：家族谱/往日记忆/时代与世界在左侧「更多资料」
+   * 和 ☰ 菜单里各有一份，这里再来一遍就是第三份。删掉，人生页只留它自己的内容。
+   * 「人生概述」也不再需要——「人生」这一页本身就是概述。
+   */
   const collection = document.createElement("details");
   collection.className = "collection-fold";
   collection.innerHTML = "<summary>亲手留下的作品</summary>";
-  $("screen-works").append(collection);
-  collection.append(document.querySelector(".works-card"));
+  $("screen-works")?.append(collection);
+  // .works-card was already moved into screen-works above, so a second lookup
+  // returns null and append(null) threw -- which aborted installShell before
+  // the layout switch was wired.
+  const worksCard = document.querySelector(".works-card");
+  if (worksCard) collection.append(worksCard);
   installTheme();
   if (!isTextMode()) renderSceneFx($("homeFx"), { location: "yard", daypart: "day", season: "秋" });
   if (!isTextMode()) installSound();
   $("menuButton").onclick = () => { $("menuModal").hidden = false; };
   $("closeMenu").onclick = () => { $("menuModal").hidden = true; };
-  $("sceneTimeButton").onclick = () => $("autoButton").click();
-  installLayoutSwitch();
+  /*
+   * 这里原本还有一行 `$("sceneTimeButton").onclick = () => $("autoButton").click()`。
+   * 它和 app.js 的 updateContinuousControls() 抢同一个按钮：那一边按"正在推进/已暂停"
+   * 在「暂停推进」与「时间安排」之间切换，这一边却把它钉死成"打开日程编辑"。
+   * 因为这行在 app.js 之后执行，赢的总是它——于是按钮永远显示「时间安排」，
+   * 推进中也不能在这里暂停。删掉，交回 app.js 一处管理。
+   */
+  consumeViewModeScroll();
   document.addEventListener("click", event => {
     const control = event.target.closest("[data-control]");
     if (control) {
@@ -123,14 +149,17 @@ export function renderShell(state) {
     if (hasOffice) installOffice(officeRoot, { getState: () => currentState, send: (a, p) => options.onSettlementAction(a, p) });
   }
   const c = state.character, p = state.player;
-  const inProgress = Boolean(p?.practice);
-  $("screen-life").innerHTML = `<section class="life-overview panel"><div class="overview-label">${html(state.era)} · ${state.month} 月 · ${html(c?.city)}</div><h2>${html(c?.name)}，${c?.alive ? "今天想怎样生活？" : "这一生留下了什么？"}</h2><p class="overview-intro">${c?.alive ? "生活里有许多值得停留的地方。照看自己，见一见熟人，或者接着做手中的事。" : "你留下的关系、作品与家人仍在世界里。可以到家族谱寻找接续的人生。"}</p><div class="overview-facts"><span>${c?.age ?? 0} 岁</span><span>第 ${state.generation} 代</span><span>${html(c?.role)}</span></div>${p?.outcome ? `<div class="overview-memory"><span>最近发生的事</span><p>${html(p.outcome)}</p></div>` : ""}</section>
-    <div class="destination-grid">
-      <button class="destination-card" data-route="activities"><span class="destination-symbol">◎</span><h3>${inProgress ? "继续制作" : "回到此刻"}</h3><p>${inProgress ? "你的手艺仍在进行。" : "遇见的人、手边的原料和附近的地点。"}</p><span class="destination-link">进入此刻 →</span></button>
-      <button class="destination-card" data-route="character"><span class="destination-symbol">我</span><h3>查看自己</h3><p>身体、经历与正在学习的能力。</p><span class="destination-link">进入人生 →</span></button>
-      <button class="destination-card" data-route="works"><span class="destination-symbol">袋</span><h3>整理行囊</h3><p>查看真正携带的东西、负重和存放。</p><span class="destination-link">进入行囊 →</span></button>
-      <button class="destination-card" data-route="people"><span class="destination-symbol">人</span><h3>认识的人</h3><p>见过、交谈、相识，关系需要真实经历。</p><span class="destination-link">打开熟人 →</span></button>
-    </div>`;
+  /*
+   * 这一段以前写进 #screen-life——而 life 路由已删，那个节点根本不会出现，
+   * 于是「我现在过得怎么样」这句概述在界面上完全看不到。
+   * 现在并进「人生」页（character），它就是这一页的开头。
+   */
+  const overview = $("screen-character");
+  if (overview) {
+    // 每次渲染先摘掉旧的：insertAdjacentHTML 不会替换，重复 render 会叠出多份。
+    overview.querySelectorAll(":scope > .life-overview").forEach(node => node.remove());
+    overview.insertAdjacentHTML("afterbegin", `<section class="life-overview panel"><div class="overview-label">${html(state.era)} · ${state.month} 月 · ${html(c?.city)}</div><h2>${html(c?.name)}，${c?.alive ? "今天想怎样生活？" : "这一生留下了什么？"}</h2><p class="overview-intro">${c?.alive ? "生活里有许多值得停留的地方。照看自己，见一见熟人，或者接着做手中的事。" : "你留下的关系、作品与家人仍在世界里。可以到家族谱寻找接续的人生。"}</p><div class="overview-facts"><span>${c?.age ?? 0} 岁</span><span>第 ${state.generation} 代</span><span>${html(c?.role)}</span></div>${p?.outcome ? `<div class="overview-memory"><span>最近发生的事</span><p>${html(p.outcome)}</p></div>` : ""}</section>`);
+  }
   const oldDecision = document.querySelector(".decision-area");
   if (oldDecision && !oldDecision.closest(".legacy-choice-details")) {
     const details = document.createElement("details");
@@ -153,9 +182,20 @@ export function renderShell(state) {
     $("screen-family").querySelector(".lineage-card").hidden = false; $("familyEmpty")?.remove();
   }
 }
+/**
+ * 行囊的量：不给数字（DESIGN.md 原则 3）。
+ * 屏幕上只有「装得下 / 有点满 / 装满了」；件数与重量留在 title 与 sr-only，供读屏和悬停查看。
+ */
 function bagMeter(label, value, max, unit) {
-  const pct = max ? Math.max(0, Math.min(100, Math.round((value / max) * 100))) : 0;
-  return `<span class="bag-meter"><span>${label}</span><span class="hud-track"><i style="width:${pct}%"></i></span><b>${value}/${max}${unit}</b></span>`;
+  const ratio = max ? value / max : 0;
+  const word = label === "负重"
+    ? (ratio >= 1 ? "背不动了" : ratio >= 0.75 ? "有点沉" : "背得动")
+    : (ratio >= 1 ? "装满了" : ratio >= 0.6 ? "有点满" : "装得下");
+  const tone = ratio >= 1 ? "warn" : ratio >= 0.75 ? "watch" : "";
+  return `<span class="bag-meter ${tone}" title="${label} ${value}/${max}${unit}">`
+    + `<span aria-hidden="true">${label}</span>`
+    + `<b aria-hidden="true">${word}</b>`
+    + `<span class="sr-only">${label} ${value}/${max}${unit}，${word}</span></span>`;
 }
 function renderBag() {
   const pack = $("portableOverview"), s = currentState?.settlement;
@@ -209,30 +249,43 @@ async function loadModules() {
   try {
     const response = await fetch("/api/catalog"); if (!response.ok) throw new Error("模块资料读取失败");
     const data = await response.json();
-    // markedOff is async (it goes through the API); read it once, then render
-    // synchronously. Calling it per-card returned a Promise, which is truthy,
-    // so every module looked marked and the switch buttons never appeared.
+    // markedOff 走 API，读一次再同步渲染（逐卡调用会拿到 Promise，永远为真，
+    // 于是每张卡都显示成"已关"，开关按钮根本不出现——2026-10 修过一次）。
     const off = new Set(await markedOff());
-    screen.innerHTML = `<div class="catalog-intro panel"><h2>这个世界的组成</h2><p>当前人生使用「早期聚落」组合。这里显示真实加载状态与本地可用模块；更换组合与运行中启停将在依赖、存档兼容检查完成后开放。</p><span class="catalog-total">${data.modules.filter(m => m.loaded).length} 个已加载 · ${data.modules.length} 个本地模块</span></div>${(() => {
-      const on = data.modules.filter(m => m.loaded), offList = data.modules.filter(m => !m.loaded);
-      const core = on.filter(m => m.core === true), optional = on.filter(m => m.core !== true);
-      const switchBtn = (m, marked) => marked
-        ? `<button class="module-switch" data-module-on="${m.id}">开</button>`
-        : m.core ? "" : `<button class="module-switch is-on" data-module-off="${m.id}">关</button>`;
-      const coreCard = m => `<article class="module-card panel is-core"><div><h3>${html(m.label)}</h3><span class="module-status loaded">核心 · 关掉世界会乱</span></div><p>${html(m.description)}</p></article>`;
-      const optCard = m => `<article class="module-card panel"><div><h3>${html(m.label)}</h3><span class="module-status loaded">当前世界已加载 · 可关</span>${switchBtn(m, off.has(m.id))}</div><p>${html(m.description)}</p>${off.has(m.id) ? `<p class="module-note">下次启动时关掉。</p>` : ""}</article>`;
-      const card = m => `<article class="module-card panel"><div><h3>${html(m.label)}</h3><span class="module-status">本地已有 · 当前未接入</span></div><p>${html(m.description)}</p></article>`;
-      return `<h3 class="module-group">核心 · ${core.length}</h3><div class="module-list">${core.map(coreCard).join("")}</div>` +
-        `<h3 class="module-group">当前世界已加载 · ${optional.length}</h3><div class="module-list">${optional.map(optCard).join("")}</div>` +
-        (offList.length ? `<details class="module-fold"><summary>本地已有、当前未接入 · ${offList.length}</summary><div class="module-list">${offList.map(card).join("")}</div></details>` : ""); })()}`;
-      screen.querySelectorAll("[data-module-off]").forEach((b) => b.addEventListener("click", () => {
-        markModuleOff(b.dataset.moduleOff);
-        loadModules();
-      }));
-      screen.querySelectorAll("[data-module-on]").forEach((b) => b.addEventListener("click", () => {
-        markModuleOn(b.dataset.moduleOn);
-        loadModules();
-      }));
+    /*
+     * 分组依据必须是 markedOff，不能只看 loaded。
+     * 以前：on = 已加载，offList = 未加载。可是关掉一个模块后它就不再 loaded，
+     * 于是掉进"未接入"那一堆，而那堆卡片根本不渲染开关——
+     * 结果就是"关得掉、开不回来"，用户看到的是开关用不了。
+     */
+    const loadedModules = data.modules.filter(m => m.loaded);
+    const markedOffModules = data.modules.filter(m => m.markedOff);
+    const availableModules = data.modules.filter(m => !m.loaded && !m.markedOff);
+    const core = loadedModules.filter(m => m.core === true);
+    const optional = loadedModules.filter(m => m.core !== true);
+    const switchBtn = m => m.markedOff
+      ? `<button class="module-switch" data-module-on="${html(m.id)}" aria-pressed="false" title="下次启动时重新接入">开</button>`
+      : m.core ? "" : `<button class="module-switch is-on" data-module-off="${html(m.id)}" aria-pressed="true" title="标记为下次启动时关掉">关</button>`;
+    const coreCard = m => `<article class="module-card panel is-core"><div><h3>${html(m.label)}</h3><span class="module-status loaded">核心 · 关掉世界会乱</span></div><p>${html(m.description)}</p></article>`;
+    const optCard = m => `<article class="module-card panel"><div><h3>${html(m.label)}</h3><span class="module-status loaded">当前世界已加载</span>${switchBtn(m)}</div><p>${html(m.description)}</p></article>`;
+    const offCard = m => `<article class="module-card panel is-off"><div><h3>${html(m.label)}</h3><span class="module-status off">下次启动时关掉</span>${switchBtn(m)}</div><p>${html(m.description)}</p></article>`;
+    const card = m => `<article class="module-card panel"><div><h3>${html(m.label)}</h3><span class="module-status">本地已有 · 当前未接入</span></div><p>${html(m.description)}</p></article>`;
+    screen.innerHTML = `<div class="catalog-intro panel"><h2>这个世界的组成</h2><p>开关是"下次启动时生效"的声明，不是当场卸载——其他模块可能正依赖它，世界可能正用它。关掉后重启服务，它就不在了。</p><span class="catalog-total">${loadedModules.length} 个已加载 · ${data.modules.length} 个本地模块${markedOffModules.length ? ` · ${markedOffModules.length} 个已标记关闭` : ""}</span></div>` +
+      `<h3 class="module-group">核心 · ${core.length}</h3><div class="module-list">${core.map(coreCard).join("")}</div>` +
+      `<h3 class="module-group">当前世界已加载 · ${optional.length}</h3><div class="module-list">${optional.map(optCard).join("")}</div>` +
+      (markedOffModules.length ? `<h3 class="module-group">下次启动时关掉 · ${markedOffModules.length}</h3><div class="module-list">${markedOffModules.map(offCard).join("")}</div>` : "") +
+      (availableModules.length ? `<details class="module-fold"><summary>本地已有、当前未接入 · ${availableModules.length}</summary><div class="module-list">${availableModules.map(card).join("")}</div></details>` : "");
+    // 必须 await：否则 loadModules() 会在写入落盘前重新读目录，页面看起来"没反应"。
+    screen.querySelectorAll("[data-module-off]").forEach((b) => b.addEventListener("click", async () => {
+      b.disabled = true;
+      await markModuleOff(b.dataset.moduleOff);
+      await loadModules();
+    }));
+    screen.querySelectorAll("[data-module-on]").forEach((b) => b.addEventListener("click", async () => {
+      b.disabled = true;
+      await markModuleOn(b.dataset.moduleOn);
+      await loadModules();
+    }));
   } catch (error) { screen.innerHTML = `<p class="page-empty panel">${html(error.message)}</p>`; }
 }
 const TERRAIN_LABELS = {
@@ -268,6 +321,10 @@ const darkQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
 function effectiveTheme() {
   return document.documentElement.dataset.theme || (darkQuery?.matches ? "dark" : "light");
 }
+const THEME_LABEL = { light: "亮", dark: "深", auto: "跟随系统" };
+function storedTheme() {
+  try { return localStorage.getItem("openlife-theme") ?? "auto"; } catch { return "auto"; }
+}
 function paintThemeButtons() {
   const dark = effectiveTheme() === "dark";
   for (const id of ["themeButton", "homeThemeButton"]) {
@@ -276,6 +333,10 @@ function paintThemeButtons() {
     b.setAttribute("aria-label", dark ? "切换到亮色模式" : "切换到深色模式");
     b.title = dark ? "亮色模式" : "深色模式";
   }
+  // 菜单里的那一行显示的是「当前选择」，不是「点一下会变成什么」——
+  // 三个值可循环：跟随系统 → 亮 → 深 → 跟随系统。
+  const label = $("themeLabel");
+  if (label) label.textContent = THEME_LABEL[storedTheme()] ?? "跟随系统";
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.content = dark ? "#121a17" : "#f2ece1";
 }
@@ -287,30 +348,80 @@ function paintThemeButtons() {
  */
 const LAYOUT_LABEL = { auto: "跟随窗口", phone: "手机", desktop: "电脑" };
 const LAYOUT_NEXT = { auto: "phone", phone: "desktop", desktop: "auto" };
+const LAYOUT_HINT = { auto: "跟随窗口宽度。点一下锁定手机版", phone: "已锁定手机版（网页里也能用竖屏）。点一下切电脑版", desktop: "已锁定电脑版。点一下恢复跟随窗口" };
 function installLayoutSwitch() {
+  /*
+   * 「版式」以前点了没反应，原因有三层，缺一不可：
+   *  1. 菜单里那条按钮写的是 data-control="layoutButton"，但页面里没有 id=layoutButton
+   *     的元素——转发过去点了个空，监听器也挂在空的节点上；
+   *  2. 于是写 localStorage 的那段从来没真正跑过；
+   *  3. 就算跑过，html.is-phone 也要等 reload 才按新值重算，点完屏幕没变化，
+   *     用户自然判定「用不了」。
+   * 现在按钮自己带 id、监听器直接挂它；点一下立刻 setLayoutMode + applyLayoutMode，
+   * 不刷新就换版式，并广播一次 resize 让依赖尺寸的模块重算。
+   */
+  // The menu button is authored as data-control="layoutButton" and has no id,
+  // so $("layoutButton") returned null and the listener was never attached.
+  // Look it up both ways so either markup works.
+  const buttonFor = () =>
+    document.getElementById("layoutButton") ??
+    document.querySelector('[data-control="layoutButton"]');
   const paint = () => {
     const mode = layoutMode();
     const label = $("layoutLabel");
     if (label) label.textContent = LAYOUT_LABEL[mode] ?? mode;
-    const button = document.querySelector('[data-control="layoutButton"]');
-    if (button) button.setAttribute("aria-pressed", String(mode !== "auto"));
+    const button = buttonFor();
+    if (button) {
+      button.setAttribute("aria-pressed", String(mode !== "auto"));
+      button.title = LAYOUT_HINT[mode] ?? "";
+    }
   };
-  $("layoutButton")?.addEventListener("click", () => {
+  buttonFor()?.addEventListener("click", () => {
     setLayoutMode(LAYOUT_NEXT[layoutMode()] ?? "auto");
     applyLayoutMode();
     paint();
+    window.dispatchEvent(new Event("resize"));
+  });
+  paint();
+}
+
+/**
+ * 显示模式（纯文字 / 画面）。
+ *
+ * 以前这个开关**根本不存在**：只能在控制台改 localStorage 再刷新，普通玩家
+ * 永远找不到，于是"想切画面模式"这件事等于做不到。
+ * 现在菜单「显示」里有一行，点一下改存储并刷新；刷新前记住滚动位置。
+ */
+function installViewModeSwitch() {
+  const label = $("viewModeLabel");
+  const paint = () => {
+    if (!label) return;
+    label.textContent = viewMode() === "picture" ? "画面" : "文字";
+  };
+  $("viewModeButton")?.addEventListener("click", () => {
+    toggleViewMode();
   });
   paint();
 }
 
 function installTheme() {
-  const toggle = () => {
-    const next = effectiveTheme() === "dark" ? "light" : "dark";
-    document.documentElement.dataset.theme = next;
-    try { localStorage.setItem("openlife-theme", next); } catch { /* private mode */ }
+  /*
+   * 三个状态循环：跟随系统 → 亮 → 深 → 跟随系统。
+   * 以前只有亮/暗两态，想回到"跟随系统"只能清 localStorage，等于做不到。
+   */
+  const NEXT = { auto: "light", light: "dark", dark: "auto" };
+  const apply = (choice) => {
+    const root = document.documentElement;
+    if (choice === "auto") root.removeAttribute("data-theme");
+    else root.dataset.theme = choice;
+    try {
+      if (choice === "auto") localStorage.removeItem("openlife-theme");
+      else localStorage.setItem("openlife-theme", choice);
+    } catch { /* private mode */ }
     paintThemeButtons();
   };
-  for (const id of ["themeButton", "homeThemeButton"]) { const b = $(id); if (b) b.onclick = toggle; }
+  const cycle = () => apply(NEXT[storedTheme()] ?? "light");
+  for (const id of ["themeButton", "homeThemeButton", "themeButtonMenu"]) { const b = $(id); if (b) b.onclick = cycle; }
   darkQuery?.addEventListener?.("change", paintThemeButtons);
   paintThemeButtons();
 }

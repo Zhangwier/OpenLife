@@ -39,6 +39,24 @@ test("开关与断点、持久化、界面控件都在", () => {
   assert.match(VIEW, /openlife-layout/, "the choice survives a reload");
   assert.match(VIEW, /matchMedia/, "auto mode must react to the window, not just read it once");
   assert.match(SHELL, /installLayoutSwitch/, "the switch is wired into the shell");
-  assert.match(HTML, /data-control="layoutButton"/, "the menu has a control for it");
+  /*
+   * 2026-10 修：按钮以前是 data-control="layoutButton" 转发到 id=layoutButton，
+   * 但那个 id 的节点根本不存在——点了等于没点。现在按钮自己带 id，监听器直接挂它。
+   * 断言也随之改成"按钮必须真的有 id"，防止再退回转发写法。
+   */
+  assert.match(HTML, /id="layoutButton"/, "the menu has a real layout button with its own id");
+  assert.doesNotMatch(HTML, /data-control="layoutButton"/, "no forwarding hop through a missing element");
   assert.match(HTML, /id="layoutLabel"/, "the control shows the current mode");
+  // The button is looked up through a helper so either markup works; the point
+  // is that a listener is attached to the real element, not a missing one.
+  assert.match(SHELL, /buttonFor\(\)\?\.addEventListener|addEventListener\("click"/, "the listener is bound to the real element");
+  assert.match(SHELL, /getElementById\("layoutButton"\)|querySelector\('\[data-control="layoutButton"\]'\)/, "the button is looked up by id or data-control");
+});
+
+test("显示模式（文字 / 画面）在界面上有开关，且切换会重载", () => {
+  // 以前只能在控制台改 localStorage，普通玩家找不到入口。
+  assert.match(HTML, /id="viewModeButton"/, "the menu exposes a view-mode toggle");
+  assert.match(VIEW, /export function toggleViewMode/, "the toggle is a real function, not a comment");
+  assert.match(VIEW, /location\.reload\(\)/, "switching rebuilds the scene layer, so it reloads once");
+  assert.match(SHELL, /installViewModeSwitch/, "the toggle is wired into the shell");
 });

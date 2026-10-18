@@ -1,61 +1,78 @@
-/* 图鉴（codex）与背景音乐开关 */
+/*
+ * 图鉴（codex）。
+ *
+ * 2026-10-18 重写：原来有 9 处写死的颜色（#34434a / #fff / rgba(255,255,255,.35) /
+ * #6f6049 / #4c5550 / #8a6a4a / #e8e0d3 / #8a7c66 / #89947b），还引用了不存在的
+ * --gold 变量——图鉴页因此长得和全站不像一家人，深色模式下更是白底黑字。
+ * 现在只走 theme.css 的令牌。
+ */
 .codex { padding: 24px; }
-.codex-intro p { font-size: 13px; line-height: 1.8; color: var(--muted); margin: 8px 0 18px; }
+.codex-intro p { font-size: var(--fs-fine); line-height: var(--lh-body); color: var(--ink-2); margin: 8px 0 18px; }
 .codex-tabs { display: flex; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 18px; }
-.codex-tabs button { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 8px 16px; cursor: pointer; font-size: 13px; }
-.codex-tabs button[aria-selected="true"] { background: #34434a; color: #fff; border-color: #34434a; }
+.codex-tabs button {
+  border: 1px solid var(--line); background: transparent; color: var(--ink-2);
+  border-radius: var(--r-pill); padding: 8px 16px; cursor: pointer; font-size: var(--fs-fine);
+}
+.codex-tabs button[aria-selected="true"] { background: var(--primary-soft); color: var(--primary); border-color: var(--primary); font-weight: 600; }
 
 .codex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
-.codex-card { border: 1px solid var(--line); border-radius: 16px; padding: 16px; background: rgba(255,255,255,.35); display: flex; flex-direction: column; gap: 8px; }
-.codex-card.is-ready { border-color: rgba(119,135,118,.6); box-shadow: 0 0 0 3px rgba(119,135,118,.10); }
+.codex-card {
+  border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px;
+  background: var(--surface-2); display: flex; flex-direction: column; gap: 8px;
+}
+.codex-card.is-ready { border-color: var(--primary); }
 .codex-card header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.codex-card h3 { margin: 0; font: 600 17px "Noto Serif SC", serif; }
-.codex-tag { font-size: 10px; padding: 3px 8px; border-radius: 999px; background: rgba(183,139,69,.12); color: #6f6049; white-space: nowrap; }
-.codex-where { margin: 0; font-size: 12px; color: var(--muted); }
-.codex-parts { display: grid; grid-template-columns: 40px 1fr; gap: 4px 8px; margin: 4px 0; font-size: 12px; }
+.codex-card h3 { margin: 0; font: 600 var(--fs-ui) var(--serif); }
+.codex-tag {
+  font-size: var(--fs-note); padding: 3px 9px; border-radius: var(--r-pill);
+  background: var(--surface-3); color: var(--ink-2); white-space: nowrap;
+}
+.codex-where { margin: 0; font-size: var(--fs-note); color: var(--muted); }
+.codex-parts { display: grid; grid-template-columns: 40px 1fr; gap: 4px 8px; margin: 4px 0; font-size: var(--fs-note); }
 .codex-parts dt { color: var(--muted); }
 .codex-parts dd { margin: 0; }
-.codex-text { font-size: 12px; line-height: 1.75; margin: 0; color: #4c5550; }
-.codex-blocker { font-size: 11px; line-height: 1.6; color: #8a6a4a; margin: 4px 0 0; }
+.codex-text { font-size: var(--fs-fine); line-height: var(--lh-body); margin: 0; color: var(--ink-2); }
+.codex-blocker { font-size: var(--fs-note); line-height: var(--lh-ui); color: var(--accent-ink); margin: 4px 0 0; }
 .codex-card .action-button { margin-top: auto; }
-.codex-card .action-button small { margin-left: 8px; opacity: .7; font-size: 11px; }
+.codex-card .action-button small { margin-left: 8px; font-size: var(--fs-note); }
 
 .codex-table-wrap { overflow-x: auto; }
-.codex-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.codex-table { width: 100%; border-collapse: collapse; font-size: var(--fs-fine); }
 .codex-table th, .codex-table td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
-.codex-table thead th { font-size: 11px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+.codex-table thead th { font-size: var(--fs-note); color: var(--muted); font-weight: 500; white-space: nowrap; }
 .codex-table tbody th { font-weight: 600; white-space: nowrap; }
 .codex-table tbody th small { margin-left: 6px; color: var(--muted); font-weight: 400; }
 
 .codex-people { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
-.codex-person { display: grid; grid-template-columns: 96px 1fr; gap: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,255,255,.35); }
-.codex-portrait { width: 96px; height: 128px; object-fit: cover; border-radius: 12px; background: #e8e0d3; }
-.codex-portrait-empty { display: grid; place-items: center; font: 600 34px "Noto Serif SC", serif; color: #8a7c66; }
-.codex-person h3 { margin: 0 0 4px; font: 600 16px "Noto Serif SC", serif; }
-.codex-person h3 small { font: 400 11px system-ui, sans-serif; color: var(--muted); margin-left: 6px; }
-.codex-person p { margin: 4px 0; font-size: 12px; line-height: 1.65; }
-.codex-role { color: var(--gold); }
+.codex-person {
+  display: grid; grid-template-columns: 96px 1fr; gap: 14px; padding: 14px;
+  border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface-2);
+}
+.codex-portrait { width: 96px; height: 128px; object-fit: cover; border-radius: var(--r-md); background: var(--portrait-bg); }
+.codex-portrait-empty { display: grid; place-items: center; font: 600 var(--fs-scene) var(--serif); color: var(--muted); }
+.codex-person h3 { margin: 0 0 4px; font: 600 var(--fs-body) var(--serif); }
+.codex-person h3 small { font: 400 var(--fs-note) var(--sans); color: var(--muted); margin-left: 6px; }
+.codex-person p { margin: 4px 0; font-size: var(--fs-note); line-height: var(--lh-ui); }
+.codex-role { color: var(--accent-ink); }
 .codex-wish { color: var(--muted); }
 
 .codex-lore { max-width: 760px; }
-.codex-lore h3 { font: 600 19px "Noto Serif SC", serif; margin: 22px 0 8px; }
+.codex-lore h3 { font: 600 var(--fs-subhead) var(--serif); margin: 22px 0 8px; }
 .codex-lore section:first-child h3 { margin-top: 0; }
-.codex-lore p { font: 15px/2 "Noto Serif SC", serif; margin: 0 0 12px; text-indent: 2em; }
+.codex-lore p { font: var(--fs-body)/2 var(--serif); margin: 0 0 12px; text-indent: 2em; }
 
-.codex-music > p { font-size: 13px; line-height: 1.8; color: var(--muted); margin-top: 0; }
+.codex-music > p { font-size: var(--fs-fine); line-height: var(--lh-body); color: var(--ink-2); margin-top: 0; }
 .codex-track { display: grid; grid-template-columns: 1fr minmax(220px, 320px) auto; gap: 14px; align-items: center; padding: 14px 0; border-top: 1px solid var(--line); }
-.codex-track h3 { margin: 0; font: 600 16px "Noto Serif SC", serif; }
-.codex-track p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+.codex-track h3 { margin: 0; font: 600 var(--fs-body) var(--serif); }
+.codex-track p { margin: 4px 0 0; font-size: var(--fs-note); color: var(--muted); }
 .codex-track audio { width: 100%; }
-.codex-track.is-playing h3::after { content: " ♪"; color: var(--gold); }
-
-#musicToggle[aria-pressed="true"] { background: #34434a; color: #fff; }
+.codex-track.is-playing h3::after { content: " · 正在放"; font: 400 var(--fs-note) var(--sans); color: var(--accent-ink); }
 
 .event-points { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 10px; }
-.event-points li { padding: 12px 14px; border-radius: 12px; background: rgba(228,233,217,.55); }
+.event-points li { padding: 12px 14px; border-radius: var(--r-md); background: var(--surface-2); }
 .event-points li > div { display: flex; gap: 10px; align-items: baseline; }
-.event-points small { color: #89947b; font-size: 11px; }
-.event-points p { margin: 6px 0 0; font-size: 12px; line-height: 1.75; }
+.event-points small { color: var(--muted); font-size: var(--fs-note); }
+.event-points p { margin: 6px 0 0; font-size: var(--fs-fine); line-height: var(--lh-body); color: var(--ink-2); }
 
 @media (max-width: 720px) {
   .codex { padding: 16px; }

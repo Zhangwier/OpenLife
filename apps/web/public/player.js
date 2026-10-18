@@ -51,15 +51,50 @@ function renderPeople(settlement) {
     .filter(person => !contacts.some(known => known.id === person.id))
     .map(person => ({ ...person, nearby: true, contact: "陌生", conversations: 0 }));
   const list = [...contacts.map(person => ({ ...person, nearby: neighbours.some(n => n.id === person.id) })), ...nearby];
-  $("relationCount").textContent = `来往 ${contacts.length} 人 · 附近 ${neighbours.length} 人`;
-  container.innerHTML = list.map(person => `<article class="person-card">
+  // 计数只留给读屏；屏幕上说「来往几位」，与「不给玩家看数字」一致。
+  const spoken = `来往 ${contacts.length} 人 · 附近 ${neighbours.length} 人`;
+  $("relationCount").innerHTML = `<span aria-hidden="true">${contacts.length ? "来往几位" : "还没有熟人"}${neighbours.length ? " · 附近有人" : ""}</span><span class="sr-only">${spoken}</span>`;
+  $("relationCount").title = spoken;
+
+  /*
+   * 还没认识的人：一行一个，不再一人一张大卡。
+   *
+   * 未认识时能看到的只有「陌生的老人」这类描述，两个同龄同性的人必然同名同述。
+   * 做成两张几乎一样的大卡，第一反应是「重复渲染 / 出 bug」；
+   * 做成一张清单，两行一样只说明「这里有两个面生的人」——这才是世界真实的样子。
+   */
+  const strangerRows = nearby.map(person => `<li>
+      <span class="stranger-who">${html(person.name)}</span>
+      <span class="stranger-note">${html(person.dailyNote || "站在那儿，还没搭过话")}</span>
+      ${person.nearby ? `<button class="ghost-button compact" data-person-route="${html(person.id)}">搭话</button>` : ""}
+    </li>`).join("");
+  const knownCards = contacts.map(person => {
+    const knowing = person.conversations > 0 ? `当面说过 ${person.conversations} 回话` : "认得这个人，还没细说过话";
+    return `<article class="person-card">
     <div class="person-heading"><div class="contact-portrait" aria-hidden="true">${renderFigure(person.id, `${person.role} ${person.name}`)}</div>
-    <div><h4>${html(person.name)}</h4><span>${html(person.role)} · ${html(person.contact || "陌生")}</span></div></div>
-    <p class="person-trait">${person.conversations > 0 ? `当面聊过 ${person.conversations} 次` : "只是眼前的陌生人，还没有互相认识。"}</p>
-    <p>${person.nearby ? "就在附近，可以走过去聊聊。" : "现在不在身边，下次遇见再聊。"}</p>
-    ${person.nearby ? `<button class="contact-action" data-person-route="${html(person.id)}">去找${html(person.name)} →</button>` : ""}
-  </article>`).join("") ||
-    '<div class="bag-empty"><strong>还没有遇见的人</strong><p>到生活场景中当面交谈，慢慢认识聚落里的村民。</p><button data-route="activities">去附近走走 →</button></div>';
+    <div><h4>${html(person.name)}</h4><span>${html(person.role)}</span></div></div>
+    <p class="person-trait">${html(knowing)}</p>
+    <p>${person.nearby ? "就在附近，走过去就能搭话。" : "眼下不在身边，下次遇见再说。"}</p>
+    ${person.nearby ? `<button class="contact-action" data-person-route="${html(person.id)}">找${html(person.name)}说话 →</button>` : ""}
+  </article>`;
+  }).join("");
+
+  /*
+   * 还没认识的人单独成组，而且只露"面生"这一层。
+   * 以前每个人各占一张卡，两张卡长得一模一样（都是「陌生的老人」+ 同一段说明），
+   * 看起来像重复渲染；现在合成一组，标题说清有几个人，展开才看得到细节。
+   */
+  const strangerGroup = nearby.length
+    ? `<article class="person-card person-card--strangers">
+        <div class="person-heading"><div class="person-heading-text"><h4>面生的人</h4><span>${nearby.length > 1 ? `附近有 ${nearby.length} 个人，你叫不出名字` : "附近有个人，你叫不出名字"}</span></div></div>
+        <p class="person-trait">点头、让路都算打过照面，但还没真正说过话。</p>
+        <ul class="stranger-list">${strangerRows}</ul>
+      </article>`
+    : "";
+
+  container.innerHTML = (knownCards || strangerGroup)
+    ? knownCards + strangerGroup
+    : '<div class="bag-empty"><strong>还没有遇见的人</strong><p>到生活场景中当面交谈，慢慢认识聚落里的村民。</p><button data-route="activities">去附近走走 →</button></div>';
 }
 
 function renderWorks(p, c, onAction) {

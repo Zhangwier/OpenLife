@@ -6,6 +6,7 @@
   <title>OpenLife · 开放人生</title>
   <link rel="stylesheet" href="/stage.css" />
   <link rel="stylesheet" href="/theme.css" />
+  <link rel="stylesheet" href="/panels.css" />
   <link rel="stylesheet" href="/codex.css" />
   <link rel="stylesheet" href="/stories.css" />
   <link rel="stylesheet" href="/guide.css">
@@ -27,8 +28,6 @@
         <div class="home-menu">
           <button id="continueLife" class="home-primary" disabled><span>继续人生</span><small id="continueSummary">正在读取人生记录…</small><b aria-hidden="true">↗</b></button>
           <button id="homeNewLife" class="home-menu-item"><span>开启新的人生</span><small>选择名字与出生聚落</small><b aria-hidden="true">＋</b></button>
-          <button class="home-menu-item" data-route="modules"><span>模块管理</span><small>了解这个世界由什么组成</small><b aria-hidden="true">↗</b></button>
-          <button class="home-menu-item" data-route="family"><span>家族谱</span><small>回看那些走过的人生</small><b aria-hidden="true">↗</b></button>
           <button id="homeSaves" class="home-menu-item"><span>人生存档</span><small>找回之前留下的记忆</small><b aria-hidden="true">↗</b></button>
         </div>
         <p id="homeStatus" class="home-status" role="status">读取中的世界不会自动推进时间。</p>
@@ -49,8 +48,8 @@
       </div>
       <div class="top-actions">
         <button class="ghost-button" data-route="home">主菜单</button>
-        <button class="ghost-button memory-button" id="memoryButton">记忆</button>
-        <button class="icon-button" id="resetButton" aria-label="开始新人生" title="开始新人生">↺</button>
+        <button class="ghost-button memory-button" id="memoryButton" hidden>记忆</button>
+        <button class="icon-button" id="resetButton" hidden aria-label="开始新人生" title="开始新人生">↺</button>
         <button class="ghost-button" id="autoButton">时间与日程</button>
         <button class="ghost-button" id="pauseAutoButton" hidden aria-label="暂停持续模拟">暂停生活</button>
         <button class="icon-button" id="soundButton" type="button" aria-label="声音" aria-haspopup="dialog" aria-expanded="false"></button>
@@ -71,7 +70,6 @@
           <button data-route="world">时代与世界</button>
           <button data-route="history">记忆与历史</button>
           <button data-route="codex">图鉴</button>
-          <button data-route="modules">模块管理</button>
         </details>
       </nav>
       <div class="page-container"><p id="pageFeedback" class="page-feedback" role="status" aria-live="polite" hidden></p><div class="page-heading"><div><span id="pageEyebrow">我的人生</span><h1 id="pageTitle" tabindex="-1">生活</h1></div><span id="pageIdentity"></span></div><div id="pageScreens"></div></div>
@@ -132,7 +130,7 @@
                 <feComposite in="shaded" in2="specIn" operator="arithmetic" k1="0" k2="1" k3=".8" k4="0" result="lit"/>
                 <feComposite in="lit" in2="SourceAlpha" operator="in"/>
               </filter></defs></svg>
-            <img id="sceneBackdrop" class="scene-backdrop" src="/art/scene-yard.webp" alt="" draggable="false" />
+            <img id="sceneBackdrop" class="scene-backdrop" alt="" draggable="false" />
             <div class="scene-shimmer" aria-hidden="true"></div>
             <div class="scene-fx" id="sceneFx" aria-hidden="true"></div>
             <div class="scene-light" aria-hidden="true"></div>
@@ -280,15 +278,29 @@
     <section class="modal menu-modal">
       <div class="menu-heading"><h2>人生与世界</h2><button id="closeMenu" aria-label="关闭菜单">×</button></div>
       <div class="menu-links">
-        <button data-control="memoryButton">保存与读取</button>
-        <button data-control="autoButton">时间与日程</button>
-        <button data-control="layoutButton">版式：<span id="layoutLabel">跟随窗口</span></button>
+        <button id="memoryButtonMenu" data-control="memoryButton">保存与读取</button>
+        <button id="autoButtonMenu" data-control="autoButton">时间与日程</button>
         <button data-route="family">家族谱</button>
         <button data-route="history">记忆与历史</button>
         <button data-route="world">时代与世界</button>
         <button data-route="modules">模块管理</button>
         <button data-route="home">返回主菜单</button>
         <button data-control="resetButton">开启新人生</button>
+      </div>
+      <div class="menu-settings">
+        <div class="menu-section-title">显示</div>
+        <div class="setting-row">
+          <div><strong>版式</strong><small id="layoutHint">跟随窗口宽度</small></div>
+          <button id="layoutButton" class="segmented" type="button"><span id="layoutLabel">跟随窗口</span></button>
+        </div>
+        <div class="setting-row">
+          <div><strong>画面</strong><small>纯文字更省电、读得更快；画面模式显示场景插画与氛围动效</small></div>
+          <button id="viewModeButton" class="segmented" type="button"><span id="viewModeLabel">文字</span></button>
+        </div>
+        <div class="setting-row">
+          <div><strong>深色</strong><small>夜里看屏幕更舒服；也可跟随系统</small></div>
+          <button id="themeButtonMenu" class="segmented" type="button"><span id="themeLabel">跟随系统</span></button>
+        </div>
       </div>
     </section>
   </div>

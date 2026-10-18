@@ -60,69 +60,12 @@
 
 /* ============ 选项木牌 ============ */
 /*
- * 一行做法 + 一行代价暗示。不可选的灰掉，并写明原因（「没有界石」）。
- * 木牌质感只靠左边一道细边和极浅的底，不堆纹理——国风一屏不超过两处。
+ * 木牌的样式在 theme.css（.choice-card）。
+ * 2026-10 从本文件搬过去：一开始只有这一份，后来 guide/职位面板也要用，
+ * 两处各写一遍就出现了"同名不同样"——同一个类，在一个页面是木牌，在另一个页面是方框。
+ * 现在只有一处定义、三行固定结构（做什么 / 代价 / 做不到的原因）。
  */
-.choice-card {
-  display: grid;
-  gap: 2px;
-  width: 100%;
-  padding: 12px 16px;
-  text-align: start;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-inline-start: 3px solid var(--line-strong);
-  border-radius: var(--r-md);
-  color: var(--ink);
-  font-size: var(--fs-ui);
-  line-height: var(--lh-ui);
-  cursor: pointer;
-  transition: background var(--t-micro) var(--ease-soft),
-              border-color var(--t-micro) var(--ease-soft),
-              transform var(--t-micro) var(--ease-soft);
-}
 
-.choice-card:hover:not(:disabled) {
-  background: var(--surface-2);
-  border-inline-start-color: var(--primary);
-}
-
-.choice-card:active:not(:disabled) { transform: translateY(1px); }
-
-.choice-card .label { font-weight: 600; }
-
-/* 代价暗示：不写数值，只写「会得罪阿石」这类话。 */
-.choice-card .cost {
-  font-size: var(--fs-note);
-  color: var(--muted);
-}
-
-.choice-card .cost.is-warning { color: var(--tone-hostile); }
-
-/* 不可选：灰掉 + 说明原因。绝不只靠颜色区分（§9）。 */
-.choice-card:disabled {
-  cursor: not-allowed;
-  background: var(--surface-2);
-  border-inline-start-color: var(--line);
-  color: var(--muted);
-}
-
-.choice-card:disabled .label::after {
-  content: "（做不到）";
-  font-weight: 400;
-  color: var(--muted);
-}
-
-/* 许诺过的做法贴一张纸条（§5.2 B）。 */
-.choice-card .pledge-note {
-  margin-top: 4px;
-  padding: 2px 8px;
-  font-size: var(--fs-note);
-  color: var(--accent);
-  background: var(--accent-soft);
-  border-radius: var(--r-sm);
-  justify-self: start;
-}
 
 /* ============ 印章 ============ */
 /*
@@ -249,6 +192,32 @@
 .scene-layers[data-time="day"] > .lighting   { opacity: 0; }
 .scene-layers[data-time="dusk"] > .lighting  { opacity: .22; }
 .scene-layers[data-time="night"] > .lighting { opacity: .28; background: var(--primary-soft); }
+
+/* ============ 职位面板（office-panel.js） ============ */
+/*
+ * 这一块以前完全没有样式：`.office-*` 六七个类名没在任何 CSS 里出现，
+ * `.choice-list` 也没有布局，于是"断事"的按钮直接挤成一团——
+ * 是这次"界面乱"里最实的一处。
+ */
+.office-panel { display: grid; gap: 12px; }
+.office-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.office-title { font: 600 var(--fs-subhead) var(--serif); color: var(--ink); letter-spacing: var(--ls-title); }
+.office-when { font-size: var(--fs-fine); color: var(--muted); }
+.office-line, .office-standing { font-size: var(--fs-ui); line-height: var(--lh-body); color: var(--ink-2); margin: 0; }
+.office-standing { font-family: var(--serif); color: var(--ink); }
+.office-hint { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.office-hint li { display: grid; grid-template-columns: auto 1fr; gap: 8px; font-size: var(--fs-fine); color: var(--ink-2); line-height: var(--lh-ui); }
+.office-hint .hint-name { color: var(--ink); font-weight: 600; }
+.office-matter { display: grid; gap: 8px; padding: 12px 0 0; border-top: 1px solid var(--line); }
+.matter-title { margin: 0; font: 600 var(--fs-ui) var(--serif); color: var(--ink); }
+/* 断事的候选：一行一个木牌，不并排挤成一行。 */
+.choice-list { display: grid; gap: 8px; }
+.office-actions { display: grid; gap: 8px; }
+.office-pledges { padding-top: 10px; border-top: 1px solid var(--line); }
+.pledges-title { margin: 0 0 6px; font-size: var(--fs-note); font-weight: 600; letter-spacing: .06em; color: var(--accent-ink); }
+.office-pledges .pledge { margin: 0 0 4px; font-size: var(--fs-fine); line-height: var(--lh-ui); color: var(--ink-2); }
+/* 印章在面板里只当"标记"，不再跑一次盖章动画。 */
+.office-seal.seal { opacity: 1; transform: rotate(-3deg); font-size: var(--fs-fine); min-width: 0; padding: 3px 9px; animation: none; }
 
 /* ============ 无障碍 ============ */
 @media (prefers-reduced-motion: reduce) {

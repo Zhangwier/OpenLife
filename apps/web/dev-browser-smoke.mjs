@@ -100,7 +100,7 @@ try{
   assert.equal((await fetch(url + "/api/state")).status, 200);
   await openBrowser(url+"/");
   await cdp("Emulation.setDeviceMetricsOverride",{width:390,height:844,deviceScaleFactor:1,mobile:true});
-  await until(async()=>await evaluate('Boolean(document.querySelector("#screen-life"))'),"Frontend scripts did not initialize");
+  await until(async()=>await evaluate('Boolean(document.querySelector("#screen-character"))'),"Frontend scripts did not initialize");
   assert.equal(await evaluate('document.documentElement.dataset.view'), "text");
   await tap("#homeNewLife");
   await until(async()=>await evaluate('Boolean(document.querySelector("#newLifeModal:not([hidden])"))'),"New life form did not open");
@@ -130,7 +130,7 @@ try{
     await screenshot(`current-${width}px.png`);
   }
   await cdp("Page.reload");
-  await until(async()=>await evaluate('Boolean(document.querySelector("#screen-life"))'),"reload failed");
+  await until(async()=>await evaluate('Boolean(document.querySelector("#screen-character"))'),"reload failed");
   await tap("#continueLife");
   await until(async()=>await evaluate('document.body.dataset.screen==="activities"'),"continue failed");
   assert.deepEqual(browserErrors,[],"no uncaught browser errors");

@@ -1,10 +1,36 @@
 // 显示模式：text（纯文字，无插画、无动画、无音效，默认）或 picture（2.5D 场景画面，后期再启用）。
-// 切换：localStorage.setItem("openlife-view", "picture") 后刷新。
+// 切换：设置里点「画面模式」，或 localStorage.setItem("openlife-view", "picture") 后刷新。
 export const VIEW_KEY = "openlife-view";
 export function viewMode() {
   try { return localStorage.getItem(VIEW_KEY) === "picture" ? "picture" : "text"; } catch { return "text"; }
 }
 export const isTextMode = () => viewMode() === "text";
+
+/**
+ * 切到另一种显示模式。
+ *
+ * 插画层的显示/隐藏、氛围动效的挂载、`#sceneTheater` 的 display 都是在启动时
+ * 一次性决定的，没有运行时开关；所以这里改完 localStorage 直接刷新页面，
+ * 让整条链路按新模式重新初始化。刷新前先把滚动位置记下来，回来还在原处。
+ */
+export function toggleViewMode() {
+  const next = viewMode() === "picture" ? "text" : "picture";
+  try {
+    localStorage.setItem(VIEW_KEY, next);
+    sessionStorage.setItem("openlife-view-scroll", String(window.scrollY || 0));
+  } catch { /* 隐私模式：本次会话内仍然生效 */ }
+  location.reload();
+}
+
+export function consumeViewModeScroll() {
+  try {
+    const raw = sessionStorage.getItem("openlife-view-scroll");
+    if (raw === null) return;
+    sessionStorage.removeItem("openlife-view-scroll");
+    const y = Number(raw);
+    if (Number.isFinite(y) && y > 0) requestAnimationFrame(() => window.scrollTo(0, y));
+  } catch { /* 没有就跳过 */ }
+}
 
 /**
  * 设备版式：auto（跟随窗口宽度）或 phone / desktop（手动锁定）。

@@ -10,6 +10,7 @@
  * 读取 /api/codex；制作仍走 /api/action（settlement-locations.craft）。
  */
 import { html } from "/player.js";
+import { icon } from "/icons.js";
 
 const TABS = [
   ["recipes", "做法"],
@@ -173,7 +174,7 @@ function syncToggle() {
   toggle.title = on ? "背景音乐：开（点击静音）" : "背景音乐：关（点击播放）";
 }
 
-/** Adds the ♪ toggle to the top bar. Browsers only allow sound after a click. */
+/** Adds the music toggle to the top bar. Browsers only allow sound after a click. */
 export function installMusicToggle() {
   const actions = document.querySelector(".top-actions");
   if (!actions || document.getElementById("musicToggle")) return;
@@ -182,7 +183,8 @@ export function installMusicToggle() {
   toggle.className = "icon-button";
   toggle.type = "button";
   toggle.setAttribute("aria-label", "背景音乐");
-  toggle.textContent = "♪";
+  // 用和其他顶栏按钮同一套 24 网格线性图标，不拿文字音符当图标（DESIGN.md §9）。
+  toggle.innerHTML = icon("music");
   toggle.onclick = () => {
     if (player && !player.paused) { player.pause(); syncToggle(); return; }
     playTrack(currentTrack() || "river-morning");

@@ -20,6 +20,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - name: Design tokens (字号阶梯 / 硬编码颜色)
+        run: npm run design:check
+      - name: Module catalog is up to date
+        run: npm run catalog:check
       - name: Type-check ratchet (no new TypeScript errors)
         run: npm run typecheck
       - name: Smoke - modern-world demo

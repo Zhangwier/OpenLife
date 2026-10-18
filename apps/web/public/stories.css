@@ -1,42 +1,74 @@
-/* 「故事」页：任务、对话、节日、限时活动、突发事件、成就。沿用 theme.css 的颜色变量。 */
+/*
+ * 「故事」页：身边人的对话、节日、突发事、限时活动、成就。
+ *
+ * 2026-10-18 重写原因：
+ *  1. 标签直接写死 #b4483b / #c99a2e / #3e7a6b 三个新色相，全站只允许青绿+赭石两系；
+ *  2. 卡片底色是 accent-soft 的 35%，与「此刻」页的纸卡不是一家人；
+ *  3. 禁用按钮用 opacity .5，深色模式下文字直接读不出来，还被长文案撑出卡片。
+ * 现在：颜色只走令牌；卡片沿用 .panel 的纸面；禁用态改成"虚线边 + 说明原因"而不是整体变淡。
+ */
 #screen-stories { display: grid; gap: 14px; }
-#screen-stories .panel { padding: 16px 18px; }
-#screen-stories h3 { margin: 0 0 10px; font-size: 1.02rem; }
-#screen-stories h3 small { color: var(--ink-2); font-weight: 400; margin-left: 6px; }
-.story-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin: 0 0 10px; background: color-mix(in srgb, var(--accent-soft) 35%, transparent); }
-.story-card h4 { margin: 4px 0 6px; font-size: .98rem; }
-.story-card p { margin: 0 0 8px; color: var(--ink-2); line-height: 1.6; }
-.story-card.is-done { opacity: .7; padding: 8px 14px; }
-.story-card.is-offer { border-style: dashed; }
-.story-line { color: var(--ink) !important; font-style: italic; }
-.story-step { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0 10px; }
-.story-bar { display: inline-block; width: 120px; height: 6px; border-radius: 6px; background: var(--line); overflow: hidden; }
-.story-bar i { display: block; height: 100%; background: var(--accent); }
-.story-tag { display: inline-block; font-size: .72rem; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); border: 1px solid var(--accent-line); }
-.story-tag.story-main { background: var(--accent); color: #fff; border-color: var(--accent); }
-.story-tag.story-alert { background: #b4483b; color: #fff; border-color: #b4483b; }
-.story-tag.story-feast { background: #c99a2e; color: #fff; border-color: #c99a2e; }
-.story-tag.story-limited { background: #3e7a6b; color: #fff; border-color: #3e7a6b; }
-.story-choices { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.story-button { font: inherit; padding: 7px 14px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--paper, #fffaf2); color: var(--ink); cursor: pointer; }
-.story-button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-ink); }
-.story-button:disabled { opacity: .5; cursor: not-allowed; }
-.story-reason { color: var(--ink-2); font-size: .75rem; margin-right: 6px; }
-.story-incident { border-left: 4px solid #b4483b; }
-.story-festival { border-left: 4px solid #c99a2e; }
+#screen-stories .panel { padding: 18px 20px; }
+#screen-stories h3 { margin: 0 0 12px; font: 600 var(--fs-subhead) var(--serif); }
+#screen-stories h3 small { color: var(--muted); font-weight: 400; margin-left: 6px; font-size: var(--fs-note); }
+
+/* 一张故事卡：纸面 + 左侧一条状态色。不再整块染色。 */
+.story-card {
+  border: 1px solid var(--line); border-left: 3px solid var(--line-strong);
+  border-radius: var(--r-md); padding: 14px 16px; margin: 0 0 10px;
+  background: var(--surface-2);
+}
+.story-card h4 { margin: 4px 0 8px; font: 600 var(--fs-ui) var(--serif); color: var(--ink); }
+.story-card p { margin: 0 0 8px; color: var(--ink-narration); line-height: var(--lh-body); font-size: var(--fs-body); }
+.story-card.is-done { opacity: .72; padding: 10px 16px; }
+.story-card.is-offer { border-left-style: dashed; }
+.story-line { color: var(--ink) !important; font-family: var(--serif); }
+.story-step { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0 10px; font-size: var(--fs-fine); color: var(--ink-2); }
+.story-bar { display: inline-block; width: 120px; height: 6px; border-radius: var(--r-pill); background: var(--line); overflow: hidden; }
+.story-bar i { display: block; height: 100%; background: var(--primary); }
+
+/* 标签：只用已有色，且一个标签只表达一件事。 */
+.story-tag {
+  display: inline-block; font-size: var(--fs-note); padding: 2px 9px; border-radius: var(--r-pill);
+  background: var(--surface-3); color: var(--ink-2); border: 1px solid var(--line-strong);
+}
+.story-tag.story-main { background: var(--primary-soft); color: var(--primary); border-color: var(--primary); }
+.story-tag.story-alert { background: var(--danger-soft); color: var(--danger); border-color: var(--danger-line); }
+.story-tag.story-feast { background: var(--accent-soft); color: var(--accent-ink); border-color: var(--accent-line); }
+.story-tag.story-limited { background: var(--surface-3); color: var(--ink); border-color: var(--line-strong); }
+
+/* 选择：一行一个，像木牌；禁用时保留文字可读，并在下方单独给原因。 */
+.story-choices { display: grid; gap: 8px; margin-top: 4px; }
+.story-button {
+  font: inherit; width: 100%; min-height: 48px; padding: 10px 14px; text-align: left;
+  border-radius: var(--r-md); border: 1px solid var(--line-strong);
+  background: var(--surface); color: var(--ink); cursor: pointer;
+  font-size: var(--fs-ui); line-height: var(--lh-ui);
+  transition: border-color var(--t-micro) var(--ease-soft), background var(--t-micro) var(--ease-soft);
+}
+.story-button:hover:not(:disabled) { border-color: var(--primary); background: var(--primary-soft); }
+/* 禁用的做法：不降透明度（深色下会读不出），改成虚线边 + 灰字 + 下面一行原因。 */
+.story-button:disabled {
+  cursor: not-allowed; border-style: dashed; border-color: var(--line-strong);
+  background: transparent; color: var(--muted);
+}
+.story-reason { color: var(--muted); font-size: var(--fs-note); margin: 0; }
+.story-incident { border-left-color: var(--danger); }
+.story-festival { border-left-color: var(--accent); }
+
 .story-badges { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
-.story-badges li { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; opacity: .45; filter: grayscale(1); }
-.story-badges li.is-unlocked { opacity: 1; filter: none; border-color: var(--accent-line); background: var(--accent-soft); }
-.story-badges b { display: block; font-size: .9rem; }
-.story-badges small { color: var(--ink-2); font-size: .75rem; }
+.story-badges li { border: 1px solid var(--line); border-radius: var(--r-md); padding: 10px 12px; }
+.story-badges li.is-unlocked { border-color: var(--accent-line); background: var(--accent-soft); }
+.story-badges b { display: block; font-size: var(--fs-ui); }
+.story-badges small { color: var(--muted); font-size: var(--fs-note); }
 
 .story-roster { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 6px; }
-.story-person { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; border-bottom: 1px dashed var(--line); padding: 6px 0; }
-.story-person.is-feud b { color: #b4483b; }
-.story-where { color: var(--ink-2); }
-.story-ties i { font-style: normal; font-size: .72rem; margin-right: 4px; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--line); }
+.story-person { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; border-bottom: 1px solid var(--line); padding: 8px 0; }
+.story-person.is-feud b { color: var(--danger); }
+.story-where { color: var(--muted); font-size: var(--fs-fine); }
+.story-ties i { font-style: normal; font-size: var(--fs-note); margin-right: 4px; padding: 1px 7px; border-radius: var(--r-pill); border: 1px solid var(--line); color: var(--ink-2); }
 .story-ties .tie-kin { border-color: var(--accent-line); }
-.story-ties .tie-rival { border-color: #b4483b; color: #b4483b; }
-.story-log { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; font-size: .88rem; }
-.story-log small { color: var(--ink-2); margin-left: 6px; }
-.story-remark { color: var(--accent-ink); font-size: .88rem; }
+.story-ties .tie-rival { border-color: var(--danger-line); color: var(--danger); }
+.story-log { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; font-size: var(--fs-fine); color: var(--ink-2); }
+.story-log small { color: var(--muted); margin-left: 6px; }
+.story-remark { color: var(--accent-ink); font-size: var(--fs-fine); }

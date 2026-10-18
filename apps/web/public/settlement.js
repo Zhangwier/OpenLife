@@ -11,6 +11,7 @@ import { layoutDepth, installParallax } from "./scene-depth.js";
 import { isTextMode } from "./view-mode.js";
 import { objectKind, resourceKind, fillRatio, propSvg, slotFor } from "./scene-props.js";
 import { openDetail, closeDetail } from "./detail-navigation.js";
+import { resolveSceneArt } from "./scene-placeholder.js";
 const $ = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g,
   (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[ch]);
@@ -41,14 +42,36 @@ const SCENE_ART = {
  "place:ford":"/art/scene-ford.webp"
 };
 const propPriority={cistern:0,jar:1,hearth:2,kiln:3,pot:4,fuel:5,basket:6,tool:7,reed:8,grain:9,mat:10,default:11};
+/*
+ * 场景底图的解析。
+ *
+ * SCENE_ART 指向的 9 张 webp 在仓库里并不存在（从未提交过），所以"画面模式"
+ * 以前只会显示一块纯色。这里改成：真图能加载就用真图，加载不到就用
+ * scene-placeholder.js 按地点/时辰/季节画的矢量占位图——构图与 DESIGN.md 的分层
+ * 要求一致，不是灰色方块，也不会再让玩家以为功能坏了。
+ * 真插画到位后不需要改这里，探测会自动优先用真图。
+ */
+let lastSceneKey = "";
+function applySceneArt(placeId, daypart, season) {
+  const art = $("sceneBackdrop");
+  if (!art) return;
+  const key = `${placeId}|${daypart}|${season}`;
+  if (key === lastSceneKey) return;
+  lastSceneKey = key;
+  const real = SCENE_ART[placeId] ?? "/art/scene-yard.webp";
+  resolveSceneArt(real, placeId, daypart, season).then(src => {
+    // 期间玩家可能已经走到别处，过期结果直接丢掉。
+    if (lastSceneKey !== key) return;
+    if (!art.src.endsWith(src)) art.src = src;
+  });
+}
 function renderPaintedStage(s) {
  const art=$("sceneBackdrop");
  if(!art)return;
- const src=SCENE_ART[s.placeId]||"/art/scene-yard.webp";
- if(!art.src.endsWith(src))art.src=src;
  const theater=$("sceneTheater");
  theater.dataset.location=s.placeId==="place:hearth-yard"?"hearth":s.placeId.replace("place:","");
  const daypart=daypartOf(s.dailyActivity), season=String(s.season||"春").slice(0,1);
+ applySceneArt(s.placeId, daypart, season);
  theater.dataset.daypart=daypart; theater.dataset.season=season;
  theater.dataset.sky=s.weather?.sky||"晴";
  if(isTextMode()){ const ledger=$("sceneLedger"); if(ledger) ledger.open=true; return; }
@@ -108,9 +131,38 @@ function renderPaintedStage(s) {
  $("sceneStageHint").textContent="观察眼前物品与村民，轻触即可互动";
 }
 let previousScenePlace = "";
-function hudMeter(label, value, max, tone) {
-  const pct = max ? Math.max(0, Math.min(100, Math.round((value / max) * 100))) : 0;
-  return `<span class="hud-item ${tone}"><span class="hud-label">${label}</span><span class="hud-track"><i style="width:${pct}%"></i></span><b>${value}/${max}</b></span>`;
+/**
+ * 状态用一句话说，不给玩家看数字（DESIGN.md 原则 3）。
+ *
+ * 以前这里是「饥饿 0/10 + 进度条 + 今日活动 8/8 格」，一屏四个数字，
+ * 与设计规范正面冲突；现在只留「肚子 / 今天」，各一句白话。
+ * 屏幕阅读器仍能读到完整数值（sr-only），看得到的界面保持无数字。
+ */
+function hudWord(label, word, tone) {
+  return `<span class="hud-item ${tone || ""}"><span class="hud-label">${label}</span><b>${word}</b></span>`;
+}
+/** 饥饿 0–10 分成五档，只有真饿到影响干活时才用危险色。 */
+function hungerWord(hunger, toll) {
+  if (toll?.sick) return { word: "饿病了", tone: "warn" };
+  if (hunger >= 10) return { word: "眼前发黑", tone: "warn" };
+  if (hunger >= 8) return { word: "饿得发慌", tone: "warn" };
+  if (hunger >= 6) return { word: "空着肚子", tone: "watch" };
+  if (hunger >= 3) return { word: "有点饿", tone: "" };
+  return { word: "吃得饱", tone: "" };
+}
+/** 今日活动格：说「还能做几件事」，不报格数。 */
+function activityWord(remaining) {
+  if (remaining <= 0) return { word: "今天做不动了", tone: "watch" };
+  if (remaining <= 2) return { word: "还能做一点", tone: "watch" };
+  if (remaining <= 4) return { word: "还能做几件事", tone: "" };
+  return { word: "一整天都在", tone: "" };
+}
+/** 负重：用「背得动 / 有点沉 / 背不动了」。 */
+function loadWord(mass, maxMass) {
+  const ratio = maxMass ? mass / maxMass : 0;
+  if (ratio >= 1) return { word: "背不动了", tone: "warn" };
+  if (ratio >= 0.75) return { word: "有点沉", tone: "watch" };
+  return { word: "背得动", tone: "" };
 }
 function renderInSceneMenu(s, heading, candidates, onAction) {
   const theater = $("sceneTheater"), box = $("sceneQuickActions");
@@ -136,10 +188,29 @@ function renderInSceneMenu(s, heading, candidates, onAction) {
         '<span class="go-icon">' + icon(actionIconName(action)) + '</span><span class="go-name">' + esc(name) + '</span>' +
         (cost ? '<small>' + cost + ' 格</small>' : '<small>屋内</small>') + '</button>';
     }
-    return '<button type="button" class="scene-quick-choice' + (primary ? ' is-primary' : '') + '" data-scene-quick="' + i + '"' +
-      (why ? ' disabled aria-disabled="true"' : '') + '><span class="choice-main">' + icon(actionIconName(action)) + '<span>' + esc(action.label) + '</span></span>' +
-      (cost ? '<small>' + cost + ' 格活动</small>' : Number(action.days) > 0 ? '<small>' + Number(action.days) + ' 天</small>' : '') +
-      (why ? '<small class="quick-blocker">' + esc(why) + '</small>' : '') + '</button>';
+    /*
+     * 选项木牌（ui-research/10 §6.3）：固定三行，不再把图标、标题、代价挤成一行。
+     *   第一行 做什么      16px，动词开头
+     *   第二行 代价暗示    13px，--accent-ink；优先用世界给的 hint
+     *   第三行 做不到的原因 13px，--muted；仅在禁用时出现
+     * 以前 hint 字段一直存在却从不显示，玩家只能看到「3 格活动」——等于只告诉他
+     * 要付多少，不告诉他为什么值得做。
+     */
+    const label = String(action.label || "");
+    // 代价说人话：能算进"几件事"就说几件，跨天的就说几天，都不占就说"随手"。
+    const pace = cost ? (cost <= 2 ? "一小会儿" : cost <= 4 ? "小半天" : "大半天")
+      : Number(action.days) > 0 ? (Number(action.days) === 1 ? "要过一夜" : `要过 ${Number(action.days)} 夜`)
+      : "随手就做";
+    const hint = String(action.hint || "").trim();
+    // 第二行：有 hint 用 hint（那是世界里真实的原因），没有才退回时间成本。
+    const costLine = hint || pace;
+    const costTone = why ? "is-muted" : hint ? "is-reason" : "";
+    return '<button type="button" class="choice-card' + (primary ? ' is-primary' : "") + '" data-scene-quick="' + i + '"' +
+      (why ? ' disabled aria-disabled="true" aria-label="' + esc(label) + '（' + esc(why) + '）"' : '') + '>' +
+      '<span class="choice-label">' + icon(actionIconName(action)) + '<span>' + esc(label) + '</span></span>' +
+      '<span class="choice-cost ' + costTone + '">' + esc(costLine) + '</span>' +
+      (why ? '<span class="choice-blocker">' + esc(why) + '</span>' : "") +
+      '</button>';
   };
   const activeCount = shown.filter(a => a.enabled !== false).length;
   const title = heading || "当前可以做什么";
@@ -184,25 +255,27 @@ export function renderSettlement(state, onAction) {
   $("scenePlace").textContent = s.placeName || "聚落";
   $("sceneSpace").textContent = s.spaceName || "院子";
   $("sceneDay").textContent = `第 ${s.origin?.daysHere ?? s.day} 天 · ${s.season}`;
-  const status = [
+  // 屏幕阅读器拿到完整数值；看得到的界面只有白话（DESIGN.md 原则 3）。
+  const spoken = [
     `饥饿 ${s.hunger ?? 0}/10`,
-    `今日活动 ${s.dailyActivity?.remaining ?? 0}/${s.dailyActivity?.capacity ?? 8} 格`,
-    s.outfit ? `已穿：${s.outfit.name}` : "",
     s.hungerToll?.line ? `${s.hungerToll.line}（今天少 ${s.hungerToll.units} 格）` : "",
+    `今天还剩 ${s.dailyActivity?.remaining ?? 0} 格活动时间`,
+    s.outfit ? `已穿：${s.outfit.name}` : "",
     s.barter?.status === "offered" && s.barter.offeredAt === state.tick ? `${cookOf(s).name}正在等待你回复报价` : "",
   ];
-  // 状态用量表而不是一句话：饥饿、今日活动格、随身负重一眼可读。
   const act = s.dailyActivity || { remaining: 0, capacity: 8 };
   const load = s.portableLoad;
-  const pips = Array.from({ length: act.capacity ?? 8 }, (_, i) => `<i class="${i < (act.remaining ?? 0) ? "on" : ""}"></i>`).join("");
-  const extra = status.slice(2).filter(Boolean);
-  $("sceneSummary").innerHTML = `<span class="sr-only">${esc(status.filter(Boolean).join(" · "))}</span>
+  const hunger = hungerWord(s.hunger ?? 0, s.hungerToll);
+  const today = activityWord(act.remaining ?? 0);
+  const loadWordState = load ? loadWord(Number(load.mass.toFixed(1)), load.maxMass) : null;
+  const note = s.hungerToll?.line || "";
+  $("sceneSummary").innerHTML = `<span class="sr-only">${esc(spoken.filter(Boolean).join(" · "))}</span>
     <span class="hud" aria-hidden="true">
-      ${hudMeter("饥饿", s.hunger ?? 0, 10, (s.hunger ?? 0) >= 7 ? "warn" : "")}
-      <span class="hud-item"><span class="hud-label">今天</span><span class="hud-pips">${pips}</span><b>剩 ${act.remaining ?? 0} 格</b></span>
-      ${s.roof ? hudMeter(s.roof.leaking ? "屋顶漏" : "屋顶", s.roof.condition, s.roof.max, s.roof.leaking ? "warn" : "") : ""}
-      ${load ? hudMeter("负重", Number(load.mass.toFixed(1)), load.maxMass, load.mass >= load.maxMass ? "warn" : "") : ""}
-    </span>${extra.length ? `<span class="hud-note">${esc(extra.join(" · "))}</span>` : ""}`;
+      ${hudWord("肚子", hunger.word, hunger.tone)}
+      ${hudWord("今天", today.word, today.tone)}
+      ${loadWordState ? hudWord("身上", loadWordState.word, loadWordState.tone) : ""}
+      ${s.roof ? hudWord(s.roof.leaking ? "屋顶" : "屋顶", s.roof.leaking ? "在漏雨" : "还挡得住", s.roof.leaking ? "warn" : "") : ""}
+    </span>${note ? `<span class="hud-note">${esc(note)}</span>` : ""}`;
   renderPaintedStage(s);
 
   const story = $("communityFeed");
