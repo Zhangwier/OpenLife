@@ -1,0 +1,930 @@
+{
+  "dialogues": {
+    "fisher": {
+      "nodes": {
+        "root": {
+          "options": [
+            {
+              "id": "trip",
+              "label": "说秋水落了，该撑筏进泽了",
+              "requires": {
+                "flags": [
+                  "marsh-trip-promise"
+                ]
+              },
+              "next": "trip1"
+            },
+            {
+              "id": "weir-night",
+              "label": "问他春汛守梁的夜里都想些什么",
+              "requires": {
+                "minTier": "close"
+              },
+              "next": "night1"
+            },
+            {
+              "id": "teacher",
+              "label": "问他网坠上那条鱼是谁刻的",
+              "requires": {
+                "minHearts": 8
+              },
+              "next": "teacher1"
+            },
+            {
+              "id": "herbalist",
+              "label": "问他阿芷那只旧木盆的事",
+              "requires": {
+                "flags": [
+                  "herbalist-west-promise"
+                ]
+              },
+              "next": "basin1"
+            }
+          ]
+        },
+        "trip1": {
+          "text": "阿罟把长绳一圈圈绕在胳膊上：“秋天水道一天一个样。你记住三件事：拴绳、看鹭、别踩浮草甸。”",
+          "options": [
+            {
+              "id": "rope",
+              "label": "问绳子拴在哪儿",
+              "next": "trip2a"
+            },
+            {
+              "id": "heron",
+              "label": "问为什么要看白鹭",
+              "next": "trip2b"
+            }
+          ]
+        },
+        "trip2a": {
+          "text": "“拴在旧渡口那截渡桩上。”他拍了拍绳头，“绳放完了就往回收，不许再往里走一步。”",
+          "options": [
+            {
+              "id": "go",
+              "label": "跟他撑进芦荡",
+              "next": "trip3",
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                }
+              }
+            },
+            {
+              "id": "ask",
+              "label": "问要是绳断了怎么办",
+              "next": "trip3",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.3
+                }
+              }
+            }
+          ]
+        },
+        "trip2b": {
+          "text": "“白鹭傍晚都回鹭岛，鹭岛的东边就是河口。”他眯眼看天，“迷了路，就等太阳落山，看它们往哪儿飞。”",
+          "options": [
+            {
+              "id": "go",
+              "label": "跟他撑进芦荡",
+              "next": "trip3",
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                }
+              }
+            }
+          ]
+        },
+        "trip3": {
+          "text": "芦苇比人高两头。阿罟撑了半天，篙子忽然停住：前面的水面上，一截“沉木”慢慢睁开了眼睛。",
+          "options": [
+            {
+              "id": "still",
+              "label": "屏住气，一动不动",
+              "effects": {
+                "bond": {
+                  "trust": 1
+                },
+                "line": "那截沉木看了你们很久，慢慢沉了下去。阿罟这才喘出一口气：“鼍公。它今天不饿。”",
+                "setFlags": [
+                  "marsh-trip-done",
+                  "met-gator"
+                ]
+              }
+            },
+            {
+              "id": "back",
+              "label": "悄悄往回撑",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.8
+                },
+                "line": "你们退出去三丈远，阿罟才笑：“不丢人，我年轻时也这么跑。”他在筏头刻了一道，“记着，这是你头一回进泽。”",
+                "setFlags": [
+                  "marsh-trip-done"
+                ]
+              }
+            }
+          ]
+        },
+        "night1": {
+          "text": "阿罟往火里添了根柴：“想我师父。他守了四十个春汛，最后一个，是在鱼梁上睡过去的。”",
+          "options": [
+            {
+              "id": "how",
+              "label": "问他师父是怎样的人",
+              "next": "night2"
+            },
+            {
+              "id": "quiet",
+              "label": "陪他安静坐着",
+              "effects": {
+                "bond": {
+                  "trust": 1
+                },
+                "line": "你们谁也没说话。河面上一条鱼跳起来，又落回去。阿罟说：“他来了。”"
+              }
+            }
+          ]
+        },
+        "night2": {
+          "text": "“话比我还少。”阿罟笑了，“教我结网，一个死结让我打了三天。他说，网眼是人跟鱼的约，打松了就是骗鱼。”",
+          "options": [
+            {
+              "id": "promise",
+              "label": "说你也会守这个约",
+              "effects": {
+                "bond": {
+                  "trust": 1.2
+                },
+                "line": "阿罟看了你很久，把自己那枚骨网梭在你手心里按了按：“好。那开春，你跟我守一夜。”",
+                "setFlags": [
+                  "weir-night-promise"
+                ]
+              }
+            },
+            {
+              "id": "joke",
+              "label": "说鱼又听不懂",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.6
+                },
+                "line": "“鱼听得懂。”阿罟一本正经，“不然它为什么只往我的网里钻？”"
+              }
+            }
+          ]
+        },
+        "teacher1": {
+          "text": "阿罟把那枚旧网坠放在你手心：“是西边的人刻的。我师父年轻时从大泽西头换来的，那边的人在什么东西上都刻鱼。”",
+          "options": [
+            {
+              "id": "west",
+              "label": "说阿芷的木盆底下也有个记号",
+              "requires": {
+                "flags": [
+                  "herbalist-west-promise"
+                ]
+              },
+              "next": "teacher2"
+            },
+            {
+              "id": "keep",
+              "label": "说这么贵重的东西你不能收",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "“谁说给你了？”阿罟把网坠收回去，嘴角却翘着，“等你自己结完一张大拉网，再说。”"
+              }
+            }
+          ]
+        },
+        "teacher2": {
+          "text": "阿罟一下子坐直了：“什么记号？……画给我看。”你在泥地上描出来，他盯着看了半天，又把网坠翻过来：底下刻着一模一样的记号。",
+          "options": [
+            {
+              "id": "tell",
+              "label": "说该去告诉阿芷",
+              "effects": {
+                "bond": {
+                  "trust": 1.5
+                },
+                "line": "阿罟沉默了一会儿：“你去说。她要是想去西头泉眼，就撑我的蒲篷筏去。我给你们掌篙。”",
+                "setFlags": [
+                  "west-mark-matched"
+                ]
+              }
+            }
+          ]
+        },
+        "basin1": {
+          "text": "“那只盆？”阿罟想了想，“那年大水，是我在渡口把它捞上岸的。盆里有个娃娃，手里攥着一把草，死活不撒手。”",
+          "options": [
+            {
+              "id": "why",
+              "label": "问他为什么从没告诉阿芷",
+              "next": "basin2"
+            },
+            {
+              "id": "thank",
+              "label": "替阿芷谢谢他",
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                },
+                "line": "阿罟摆摆手：“谢什么，捞鱼捞惯了。”可他往药庐那边看了一眼。"
+              }
+            }
+          ]
+        },
+        "basin2": {
+          "text": "“蓍婆不让说。”阿罟低声道，“她怕那丫头一知道自己是西边来的，就要走。”",
+          "options": [
+            {
+              "id": "tell",
+              "label": "说阿芷有权知道",
+              "effects": {
+                "bond": {
+                  "trust": 1
+                },
+                "line": "阿罟叹了口气：“……那你挑个好日子。别在她煎药的时候说，她会把药熬糊的。”",
+                "setFlags": [
+                  "fisher-told-basin"
+                ]
+              }
+            },
+            {
+              "id": "keep",
+              "label": "答应先替他守着这个秘密",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "阿罟拍拍你的肩：“好。等她自己问起来再说。”",
+                "setFlags": [
+                  "basin-secret-kept"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "herbalist": {
+      "nodes": {
+        "root": {
+          "options": [
+            {
+              "id": "mark",
+              "label": "把阿罟的网坠记号告诉她",
+              "requires": {
+                "flags": [
+                  "west-mark-matched"
+                ]
+              },
+              "next": "mark1"
+            },
+            {
+              "id": "teach",
+              "label": "请她正经教你一回药",
+              "requires": {
+                "minTier": "friend"
+              },
+              "next": "teach1"
+            },
+            {
+              "id": "snakegrass",
+              "label": "陪她去蛇窝边采止血草",
+              "requires": {
+                "minTier": "acquaint",
+                "notFlags": [
+                  "snakegrass-done"
+                ]
+              },
+              "next": "snake1"
+            },
+            {
+              "id": "healer",
+              "label": "问她蓍婆老了以后怎么办",
+              "requires": {
+                "minHearts": 6
+              },
+              "next": "old1"
+            }
+          ]
+        },
+        "mark1": {
+          "text": "阿芷手里的药碾停了：“一模一样？”她把那片描着记号的苇叶从药柜里取出来，手在发抖。",
+          "options": [
+            {
+              "id": "west",
+              "label": "说阿罟愿意撑筏送她去西头泉眼",
+              "next": "mark2"
+            },
+            {
+              "id": "wait",
+              "label": "说不急，先想想",
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                },
+                "line": "阿芷点点头，把苇叶夹回草册里，可那一下午她碾错了两回药。"
+              }
+            }
+          ]
+        },
+        "mark2": {
+          "text": "“我……”阿芷看了一眼病榻间，“蓍婆的腿一入冬就疼，我走了，谁给她煎药？”",
+          "options": [
+            {
+              "id": "cover",
+              "label": "说你替她守药庐几天",
+              "effects": {
+                "bond": {
+                  "trust": 1.5
+                },
+                "line": "阿芷看着你，眼圈红了：“那……第三排第七格是蓍婆的药，一天两回，别忘了。”",
+                "setFlags": [
+                  "herbalist-will-go-west"
+                ]
+              }
+            },
+            {
+              "id": "together",
+              "label": "说等开春蓍婆腿好了，三个人一起去",
+              "effects": {
+                "bond": {
+                  "trust": 1
+                },
+                "line": "阿芷笑出了声：“蓍婆才不肯上筏子。不过……开春就开春。”",
+                "setFlags": [
+                  "herbalist-west-spring"
+                ]
+              }
+            }
+          ]
+        },
+        "teach1": {
+          "text": "阿芷把三碗药汤摆在你面前：“一碗退热，一碗止泻，一碗是我随手熬的，喝了要拉三天。挑。”",
+          "options": [
+            {
+              "id": "smell",
+              "label": "一碗碗闻过去",
+              "next": "teach2"
+            },
+            {
+              "id": "ask",
+              "label": "耍赖问她哪碗是退热的",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.3
+                },
+                "line": "“学药不许耍赖。”她敲了你一下，“回去背十种草再来。”"
+              }
+            }
+          ]
+        },
+        "teach2": {
+          "text": "第一碗苦，第二碗涩，第三碗……有一股甜味。你想起她说过：“闻着甜的要小心。”",
+          "options": [
+            {
+              "id": "first",
+              "label": "挑第一碗",
+              "effects": {
+                "bond": {
+                  "trust": 0.8
+                },
+                "line": "阿芷拍手：“对！苦的退热。”她把第三碗倒进了药圃，“这碗是给蚜虫的。”",
+                "setFlags": [
+                  "herb-test-passed"
+                ]
+              }
+            },
+            {
+              "id": "third",
+              "label": "挑第三碗",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.6
+                },
+                "line": "阿芷笑得直不起腰：“都说了甜的要小心！”她把第三碗倒掉，“再来一回。下回你自己熬。”"
+              }
+            }
+          ]
+        },
+        "snake1": {
+          "text": "浮草甸边上，紫花开了一片。阿芷递给你一根长篙：“你走前头，戳草。轻点。”",
+          "options": [
+            {
+              "id": "poke",
+              "label": "一路轻轻戳着走",
+              "next": "snake2"
+            },
+            {
+              "id": "rush",
+              "label": "大步走过去先采",
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "一条水蛇从你脚边窜进水里。阿芷尖叫一声，又捂着嘴笑：“它比你还怕！下回听我的。”"
+              }
+            }
+          ]
+        },
+        "snake2": {
+          "text": "草丛里一条青灰的水蛇正盘着晒太阳。阿芷拽住你的袖子，大气不敢出。",
+          "options": [
+            {
+              "id": "around",
+              "label": "绕到上风处，从另一边采",
+              "effects": {
+                "bond": {
+                  "trust": 1.2
+                },
+                "line": "你们采了满满一篓紫花，蛇连头都没抬。回去的路上，阿芷说：“你比蓍婆还稳。”",
+                "setFlags": [
+                  "snakegrass-done"
+                ]
+              }
+            },
+            {
+              "id": "shoo",
+              "label": "用篙子在远处拍水把它引开",
+              "effects": {
+                "bond": {
+                  "trust": 0.8
+                },
+                "line": "蛇游走了，草丛里只留下一条完整的蛇蜕。阿芷宝贝似的收起来：“这个也有用！”",
+                "setFlags": [
+                  "snakegrass-done"
+                ]
+              }
+            }
+          ]
+        },
+        "old1": {
+          "text": "阿芷沉默了很久：“她教了我十年，可她最拿手的那味药，从来不肯教。说是等我能自己认出大泽里所有的草。”",
+          "options": [
+            {
+              "id": "help",
+              "label": "说你陪她把大泽里的草认全",
+              "effects": {
+                "bond": {
+                  "trust": 1
+                },
+                "line": "阿芷翻开草册，指着空着的那三十多页：“那你得陪我很多个秋天。”",
+                "setFlags": [
+                  "herb-book-pact"
+                ]
+              }
+            },
+            {
+              "id": "ask",
+              "label": "说直接去问蓍婆",
+              "next": "old2"
+            }
+          ]
+        },
+        "old2": {
+          "text": "“问了。”阿芷苦笑，“她说：‘药是给人吃的，不是给人背的。等你心里装着人了，就会了。’”",
+          "options": [
+            {
+              "id": "think",
+              "label": "说也许她已经会了",
+              "effects": {
+                "bond": {
+                  "trust": 1.2
+                },
+                "line": "阿芷愣住了，低头看着满手的药渣，过了一会儿，小声说：“……那我明天再去问她一回。”"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "incidents": {
+    "list": [
+      {
+        "id": "otter-net",
+        "title": "水獭掏网",
+        "seasons": [
+          "春",
+          "秋"
+        ],
+        "text": "一连三个早上，渔寮的鱼篓都被掏空了，篓口的竹篾上挂着几根棕色的软毛。阿罟蹲在岸边看了看泥里的爪印：“水獭。一家子。”",
+        "choices": [
+          {
+            "id": "trade",
+            "label": "在岸边留两条小鱼，换它们别碰鱼篓",
+            "line": "第二天鱼篓满着，岸边那两条小鱼没了。阿罟挠挠头：“它们还挺讲理。”",
+            "bond": {
+              "fisher": {
+                "familiarity": 0.5
+              }
+            }
+          },
+          {
+            "id": "weir",
+            "label": "帮阿罟在鱼篓外加一圈苇栅",
+            "requires": {
+              "resource": "resource:reed"
+            },
+            "consume": true,
+            "line": "苇栅扎得密，水獭再来只能在外面打转。天亮时栅边落着一团蹭掉的獭毛和一条它们没叼走的鲫鱼。",
+            "items": [
+              {
+                "prototype": "prototype:fish",
+                "name": "水獭没叼走的鲫鱼"
+              }
+            ],
+            "bond": {
+              "fisher": {
+                "trust": 1
+              }
+            }
+          },
+          {
+            "id": "watch",
+            "label": "半夜蹲在蒲草里看它们",
+            "line": "月亮底下，四只水獭排着队从水里钻出来，一只叼鱼，三只在岸上打滚。你看了一夜，忘了自己是来抓贼的。",
+            "bond": {
+              "fisher": {
+                "familiarity": 0.3
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "gator-winter",
+        "title": "鼍窟塌了半边",
+        "seasons": [
+          "冬"
+        ],
+        "text": "一场冻雨，鼍窟的泥坡塌了半边。阿罟从泽里回来说，洞口露出了一截冻僵的鼍尾巴，“老家伙睡得太死，再冻两天就醒不过来了。”",
+        "choices": [
+          {
+            "id": "cover",
+            "label": "跟阿罟撑筏去，用蒲草把洞口盖上",
+            "requires": {
+              "resource": "resource:cattail"
+            },
+            "consume": true,
+            "line": "你们把蒲草一抱抱堆在塌开的洞口。临走时，阿罟在洞边捡起一片蜕下的鼍甲：“它欠咱们一回。”",
+            "items": [
+              {
+                "prototype": "prototype:gator-scute",
+                "name": "鼍窟边捡的鼍甲"
+              }
+            ],
+            "bond": {
+              "fisher": {
+                "trust": 1.5
+              }
+            },
+            "setFlags": [
+              "saved-gator"
+            ]
+          },
+          {
+            "id": "hide",
+            "label": "说正好趁它冻僵剥了它的皮",
+            "line": "阿罟脸色一沉：“鼍公叫了几十年的雨。你剥了它，明年谁叫？”他一个人撑筏去了。",
+            "bond": {
+              "fisher": {
+                "grudge": 0.5
+              }
+            }
+          },
+          {
+            "id": "leave",
+            "label": "说让老天去管",
+            "line": "开春以后，泽里再没响起鼍鸣。那年的雨来得特别晚。",
+            "bond": {}
+          }
+        ]
+      },
+      {
+        "id": "milu-antler",
+        "title": "麋鹿洲上的旧角",
+        "seasons": [
+          "冬"
+        ],
+        "text": "入冬麋鹿换角，阿罟说麋鹿洲上能捡到整副的旧角。可洲上还留着一头没走的老公麋，守着它的角不让人靠近。",
+        "choices": [
+          {
+            "id": "wait",
+            "label": "在筏上等到它自己下水",
+            "line": "等到太阳偏西，老公麋终于下水游走了。洲上躺着一副完整的大角，比人还宽。",
+            "items": [
+              {
+                "prototype": "prototype:antler",
+                "name": "麋鹿洲上捡的整副麋角"
+              },
+              {
+                "prototype": "prototype:antler",
+                "name": "麋鹿洲上捡的整副麋角"
+              }
+            ],
+            "bond": {
+              "fisher": {
+                "familiarity": 0.5
+              }
+            }
+          },
+          {
+            "id": "drum",
+            "label": "敲着筏帮把它吓走",
+            "line": "老公麋被吓得冲进水里，却把你们的筏子顶了个趔趄。你抓着篷杆才没掉下去，手里攥着一截断角。",
+            "items": [
+              {
+                "prototype": "prototype:antler",
+                "name": "慌乱中抢到的半截麋角"
+              }
+            ],
+            "bond": {
+              "fisher": {
+                "grudge": 0.2
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "duck-pond",
+        "title": "野鸭占了菱塘",
+        "seasons": [
+          "秋"
+        ],
+        "text": "几百只绿头鸭落进菱塘，一天就把菱叶翻得七零八落。阿罟说再这样下去，今年的菱角要喂鸭子了。",
+        "choices": [
+          {
+            "id": "pick",
+            "label": "抢在鸭子前头连夜采菱",
+            "line": "你坐着木盆在月光下采了大半夜，鸭子们在旁边嘎嘎地叫，像在骂你。",
+            "items": [
+              {
+                "prototype": "prototype:water-chestnut",
+                "name": "跟鸭子抢来的菱角"
+              },
+              {
+                "prototype": "prototype:water-chestnut",
+                "name": "跟鸭子抢来的菱角"
+              }
+            ],
+            "bond": {
+              "fisher": {
+                "trust": 0.5
+              }
+            }
+          },
+          {
+            "id": "eggs",
+            "label": "去塘边芦苇丛里看看有没有鸭蛋",
+            "line": "芦苇根下有一窝凉了的蛋，母鸭没回来。阿芷说凉了的蛋不能吃，可蛋壳碾碎了能入药。",
+            "bond": {
+              "herbalist": {
+                "familiarity": 0.5
+              }
+            }
+          },
+          {
+            "id": "share",
+            "label": "说菱塘那么大，分它们一半",
+            "line": "阿罟想了想，笑了：“也是，鸭子吃饱了，冬天狐狸就少往村里钻。”",
+            "bond": {
+              "fisher": {
+                "familiarity": 0.3
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "carp-gasp",
+        "title": "鲫鱼翻塘",
+        "seasons": [
+          "夏"
+        ],
+        "text": "连着十天没下雨，菱角塘的水又浅又烫。一早上，塘面上浮起一层张着嘴的鲫鱼，白鹭、水獭全来了。",
+        "choices": [
+          {
+            "id": "ditch",
+            "label": "跟阿罟挖一道沟，把河水引进塘里",
+            "line": "沟挖通时太阳都落了。河水哗哗地灌进塘里，翻着白肚的鱼一条条又沉了下去。阿罟累得躺在泥里，说值了。",
+            "bond": {
+              "fisher": {
+                "trust": 1.5
+              },
+              "yu": {
+                "familiarity": 0.3
+              }
+            }
+          },
+          {
+            "id": "catch",
+            "label": "趁机捞几条",
+            "line": "你捞了满满一篓。阿罟看了看塘里剩下的鱼，叹了口气：“今年捞了，明年就没了。”",
+            "items": [
+              {
+                "prototype": "prototype:fish",
+                "name": "翻塘时捞的鲫鱼"
+              },
+              {
+                "prototype": "prototype:fish",
+                "name": "翻塘时捞的鲫鱼"
+              },
+              {
+                "prototype": "prototype:fish",
+                "name": "翻塘时捞的鲫鱼"
+              }
+            ],
+            "bond": {
+              "fisher": {
+                "grudge": 0.2
+              }
+            }
+          },
+          {
+            "id": "drum",
+            "label": "去祠里敲鼍皮鼓求雨",
+            "requires": {
+              "flags": [
+                "saved-gator"
+              ]
+            },
+            "line": "鼓声闷闷地滚过大泽。到了半夜，远处鼍窟那边应了一声，又一声。第二天清早，雨来了。",
+            "bond": {
+              "shrine-keeper": {
+                "trust": 1
+              },
+              "fisher": {
+                "trust": 1
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "egret-chick",
+        "title": "掉下窝的小白鹭",
+        "seasons": [
+          "夏"
+        ],
+        "text": "小汲从白鹭岛那边回来，怀里抱着一只灰扑扑的小鹭，一条腿耷拉着：“它从窝里掉下来了，大鹭都不管它。”",
+        "choices": [
+          {
+            "id": "splint",
+            "label": "抱去药庐找阿芷",
+            "line": "阿芷用两根苇秆给它夹住腿，喂了半个月的碎鱼。小鹭能飞的那天，在药庐上空绕了三圈，掉下来一根白羽毛。",
+            "items": [
+              {
+                "prototype": "prototype:egret-plume",
+                "name": "小鹭留下的白羽"
+              }
+            ],
+            "bond": {
+              "herbalist": {
+                "trust": 1
+              },
+              "water-child": {
+                "trust": 1
+              }
+            }
+          },
+          {
+            "id": "back",
+            "label": "陪小汲撑筏送它回岛",
+            "line": "你们把小鹭放回最矮的那棵树下。它的妈妈盘旋了很久，终于落了下来。小汲一路上都没说话，回到渡口才哭出来。",
+            "bond": {
+              "water-child": {
+                "trust": 1.5
+              },
+              "fisher": {
+                "familiarity": 0.3
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "old-gator-dies",
+        "title": "老鼍寿终",
+        "seasons": [
+          "秋"
+        ],
+        "text": "阿罟从沉木林回来，脸色很怪：鼍窟边漂着一条老鼍，背甲上的青苔比沉木还厚，已经没了气。“几十年的老家伙了。”他说，“该让它体面点。”",
+        "choices": [
+          {
+            "id": "drum",
+            "label": "跟阿罟把它拖回来，皮留着蒙祠里的鼓",
+            "line": "你们把老鼍拖上岸，阿罟先对着它拜了三拜才动刀。鼍皮剥下来晾在晒鱼台上，老祝说：“它叫了一辈子雨，往后就让鼓替它叫。”",
+            "items": [
+              {
+                "prototype": "prototype:gator-hide",
+                "name": "老鼍留下的鼍皮"
+              },
+              {
+                "prototype": "prototype:gator-scute",
+                "name": "老鼍背上的甲"
+              }
+            ],
+            "bond": {
+              "fisher": {
+                "trust": 1
+              },
+              "shrine-keeper": {
+                "trust": 0.5
+              }
+            }
+          },
+          {
+            "id": "bury",
+            "label": "就地埋在鼍窟边",
+            "line": "你们在鼍窟边挖了个坑，把它埋了，坟上插了一根白鹭羽。第二年夏天，那附近又响起了鼍鸣，比从前的细一些。",
+            "bond": {
+              "fisher": {
+                "trust": 1.2
+              }
+            },
+            "setFlags": [
+              "buried-old-gator"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "quests": [
+    {
+      "id": "side-herbalist-west",
+      "kind": "side",
+      "title": "西头泉眼",
+      "giver": "herbalist",
+      "requires": {
+        "flags": [
+          "west-mark-matched"
+        ],
+        "hearts": {
+          "herbalist": 5
+        }
+      },
+      "summary": "阿罟的网坠和阿芷的木盆底下刻着同一个记号。阿芷想去大泽西头看看，可蓍婆的药不能断。",
+      "acceptLine": "阿芷把草册抱在怀里：“先替蓍婆配够十天的药，再备一罐金疮膏路上用。然后……就走。”",
+      "steps": [
+        {
+          "id": "powder",
+          "text": "给阿芷送两包药散，替蓍婆备药",
+          "objective": {
+            "type": "deliver",
+            "npc": "herbalist",
+            "resource": "resource:medicine",
+            "count": 2
+          }
+        },
+        {
+          "id": "glue",
+          "text": "给阿罟送一块鱼胶补蒲篷筏",
+          "objective": {
+            "type": "deliver",
+            "npc": "fisher",
+            "resource": "resource:glue",
+            "count": 1
+          }
+        }
+      ],
+      "completeLine": "蒲篷筏顺着白鹭飞来的方向撑了三天。西头泉眼边的石头上，刻满了和木盆底一样的记号。阿芷蹲在泉边洗了洗手，说：“我回来过了。”"
+    },
+    {
+      "id": "side-fisher-net-day",
+      "kind": "side",
+      "title": "开网节的老调",
+      "giver": "fisher",
+      "requires": {
+        "flags": [
+          "weir-night-promise"
+        ]
+      },
+      "summary": "阿罟想让你在开网节那天戴着鹭羽冠，站在鱼梁上唱一段他师父传下来的老调。",
+      "acceptLine": "阿罟清了清嗓子：“先给我三根白鹭羽扎冠。调子我慢慢教你。”",
+      "steps": [
+        {
+          "id": "plume",
+          "text": "给阿罟送三根白鹭羽",
+          "objective": {
+            "type": "deliver",
+            "npc": "fisher",
+            "resource": "resource:plume",
+            "count": 3
+          }
+        }
+      ],
+      "completeLine": "开网节那天清早，你戴着鹭羽冠站在鱼梁上，跟着阿罟一句一句地唱。谁也听不懂那调子，可两岸的人都停下了手里的活。"
+    }
+  ]
+}

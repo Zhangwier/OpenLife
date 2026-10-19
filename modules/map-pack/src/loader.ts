@@ -414,10 +414,25 @@ function parseEventPoints(directory: string, locations: MapPackLocation[], issue
     issues.push(fileIssue(file, MapPackIssueCode.FileMalformed, (error as Error).message));
     return [];
   }
-  const list = isObject(value) ? value.event_points : undefined;
-  if (!Array.isArray(list)) {
+  const mainList = isObject(value) ? value.event_points : undefined;
+  if (!Array.isArray(mainList)) {
     issues.push(fileIssue(file, MapPackIssueCode.RootShape, `${MAP_PACK_OPTIONAL_FILES.eventPoints} must contain an "event_points:" list`));
     return [];
+  }
+  // A later content round may add map/event_points.deep.yaml beside it; its points are appended
+  // and checked by the same rules (ids must stay unique across both files).
+  let list = mainList;
+  const deepPath = path.replace(/\.yaml$/, ".deep.yaml");
+  if (existsSync(deepPath)) {
+    const deepFile: StagedFile = { path: deepPath, present: true, value: undefined };
+    try {
+      const deep = parseYamlDocument(readFileSync(deepPath, "utf8"), deepPath);
+      const more = isObject(deep) ? deep.event_points : undefined;
+      if (Array.isArray(more)) list = [...mainList, ...more];
+      else issues.push(fileIssue(deepFile, MapPackIssueCode.RootShape, `${deepPath} must contain an "event_points:" list`));
+    } catch (error) {
+      issues.push(fileIssue(deepFile, MapPackIssueCode.FileMalformed, (error as Error).message));
+    }
   }
   const known = new Set(locations.map((location) => location.id));
   const seen = new Set<string>();

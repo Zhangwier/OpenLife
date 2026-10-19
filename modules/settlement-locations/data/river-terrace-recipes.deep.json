@@ -1,0 +1,453 @@
+{
+  "recipes": [
+    {
+      "id": "recipe:medicine-cabinet",
+      "name": "打百格药柜",
+      "placeId": "place:herb-hut",
+      "spaceId": "space:herb-store",
+      "inputs": [
+        {
+          "prototypeId": "prototype:log",
+          "count": 3
+        },
+        {
+          "prototypeId": "prototype:fish-glue",
+          "count": 2
+        }
+      ],
+      "tools": [
+        "prototype:stone-axe"
+      ],
+      "outputs": [
+        {
+          "prototypeId": "prototype:medicine-cabinet",
+          "count": 1
+        }
+      ],
+      "skill": "木作",
+      "description": "木板拼成十二个小格，缝里灌鱼胶，潮气进不去。药散、蛇蜕、晒干的根各放各格，阿芷闭着眼都摸得到。"
+    },
+    {
+      "id": "recipe:herb-stove",
+      "name": "垒双眼药灶",
+      "placeId": "place:herb-hut",
+      "spaceId": "space:herb-kitchen",
+      "inputs": [
+        {
+          "prototypeId": "prototype:clay-batch",
+          "count": 4
+        },
+        {
+          "prototypeId": "prototype:flint-stone",
+          "count": 2
+        }
+      ],
+      "tools": [],
+      "outputs": [
+        {
+          "prototypeId": "prototype:herb-stove",
+          "count": 1
+        }
+      ],
+      "skill": "制陶",
+      "description": "两个灶眼共一条烟道，一边煎药一边熬膏。灶身是泥里掺了碎石垒的，烧得越久越结实。"
+    },
+    {
+      "id": "recipe:net-frame",
+      "name": "立晾网架",
+      "placeId": "place:fishing-lodge",
+      "spaceId": "space:lodge-netloft",
+      "inputs": [
+        {
+          "prototypeId": "prototype:log",
+          "count": 2
+        },
+        {
+          "prototypeId": "prototype:rope",
+          "count": 2
+        }
+      ],
+      "tools": [
+        "prototype:stone-axe"
+      ],
+      "outputs": [
+        {
+          "prototypeId": "prototype:net-frame",
+          "count": 1
+        }
+      ],
+      "skill": "木作",
+      "description": "两根高杆一根横梁，大拉网整张挂上去晾透、补好再收。网湿着收起来，一冬就烂。"
+    },
+    {
+      "id": "recipe:awning-raft",
+      "name": "扎蒲篷筏",
+      "placeId": "place:fishing-lodge",
+      "spaceId": "space:lodge-bank",
+      "inputs": [
+        {
+          "prototypeId": "prototype:raft",
+          "count": 1
+        },
+        {
+          "prototypeId": "prototype:cattail-mat",
+          "count": 2
+        },
+        {
+          "prototypeId": "prototype:fish-glue",
+          "count": 1
+        }
+      ],
+      "tools": [
+        "prototype:stone-axe"
+      ],
+      "outputs": [
+        {
+          "prototypeId": "prototype:awning-raft",
+          "count": 1
+        }
+      ],
+      "skill": "木作",
+      "description": "在木筏上搭一顶蒲席篷，缝口抹鱼胶。下雨能躲，夜里能睡，进芦荡、去沉木林都靠它。"
+    },
+    {
+      "id": "recipe:gator-drum",
+      "name": "蒙鼍皮鼓",
+      "placeId": "place:shrine",
+      "spaceId": "space:altar",
+      "inputs": [
+        {
+          "prototypeId": "prototype:log",
+          "count": 1
+        },
+        {
+          "prototypeId": "prototype:gator-hide",
+          "count": 1
+        },
+        {
+          "prototypeId": "prototype:fish-glue",
+          "count": 1
+        }
+      ],
+      "tools": [
+        "prototype:stone-axe"
+      ],
+      "outputs": [
+        {
+          "prototypeId": "prototype:gator-drum",
+          "count": 1
+        }
+      ],
+      "skill": "木作",
+      "description": "掏空一截沉木，蒙上鼍皮，四周用鱼胶粘牢。敲起来闷闷的，像鼍公在水底叫雨。老祝说求雨的时候用。"
+    },
+    {
+      "id": "recipe:caltrop-tub",
+      "name": "掏采菱木盆",
+      "placeId": "place:fishing-lodge",
+      "spaceId": "space:lodge-bank",
+      "inputs": [
+        {
+          "prototypeId": "prototype:log",
+          "count": 1
+        }
+      ],
+      "tools": [
+        "prototype:stone-axe"
+      ],
+      "outputs": [
+        {
+          "prototypeId": "prototype:caltrop-tub",
+          "count": 1
+        }
+      ],
+      "skill": "木作",
+      "description": "一截粗木掏成的大盆，人坐进去刚好。在菱塘里划着走，翻得动菱叶，又不会压坏。"
+    },
+    {
+      "id": "recipe:gear-rack",
+      "name": "编渔具挂架",
+      "placeId": "place:fishing-lodge",
+      "spaceId": "space:lodge-gear",
+      "inputs": [
+        {
+          "prototypeId": "prototype:log",
+          "count": 1
+        },
+        {
+          "prototypeId": "prototype:reed-bundle",
+          "count": 2
+        }
+      ],
+      "tools": [],
+      "outputs": [
+        {
+          "prototypeId": "prototype:gear-rack",
+          "count": 1
+        }
+      ],
+      "skill": "编织",
+      "description": "竹钉一排排插在苇编的架子上，网坠、浮子、鱼篓各挂各的钉。"
+    },
+    {
+      "id": "recipe:consult-stool",
+      "name": "锯问诊木墩",
+      "placeId": "place:herb-hut",
+      "spaceId": "space:herb-porch",
+      "inputs": [
+        {
+          "prototypeId": "prototype:log",
+          "count": 1
+        }
+      ],
+      "tools": [
+        "prototype:stone-axe"
+      ],
+      "outputs": [
+        {
+          "prototypeId": "prototype:consult-stool",
+          "count": 1
+        }
+      ],
+      "skill": "木作",
+      "description": "一截锯平的老橡木墩，病人坐上去，阿芷正好够得着看舌头、摸脉。"
+    },
+    {
+      "id": "recipe:padded-coat",
+      "name": "絮蒲绒夹衣",
+      "placeId": "place:weaving-shed",
+      "spaceId": "space:spinning-porch",
+      "inputs": [
+        {
+          "prototypeId": "prototype:hemp-cloth",
+          "count": 1
+        },
+        {
+          "prototypeId": "prototype:cattail-down",
+          "count": 2
+        }
+      ],
+      "tools": [
+        "prototype:bone-needle"
+      ],
+      "outputs": [
+        {
+          "prototypeId": "prototype:padded-coat",
+          "count": 1
+        }
+      ],
+      "skill": "缝制",
+      "description": "两层麻布中间絮上蒲绒，绗成一格一格的，轻，又挡风。冬天守鱼梁的人离不了它。"
+    },
+    {
+      "id": "recipe:horn-bow",
+      "name": "粘胶角弓",
+      "placeId": "place:stone-beach",
+      "spaceId": "space:knapping-shed",
+      "inputs": [
+        {
+          "prototypeId": "prototype:bow",
+          "count": 1
+        },
+        {
+          "prototypeId": "prototype:antler",
+          "count": 1
+        },
+        {
+          "prototypeId": "prototype:fish-glue",
+          "count": 1
+        }
+      ],
+      "tools": [
+        "prototype:stone-knife"
+      ],
+      "outputs": [
+        {
+          "prototypeId": "prototype:horn-bow",
+          "count": 1
+        }
+      ],
+      "skill": "木作",
+      "description": "木弓背上贴一层削薄的鹿角片，用鱼胶粘牢、麻线缠紧，阴干一个月。比木弓劲大，阿犴摸着直咂嘴。"
+    },
+    {
+      "id": "recipe:feather-arrow",
+      "name": "扎鹭羽箭",
+      "placeId": "place:stone-beach",
+      "spaceId": "space:knapping-shed",
+      "inputs": [
+        {
+          "prototypeId": "prototype:flint-stone",
+          "count": 1
+        },
+        {
+          "prototypeId": "prototype:reed-bundle",
+          "count": 1
+        },
+        {
+          "prototypeId": "prototype:egret-plume",
+          "count": 1
+        }
+      ],
+      "tools": [
+        "prototype:stone-knife"
+      ],
+      "outputs": [
+        {
+          "prototypeId": "prototype:feather-arrow",
+          "count": 1
+        }
+      ],
+      "skill": "打石",
+      "description": "苇秆做杆，燧石打成箭头，尾巴上用鱼胶粘三片白鹭羽。羽毛顺，箭就飞得直。"
+    },
+    {
+      "id": "recipe:wound-salve",
+      "name": "调金疮膏",
+      "placeId": "place:herb-hut",
+      "spaceId": "space:herb-kitchen",
+      "inputs": [
+        {
+          "prototypeId": "prototype:herb-powder",
+          "count": 1
+        },
+        {
+          "prototypeId": "prototype:fish-glue",
+          "count": 1
+        }
+      ],
+      "tools": [
+        "prototype:herb-stove"
+      ],
+      "outputs": [
+        {
+          "prototypeId": "prototype:wound-salve",
+          "count": 1
+        }
+      ],
+      "skill": "识药",
+      "description": "药散和鱼胶在药灶上一起熬成膏，盛在小陶罐里。抹在伤口上，水泡不掉。"
+    },
+    {
+      "id": "recipe:eye-powder",
+      "name": "配明目散",
+      "placeId": "place:herb-hut",
+      "spaceId": "space:herb-kitchen",
+      "inputs": [
+        {
+          "prototypeId": "prototype:herb-powder",
+          "count": 1
+        },
+        {
+          "prototypeId": "prototype:snake-slough",
+          "count": 1
+        }
+      ],
+      "tools": [
+        "prototype:herb-grinder"
+      ],
+      "outputs": [
+        {
+          "prototypeId": "prototype:eye-powder",
+          "count": 1
+        }
+      ],
+      "skill": "识药",
+      "description": "蛇蜕焙干，和药散一起再碾一遍。蓍婆说治眼翳，阿埴挖土挖得眼睛发红，就靠它。"
+    },
+    {
+      "id": "recipe:caltrop-flour",
+      "name": "舂菱粉",
+      "placeId": "place:longhouse",
+      "spaceId": "space:longhouse-hall",
+      "inputs": [
+        {
+          "prototypeId": "prototype:water-chestnut",
+          "count": 2
+        }
+      ],
+      "tools": [
+        "prototype:mortar"
+      ],
+      "outputs": [
+        {
+          "prototypeId": "prototype:caltrop-flour",
+          "count": 1
+        }
+      ],
+      "skill": "炊事",
+      "description": "菱角煮熟剥壳，晒干了倒进木臼里舂成粉。菱粉放一冬不坏。"
+    },
+    {
+      "id": "recipe:caltrop-cake",
+      "name": "蒸菱粉糕",
+      "placeId": "place:hearth-yard",
+      "spaceId": "space:hearth",
+      "inputs": [
+        {
+          "prototypeId": "prototype:caltrop-flour",
+          "count": 1
+        },
+        {
+          "prototypeId": "prototype:water",
+          "count": 1
+        }
+      ],
+      "tools": [
+        "prototype:cooking-pot"
+      ],
+      "outputs": [
+        {
+          "prototypeId": "prototype:caltrop-cake",
+          "count": 1
+        }
+      ],
+      "skill": "炊事",
+      "description": "菱粉和水揉成团，摊在苇叶上蒸。出锅软糯，带一点甜。"
+    },
+    {
+      "id": "recipe:cattail-down-glean",
+      "name": "晒蒲棒取绒",
+      "placeId": "place:fishing-lodge",
+      "spaceId": "space:lodge-drying",
+      "inputs": [
+        {
+          "prototypeId": "prototype:cattail",
+          "count": 2
+        }
+      ],
+      "tools": [],
+      "outputs": [
+        {
+          "prototypeId": "prototype:cattail-down",
+          "count": 1
+        }
+      ],
+      "skill": "编织",
+      "description": "没炸絮的蒲棒割下来，在晒鱼台上晒干，一搓就是一团绒。"
+    },
+    {
+      "id": "recipe:skin-gator",
+      "name": "剥鼍皮",
+      "placeId": "place:fishing-lodge",
+      "spaceId": "space:lodge-drying",
+      "inputs": [
+        {
+          "prototypeId": "prototype:gator-hide",
+          "count": 1
+        }
+      ],
+      "tools": [
+        "prototype:stone-knife"
+      ],
+      "outputs": [
+        {
+          "prototypeId": "prototype:gator-scute",
+          "count": 1
+        }
+      ],
+      "skill": "缝制",
+      "description": "老鼍皮背上的硬甲一片片剥下来，皮子留着蒙鼓。（每张能剥出几片甲，做护心用。）"
+    }
+  ]
+}

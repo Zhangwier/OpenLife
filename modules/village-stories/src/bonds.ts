@@ -9,6 +9,7 @@
  * them into validated commands and reactions.
  */
 import { readFileSync } from "node:fs";
+import { withOverlay } from "./overlay.ts";
 import type { WorldView } from "@openlife/contracts";
 import {
   RIVER_TERRACE_PACK, bondOf, dailyActivity, heartsOf, isIll, isWet, residentId, socialOf, type Bond,
@@ -44,9 +45,9 @@ export interface BondsPack {
   quarrelChance: number;
 }
 
-export const BONDS_PACK: BondsPack = JSON.parse(
+export const BONDS_PACK: BondsPack = withOverlay(new URL("../data/river-terrace.bonds.json", import.meta.url), JSON.parse(
   readFileSync(new URL("../data/river-terrace.bonds.json", import.meta.url), "utf8"),
-) as BondsPack;
+) as BondsPack);
 
 // ---------------------------------------------------------------------------
 // Tiers
