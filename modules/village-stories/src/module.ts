@@ -26,7 +26,7 @@ import {
 } from "./people-rules.ts";
 import {
   Outcome, STORY_OWNER, StoryComponents, activePlayer, baseFor, consume, daysUntil, eventActive, handOver, heartsWith, incidentGate, incidentOn,
-  keyOf, meets, npcName, ownedInHand, progressOf, readJournal, resourceLabel, yearOf, type Journal,
+  keyOf, meets, npcName, ownedInHand, progressOf, questDaysLeft, questExpired, readJournal, resourceLabel, riteStreak, yearOf, type Journal,
 } from "./journal.ts";
 
 export const StoryCommands = {
@@ -38,6 +38,9 @@ export const StoryCommands = {
   resolveIncident: "village-stories.incident.resolve",
   settleQuarrel: "village-stories.quarrel.settle",
   useService: "village-stories.service.use",
+  decide: "village-stories.quest.decide",
+  claimAchievement: "village-stories.achievement.claim",
+  setTitle: "village-stories.title.set",
 } as const;
 export const StoryProjections = { journal: "village-stories.journal", guide: "village-stories.guide" } as const;
 export const StoryRejection = "E_STORY_NOT_NOW";
@@ -69,7 +72,7 @@ function withMe(world: WorldView, me: string, key: string): string {
 // --- availability, shared by rules and the projection ----------------------
 
 export function acceptProblem(world: WorldView, me: string, j: Journal, q: QuestSpec): string {
-  if (j.quests[q.id]) return j.quests[q.id]!.status === "done" ? "已经办完了" : "正在办";
+  if (j.quests[q.id]) return { done: "已经办完了", failed: "误了期限，这件事办不成了", active: "正在办" }[j.quests[q.id]!.status];
   const why = meets(world, me, j, q.requires);
   if (why) return why;
   if (q.giver && !q.autoOffer) return withMe(world, me, q.giver);
@@ -80,6 +83,7 @@ export function turnInProblem(world: WorldView, me: string, j: Journal, q: Quest
   const state = j.quests[q.id];
   const step = state?.status === "active" ? q.steps[state.step] : undefined;
   if (!step || step.objective.type !== "deliver") return "现在没有要交的东西";
+  if (questExpired(q, state!, world.tick)) return "已经过了期限";
   const o = step.objective;
   const away = withMe(world, me, o.npc);
   if (away) return away;
@@ -114,10 +118,14 @@ function offerProblem(world: WorldView, me: string, j: Journal, eventId: string,
   const e = STORY_PACK.limitedEvents.find((x) => x.id === eventId);
   if (!e) return "没有这个活动";
   if (!eventActive(world.tick, e)) return "活动不在这几天";
-  if (j.events[e.id] === yearOf(world.tick)) return "今年已经参加过了";
+  const year = yearOf(world.tick);
+  const visits = e.visits ?? 1;
+  const used = j.eventUses[`${e.id}@${year}`] ?? (j.events[e.id] === year ? 1 : 0);
+  if (used >= visits) return visits > 1 ? `今年的 ${visits} 回都用完了` : "今年已经参加过了";
   if (here(world, me) !== e.placeId) return "要到活动的地方去";
   const offer = e.offers.find((o) => o.id === offerId);
   if (!offer) return "没有这个选项";
+  if (offer.limit !== undefined && (j.eventUses[`${e.id}@${year}:${offer.id}`] ?? 0) >= offer.limit) return `这一样今年只能换 ${offer.limit} 回`;
   if (offer.give && ownedInHand(world, me, offer.give).length === 0) return `手里要有${resourceLabel(offer.give)}`;
   return meets(world, me, j, offer.requires);
 }
@@ -131,6 +139,30 @@ function incidentProblem(world: WorldView, me: string, j: Journal, incidentId: s
   if (!choice) return "没有这个选择";
   return meets(world, me, j, choice.requires);
 }
+
+export function decideProblem(world: WorldView, me: string, j: Journal, q: QuestSpec | undefined, optionId: string): string {
+  if (!q) return "没有这件事";
+  const state = j.quests[q.id];
+  const step = state?.status === "active" ? q.steps[state.step] : undefined;
+  if (!step || step.objective.type !== "decide") return "现在没有要拿主意的事";
+  if (questExpired(q, state!, world.tick)) return "已经过了期限";
+  if (step.objective.npc) { const away = withMe(world, me, step.objective.npc); if (away) return away; }
+  const option = step.objective.options.find((o) => o.id === optionId);
+  if (!option) return "没有这个主意";
+  return meets(world, me, j, option.requires);
+}
+
+export function claimProblem(j: Journal, achievementId: string): string {
+  const a = STORY_PACK.achievements.find((x) => x.id === achievementId);
+  if (!a) return "没有这个成就";
+  if (j.achievements[a.id] === undefined) return "还没有得到这个成就";
+  if (!a.reward) return "这个成就没有可领的东西";
+  if (j.claimed.includes(a.id)) return "已经领过了";
+  return "";
+}
+
+/** Titles the player has earned (from unlocked achievements). */
+export const earnedTitles = (j: Journal) => STORY_PACK.achievements.filter((a) => a.title && j.achievements[a.id] !== undefined).map((a) => a.title!);
 
 // --- counters fed by the settlement's own events ----------------------------
 
@@ -246,10 +278,19 @@ export const villageStoriesModule: OpenLifeModule = {
         const { feast, rite } = riteToday(c.world, str(c, "riteId"))!;
         if (rite.requires?.resource) out.effects.push(...consume(ownedInHand(c.world, out.me, rite.requires.resource).slice(0, 1), out.me, `rite: ${feast.id}`));
         const got = out.reward(rite.reward, `节日：${feast.name}`);
-        out.j = { ...out.j, rites: { ...out.j.rites, [feast.id]: yearOf(out.tick) } };
+        const year = yearOf(out.tick);
+        const years = [...new Set([...(out.j.riteYears[feast.id] ?? []), year])].sort((a, b) => a - b);
+        const streak = riteStreak(years, year);
+        out.j = { ...out.j, rites: { ...out.j.rites, [feast.id]: year }, riteYears: { ...out.j.riteYears, [feast.id]: years },
+          counters: { ...out.j.counters, [`rite-streak:${feast.id}`]: Math.max(out.j.counters[`rite-streak:${feast.id}`] ?? 0, streak),
+            "rite-streak": Math.max(out.j.counters["rite-streak"] ?? 0, streak) } };
+        // A feast kept year after year: the village remembers (the step for exactly this many years, from any way of keeping it).
+        const step = STORY_PACK.festivalRites.filter((r) => r.feast === feast.id).flatMap((r) => r.streak ?? []).find((s) => s.years === streak);
+        if (step) got.push(...out.reward(step.reward, `连着 ${streak} 年过${feast.name}`));
         out.count("rite");
         out.count(`rite:${feast.id}`);
-        out.say("village-stories.rite", `${rite.line}${got.length ? `（得到：${got.join("、")}）` : ""}`, { feast: feast.id });
+        out.say("village-stories.rite", `${rite.line}${step ? step.line : streak > 1 ? `（连着第 ${streak} 年过${feast.name}。）` : ""}${got.length ? `（得到：${got.join("、")}）` : ""}`,
+          { feast: feast.id, streak });
       });
 
     rule(StoryCommands.joinEvent,
@@ -260,10 +301,22 @@ export const villageStoriesModule: OpenLifeModule = {
         if (offer.give) out.effects.push(...consume(ownedInHand(c.world, out.me, offer.give).slice(0, 1), out.me, `event: ${e.id}`));
         const got = offer.get ? [out.grant(offer.get)] : [];
         for (const [k, b] of Object.entries(offer.bond ?? {})) out.bond(k, b, `活动：${e.name}`);
-        out.j = { ...out.j, events: { ...out.j.events, [e.id]: yearOf(out.tick) } };
+        const year = yearOf(out.tick);
+        const visitKey = `${e.id}@${year}`;
+        const uses = { ...out.j.eventUses, [visitKey]: (out.j.eventUses[visitKey] ?? (out.j.events[e.id] === year ? 1 : 0)) + 1,
+          [`${visitKey}:${offer.id}`]: (out.j.eventUses[`${visitKey}:${offer.id}`] ?? 0) + 1 };
+        out.j = { ...out.j, events: { ...out.j.events, [e.id]: year }, eventUses: uses };
         out.count("event");
         out.count(`event:${e.id}`);
         out.say("village-stories.event_joined", `${offer.line}${got.length ? `（得到：${got.join("、")}）` : ""}`, { eventId: e.id, offerId: offer.id });
+        // Every offer taken this year: the event's own keepsake, once a year.
+        const doneFlag = `event-complete:${visitKey}`;
+        if (e.complete && !out.j.flags.includes(doneFlag) && e.offers.every((o) => (uses[`${visitKey}:${o.id}`] ?? 0) > 0)) {
+          out.flag(doneFlag);
+          const more = out.reward(e.complete.reward, `${e.name}：样样都做了`);
+          out.count(`event-complete:${e.id}`);
+          out.say("village-stories.event_completed", `${e.complete.line}${more.length ? `（得到：${more.join("、")}）` : ""}`, { eventId: e.id });
+        }
       });
 
     rule(StoryCommands.resolveIncident,
@@ -275,6 +328,7 @@ export const villageStoriesModule: OpenLifeModule = {
         const got = out.reward(choice, `突发：${incident.title}`);
         out.flag(...(choice.setFlags ?? []));
         out.j = { ...out.j, incidents: { ...out.j.incidents, [String(out.tick)]: `${incident.id}:${choice.id}` } };
+        if (choice.followUp) out.j = { ...out.j, scheduled: { ...out.j.scheduled, [String(out.tick + choice.followUp.afterDays)]: choice.followUp.incident } };
         out.count("incident");
         out.count(`incident:${incident.id}`);
         out.say("village-stories.incident_resolved", `${choice.line}${got.length ? `（得到：${got.join("、")}）` : ""}`, { incidentId: incident.id, choiceId: choice.id });
@@ -287,6 +341,52 @@ export const villageStoriesModule: OpenLifeModule = {
     rule(StoryCommands.useService,
       (c, me, j) => serviceProblem(c.world, me, j, serviceById(str(c, "serviceId")), str(c, "targetNpc")),
       (c, out) => useService(out, serviceById(str(c, "serviceId"))!, str(c, "targetNpc")));
+
+    rule(StoryCommands.decide,
+      (c, me, j) => decideProblem(c.world, me, j, quest(str(c, "questId")), str(c, "optionId")),
+      (c, out) => {
+        const q = quest(str(c, "questId"))!;
+        const step = q.steps[out.j.quests[q.id]!.step]!;
+        const option = (step.objective as Extract<typeof step.objective, { type: "decide" }>).options.find((o) => o.id === str(c, "optionId"))!;
+        out.flag(...(option.flags ?? []));
+        for (const [k, b] of Object.entries(option.bond ?? {})) out.bond(k, b, `「${q.title}」里你拿的主意`);
+        out.count("decision");
+        out.say("village-stories.quest_decided", option.line, { questId: q.id, step: step.id, optionId: option.id },
+          step.objective.type === "decide" && step.objective.npc ? residentId(step.objective.npc) : undefined);
+        out.advance(q);
+      });
+
+    rule(StoryCommands.claimAchievement,
+      (c, _me, j) => claimProblem(j, str(c, "achievementId")),
+      (c, out) => {
+        const a = STORY_PACK.achievements.find((x) => x.id === str(c, "achievementId"))!;
+        const got = out.reward(a.reward, `成就：${a.name}`);
+        out.j = { ...out.j, claimed: [...out.j.claimed, a.id] };
+        out.say("village-stories.achievement_claimed", `你领了「${a.name}」的赏${got.length ? `：${got.join("、")}` : ""}。`, { achievementId: a.id });
+      });
+
+    rule(StoryCommands.setTitle,
+      (c, _me, j) => { const t = str(c, "title"); return !t || earnedTitles(j).includes(t) ? (t === j.title ? "已经是这个名号了" : "") : "还没有得到这个名号"; },
+      (c, out) => {
+        const t = str(c, "title");
+        out.j = { ...out.j, title: t };
+        out.say("village-stories.title_set", t ? `从今天起，村里人叫你「${t}」。` : "你不再挂名号了。", { title: t });
+      });
+
+    // Ending the day: timed errands that run out with it fail now, even if the player did nothing all day.
+    // (Any other story action or walk notices an overdue errand too.)
+    ctx.registerReactionRule({
+      id: `${STORY_OWNER}.deadlines`, eventType: "settlement-locations.day_passed",
+      react: (c): Effect[] => {
+        const me = activePlayer(c.world);
+        if (!me || c.event.actorId !== me) return [];
+        const j = readJournal(c.world, me);
+        const tomorrow = c.world.tick + 1;
+        if (!STORY_PACK.quests.some((q) => j.quests[q.id] && questExpired(q, j.quests[q.id]!, tomorrow))) return [];
+        const out = new Outcome(c.world, me, j, tomorrow);
+        return out.finish("deadline");
+      },
+    });
 
     // Real settlement events move counters, then quest steps and achievements.
     for (const [eventType, counters] of Object.entries(COUNTED)) {
@@ -353,7 +453,9 @@ export function storyView(world: WorldView, me: string) {
     return {
       id: q.id, kind: q.kind, chapter: q.chapter ?? null, title: q.title, summary: q.summary,
       giver: q.giver ?? null, giverName: q.giver ? npcName(q.giver) : null,
-      status: state?.status ?? "available",
+      status: state && questExpired(q, state, tick) ? "failed" : state?.status ?? "available",
+      deadlineDays: q.deadlineDays ?? null, daysLeft: questDaysLeft(q, state, tick),
+      decide: o?.type === "decide" ? o.options.map((d) => ({ id: d.id, label: d.label, enabled: !decideProblem(world, me, j, q, d.id), reason: decideProblem(world, me, j, q, d.id) })) : null,
       step: step ? { id: step.id, text: step.text, intro: step.intro ?? null, done: p?.done ?? 0, target: p?.target ?? 1, index: state!.step, of: q.steps.length,
         deliver: o?.type === "deliver" ? { npc: o.npc, npcName: npcName(o.npc), resources: [o.resource].flat() } : null,
         turnIn: o?.type === "deliver" ? { enabled: !turnInProblem(world, me, j, q), reason: turnInProblem(world, me, j, q) } : null } : null,
@@ -383,12 +485,16 @@ export function storyView(world: WorldView, me: string) {
     quests,
     dialogues,
     festival: today ? { feast: today.feast.id, name: today.feast.name, label: today.rite.label, placeId: today.feast.placeId,
+      streak: riteStreak(j.riteYears[today.feast.id] ?? [], year),
       done: j.rites[today.feast.id] === year, enabled: !riteProblem(world, me, j), reason: riteProblem(world, me, j),
       rites: today.rites.map((r) => ({ id: r.id ?? "", label: r.label, enabled: !riteProblem(world, me, j, r.id ?? ""), reason: riteProblem(world, me, j, r.id ?? "") })) } : null,
     events: STORY_PACK.limitedEvents.map((e) => ({
       id: e.id, name: e.name, intro: e.intro, placeId: e.placeId, window: e.window,
       active: eventActive(tick, e), inDays: daysUntil(tick, e), joined: j.events[e.id] === year,
+      visits: e.visits ?? 1, used: j.eventUses[`${e.id}@${year}`] ?? (j.events[e.id] === year ? 1 : 0),
+      complete: e.complete ? { done: j.flags.includes(`event-complete:${e.id}@${year}`) } : null,
       offers: e.offers.map((o) => ({ id: o.id, label: o.label ?? `用${resourceLabel(o.give ?? "")}换${o.get?.name ?? ""}`,
+        limit: o.limit ?? null, taken: j.eventUses[`${e.id}@${year}:${o.id}`] ?? 0,
         enabled: !offerProblem(world, me, j, e.id, o.id), reason: offerProblem(world, me, j, e.id, o.id) })),
     })),
     incident: shown ? {
@@ -402,7 +508,14 @@ export function storyView(world: WorldView, me: string) {
       const progress = "counter" in c ? { have: Math.min(c.atLeast, j.counters[c.counter] ?? 0), need: c.atLeast } : null;
       return { id: a.id, category: a.category ?? "其他", hidden: Boolean(a.hidden) && !unlocked,
         name: a.hidden && !unlocked ? "？？？" : a.name, text: a.hidden && !unlocked ? "还没有人知道这件事。" : a.text,
-        unlocked, at: j.achievements[a.id] ?? null, progress: a.hidden && !unlocked ? null : progress };
+        unlocked, at: j.achievements[a.id] ?? null, progress: a.hidden && !unlocked ? null : progress,
+        title: a.hidden && !unlocked ? null : a.title ?? null,
+        reward: a.reward ? { claimed: j.claimed.includes(a.id), enabled: !claimProblem(j, a.id), reason: claimProblem(j, a.id) } : null };
+    }),
+    title: { current: j.title || null, earned: earnedTitles(j) },
+    omens: Object.entries(j.scheduled).filter(([t]) => Number(t) === tick + 1).flatMap(([, id]) => {
+      const i = STORY_PACK.incidents.list.find((x) => x.id === id);
+      return i?.omen ? [{ incident: i.id, text: i.omen }] : [];
     }),
     people: peopleView(world, me, j),
     counters: j.counters,

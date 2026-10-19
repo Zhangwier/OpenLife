@@ -1316,6 +1316,440 @@
         ]
       },
       "completeLine": "节日的席上，阿灶给岚母盛了第一碗。岚母接过来，说了一句：“那年冬天，谢谢你。”两个老人都红了眼。"
+    },
+    {
+      "id": "main-7-flood",
+      "kind": "main",
+      "chapter": 7,
+      "title": "大水之年",
+      "giver": "elder",
+      "requires": {
+        "questsDone": [
+          "main-6-south"
+        ]
+      },
+      "summary": "南岸回来的人说，上游下了一个月的雨。陶叔看着记水石：今年的春汛，会比哪一年都大。河岸要么搬上高台，要么筑堤守住老地方——这个主意，得有人拿。",
+      "acceptLine": "陶叔把拐杖往地上一戳：“我老了，拿不动这个主意。你走过南岸，见过世面，你说。”",
+      "steps": [
+        {
+          "id": "listen",
+          "text": "在村里帮三回工，听听大家怎么说",
+          "objective": {
+            "type": "counter",
+            "counter": "help",
+            "count": 3
+          },
+          "intro": "阿予说老屋是祖上传下来的，不能丢；阿汲说回水湾的水已经漫到了石阶。每个人心里都有一杆秤。",
+          "doneLine": "三回工帮下来，你把每个人的话都听进去了。"
+        },
+        {
+          "id": "choose",
+          "text": "对陶叔说出你的主意",
+          "objective": {
+            "type": "decide",
+            "npc": "elder",
+            "options": [
+              {
+                "id": "move",
+                "label": "搬上北坡高台",
+                "line": "陶叔闭上眼睛，很久才点头：“搬。人在，村子就在。”消息传开，阿予在老屋门口坐了一夜。",
+                "flags": [
+                  "flood:move"
+                ],
+                "bond": {
+                  "elder": {
+                    "trust": 1
+                  },
+                  "yu": {
+                    "grudge": 0.5
+                  },
+                  "water-carrier": {
+                    "trust": 1
+                  }
+                }
+              },
+              {
+                "id": "levee",
+                "label": "筑堤守住老地方",
+                "line": "陶叔笑了：“好！祖宗的地方，咱们守。”阿石当场就扛起了夯杵。可阿汲低着头，没说话。",
+                "flags": [
+                  "flood:levee"
+                ],
+                "bond": {
+                  "elder": {
+                    "trust": 1
+                  },
+                  "yu": {
+                    "trust": 1
+                  },
+                  "yu-brother": {
+                    "trust": 1
+                  },
+                  "water-carrier": {
+                    "grudge": 0.3
+                  }
+                }
+              }
+            ]
+          },
+          "intro": "陶叔在火塘边给你留了位子：“想好了就说。说出来的话，泼出去的水。”"
+        },
+        {
+          "id": "prepare",
+          "text": "把你选的那条路走完（八天之内备齐东西）",
+          "objective": {
+            "type": "flag",
+            "flag": "flood-plan-done"
+          },
+          "intro": "主意拿定了，剩下的就是赶在大水前头。",
+          "doneLine": "该备的都备下了。夜里，你听见河水一寸一寸地涨。"
+        },
+        {
+          "id": "night",
+          "text": "大水来的那夜，到陶叔身边去",
+          "objective": {
+            "type": "talk",
+            "npc": "elder",
+            "count": 1
+          },
+          "intro": "雨下了三天三夜。陶叔让人捎话：“叫那孩子来，陪我看水。”"
+        }
+      ],
+      "completeLine": "天亮时，水开始退了。陶叔拍着你的肩膀，对全村人说：“往后，这孩子说的话，就是我说的话。”",
+      "reward": {
+        "bondAll": {
+          "trust": 0.5
+        },
+        "flags": [
+          "flood-survived"
+        ]
+      }
+    },
+    {
+      "id": "side-flood-move",
+      "kind": "side",
+      "title": "搬上高台",
+      "giver": "elder",
+      "requires": {
+        "flags": [
+          "flood:move"
+        ]
+      },
+      "deadlineDays": 8,
+      "summary": "要在大水来之前把各家的东西搬上北坡。最缺的是捆东西的草绳。",
+      "acceptLine": "陶叔掰着手指：“三根绳。八天。晚一天，就得有人家的陶罐泡在水里。”",
+      "steps": [
+        {
+          "id": "rope",
+          "text": "给陶叔送三根草绳",
+          "objective": {
+            "type": "deliver",
+            "npc": "elder",
+            "resource": "resource:rope",
+            "count": 3
+          },
+          "doneLine": "绳子一到，青壮们就背起了家当。小满抱着她的石头，第一个爬上了北坡。"
+        }
+      ],
+      "completeLine": "最后一车东西搬上高台时，河水已经漫过了旱地。阿予站在坡上，看着老屋，终于说：“搬得对。”",
+      "reward": {
+        "flags": [
+          "flood-plan-done",
+          "flood-moved"
+        ],
+        "bond": {
+          "yu": {
+            "grudge": -0.5,
+            "trust": 0.5
+          }
+        }
+      },
+      "failLine": "第八天夜里，水比人快。几户人家的东西没来得及搬，泡在了泥水里。陶叔一句话也没说。",
+      "failReward": {
+        "flags": [
+          "flood-plan-failed"
+        ],
+        "bond": {
+          "elder": {
+            "trust": -0.5
+          }
+        }
+      },
+      "autoStart": true
+    },
+    {
+      "id": "side-flood-levee",
+      "kind": "side",
+      "title": "筑起河堤",
+      "giver": "yu-brother",
+      "requires": {
+        "flags": [
+          "flood:levee"
+        ]
+      },
+      "deadlineDays": 8,
+      "summary": "阿石带着青壮在河边夯土筑堤，最缺打桩的木料。",
+      "acceptLine": "阿石抹了把汗：“两根木料打桩，再来一根草绳捆柴排。八天，堤就能立起来。”",
+      "steps": [
+        {
+          "id": "wood",
+          "text": "给阿石送两份木料",
+          "objective": {
+            "type": "deliver",
+            "npc": "yu-brother",
+            "resource": "resource:wood",
+            "count": 2
+          },
+          "doneLine": "木桩一根根砸进河滩，阿石每砸一下就喊一声号子。"
+        },
+        {
+          "id": "rope",
+          "text": "再给阿石送一根草绳",
+          "objective": {
+            "type": "deliver",
+            "npc": "yu-brother",
+            "resource": "resource:rope",
+            "count": 1
+          },
+          "doneLine": "柴排捆好压在堤脚，阿石拍了拍：“成了。”"
+        }
+      ],
+      "completeLine": "大水撞上河堤，退了回去，又撞上来，又退回去。天亮时，老屋还在。阿予抱着阿石，哭得像个孩子。",
+      "reward": {
+        "flags": [
+          "flood-plan-done",
+          "flood-levee"
+        ],
+        "bond": {
+          "water-carrier": {
+            "grudge": -0.3,
+            "trust": 0.5
+          }
+        }
+      },
+      "failLine": "堤只筑了一半，水就来了。半截河堤被冲开一个口子，旱地全淹了。阿石跪在泥里，拳头砸着地。",
+      "failReward": {
+        "flags": [
+          "flood-plan-failed"
+        ],
+        "bond": {
+          "yu-brother": {
+            "trust": -0.5
+          }
+        }
+      },
+      "autoStart": true
+    },
+    {
+      "id": "side-flood-aftermath",
+      "kind": "side",
+      "title": "水退之后",
+      "giver": "elder",
+      "requires": {
+        "flags": [
+          "flood-plan-failed"
+        ]
+      },
+      "summary": "大水没守住，可人都在。泡坏的东西要重做，冲垮的屋子要重搭。",
+      "acceptLine": "陶叔声音沙哑：“哭够了就干活。先给大家弄口热的。”",
+      "steps": [
+        {
+          "id": "cook",
+          "text": "给受灾的人家送两份熟食",
+          "objective": {
+            "type": "deliver",
+            "npc": "elder",
+            "resource": "resource:cooked",
+            "count": 2
+          },
+          "doneLine": "热饭递到手里，几个蹲在废墟边的人终于站了起来。"
+        },
+        {
+          "id": "help",
+          "text": "帮各家重建，帮工两回",
+          "objective": {
+            "type": "counter",
+            "counter": "help",
+            "count": 2
+          }
+        }
+      ],
+      "completeLine": "屋子重新立起来了，比以前矮一些。陶叔说：“这回记住了。下回，咱们早点动手。”",
+      "reward": {
+        "flags": [
+          "flood-plan-done",
+          "flood-scarred"
+        ]
+      },
+      "autoStart": true
+    },
+    {
+      "id": "side-healer-fever",
+      "kind": "side",
+      "title": "小满发热",
+      "giver": "healer",
+      "deadlineDays": 3,
+      "summary": "小满烧得说胡话，蓍婆的草药用完了。三天之内退不了烧，就麻烦了。",
+      "acceptLine": "蓍婆攥住你的手：“两束草药。三天。我守着她。”",
+      "steps": [
+        {
+          "id": "herb",
+          "text": "三天内给蓍婆送两束草药",
+          "objective": {
+            "type": "deliver",
+            "npc": "healer",
+            "resource": "resource:herb",
+            "count": 2
+          },
+          "doneLine": "蓍婆把药煎了一夜。天亮时，小满睁开眼睛，第一句话是：“我的石头呢？”"
+        }
+      ],
+      "completeLine": "小满的烧退了。阿埴什么也没说，只是往你手里塞了一块他挖到的最好看的黏土。",
+      "reward": {
+        "bond": {
+          "clay-digger": {
+            "trust": 2
+          },
+          "clay-child": {
+            "trust": 1
+          },
+          "healer": {
+            "trust": 1
+          }
+        },
+        "flags": [
+          "fever-saved"
+        ]
+      },
+      "failLine": "第三天夜里，蓍婆用了最后一点陈药，小满的烧才慢慢退下去。孩子瘦了一大圈，好些天下不了地。",
+      "failReward": {
+        "flags": [
+          "fever-late"
+        ],
+        "bond": {
+          "clay-digger": {
+            "trust": -0.5
+          }
+        }
+      }
+    },
+    {
+      "id": "side-market-salt-run",
+      "kind": "side",
+      "title": "赶在船走之前",
+      "giver": "market-keeper",
+      "requires": {
+        "tierWith": {
+          "market-keeper": "acquaint"
+        }
+      },
+      "deadlineDays": 6,
+      "summary": "南岸的盐船六天后就走。阿贾想用两串鱼干换一整块盐，可他自己腾不出手。",
+      "acceptLine": "阿贾压低声音：“两串鱼干。六天。错过这一船，就得等明年。”",
+      "steps": [
+        {
+          "id": "fish",
+          "text": "六天内给阿贾送两份鱼干",
+          "objective": {
+            "type": "deliver",
+            "npc": "market-keeper",
+            "resource": "resource:dried-fish",
+            "count": 2
+          },
+          "doneLine": "阿贾把鱼干拎上船，换回一块雪白的盐，当场掰了一半给你。"
+        }
+      ],
+      "completeLine": "那一冬，阿贾的摊子上一直有盐。来换盐的人都问：“谁帮你赶上的那条船？”",
+      "reward": {
+        "items": [
+          {
+            "prototype": "prototype:salt-cake",
+            "name": "赶上盐船换回的盐"
+          }
+        ],
+        "bond": {
+          "market-keeper": {
+            "trust": 1
+          }
+        }
+      },
+      "failLine": "盐船走了。阿贾站在渡口看了很久，回来只说了一句：“明年吧。”",
+      "failReward": {
+        "flags": [
+          "salt-run-missed"
+        ]
+      }
+    },
+    {
+      "id": "side-stray-dog",
+      "kind": "side",
+      "title": "跟着小汲的狗",
+      "giver": "water-child",
+      "summary": "小汲在芦苇滩捡了一条瘦狗，偷偷喂了好几天。可狗脖子上有阿犴打的绳结——它是阿犴走丢的猎犬。",
+      "acceptLine": "小汲把狗藏在身后：“它饿。你帮我弄条鱼，好不好？”",
+      "steps": [
+        {
+          "id": "feed",
+          "text": "给小汲送一条鱼喂狗",
+          "objective": {
+            "type": "deliver",
+            "npc": "water-child",
+            "resource": "resource:fish",
+            "count": 1
+          },
+          "doneLine": "狗狼吞虎咽地吃完，舔了舔小汲的手。小汲笑得眼睛都没了。"
+        },
+        {
+          "id": "whose",
+          "text": "告诉小汲这条狗怎么办",
+          "objective": {
+            "type": "decide",
+            "npc": "water-child",
+            "options": [
+              {
+                "id": "keep",
+                "label": "让小汲留着它",
+                "line": "小汲一把抱住狗脖子：“它叫阿黄！”你决定晚点再去跟阿犴解释。",
+                "flags": [
+                  "dog-kept"
+                ],
+                "bond": {
+                  "water-child": {
+                    "trust": 1.5
+                  },
+                  "hunter": {
+                    "grudge": 0.3
+                  }
+                }
+              },
+              {
+                "id": "return",
+                "label": "陪小汲把狗还给阿犴",
+                "line": "阿犴蹲下来，狗扑进他怀里。他看了看红着眼圈的小汲：“它认你。往后想它了，就来我这儿。”",
+                "flags": [
+                  "dog-returned"
+                ],
+                "bond": {
+                  "hunter": {
+                    "trust": 1.5
+                  },
+                  "water-child": {
+                    "familiarity": 0.5
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "completeLine": "那条狗的事，在村里传了好几天。",
+      "reward": {
+        "bond": {
+          "water-carrier": {
+            "familiarity": 0.5
+          }
+        }
+      }
     }
   ],
   "dialogues": {
@@ -1358,6 +1792,70 @@
               "label": "不打扰了",
               "effects": {
                 "line": "陶叔“嗯”了一声，又低头拨灰。"
+              }
+            },
+            {
+              "id": "title-promise",
+              "label": "（以「守信的人」）问陶叔还有什么放心不下",
+              "requires": {
+                "title": "守信的人"
+              },
+              "next": "r7-trust",
+              "effects": {
+                "line": "陶叔看着你，点了点头：“说到做到的人，我才敢把心事交出去。”"
+              }
+            },
+            {
+              "id": "flood-move-talk",
+              "label": "问陶叔住在高台上习惯吗",
+              "requires": {
+                "flags": [
+                  "flood-moved"
+                ]
+              },
+              "once": true,
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "“风大，水远，挑一趟水要走半天。”陶叔笑了，“可夜里睡得踏实。这辈子头一回，下雨天不用竖着耳朵听河。”"
+              }
+            },
+            {
+              "id": "flood-levee-talk",
+              "label": "陪陶叔在河堤上走走",
+              "requires": {
+                "flags": [
+                  "flood-levee"
+                ]
+              },
+              "once": true,
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                },
+                "line": "陶叔在堤上走得很慢，每走一段就用拐杖敲一敲：“结实。你阿石哥的号子，是我当年教他爹的。”"
+              }
+            },
+            {
+              "id": "flood-scar-talk",
+              "label": "跟陶叔说那场大水是你的错",
+              "requires": {
+                "flags": [
+                  "flood-scarred"
+                ]
+              },
+              "once": true,
+              "effects": {
+                "bond": {
+                  "trust": 1
+                },
+                "bondOthers": {
+                  "yu": {
+                    "familiarity": 0.3
+                  }
+                },
+                "line": "陶叔摇摇头：“主意是你拿的，可没赶上的是大家。河要来，谁也拦不住。记着这回，下回就早一步。”"
               }
             }
           ]
@@ -1403,6 +1901,31 @@
                 },
                 "line": "陶叔把那块裂陶片又揣回怀里：“行了，你去挖土吧。”"
               }
+            }
+          ]
+        },
+        "r7-trust": {
+          "text": "“河岸的人一辈子都在跟河讨价还价。我放心不下的，是我走了以后，谁还记得记水石上那些刻痕是什么意思。”",
+          "options": [
+            {
+              "id": "learn",
+              "label": "请他教你认刻痕",
+              "once": true,
+              "effects": {
+                "bond": {
+                  "trust": 1
+                },
+                "setFlags": [
+                  "learned-watermarks"
+                ],
+                "line": "陶叔拉着你在记水石前坐了一下午。最深的那道刻痕，是他出生那年的大水。"
+              },
+              "next": "root"
+            },
+            {
+              "id": "later",
+              "label": "说改天再来听",
+              "next": "root"
             }
           ]
         }
@@ -2159,6 +2682,38 @@
                 "minTier": "friend"
               },
               "next": "past"
+            },
+            {
+              "id": "fever-guilt",
+              "label": "跟蓍婆说那三天你没赶上",
+              "requires": {
+                "questsFailed": [
+                  "side-healer-fever"
+                ]
+              },
+              "once": true,
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                },
+                "line": "蓍婆拍拍你的手：“孩子挺过来了，就是好事。往后你记着：草药要常备，病不等人。”她塞给你一个空草药包，“装满了，挂在门后。”"
+              }
+            },
+            {
+              "id": "fever-thanks",
+              "label": "问小满好些了没有",
+              "requires": {
+                "flags": [
+                  "fever-saved"
+                ]
+              },
+              "once": true,
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "“早就满村跑了。”蓍婆难得笑了，“昨天还偷了我两颗山楂。”"
+              }
             }
           ]
         },
@@ -2476,6 +3031,27 @@
                 "minTier": "acquaint"
               },
               "next": "clay"
+            },
+            {
+              "id": "levee-pride",
+              "label": "夸他的河堤筑得结实",
+              "requires": {
+                "flags": [
+                  "flood-levee"
+                ]
+              },
+              "once": true,
+              "effects": {
+                "bond": {
+                  "trust": 1
+                },
+                "bondOthers": {
+                  "yu": {
+                    "familiarity": 0.5
+                  }
+                },
+                "line": "阿石挠着头，脸红到脖子根：“是大家一起夯的。……不过号子是我喊的。”"
+              }
             }
           ]
         },
@@ -2976,6 +3552,34 @@
                 },
                 "line": "小汲认真地说：“蓍婆认得一百种草！等我长大，我要认两百种。”"
               }
+            },
+            {
+              "id": "dog-name",
+              "label": "问小汲阿黄今天乖不乖",
+              "requires": {
+                "flags": [
+                  "dog-kept"
+                ]
+              },
+              "effects": {
+                "bond": {
+                  "familiarity": 0.3
+                },
+                "line": "小汲把阿黄的爪子举起来冲你挥了挥：“它今天学会坐下了！就坐了一下。”"
+              }
+            },
+            {
+              "id": "title-dog",
+              "label": "（以「阿黄的朋友」）问小汲阿黄的狗哨练得怎样",
+              "requires": {
+                "title": "阿黄的朋友"
+              },
+              "effects": {
+                "bond": {
+                  "familiarity": 0.3
+                },
+                "line": "小汲挺起胸脯：“阿黄的朋友来了！”她吹了一声短哨，阿黄端端正正地坐下了，尾巴还在扫地。"
+              }
             }
           ]
         },
@@ -3458,6 +4062,40 @@
                 "setFlags": [
                   "wolf-token"
                 ]
+              }
+            },
+            {
+              "id": "dog-back",
+              "label": "问阿犴那条狗怎么样了",
+              "requires": {
+                "flags": [
+                  "dog-returned"
+                ]
+              },
+              "once": true,
+              "effects": {
+                "bond": {
+                  "trust": 0.5
+                },
+                "bondOthers": {
+                  "water-child": {
+                    "familiarity": 0.3
+                  }
+                },
+                "line": "阿犴吹了声口哨，狗从林子里窜出来。“小汲每隔两天就来看它。下回进山，我带上那孩子。”"
+              }
+            },
+            {
+              "id": "title-rule",
+              "label": "（以「老规矩」）问他初猎守夜的老规矩",
+              "requires": {
+                "title": "老规矩"
+              },
+              "effects": {
+                "bond": {
+                  "familiarity": 0.3
+                },
+                "line": "阿犴挑了挑眉：“连着三年守节的人问规矩？好——头一条，火不能灭；第二条，猎来的第一口肉，敬山。”"
               }
             }
           ]
@@ -3943,6 +4581,35 @@
                   }
                 }
               }
+            },
+            {
+              "id": "salt-missed",
+              "label": "问阿贾错过盐船以后怎么办",
+              "requires": {
+                "flags": [
+                  "salt-run-missed"
+                ]
+              },
+              "once": true,
+              "effects": {
+                "bond": {
+                  "familiarity": 0.5
+                },
+                "line": "阿贾耸耸肩：“熬过去呗。冬天少放点盐，鱼干多晒两天。明年的船，你可得帮我盯着。”"
+              }
+            },
+            {
+              "id": "title-fair",
+              "label": "（以「赶集能手」）跟阿贾讨价还价",
+              "requires": {
+                "title": "赶集能手"
+              },
+              "effects": {
+                "bond": {
+                  "familiarity": 0.3
+                },
+                "line": "阿贾一听你的名号，假装捂住钱袋：“赶集能手来了，今天的价我可不敢乱报。”"
+              }
             }
           ]
         },
@@ -4334,7 +5001,37 @@
         "bondAll": {
           "familiarity": 0.3
         }
-      }
+      },
+      "streak": [
+        {
+          "years": 2,
+          "line": "（连着两年在春社上看见你，陶叔说：“今年的地，你也有一份。”）"
+        },
+        {
+          "years": 3,
+          "line": "（第三年了。陶婶把春社的第一碗粥端给了你。）",
+          "reward": {
+            "items": [
+              {
+                "prototype": "prototype:millet-cake",
+                "name": "春社的第一碗"
+              }
+            ]
+          }
+        },
+        {
+          "years": 5,
+          "line": "（五年了。老人们说，你已经是河岸的人了。）",
+          "reward": {
+            "bondAll": {
+              "trust": 0.5
+            },
+            "flags": [
+              "rooted"
+            ]
+          }
+        }
+      ]
     },
     {
       "feast": "river-rite",
@@ -4363,7 +5060,22 @@
             "familiarity": 1
           }
         }
-      }
+      },
+      "streak": [
+        {
+          "years": 2,
+          "line": "（第二年望月，小汲说去年的月亮没今年的圆。）"
+        },
+        {
+          "years": 3,
+          "line": "（第三年了，你们在月下唱起了去年编的那支歌。）",
+          "reward": {
+            "bondAll": {
+              "familiarity": 0.3
+            }
+          }
+        }
+      ]
     },
     {
       "feast": "autumn-feast",
@@ -4394,7 +5106,25 @@
         "bondAll": {
           "trust": 0.3
         }
-      }
+      },
+      "streak": [
+        {
+          "years": 2,
+          "line": "（又一年冬至。火塘边，你的位子已经没人去坐了。）"
+        },
+        {
+          "years": 3,
+          "line": "（第三个冬至，阿蘩往你碗里多舀了一勺。）",
+          "reward": {
+            "items": [
+              {
+                "prototype": "prototype:smoked-meat",
+                "name": "冬至多舀的一勺"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "feast": "she-day",
@@ -4496,7 +5226,25 @@
             "trust": 0.5
           }
         }
-      }
+      },
+      "streak": [
+        {
+          "years": 2,
+          "line": "（第二年的鱼汛祭，阿汲早早给你留了位子。）"
+        },
+        {
+          "years": 3,
+          "line": "（第三年了，鱼汛祭上的第一条鱼，大家让你来放。）",
+          "reward": {
+            "items": [
+              {
+                "prototype": "prototype:dried-fish",
+                "name": "鱼汛祭的头鱼"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "feast": "fish-run",
@@ -4575,7 +5323,8 @@
             "prototype": "prototype:hide-cloak",
             "name": "南岸兽皮披"
           },
-          "line": "南岸人摸了摸你的陶碗，痛快地递过一件兽皮披。"
+          "line": "南岸人摸了摸你的陶碗，痛快地递过一件兽皮披。",
+          "limit": 1
         },
         {
           "id": "grain-for-fish",
@@ -4584,14 +5333,16 @@
             "prototype": "prototype:fish",
             "name": "南岸的大鱼"
           },
-          "line": "渔人把一条还在扑腾的大鱼塞给你，换走了你的粟。"
+          "line": "渔人把一条还在扑腾的大鱼塞给你，换走了你的粟。",
+          "limit": 1
         },
         {
           "id": "look",
           "label": "只是逛逛",
           "line": "你在摊子间转了一圈，听了满耳朵南岸口音的吆喝。"
         }
-      ]
+      ],
+      "visits": 2
     },
     {
       "id": "birds-return",
@@ -4757,7 +5508,8 @@
             "market-keeper": {
               "familiarity": 0.5
             }
-          }
+          },
+          "limit": 1
         },
         {
           "id": "cake",
@@ -4766,7 +5518,8 @@
             "prototype": "prototype:mat",
             "name": "换栗粉饼的苇席"
           },
-          "line": "栗粉饼一摆出来就被抢光了，有人用一张新苇席换走了最后一块。"
+          "line": "栗粉饼一摆出来就被抢光了，有人用一张新苇席换走了最后一块。",
+          "limit": 1
         },
         {
           "id": "scale",
@@ -4781,9 +5534,90 @@
             "market-keeper": {
               "trust": 1.5
             }
+          },
+          "limit": 1
+        }
+      ],
+      "visits": 3,
+      "complete": {
+        "line": "三样都做了一遍，阿贾冲你竖起大拇指：“栗子集的全套，你是头一个。”他从摊子底下摸出一包东西。",
+        "reward": {
+          "items": [
+            {
+              "prototype": "prototype:salt-cake",
+              "name": "栗子集的彩头"
+            }
+          ],
+          "bond": {
+            "market-keeper": {
+              "trust": 0.5
+            }
           }
         }
-      ]
+      }
+    },
+    {
+      "id": "lantern-night",
+      "name": "放河灯",
+      "window": {
+        "month": 8,
+        "from": 13,
+        "to": 17
+      },
+      "placeId": "place:river",
+      "visits": 3,
+      "intro": "望月前后，河边的人用苇叶折灯，点上一小截松明放进河里，给去年走了的人照路。",
+      "offers": [
+        {
+          "id": "fold",
+          "label": "用一把芦苇折一盏灯",
+          "give": "resource:reed",
+          "limit": 1,
+          "line": "你折的灯歪歪扭扭，可它漂得最远。小汲追着它跑了半条河滩。",
+          "bond": {
+            "water-child": {
+              "familiarity": 0.5
+            }
+          }
+        },
+        {
+          "id": "bowl",
+          "label": "用陶碗盛灯油点一盏碗灯",
+          "give": "resource:bowl",
+          "limit": 1,
+          "line": "碗灯稳稳地漂在水上，像一颗落进河里的星星。岚母看着它，轻声念了一个名字。",
+          "bond": {
+            "lan-mother": {
+              "trust": 0.5
+            }
+          }
+        },
+        {
+          "id": "sing",
+          "label": "跟着老祝唱送灯的调子",
+          "limit": 1,
+          "line": "调子很老，词你听不懂，可你跟着哼完了整首。老祝说：“灯听见了。”",
+          "bond": {
+            "shrine-keeper": {
+              "familiarity": 0.5
+            }
+          }
+        }
+      ],
+      "complete": {
+        "line": "三盏灯都放下去了。老祝把一枚刻着灯纹的骨片挂在你脖子上：“放过三盏灯的人，河神认得。”",
+        "reward": {
+          "items": [
+            {
+              "prototype": "prototype:turtle-scute",
+              "name": "刻着灯纹的骨片"
+            }
+          ],
+          "flags": [
+            "lantern-blessed"
+          ]
+        }
+      }
     }
   ],
   "incidents": {
@@ -6470,6 +7304,390 @@
             ]
           }
         ]
+      },
+      {
+        "id": "stranger-at-ford",
+        "title": "渡口的外乡人",
+        "requires": {
+          "questsDone": [
+            "main-1-arrival"
+          ]
+        },
+        "once": true,
+        "weight": 2,
+        "text": "一个背着空篓子的外乡人坐在渡口的石头上，嘴唇干裂，说是从上游逃水来的，三天没吃东西了。",
+        "choices": [
+          {
+            "id": "salt",
+            "label": "分他一块盐和一口饭",
+            "requires": {
+              "resource": "resource:salt"
+            },
+            "consume": true,
+            "line": "外乡人接过盐，郑重地朝你作了个揖：“这份情，我记着。”他往下游去了。",
+            "followUp": {
+              "incident": "stranger-returns",
+              "afterDays": 5
+            }
+          },
+          {
+            "id": "longhouse",
+            "label": "领他去长屋歇一夜",
+            "line": "阿蘩给他铺了张席子。第二天一早，他帮长屋劈完柴才走，说会回来的。",
+            "bond": {
+              "longhouse-matron": {
+                "trust": 0.5
+              }
+            },
+            "followUp": {
+              "incident": "stranger-returns",
+              "afterDays": 5
+            }
+          },
+          {
+            "id": "away",
+            "label": "让他别在村口逗留",
+            "line": "外乡人看了你一眼，默默背起篓子走了。",
+            "followUp": {
+              "incident": "stranger-thief",
+              "afterDays": 3
+            }
+          }
+        ]
+      },
+      {
+        "id": "stranger-returns",
+        "title": "外乡人回来了",
+        "followUpOnly": true,
+        "omen": "渡口的人说，下游有人在打听河岸那个好心人的名字。",
+        "text": "那个外乡人又出现在渡口，这回篓子里装得满满的。他一眼就认出了你。",
+        "choices": [
+          {
+            "id": "gift",
+            "label": "收下他带来的谢礼",
+            "line": "他从篓子底下掏出一串狼牙项链：“下游猎户的手艺。我说过，这份情我记着。”",
+            "items": [
+              {
+                "prototype": "prototype:fang-necklace",
+                "name": "外乡人的谢礼"
+              }
+            ],
+            "setFlags": [
+              "stranger-gift"
+            ]
+          },
+          {
+            "id": "news",
+            "label": "问他上游的水情",
+            "line": "他蹲在地上画了半天：“上游的雨停不了。你们得早做打算。”你把这话带给了陶叔。",
+            "setFlags": [
+              "stranger-gift",
+              "flood-warned"
+            ],
+            "bond": {
+              "elder": {
+                "trust": 0.5
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "stranger-thief",
+        "title": "熏架空了",
+        "followUpOnly": true,
+        "omen": "夜里狗叫了好几回，阿蘩说听见长屋后头有动静。",
+        "text": "一早起来，长屋后头熏架上的熏肉少了一半，泥地上留着一串陌生的草鞋印，往下游去了。",
+        "choices": [
+          {
+            "id": "chase",
+            "label": "顺着脚印追下去",
+            "line": "你追到芦苇滩尽头，只找到一只掉了的草鞋。",
+            "items": [
+              {
+                "prototype": "prototype:straw-sandal",
+                "name": "贼留下的草鞋"
+              }
+            ],
+            "bond": {
+              "longhouse-matron": {
+                "trust": 0.3
+              }
+            }
+          },
+          {
+            "id": "own",
+            "label": "跟阿蘩认错，是你把他赶走的",
+            "line": "阿蘩叹了口气：“饿极了的人，什么都做得出来。下回，给口饭吃吧。”",
+            "setFlags": [
+              "stranger-lesson"
+            ],
+            "bond": {
+              "longhouse-matron": {
+                "familiarity": 0.5
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "sick-fox",
+        "title": "灶边的病狐",
+        "requires": {
+          "questsDone": [
+            "main-1-arrival"
+          ]
+        },
+        "once": true,
+        "seasons": [
+          "秋",
+          "冬"
+        ],
+        "text": "一只瘦得皮包骨的狐狸蜷在公用灶台的柴堆里，一条后腿肿得老高，见人也不跑。",
+        "choices": [
+          {
+            "id": "herb",
+            "label": "给它敷一束草药",
+            "requires": {
+              "resource": "resource:herb"
+            },
+            "consume": true,
+            "line": "你把草药嚼烂敷在它腿上。第二天柴堆空了，只留下几根红毛。",
+            "followUp": {
+              "incident": "fox-repays",
+              "afterDays": 7
+            }
+          },
+          {
+            "id": "shoo",
+            "label": "把它赶出村子",
+            "line": "狐狸一瘸一拐地钻进了芦苇丛。阿灶说：“狐狸记仇。”"
+          }
+        ]
+      },
+      {
+        "id": "fox-repays",
+        "title": "门口的栗子",
+        "followUpOnly": true,
+        "omen": "老祝说，昨夜看见一只瘸腿的红狐在村口转悠。",
+        "text": "早上推开门，门槛上整整齐齐摆着一堆栗子，旁边还有一个小小的爪印。",
+        "choices": [
+          {
+            "id": "take",
+            "label": "收下栗子",
+            "line": "你把栗子收进篓里。远处的芦苇丛动了一下，一条红尾巴一闪就不见了。",
+            "items": [
+              {
+                "prototype": "prototype:chestnut",
+                "name": "狐狸送来的栗子"
+              },
+              {
+                "prototype": "prototype:chestnut",
+                "name": "狐狸送来的栗子"
+              }
+            ],
+            "setFlags": [
+              "fox-repaid"
+            ]
+          },
+          {
+            "id": "leave",
+            "label": "留一条鱼干在门槛上回礼",
+            "requires": {
+              "resource": "resource:dried-fish"
+            },
+            "consume": true,
+            "line": "第二天鱼干不见了，门槛上又多了一根漂亮的野鸡毛。",
+            "setFlags": [
+              "fox-repaid",
+              "fox-friend"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "levee-crack",
+        "title": "河堤渗水",
+        "requires": {
+          "flags": [
+            "flood-levee"
+          ]
+        },
+        "once": true,
+        "weight": 3,
+        "text": "阿石跑来说，新筑的河堤脚下有一处在渗水，细细的一股，像蚯蚓在钻。",
+        "choices": [
+          {
+            "id": "patch",
+            "label": "马上拿木料去堵",
+            "requires": {
+              "resource": "resource:wood"
+            },
+            "consume": true,
+            "line": "你们打了一根桩，填了三筐土，渗水止住了。阿石说：“小洞不补，大洞吃人。”",
+            "bond": {
+              "yu-brother": {
+                "trust": 1
+              }
+            },
+            "setFlags": [
+              "levee-kept"
+            ]
+          },
+          {
+            "id": "later",
+            "label": "说等天晴再说",
+            "line": "阿石皱着眉头走了。",
+            "followUp": {
+              "incident": "levee-breaks",
+              "afterDays": 4
+            }
+          }
+        ]
+      },
+      {
+        "id": "levee-breaks",
+        "title": "堤口塌了",
+        "followUpOnly": true,
+        "omen": "河堤那边传来闷闷的响声，阿石整夜没睡。",
+        "text": "那处渗水的地方塌了一丈多宽，河水灌进了旱地。阿石带着人在雨里堵口子。",
+        "choices": [
+          {
+            "id": "help",
+            "label": "跳下去一起堵",
+            "line": "你们堵了一整天，口子总算合上了。你浑身是泥，阿石把你拉上来：“下回听我的。”",
+            "bondAll": {
+              "familiarity": 0.3
+            },
+            "setFlags": [
+              "levee-kept"
+            ]
+          },
+          {
+            "id": "watch",
+            "label": "在堤上帮着递土",
+            "line": "口子合上时天都黑了。阿予看着淹掉的粟田，一句话也没说。",
+            "bond": {
+              "yu": {
+                "grudge": 0.5
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "dog-at-night",
+        "title": "阿黄夜吠",
+        "requires": {
+          "flags": [
+            "dog-kept"
+          ]
+        },
+        "once": true,
+        "text": "半夜阿黄叫个不停，冲着芦苇滩龇牙。小汲吓得来敲你的门。",
+        "choices": [
+          {
+            "id": "look",
+            "label": "举着火把去看看",
+            "line": "芦苇里窜出一只偷鸡的黄鼠狼，被阿黄追得满滩跑。第二天，阿汲给阿黄留了根骨头。",
+            "bond": {
+              "water-carrier": {
+                "trust": 0.5
+              },
+              "water-child": {
+                "trust": 0.5
+              }
+            },
+            "setFlags": [
+              "dog-hero"
+            ]
+          },
+          {
+            "id": "hunter",
+            "label": "去请阿犴来看",
+            "line": "阿犴来了，摸了摸阿黄的头：“它还记得我教的。留着吧，是条好狗。”",
+            "bond": {
+              "hunter": {
+                "grudge": -0.3,
+                "trust": 0.5
+              }
+            },
+            "setFlags": [
+              "dog-hero",
+              "dog-blessed"
+            ],
+            "followUp": {
+              "incident": "hunter-dog-lesson",
+              "afterDays": 3
+            }
+          }
+        ]
+      },
+      {
+        "id": "fever-after",
+        "title": "小满想去河边",
+        "requires": {
+          "flags": [
+            "fever-late"
+          ]
+        },
+        "once": true,
+        "text": "小满病好了，可还是没力气，坐在门槛上看别的孩子去河边摸石头。",
+        "choices": [
+          {
+            "id": "carry",
+            "label": "背她去河边",
+            "line": "你把小满背到河滩，她挑了半天，捡起一块带花纹的石头塞给你：“送你。”",
+            "bond": {
+              "clay-child": {
+                "trust": 1
+              },
+              "clay-digger": {
+                "trust": 1
+              }
+            }
+          },
+          {
+            "id": "stone",
+            "label": "替她去捡一块石头回来",
+            "line": "小满把石头捧在手心里看了好久：“下回我自己去。”"
+          }
+        ]
+      },
+      {
+        "id": "hunter-dog-lesson",
+        "title": "阿犴来教狗",
+        "followUpOnly": true,
+        "omen": "阿犴捎话来：过两天他要来看看阿黄。",
+        "text": "阿犴一早就蹲在小汲家门口，手里拿着一根绳子：“猎犬不教，就是条野狗。今天教它听哨。”",
+        "choices": [
+          {
+            "id": "learn",
+            "label": "跟着一起学吹狗哨",
+            "line": "一上午下来，阿黄听见短哨就坐，听见长哨就跑。阿犴把骨哨塞给小汲：“往后它听你的。”",
+            "bond": {
+              "hunter": {
+                "trust": 0.5
+              },
+              "water-child": {
+                "trust": 0.5
+              }
+            },
+            "setFlags": [
+              "dog-trained"
+            ]
+          },
+          {
+            "id": "watch",
+            "label": "坐在门槛上看",
+            "line": "小汲学得比阿黄还慢，急得直跺脚。阿犴难得笑出了声。",
+            "bond": {
+              "water-child": {
+                "familiarity": 0.3
+              }
+            }
+          }
+        ]
       }
     ]
   },
@@ -6583,7 +7801,8 @@
           "atLeast": 3
         }
       },
-      "category": "人情"
+      "category": "人情",
+      "title": "好邻居"
     },
     {
       "id": "chapter-1",
@@ -6610,7 +7829,15 @@
       "condition": {
         "questDone": "main-3-ford"
       },
-      "category": "主线"
+      "category": "主线",
+      "reward": {
+        "items": [
+          {
+            "prototype": "prototype:salt-cake",
+            "name": "渡口办成后陶叔给的盐"
+          }
+        ]
+      }
     },
     {
       "id": "kindred",
@@ -6662,7 +7889,8 @@
         "counter": "mediate",
         "atLeast": 1
       },
-      "category": "人情"
+      "category": "人情",
+      "title": "和事佬"
     },
     {
       "id": "night-owl",
@@ -6970,6 +8198,184 @@
       },
       "category": "奇遇",
       "hidden": true
+    },
+    {
+      "id": "chapter-7",
+      "name": "大水之年",
+      "text": "陪河岸熬过了那场大水",
+      "condition": {
+        "questDone": "main-7-flood"
+      },
+      "category": "主线",
+      "title": "拿主意的人",
+      "reward": {
+        "bondAll": {
+          "familiarity": 0.3
+        }
+      }
+    },
+    {
+      "id": "flood-moved",
+      "name": "高台上的新村",
+      "text": "把全村搬上了北坡",
+      "condition": {
+        "flag": "flood-moved"
+      },
+      "category": "主线",
+      "hidden": true
+    },
+    {
+      "id": "flood-levee",
+      "name": "守住了老屋",
+      "text": "筑起的河堤挡住了大水",
+      "condition": {
+        "flag": "flood-levee"
+      },
+      "category": "主线",
+      "hidden": true
+    },
+    {
+      "id": "flood-scarred",
+      "name": "水退之后",
+      "text": "大水没守住，可你们重新站了起来",
+      "condition": {
+        "flag": "flood-scarred"
+      },
+      "category": "主线",
+      "hidden": true
+    },
+    {
+      "id": "on-time",
+      "name": "说到做到",
+      "text": "按期办完两件限期的事",
+      "condition": {
+        "counter": "quest-on-time",
+        "atLeast": 2
+      },
+      "category": "支线",
+      "title": "守信的人",
+      "reward": {
+        "items": [
+          {
+            "prototype": "prototype:salt-cake",
+            "name": "守信的赏"
+          }
+        ]
+      }
+    },
+    {
+      "id": "late-once",
+      "name": "误了一回",
+      "text": "有一件限期的事没赶上",
+      "condition": {
+        "counter": "quest-failed",
+        "atLeast": 1
+      },
+      "category": "支线",
+      "hidden": true,
+      "reward": {
+        "items": [
+          {
+            "prototype": "prototype:herb-bundle",
+            "name": "蓍婆塞给你的草药包"
+          }
+        ]
+      }
+    },
+    {
+      "id": "decider",
+      "name": "当断则断",
+      "text": "在三件事上拿过主意",
+      "condition": {
+        "counter": "decision",
+        "atLeast": 3
+      },
+      "category": "人情"
+    },
+    {
+      "id": "streak-3",
+      "name": "老规矩",
+      "text": "同一个节日连着过了三年",
+      "condition": {
+        "counter": "rite-streak",
+        "atLeast": 3
+      },
+      "category": "节日与活动",
+      "title": "老规矩",
+      "reward": {
+        "items": [
+          {
+            "prototype": "prototype:clay-xun",
+            "name": "老人送的陶埙"
+          }
+        ]
+      }
+    },
+    {
+      "id": "fair-complete",
+      "name": "赶集能手",
+      "text": "一年里把栗子集的三样都做了",
+      "condition": {
+        "counter": "event-complete:chestnut-fair",
+        "atLeast": 1
+      },
+      "category": "节日与活动",
+      "title": "赶集能手",
+      "reward": {
+        "bond": {
+          "market-keeper": {
+            "trust": 0.5
+          }
+        }
+      }
+    },
+    {
+      "id": "lantern-three",
+      "name": "三盏河灯",
+      "text": "一年里放下了三盏河灯",
+      "condition": {
+        "flag": "lantern-blessed"
+      },
+      "category": "节日与活动"
+    },
+    {
+      "id": "stranger-gift",
+      "name": "好心有好报",
+      "text": "外乡人回来道谢",
+      "condition": {
+        "flag": "stranger-gift"
+      },
+      "category": "奇遇",
+      "hidden": true
+    },
+    {
+      "id": "fox-repaid",
+      "name": "门口的栗子",
+      "text": "被你救过的狐狸回来报恩",
+      "condition": {
+        "flag": "fox-repaid"
+      },
+      "category": "奇遇",
+      "hidden": true,
+      "reward": {
+        "items": [
+          {
+            "prototype": "prototype:chestnut",
+            "name": "狐狸多留的一颗"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dog-hero",
+      "name": "阿黄",
+      "text": "那条狗成了村里的守夜人",
+      "condition": {
+        "flag": "dog-hero"
+      },
+      "category": "奇遇",
+      "hidden": true,
+      "title": "阿黄的朋友"
     }
   ]
 }
