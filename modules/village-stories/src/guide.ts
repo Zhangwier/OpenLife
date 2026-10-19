@@ -182,8 +182,19 @@ export function dailyGuide(world: WorldView, me: string, story: StoryView) {
   }
 
   // Quests: ready to hand in first, then the next step of each active one, then a new one on offer.
+  for (const o of story.omens) add(`omen:${o.incident}`, "omen", say("omen", { text: o.text }), null);
   for (const q of story.quests) {
     if (q.status === "active" && q.step) {
+      // A turning point is the player's to choose: the guide names the ways, it does not pick one.
+      if (q.decide) {
+        add(`quest:${q.id}`, "quest-decide", say("quest-decide", { title: q.title, step: q.step.text, ways: q.decide.map((d) => d.label).join(" / ") }), null);
+        continue;
+      }
+      if (q.daysLeft !== null && q.daysLeft <= 2 && !q.step.turnIn?.enabled) {
+        add(`quest:${q.id}`, "quest-deadline", say("quest-deadline", { title: q.title, days: q.daysLeft + 1, step: q.step.text, done: q.step.done, target: q.step.target }),
+          walkTo(h, questPlace(world, me, q.id)));
+        continue;
+      }
       if (q.step.turnIn?.enabled) {
         add(`quest:${q.id}`, "quest-ready", say("quest-ready", { title: q.title, step: q.step.text }),
           { type: "village-stories.quest.turn_in", payload: { questId: q.id }, label: `交付「${q.title}」` });
