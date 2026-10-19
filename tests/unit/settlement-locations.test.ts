@@ -279,7 +279,7 @@ test("UX-P0: finite portable load persists across days, fails atomically and fre
   assert.equal(denied.errors[0]?.code, "E_SETTLEMENT_NO_ROOM");
   assert.equal(dailyActivity(sim.worldView(), actorId).used, usedBefore);
   assert.equal(reed(), stockAtStart - 4, "refused draw cannot deduct stocks");
-  const droppedId = heldReeds()[0];
+  const droppedId = heldReeds()[0]!;
   must(sim, { type: ObjectCommands.place, actorId,
     payload: { objectId: droppedId, placeId: "place:reedbed" } });
   assert.equal(heldReeds().length, 3);
@@ -760,7 +760,7 @@ test("M2-B-A: two real reed bundles become one usable woven bag, with genuine co
   const bagObject = readObject(sim.worldView().getComponent(bagId, ObjectComponents.object));
   assert.deepEqual(bagObject.provenance.reedIds, reeds.slice(0, 2));
   for (const used of reeds.slice(0, 2)) assert.ok(sim.worldView().getEntity(used)?.archivedAt !== undefined);
-  const spare = reeds[2];
+  const spare = reeds[2]!;
   const pack = homestead(sim.worldView(), actorId).actions.find((a) =>
     a.id === ObjectCommands.store && a.payload.objectId === spare && a.payload.containerId === bagId);
   assert.equal(pack?.enabled, true, "the Web shows how to put the actual spare reed into this bag");

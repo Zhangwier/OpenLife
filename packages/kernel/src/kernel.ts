@@ -19,7 +19,8 @@ import type {
   WorldView,
 } from "@openlife/contracts";
 import { ErrorCode, OpenLifeErrorException, isOpenLifeError } from "@openlife/contracts";
-import type { DefinitionSet, DecisionTrace } from "@openlife/rule-engine";
+import type { DecisionTrace } from "@openlife/rule-engine";
+import { DefinitionSet } from "@openlife/rule-engine";
 import {
   runConstraints,
   runResolutions,

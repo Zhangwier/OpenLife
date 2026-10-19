@@ -98,13 +98,13 @@ export function registerNpcBarter(ctx: Registration): void {
     resolve: (c) => [{
       kind: "modifyComponent", entityId: cook,
       component: SettlementComponents.resident,
-      patch: { tradeOffer: { status: "offered", at: c.world.tick, fuelId: c.command.payload.fuelId,
-        grainId: c.command.payload.grainId, recipientId: farmer } },
+      patch: { tradeOffer: { status: "offered", at: c.world.tick, fuelId: String(c.command.payload.fuelId),
+        grainId: String(c.command.payload.grainId), recipientId: farmer } },
       reason: "cook's explicit conditional barter offer",
     }, {
       kind: "emitEvent", eventType: "settlement-locations.barter_offered",
       actorId: cook, targetId: farmer,
-      data: { fuelId: c.command.payload.fuelId, grainId: c.command.payload.grainId },
+      data: { fuelId: String(c.command.payload.fuelId), grainId: String(c.command.payload.grainId) },
       historicalSignificance: 0.01,
     }],
   });
@@ -225,13 +225,13 @@ export function registerPlayerBarter(ctx: Registration): void {
     resolve: (c) => [{
       kind: "modifyComponent", entityId: c.command.actorId as string,
       component: SettlementComponents.holding,
-      patch: { playerBarterRequest: { grainId: c.command.payload.grainId,
+      patch: { playerBarterRequest: { grainId: String(c.command.payload.grainId),
         cookId: cook, at: c.world.tick, status: "requested" } },
       reason: "player explicitly asks the cook to exchange specific goods",
     }, {
       kind: "emitEvent", eventType: "settlement-locations.player_barter_requested",
       actorId: c.command.actorId, targetId: cook,
-      data: { grainId: c.command.payload.grainId }, historicalSignificance: 0,
+      data: { grainId: String(c.command.payload.grainId) }, historicalSignificance: 0,
     }],
   });
 

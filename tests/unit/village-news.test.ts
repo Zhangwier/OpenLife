@@ -50,7 +50,8 @@ test("villagers pass on what happened, and tell you something you have not heard
   sim.dispatch({ type: SettlementCommands.arrive, actorId: me, source: "player", payload: { placeId: occupiedPlaceId(world, teller) } });
   const said = sim.dispatch({ type: SettlementCommands.talk, actorId: me, source: "player", payload: { targetId: teller } });
   assert.equal(said.ok, true);
-  const event = said.events?.find((e) => e.type === "settlement-locations.conversation") ?? sim.kernel.internals.eventLog.since(0).filter((e) => e.type === "settlement-locations.conversation").pop();
+  const event = sim.kernel.internals.eventLog.since(0).find((e) => said.eventIds.includes(e.id) && e.type === "settlement-locations.conversation");
+  assert.ok(event, "the talk command committed a conversation event");
   const line = String(event?.data?.line ?? "");
   if (event?.data?.news) {
     assert.equal(event.data.news, item.id);

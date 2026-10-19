@@ -6,7 +6,7 @@
  * changes only module-owned components through Effects.
  */
 
-import type { Effect, OpenLifeModule } from "@openlife/contracts";
+import type { ComponentData, Effect, OpenLifeModule } from "@openlife/contracts";
 import {
   EconomyComponents as EC,
   type EconomyCityStateComponent,
@@ -157,7 +157,7 @@ function cityEffects(phase: EconomyPhase): Effect[] {
     kind: "setComponent",
     entityId: cityId,
     component: EC.cityState,
-    value: cityState(phase, cityId),
+    value: cityState(phase, cityId) as unknown as ComponentData,
     reason: "city follows the wider economic climate",
   }));
 }

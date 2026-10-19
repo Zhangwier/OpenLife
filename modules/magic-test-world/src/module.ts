@@ -125,7 +125,6 @@ type Registration = Parameters<OpenLifeModule["register"]>[0];
 function registerInitialize(ctx: Registration): void {
   ctx.registerConstraintRule({
     id: "magic.initialize_world.allowed",
-    kind: "constraint",
     commandType: "magic.initialize_world",
     evaluate: (c) =>
       readWorldState(c.world)
@@ -135,9 +134,8 @@ function registerInitialize(ctx: Registration): void {
 
   ctx.registerResolutionRule({
     id: "magic.initialize_world.resolve",
-    kind: "resolution",
     commandType: "magic.initialize_world",
-    resolve: () => [
+    resolve: (): Effect[] => [
       {
         kind: "spawnEntity",
         localId: "world",
@@ -205,7 +203,6 @@ function registerInitialize(ctx: Registration): void {
 function registerCreateSoul(ctx: Registration): void {
   ctx.registerConstraintRule({
     id: "magic.create_soul.allowed",
-    kind: "constraint",
     commandType: "magic.create_soul",
     evaluate: (c) => {
       if (!readWorldState(c.world)) {
@@ -225,7 +222,6 @@ function registerCreateSoul(ctx: Registration): void {
 
   ctx.registerResolutionRule({
     id: "magic.create_soul.resolve",
-    kind: "resolution",
     commandType: "magic.create_soul",
     resolve: (c) => {
       const name = typeof c.command.payload.name === "string" ? c.command.payload.name : "Wanderer";
@@ -258,7 +254,6 @@ function registerCreateSoul(ctx: Registration): void {
 
   ctx.registerReactionRule({
     id: "magic.create_soul.activate_first",
-    kind: "reaction",
     eventType: "magic.soul_entered",
     react: (c) => {
       const state = readWorldState(c.world);
@@ -279,7 +274,6 @@ function registerCreateSoul(ctx: Registration): void {
 function registerMeditate(ctx: Registration): void {
   ctx.registerConstraintRule({
     id: "magic.meditate.allowed",
-    kind: "constraint",
     commandType: "magic.meditate",
     evaluate: (c) => {
       const actor = requireSoul(c.world, c.command.actorId);
@@ -297,9 +291,8 @@ function registerMeditate(ctx: Registration): void {
 
   ctx.registerResolutionRule({
     id: "magic.meditate.resolve",
-    kind: "resolution",
     commandType: "magic.meditate",
-    resolve: (c) => {
+    resolve: (c): Effect[] => {
       const actor = requireSoul(c.world, c.command.actorId);
       if (!actor.ok) return [];
       const soulId = actor.id;
@@ -363,7 +356,6 @@ function registerMeditate(ctx: Registration): void {
 function registerBond(ctx: Registration): void {
   ctx.registerConstraintRule({
     id: "magic.bond.allowed",
-    kind: "constraint",
     commandType: "magic.bond",
     evaluate: (c) => {
       const actor = requireSoul(c.world, c.command.actorId);
@@ -383,7 +375,6 @@ function registerBond(ctx: Registration): void {
 
   ctx.registerResolutionRule({
     id: "magic.bond.resolve",
-    kind: "resolution",
     commandType: "magic.bond",
     resolve: (c) => {
       const soulId = c.command.actorId as string;
@@ -445,7 +436,6 @@ function registerBond(ctx: Registration): void {
 function registerAscend(ctx: Registration): void {
   ctx.registerConstraintRule({
     id: "magic.ascend.allowed",
-    kind: "constraint",
     commandType: "magic.ascend",
     evaluate: (c) => {
       const actor = requireSoul(c.world, c.command.actorId);
@@ -455,7 +445,6 @@ function registerAscend(ctx: Registration): void {
 
   ctx.registerResolutionRule({
     id: "magic.ascend.resolve",
-    kind: "resolution",
     commandType: "magic.ascend",
     resolve: (c) => [
       {
@@ -474,7 +463,6 @@ function registerAscend(ctx: Registration): void {
 
   ctx.registerReactionRule({
     id: "magic.ascend.apply",
-    kind: "reaction",
     eventType: "magic.soul_ascended",
     react: (c) => {
       const soulId = c.event.actorId;
@@ -496,7 +484,6 @@ function registerAscend(ctx: Registration): void {
 function registerReincarnate(ctx: Registration): void {
   ctx.registerConstraintRule({
     id: "magic.reincarnate.allowed",
-    kind: "constraint",
     commandType: "magic.reincarnate",
     evaluate: (c) => {
       const state = readWorldState(c.world);
@@ -522,7 +509,6 @@ function registerReincarnate(ctx: Registration): void {
 
   ctx.registerResolutionRule({
     id: "magic.reincarnate.resolve",
-    kind: "resolution",
     commandType: "magic.reincarnate",
     resolve: (c) => {
       const state = readWorldState(c.world);
@@ -556,7 +542,6 @@ function registerReincarnate(ctx: Registration): void {
 function registerCycle(ctx: Registration): void {
   ctx.registerConstraintRule({
     id: "magic.cycle.allowed",
-    kind: "constraint",
     commandType: "magic.cycle",
     evaluate: (c) =>
       readWorldState(c.world)
@@ -566,7 +551,6 @@ function registerCycle(ctx: Registration): void {
 
   ctx.registerResolutionRule({
     id: "magic.cycle.resolve",
-    kind: "resolution",
     commandType: "magic.cycle",
     resolve: () => [
       {
@@ -583,7 +567,6 @@ function registerCycle(ctx: Registration): void {
   // world's annual pass.
   ctx.registerReactionRule({
     id: "magic.cycle.replenish",
-    kind: "reaction",
     eventType: "magic.cycle_passed",
     react: (c) => {
       const effects: Effect[] = [];

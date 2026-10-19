@@ -7,7 +7,7 @@
  * later layers.
  */
 
-import type { OpenLifeModule, WorldView } from "@openlife/contracts";
+import type { OpenLifeModule, WorldView, Effect } from "@openlife/contracts";
 import { GeographyKinds } from "@openlife/module-world-geography";
 import type { GeosphereApi, SubstrateType, TerrainType } from "@openlife/module-world-geosphere";
 import type { WeatherApi } from "@openlife/module-world-weather";
@@ -19,7 +19,7 @@ export const HydrologyComponents = {
   state: "world-hydrology.state",
 } as const;
 
-export interface HydrologySnapshot {
+export type HydrologySnapshot = {
   soilMoisture: number;
   surfaceWaterMm: number;
   waterAvailability: number;
@@ -30,7 +30,7 @@ export interface HydrologySnapshot {
   retentionCapacity: number;
   runoffTendency: number;
   updatedAt: number;
-}
+};
 
 export interface HydrologyApi {
   state(world: WorldView, locationId: string): HydrologySnapshot | undefined;
@@ -141,7 +141,7 @@ export const worldHydrologyModule: OpenLifeModule = {
     ctx.registerResolutionRule({
       id: "world-hydrology.advance_location.resolve",
       commandType: "world-hydrology.advance_location",
-      resolve: (c) => {
+      resolve: (c): Effect[] => {
         const locationId = c.command.targetId as string;
         const current = snapshot(c.world.getComponent(locationId, HydrologyComponents.state) ?? {});
         const conditions = weather.current(c.world, locationId)!;

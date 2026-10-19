@@ -8,7 +8,7 @@
  * insight into civilization-wide knowledge yet.
  */
 
-import type { OpenLifeModule } from "@openlife/contracts";
+import type { OpenLifeModule, Effect } from "@openlife/contracts";
 import {
   PracticeComponents,
   PracticeKinds,
@@ -128,7 +128,7 @@ export const scienceResearchModule: OpenLifeModule = {
     ctx.registerReactionRule({
       id: "science-research.checkpoint_resolved.form_insight",
       eventType: "practice-runtime.checkpoint_resolved",
-      react: (c) => {
+      react: (c): Effect[] => {
         if (c.event.data.definitionId !== ScienceResearchDefinitions.magneticDirection) return [];
         if (c.event.data.actionId !== "propose-stable-direction") return [];
         const practiceId = String(c.event.data.practiceId ?? "");

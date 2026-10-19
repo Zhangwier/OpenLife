@@ -702,7 +702,7 @@ function runAction(action: string, payload: Record<string, unknown> = {}) {
       return simulation.dispatch({
         type: SettlementCommands.cookBarterQuote,
         actorId: residentId("cook"), source: "ai",
-        payload: { customerId: id, fuelId: payload.fuelId },
+        payload: { customerId: id, fuelId: String(payload.fuelId ?? "") },
       });
     }
     return request;
@@ -736,7 +736,7 @@ function runAction(action: string, payload: Record<string, unknown> = {}) {
       return simulation.dispatch({
         type: "family.have_child",
         actorId: id,
-        payload: { givenName: ["兰", "禾", "启"][simulation.tick % 3] },
+        payload: { givenName: ["兰", "禾", "启"][simulation.tick % 3]! },
       });
     case "legacy":
       return simulation.dispatch({ type: "early-civilization.leave_legacy", actorId: id });

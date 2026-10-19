@@ -58,7 +58,7 @@ export interface ClockProfile {
   /** The finest unit a player-facing action may cost. */
   baseUnit: string;
   /** Every unit this profile exposes, including the base unit. */
-  units: ClockScale[];
+  units: readonly ClockScale[];
   description?: string;
 }
 

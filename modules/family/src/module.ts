@@ -97,7 +97,6 @@ export const familyModule: OpenLifeModule = {
     // a reaction, so the modern-world pack needs no knowledge of lineages.
     ctx.registerReactionRule({
       id: "family.character_created.join_lineage",
-      kind: "reaction",
       eventType: "modern.character_created",
       react: (c) => {
         const actorId = c.event.actorId;
@@ -152,7 +151,6 @@ export const familyModule: OpenLifeModule = {
     // --- make_friend ------------------------------------------------------
     ctx.registerConstraintRule({
       id: "family.make_friend.allowed",
-      kind: "constraint",
       commandType: "family.make_friend",
       evaluate: (c) => {
         const actor = requireLivingCharacter(c.world, c.command.actorId);
@@ -206,7 +204,6 @@ export const familyModule: OpenLifeModule = {
 
     ctx.registerResolutionRule({
       id: "family.make_friend.resolve",
-      kind: "resolution",
       commandType: "family.make_friend",
       resolve: (c) => {
         const actorId = c.command.actorId as string;
@@ -279,7 +276,6 @@ export const familyModule: OpenLifeModule = {
     // --- marry ------------------------------------------------------------
     ctx.registerConstraintRule({
       id: "family.marry.allowed",
-      kind: "constraint",
       commandType: "family.marry",
       evaluate: (c) => {
         const actorId = c.command.actorId;
@@ -303,7 +299,6 @@ export const familyModule: OpenLifeModule = {
 
     ctx.registerResolutionRule({
       id: "family.marry.resolve",
-      kind: "resolution",
       commandType: "family.marry",
       resolve: (c) => {
         const actorId = c.command.actorId as string;
@@ -371,7 +366,6 @@ export const familyModule: OpenLifeModule = {
     // --- have_child -------------------------------------------------------
     ctx.registerConstraintRule({
       id: "family.have_child.allowed",
-      kind: "constraint",
       commandType: "family.have_child",
       evaluate: (c) => {
         const actorId = c.command.actorId;
@@ -399,9 +393,8 @@ export const familyModule: OpenLifeModule = {
 
     ctx.registerResolutionRule({
       id: "family.have_child.resolve",
-      kind: "resolution",
       commandType: "family.have_child",
-      resolve: (c) => {
+      resolve: (c): Effect[] => {
         const actorId = c.command.actorId as string;
         const actorEntity = c.world.getEntity(actorId);
         const identity = actorEntity?.components[MW.identity] ?? {};
@@ -473,7 +466,6 @@ export const familyModule: OpenLifeModule = {
     // regardless of which parent the player controlled.
     ctx.registerReactionRule({
       id: "family.child_born.spouse_parent",
-      kind: "reaction",
       eventType: "family.child_born",
       react: (c) => {
         const actorId = c.event.actorId;

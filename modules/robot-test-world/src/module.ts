@@ -156,7 +156,7 @@ function registerInitialize(ctx: Registration): void {
   ctx.registerResolutionRule({
     id: "robot.initialize_world.resolve",
     commandType: "robot.initialize_world",
-    resolve: () => [
+    resolve: (): Effect[] => [
       {
         kind: "spawnEntity",
         localId: "world",

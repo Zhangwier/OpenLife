@@ -22,8 +22,7 @@
     "catalog": "node scripts/gen-module-catalog.ts",
     "catalog:check": "node scripts/gen-module-catalog.ts --check",
     "coverage": "node scripts/content-coverage.ts",
-    "typecheck": "node scripts/typecheck.ts",
-    "typecheck:update": "node scripts/typecheck.ts --update"
+    "typecheck": "node scripts/typecheck.ts"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

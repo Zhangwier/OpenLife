@@ -347,7 +347,9 @@ test("inventory is conserved: storing never duplicates what was held", () => {
 
   const view = nearby(sim.worldView(), actorId);
   assert.equal(view.objects.filter((object) => object.id === "obj:g1").length, 1, "an object is listed once, not once per path");
-  assert.equal(detail(sim.worldView(), "obj:jar").contents.length, 2);
+  const jar = detail(sim.worldView(), "obj:jar");
+  assert.ok(jar.exists);
+  assert.equal(jar.contents?.length, 2);
 });
 
 test("the same seed and the same moves reproduce the settlement exactly", () => {

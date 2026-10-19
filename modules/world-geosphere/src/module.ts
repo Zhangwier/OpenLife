@@ -6,7 +6,7 @@
  * erosion or ecology.
  */
 
-import type { OpenLifeModule, WorldView } from "@openlife/contracts";
+import type { Effect, OpenLifeModule, WorldView } from "@openlife/contracts";
 import { GeographyKinds } from "@openlife/module-world-geography";
 
 const OWNER = "world-geosphere";
@@ -190,7 +190,7 @@ export const worldGeosphereModule: OpenLifeModule = {
         const nextElevation = Math.max(-12000, Math.min(10000, profile.elevationM + elevationChangeM));
         const seismicEpisodes = coarseEpisodes(profile.seismicPotential, years, 1.0, c.rng.nextFloat());
         const volcanicEpisodes = coarseEpisodes(profile.volcanicPotential, years, 0.55, c.rng.nextFloat());
-        const effects = [{
+        const effects: Effect[] = [{
           kind: "modifyComponent" as const,
           entityId: locationId,
           component: GeosphereComponents.profile,

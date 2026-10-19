@@ -144,3 +144,16 @@ export interface EmitEventEffect {
    */
   dedupeKey?: string;
 }
+
+/**
+ * Writes a whole component: a modify when it already exists, a set when it
+ * does not. (A single object literal whose `kind` is a union cannot be typed
+ * as either effect, so code that chose between the two at runtime needs this.)
+ */
+export function writeComponent(
+  exists: boolean, entityId: EntityId, component: ComponentTypeId, data: ComponentData, reason?: string,
+): SetComponentEffect | ModifyComponentEffect {
+  return exists
+    ? { kind: "modifyComponent", entityId, component, patch: data, ...(reason !== undefined ? { reason } : {}) }
+    : { kind: "setComponent", entityId, component, value: data, ...(reason !== undefined ? { reason } : {}) };
+}

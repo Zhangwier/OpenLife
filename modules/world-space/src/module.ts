@@ -158,7 +158,7 @@ export const worldSpaceModule: OpenLifeModule = {
     ctx.registerProjection({
       id: SpaceProjections.scene,
       description: "Everything one observer can perceive from where they stand, with the actions each thing allows.",
-      build: ({ world, params }) => scene(world, String(params.observerId ?? "")),
+      build: ({ world, params }) => scene(world, String(params.observerId ?? "")) as unknown as Record<string, unknown>,
     });
 
     ctx.registerProjection({
@@ -788,7 +788,7 @@ export function moveEffects(
 
 function blockingReason(world: WorldView, actorId: string): string {
   for (const entity of world.listEntities({ kind: "practice-runtime.practice" })) {
-    const state = entity.components[PracticeComponents.practice];
+    const state = entity.components["practice-runtime.practice"];
     if (state?.status !== "active") continue;
     const participates = world
       .listRelations({ type: "practice-runtime.participates_in", from: actorId, to: entity.id })

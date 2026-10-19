@@ -50,14 +50,16 @@ test("a disliked gift lands worse than nothing; you learn the taste; one gift a 
   const r = act(SettlementCommands.gift, { targetId: reedWorker, itemId: reeds[0] });
   assert.equal(r.ok, true, r.errors?.[0]?.message);
   assert.ok(bondOf(socialOf(sim.worldView(), reedWorker), me).trust < before, "he did not want reeds cut");
-  const line = String(r.events?.find?.((e: { type: string }) => e.type === "settlement-locations.gift_received")?.data?.line ?? "");
+  // The command's own events (the result carries their ids): the gift line must be his authored dislike line.
+  const gift = sim.kernel.internals.eventLog.since(0).find((e) => r.eventIds.includes(e.id) && e.type === "settlement-locations.gift_received");
+  const line = String(gift?.data?.line ?? "");
+  assert.match(line, /脸色沉了下来/, line);
   const again = act(SettlementCommands.gift, { targetId: reedWorker, itemId: reeds[1] });
   assert.equal(again.ok, false);
   assert.match(again.errors[0]!.message, /今天已经送过/);
   const card = homestead(sim.worldView(), me).neighbours.find((p) => p.id === reedWorker)!;
   assert.deepEqual(card.dislikes, ["芦苇"]);
   assert.ok(card.birthday.includes("5月15日"));
-  void line;
 });
 
 test("birthdays show up in the village news on their day", () => {

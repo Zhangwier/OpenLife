@@ -222,7 +222,7 @@ export function runSettlementAction(sim: Simulation, actorId: string, action: st
   }
 }
 
-export function playerView(sim: Simulation, actorId: string) {
+export function playerView(sim: Simulation, actorId: string): Record<string, any> {
   const life = sim.project({ id: "settlement-life.player", params: { actorId } }).data as Record<string, any>;
   const practice = sim.worldView().getEntity(actorId)?.archivedAt === undefined ? currentPractice(sim.worldView(), actorId) : undefined;
   const interaction = practice ? sim.project({ id: "practice-runtime.interaction", params: { practiceId: practice.id, participantId: actorId } }).data : null;

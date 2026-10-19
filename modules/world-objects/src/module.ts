@@ -135,6 +135,7 @@ export interface ObjectInstanceState {
   /** Domain-owned trace, e.g. the pottery production strategy. */
   provenance: Record<string, JsonValue>;
   visibleFromOutside: boolean;
+  loanPolicy?: string; // "public-visitor": anyone visiting may take it (the jar lent at the well)
 }
 
 export const worldObjectsModule: OpenLifeModule = {
@@ -1184,10 +1185,9 @@ export function readObject(raw: Readonly<Record<string, unknown>> | undefined): 
     name: typeof raw?.name === "string" ? raw.name : "",
     condition: typeof raw?.condition === "string" ? raw.condition : "new",
     quantity: Math.max(0, Number(raw?.quantity ?? 0)),
-    durability: Math.max(0, Number(raw?.durability ?? 0)),
-    madeAt: Math.max(0, Number(raw?.madeAt ?? 0)),
+    durability: Math.max(0, Number(raw?.durability ?? 0)), madeAt: Math.max(0, Number(raw?.madeAt ?? 0)),
     provenance: asRecord(raw?.provenance),
-    visibleFromOutside: raw?.visibleFromOutside === true,
+    visibleFromOutside: raw?.visibleFromOutside === true, ...(typeof raw?.loanPolicy === "string" ? { loanPolicy: raw.loanPolicy } : {}),
   };
 }
 

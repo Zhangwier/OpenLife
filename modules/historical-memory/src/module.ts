@@ -1092,7 +1092,7 @@ function publicSubjectFootprint(world: WorldView, subjectId: string): Record<str
 function publicOverview(world: WorldView): Record<string, unknown> {
   const works = world
     .listEntities({ kind: HistoricalMemoryKinds.work })
-    .map((entity) => ({ id: entity.id, ...publicWorkMemory(world, entity.id) }))
+    .map((entity): Record<string, unknown> => ({ id: entity.id, ...publicWorkMemory(world, entity.id) }))
     .filter((memory) => memory.memoryState !== "lost" && memory.memoryState !== "unknown");
 
   return {

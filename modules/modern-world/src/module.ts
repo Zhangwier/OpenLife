@@ -162,7 +162,6 @@ export const modernWorldModule: OpenLifeModule = {
 function registerInitializeWorld(ctx: Parameters<OpenLifeModule["register"]>[0]): void {
   ctx.registerConstraintRule({
     id: "modern.initialize_world.allowed",
-    kind: "constraint",
     commandType: "modern.initialize_world",
     evaluate: (c) => {
       if (readWorldState(c.world)) {
@@ -174,9 +173,8 @@ function registerInitializeWorld(ctx: Parameters<OpenLifeModule["register"]>[0])
 
   ctx.registerResolutionRule({
     id: "modern.initialize_world.resolve",
-    kind: "resolution",
     commandType: "modern.initialize_world",
-    resolve: (c) => [
+    resolve: (c): Effect[] => [
       {
         kind: "spawnEntity",
         localId: "world",
@@ -243,7 +241,6 @@ export function ticksPerYear(world: WorldView): number {
 function registerCreateCharacter(ctx: Parameters<OpenLifeModule["register"]>[0]): void {
   ctx.registerConstraintRule({
     id: "modern.create_character.allowed",
-    kind: "constraint",
     commandType: "modern.create_character",
     evaluate: (c) => {
       if (!readWorldState(c.world)) {
@@ -259,7 +256,6 @@ function registerCreateCharacter(ctx: Parameters<OpenLifeModule["register"]>[0])
 
   ctx.registerResolutionRule({
     id: "modern.create_character.resolve",
-    kind: "resolution",
     commandType: "modern.create_character",
     resolve: (c) => {
       const payload = c.command.payload;
@@ -314,7 +310,6 @@ function registerCreateCharacter(ctx: Parameters<OpenLifeModule["register"]>[0])
   // The first character becomes the active one.
   ctx.registerReactionRule({
     id: "modern.create_character.activate_first",
-    kind: "reaction",
     eventType: "modern.character_created",
     react: (c) => {
       const worldState = readWorldState(c.world);
@@ -339,7 +334,6 @@ function registerCreateCharacter(ctx: Parameters<OpenLifeModule["register"]>[0])
 function registerDie(ctx: Parameters<OpenLifeModule["register"]>[0]): void {
   ctx.registerConstraintRule({
     id: "modern.die.allowed",
-    kind: "constraint",
     commandType: "modern.die",
     evaluate: (c) => {
       const actor = requireLivingCharacter(c.world, c.command);
@@ -350,7 +344,6 @@ function registerDie(ctx: Parameters<OpenLifeModule["register"]>[0]): void {
 
   ctx.registerResolutionRule({
     id: "modern.die.resolve",
-    kind: "resolution",
     commandType: "modern.die",
     resolve: (c) => [
       {
@@ -367,7 +360,6 @@ function registerDie(ctx: Parameters<OpenLifeModule["register"]>[0]): void {
   // before it becomes a state change.
   ctx.registerReactionRule({
     id: "modern.die.apply",
-    kind: "reaction",
     eventType: "modern.character_died",
     react: (c) => {
       const characterId = c.event.actorId;
@@ -398,7 +390,6 @@ function registerDie(ctx: Parameters<OpenLifeModule["register"]>[0]): void {
 function registerSwitchGeneration(ctx: Parameters<OpenLifeModule["register"]>[0]): void {
   ctx.registerConstraintRule({
     id: "modern.switch_generation.allowed",
-    kind: "constraint",
     commandType: "modern.switch_generation",
     evaluate: (c) => {
       const worldState = readWorldState(c.world);
@@ -429,7 +420,6 @@ function registerSwitchGeneration(ctx: Parameters<OpenLifeModule["register"]>[0]
 
   ctx.registerResolutionRule({
     id: "modern.switch_generation.resolve",
-    kind: "resolution",
     commandType: "modern.switch_generation",
     resolve: (c) => {
       const worldState = readWorldState(c.world);
@@ -465,7 +455,6 @@ function registerSwitchGeneration(ctx: Parameters<OpenLifeModule["register"]>[0]
 function registerTickYear(ctx: Parameters<OpenLifeModule["register"]>[0]): void {
   ctx.registerConstraintRule({
     id: "modern.tick_year.allowed",
-    kind: "constraint",
     commandType: "modern.tick_year",
     evaluate: (c) =>
       readWorldState(c.world)
@@ -475,7 +464,6 @@ function registerTickYear(ctx: Parameters<OpenLifeModule["register"]>[0]): void 
 
   ctx.registerResolutionRule({
     id: "modern.tick_year.resolve",
-    kind: "resolution",
     commandType: "modern.tick_year",
     resolve: (c) => [
       {
@@ -492,7 +480,6 @@ function registerTickYear(ctx: Parameters<OpenLifeModule["register"]>[0]): void 
   // annual tick itself carries no state change.
   ctx.registerReactionRule({
     id: "modern.tick_year.ageing",
-    kind: "reaction",
     eventType: "modern.year_passed",
     react: (c) => {
       const effects: Effect[] = [];
@@ -538,7 +525,6 @@ function registerTickYear(ctx: Parameters<OpenLifeModule["register"]>[0]): void 
   // console and the UI can prompt for a generation switch.
   ctx.registerReactionRule({
     id: "modern.tick_year.active_death",
-    kind: "reaction",
     eventType: "modern.character_died",
     priority: -10,
     react: (c) => {
@@ -564,7 +550,6 @@ function registerTickYear(ctx: Parameters<OpenLifeModule["register"]>[0]): void 
 function registerDissolveOrganization(ctx: Parameters<OpenLifeModule["register"]>[0]): void {
   ctx.registerConstraintRule({
     id: "modern.dissolve_organization.allowed",
-    kind: "constraint",
     commandType: "modern.dissolve_organization",
     evaluate: (c) => {
       const targetId = c.command.targetId ?? asString(c.command.payload.organizationId, "");
@@ -581,7 +566,6 @@ function registerDissolveOrganization(ctx: Parameters<OpenLifeModule["register"]
 
   ctx.registerResolutionRule({
     id: "modern.dissolve_organization.resolve",
-    kind: "resolution",
     commandType: "modern.dissolve_organization",
     resolve: (c) => {
       const organizationId = c.command.targetId ?? asString(c.command.payload.organizationId, "");
@@ -664,7 +648,7 @@ export function findHeir(world: WorldView, characterId: string): EntityView | un
   return undefined;
 }
 
-function childRelations(world: WorldView, characterId: string): RelationView[] {
+function childRelations(world: WorldView, characterId: string): readonly RelationView[] {
   return world.listRelations({ type: PARENT_OF, from: characterId });
 }
 

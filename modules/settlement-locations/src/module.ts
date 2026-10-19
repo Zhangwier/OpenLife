@@ -196,7 +196,7 @@ export const settlementLocationsModule: OpenLifeModule = {
     ctx.registerProjection({
       id: SettlementProjections.homestead,
       description: "The settlement as one player sees it: where they are, who is here and what can be done now.",
-      build: ({ world, params }) => homestead(world, String(params.actorId ?? "")),
+      build: ({ world, params }) => homestead(world, String(params.actorId ?? "")) as unknown as Record<string, unknown>,
     });
     ctx.registerProjection({
       id: SettlementProjections.people,
@@ -952,7 +952,7 @@ function registerDailyPlan(ctx: Registration): void {
         const actorId = c.command.actorId ?? "";
         const plan = dailyPlan(c.world, actorId);
         const expectedStep = plan.steps[plan.progressIndex];
-        if (!plan.enabled || PLAN_COMMAND[expectedStep] !== commandType ||
+        if (!plan.enabled || !expectedStep || PLAN_COMMAND[expectedStep] !== commandType ||
             c.command.payload.planStep !== expectedStep ||
             c.command.payload.planIndex !== plan.progressIndex ||
             (commandType === SettlementCommands.arrive &&
@@ -1098,8 +1098,8 @@ function registerNpcDayMarker(ctx: Registration): void {
       patch: {
         lastRoutineAt: c.world.tick,
         npcDailyCount: Number(c.world.getComponent(c.command.actorId as string, SettlementComponents.resident)?.npcDailyCount ?? 0) + 1,
-        lastRoutineActions: c.command.payload.actions,
-        standingRoutine: c.command.payload.summary,
+        lastRoutineActions: c.command.payload.actions ?? [],
+        standingRoutine: c.command.payload.summary ?? "",
         frustration: nextFrustration(c.world.getComponent(c.command.actorId as string, SettlementComponents.resident)?.frustration,
           c.command.payload.missed, c.command.payload.made, c.world.tick),
       },
@@ -1107,7 +1107,7 @@ function registerNpcDayMarker(ctx: Registration): void {
     }, {
       kind: "emitEvent", eventType: "settlement-locations.npc_daily",
       actorId: c.command.actorId,
-      data: { actions: c.command.payload.actions, summary: c.command.payload.summary },
+      data: { actions: c.command.payload.actions ?? [], summary: c.command.payload.summary ?? "" },
       historicalSignificance: 0,
     }],
   });
@@ -1541,7 +1541,7 @@ export interface HomesteadView {
   };
   communitySituation: { visible: boolean; urgent: boolean; title: string; note: string; requestStatus: string; recentHelp: string; fuelStock: number | null };
   /** Field status, visible when standing at the field. */
-  crop?: { phase: string; remainingDays: number; tended: boolean; summary: string };
+  crop?: { phase: string; remainingDays: number; tended: boolean; summary: string; seedId: string; sownAt: number; harvests: number };
   /** Who carries the village's named routines (from the settlement pack). */
   roles: Record<"farmer" | "cook" | "fuelGatherer", { id: string; name: string; workPlace: string }>;
   /** People in the same place, with what they are doing right now. */
@@ -2453,7 +2453,7 @@ function registerTalk(ctx: Registration): void {
   ctx.registerResolutionRule({
     id: `${SettlementCommands.talk}.resolve`,
     commandType: SettlementCommands.talk,
-    resolve: (c) => {
+    resolve: (c): Effect[] => {
       const actorId = c.command.actorId as string;
       const targetId = String(c.command.payload.targetId);
       const raw = c.world.getComponent(actorId, SettlementComponents.holding)?.contacts;
@@ -3295,7 +3295,7 @@ function registerRest(ctx: Registration): void {
   ctx.registerResolutionRule({
     id: `${SettlementCommands.rest}.resolve`,
     commandType: SettlementCommands.rest,
-    resolve: (c) => {
+    resolve: (c): Effect[] => {
       const restSpace = occupiedSpaceId(c.world, c.command.actorId as string);
       // A leaking roof on a wet night soaks the bedding and puts out the fire: no bonus.
       const leaked = HOME_SPACES.includes(restSpace) && isWet(c.world.tick) && roofState(c.world, restSpace).leaking;
@@ -4161,7 +4161,7 @@ function fulfilEffects(world: WorldView, actorId: string, rid: string, how: stri
 }
 
 /** One more deed toward the known wishes of these villagers; returns the holding patch and any wishes now fulfilled. */
-function deedStep(world: WorldView, actorId: string, residents: string[], kind: "helps" | "talks" | "learns") {
+function deedStep(world: WorldView, actorId: string, residents: string[], kind: "helps" | "talks" | "learns"): { patch: ComponentData; effects: Effect[]; fulfilled: string[] } {
   if (actorId !== activeId(world)) return { patch: {}, effects: [] as Effect[], fulfilled: [] as string[] };
   const known = knownWishes(world, actorId);
   const progress = wishProgress(world, actorId);

@@ -290,7 +290,7 @@ export const earlyCivilizationModule: OpenLifeModule = {
     ctx.registerResolutionRule({
       id: "early-civilization.leave_legacy.resolve",
       commandType: "early-civilization.leave_legacy",
-      resolve: (c) => {
+      resolve: (c): Effect[] => {
         const actorId = c.command.actorId as string;
         const role = c.world.getComponent(actorId, EarlyComponents.role) ?? {};
         const title = String(role.title ?? "一门手艺");

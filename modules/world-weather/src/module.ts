@@ -7,7 +7,7 @@
  * solve atmospheric fluid dynamics.
  */
 
-import type { OpenLifeModule, WorldView } from "@openlife/contracts";
+import type { OpenLifeModule, WorldView, Effect } from "@openlife/contracts";
 import { GeographyKinds, GeographyRelations, type GeographyApi } from "@openlife/module-world-geography";
 import type { ClimateApi, ClimateProfileSnapshot } from "@openlife/module-world-climate";
 
@@ -18,7 +18,7 @@ export const WeatherComponents = {
   regionState: "world-weather.region-state",
 } as const;
 
-export interface RegionWeatherSnapshot {
+export type RegionWeatherSnapshot = {
   seasonPhase: number;
   stepIndex: number;
   temperatureAnomalyC: number;
@@ -29,7 +29,7 @@ export interface RegionWeatherSnapshot {
   precipitationActive: boolean;
   precipitationMmPerDay: number;
   neighboringRegionInfluenceCount: number;
-}
+};
 
 export interface WeatherConditionsSnapshot {
   locationId: string;
@@ -132,7 +132,7 @@ export const worldWeatherModule: OpenLifeModule = {
     ctx.registerResolutionRule({
       id: "world-weather.advance_region.resolve",
       commandType: "world-weather.advance_region",
-      resolve: (c) => {
+      resolve: (c): Effect[] => {
         const regionId = c.command.targetId as string;
         const seasonPhase = Number(c.command.payload.seasonPhase);
         const climates = climatesInRegion(c.world, regionId, climate);
@@ -319,6 +319,7 @@ function regionSnapshot(raw: Readonly<Record<string, unknown>>): RegionWeatherSn
     cloudCover: clamp(Number(raw.cloudCover ?? 0), 0, 1),
     precipitationActive: raw.precipitationActive === true,
     precipitationMmPerDay: Math.max(0, Number(raw.precipitationMmPerDay ?? 0)),
+    neighboringRegionInfluenceCount: Math.max(0, Math.floor(Number(raw.neighboringRegionInfluenceCount ?? 0))),
   };
 }
 

@@ -204,16 +204,6 @@ export interface HandshakeReport {
   anchorsB: BoundaryAnchorRef[];
 }
 
-/** Raw per-pair verdict, retained for the rejection histogram and tests. */
-export interface BoundarySeamCandidate {
-  anchorA: BoundaryAnchorRef;
-  anchorB: BoundaryAnchorRef;
-  verdict: HandshakeVerdict;
-  reasons: string[];
-  details: string[];
-}
-
-export type HandshakeVerdict = "compatible" | "incompatible" | "ambiguous";
 
 // --- anchor access ---------------------------------------------------------
 
@@ -991,10 +981,8 @@ export const boundaryHandshakeModule: OpenLifeModule = {
   },
 };
 
-import type { ModuleRegistrationContext } from "@openlife/contracts";
 
 
-import type { ModuleRegistrationContext } from "@openlife/contracts";
 
 /**
  * Builds the placement a connect request is asking for.

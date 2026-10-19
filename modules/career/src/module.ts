@@ -128,7 +128,6 @@ export const careerModule: OpenLifeModule = {
     // --- get_job ----------------------------------------------------------
     ctx.registerConstraintRule({
       id: "career.get_job.allowed",
-      kind: "constraint",
       commandType: "career.get_job",
       evaluate: (c) => {
         const actorId = c.command.actorId;
@@ -164,7 +163,6 @@ export const careerModule: OpenLifeModule = {
 
     ctx.registerResolutionRule({
       id: "career.get_job.resolve",
-      kind: "resolution",
       commandType: "career.get_job",
       resolve: (c) => {
         const actorId = c.command.actorId as string;
@@ -236,7 +234,6 @@ export const careerModule: OpenLifeModule = {
     // kernel needing a "cancel task" primitive.
     ctx.registerReactionRule({
       id: "career.salary_paid.schedule_next",
-      kind: "reaction",
       eventType: "career.salary_paid",
       react: (c) => {
         const actorId = c.event.actorId;
@@ -258,7 +255,6 @@ export const careerModule: OpenLifeModule = {
     // employee and be discovered by later generations.
     ctx.registerReactionRule({
       id: "career.job_accepted.employer",
-      kind: "reaction",
       eventType: "career.job_accepted",
       react: (c) => {
         const actorId = c.event.actorId;
@@ -309,7 +305,6 @@ export const careerModule: OpenLifeModule = {
     // --- pay_salary -------------------------------------------------------
     ctx.registerConstraintRule({
       id: "career.pay_salary.allowed",
-      kind: "constraint",
       commandType: "career.pay_salary",
       evaluate: (c) => {
         const actorId = c.command.actorId;
@@ -331,7 +326,6 @@ export const careerModule: OpenLifeModule = {
 
     ctx.registerResolutionRule({
       id: "career.pay_salary.resolve",
-      kind: "resolution",
       commandType: "career.pay_salary",
       resolve: (c) => {
         const actorId = c.command.actorId as string;
@@ -366,7 +360,6 @@ export const careerModule: OpenLifeModule = {
     // --- start_business ---------------------------------------------------
     ctx.registerConstraintRule({
       id: "career.start_business.allowed",
-      kind: "constraint",
       commandType: "career.start_business",
       evaluate: (c) => {
         const actorId = c.command.actorId;
@@ -395,7 +388,6 @@ export const careerModule: OpenLifeModule = {
 
     ctx.registerResolutionRule({
       id: "career.start_business.resolve",
-      kind: "resolution",
       commandType: "career.start_business",
       resolve: (c) => {
         const actorId = c.command.actorId as string;
@@ -460,7 +452,6 @@ export const careerModule: OpenLifeModule = {
 
     ctx.registerReactionRule({
       id: "career.profit_collected.schedule_next",
-      kind: "reaction",
       eventType: "career.profit_collected",
       react: (c) => {
         const actorId = c.event.actorId;
@@ -481,7 +472,6 @@ export const careerModule: OpenLifeModule = {
 
     ctx.registerConstraintRule({
       id: "career.collect_profit.allowed",
-      kind: "constraint",
       commandType: "career.collect_profit",
       evaluate: (c) => {
         const actorId = c.command.actorId;
@@ -506,7 +496,6 @@ export const careerModule: OpenLifeModule = {
 
     ctx.registerResolutionRule({
       id: "career.collect_profit.resolve",
-      kind: "resolution",
       commandType: "career.collect_profit",
       resolve: (c) => {
         const actorId = c.command.actorId as string;

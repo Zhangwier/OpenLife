@@ -183,7 +183,7 @@ test("grass-specialist grazing reduces matching grass without directly consuming
   const after = vegetation(setup.simulation, setup.locationId);
   assert.ok(biomass(after, "grazing-food.grass") < biomass(before, "grazing-food.grass"));
   assert.equal(biomass(after, "grazing-food.forest"), biomass(before, "grazing-food.forest"));
-  const pressure = setup.simulation.project({ id: "world-grazing.location-pressure", params: { locationId: setup.locationId } }).data!;
+  const pressure = setup.simulation.project({ id: "world-grazing.location-pressure", params: { locationId: setup.locationId } }).data as Record<string, any>;
   assert.equal(pressure.exists, true);
   assert.ok(Number(pressure.pressure.consumedBiomass) > 0);
   assert.ok(Number(pressure.pressure.pressureByVegetation["grazing-food.grass"]) > 0);

@@ -8,7 +8,8 @@
  * disease and detailed food webs are intentionally out of scope here.
  */
 
-import type { JsonValue, OpenLifeModule, WorldView } from "@openlife/contracts";
+import type { JsonValue, OpenLifeModule, WorldView, Effect } from "@openlife/contracts";
+import { writeComponent } from "@openlife/contracts";
 import { GeographyComponents, GeographyKinds, GeographyRelations } from "@openlife/module-world-geography";
 import type { ClimateApi } from "@openlife/module-world-climate";
 import type { HydrologyApi } from "@openlife/module-world-hydrology";
@@ -462,7 +463,7 @@ export const worldSpeciesModule: OpenLifeModule = {
     ctx.registerResolutionRule({
       id: "world-species.disperse_to_neighbor.resolve",
       commandType: "world-species.disperse_to_neighbor",
-      resolve: (c) => {
+      resolve: (c): Effect[] => {
         const sourceId = c.command.targetId as string;
         const destinationId = String(c.command.payload.toLocationId);
         const days = Number(c.command.payload.days ?? 30);
@@ -576,15 +577,8 @@ export const worldSpeciesModule: OpenLifeModule = {
           component: SpeciesComponents.populations,
           patch: { bySpecies: toPopulationMap(nextSource), updatedAt: c.world.tick },
           reason: "known species dispersed from a crowded source location",
-        }, {
-          kind: c.world.getComponent(destinationId, SpeciesComponents.populations) ? "modifyComponent" as const : "setComponent" as const,
-          entityId: destinationId,
-          component: SpeciesComponents.populations,
-          ...(c.world.getComponent(destinationId, SpeciesComponents.populations)
-            ? { patch: { bySpecies: toPopulationMap(cappedDestination), updatedAt: c.world.tick } }
-            : { value: { bySpecies: toPopulationMap(cappedDestination), updatedAt: c.world.tick } }),
-          reason: "known species arrived from an adjacent location",
-        }, {
+        }, writeComponent(Boolean(c.world.getComponent(destinationId, SpeciesComponents.populations)), destinationId, SpeciesComponents.populations,
+          { bySpecies: toPopulationMap(cappedDestination), updatedAt: c.world.tick }, "known species arrived from an adjacent location"), {
           kind: "emitEvent",
           eventType: "world-species.dispersed",
           targetId: destinationId,

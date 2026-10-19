@@ -7,6 +7,9 @@ import { historicalEraModule } from "@openlife/module-historical-era";
 import { tickOfYear } from "@openlife/life-contracts";
 import { Simulation } from "@openlife/simulation";
 
+/** The part of the modern-science.civilization projection these tests read. */
+type Civilization = { researchEnvironment?: { supportMultiplier?: number } };
+
 test("modern science separates fixed reality from civilization knowledge", () => {
   const simulation = new Simulation({
     worldSeed: 9001,
@@ -122,7 +125,7 @@ test("era conditions change research speed softly without becoming unlocks", () 
     return {
       known: state.known as string[],
       atomicTheoryProgress: Number(progress?.["modern-science.atomic_theory"] ?? 0),
-      supportMultiplier: Number(publicView.data?.researchEnvironment?.supportMultiplier ?? 1),
+      supportMultiplier: Number((publicView.data as Civilization | undefined)?.researchEnvironment?.supportMultiplier ?? 1),
       simulation,
     };
   };
@@ -139,7 +142,7 @@ test("era conditions change research speed softly without becoming unlocks", () 
   earlyEra.simulation.advanceTo(tickOfYear(-474));
   const later = earlyEra.simulation.project({ id: "modern-science.civilization", params: {} });
   assert.ok(
-    Number(later.data?.researchEnvironment?.supportMultiplier ?? 0) > earlyEra.supportMultiplier,
+    Number((later.data as Civilization | undefined)?.researchEnvironment?.supportMultiplier ?? 0) > earlyEra.supportMultiplier,
     "stronger records, craft and knowledge networks should improve later research conditions",
   );
 });

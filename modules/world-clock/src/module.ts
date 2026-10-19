@@ -200,7 +200,7 @@ export const worldClockModule: OpenLifeModule = {
     ctx.registerProjection({
       id: "world-clock.reading",
       description: "How the current tick reads on the day, month and year scales.",
-      build: ({ world }) => reading(world),
+      build: ({ world }) => reading(world) as unknown as Record<string, unknown>,
     });
 
     ctx.registerProjection({
