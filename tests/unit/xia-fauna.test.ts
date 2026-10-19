@@ -41,12 +41,12 @@ function pops(sim: Simulation, loc: string) {
   return Object.fromEntries((p.data?.populations as Array<Record<string, any>>).map((x) => [x.speciesId.replace("xia-fauna.", ""), x]));
 }
 
-test("the Xia fauna pack is sound: eight animals, four plant covers, every diet has something to eat", () => {
+test("the Xia fauna pack is sound: fifteen animals, five plant covers (2026-10-19 marsh round), every diet has something to eat", () => {
   assert.deepEqual(validateFaunaPack(XIA_FAUNA), []);
-  assert.equal(XIA_FAUNA.species.length, 8);
-  assert.equal(XIA_FAUNA.vegetation.length, 4);
-  assert.equal(XIA_FAUNA.species.filter((s) => s.trophicRole === "predator").length, 4);
-  assert.match(validateFaunaPack({ ...XIA_FAUNA, species: [...XIA_FAUNA.species, { ...XIA_FAUNA.species[4]!, id: "xia-fauna.ghost", diet: ["fish"] }] }).join(), /ghost/);
+  assert.equal(XIA_FAUNA.species.length, 15);
+  assert.equal(XIA_FAUNA.vegetation.length, 5);
+  assert.equal(XIA_FAUNA.species.filter((s) => s.trophicRole === "predator").length, 8);
+  assert.match(validateFaunaPack({ ...XIA_FAUNA, species: [...XIA_FAUNA.species, { ...XIA_FAUNA.species[4]!, id: "xia-fauna.ghost", diet: ["dragon"] }] }).join(), /ghost/);
 });
 
 test("a year in the chestnut wood: deer and boar live off the mast, wolves and dholes find prey", () => {

@@ -216,6 +216,9 @@ const TERRAIN_LABELS = {
   valley_floor: "谷底", waterfall_pool: "瀑潭", salt_spring_terrace: "盐泉台地", salt_spring: "盐泉", salt_flat: "盐滩",
   chestnut_slope: "栗林坡地", stone_bar_reach: "石滩河段", misty_ridge: "雾岭", chestnut_grove: "栗树林", rooting_ground: "野猪拱地",
   cobble_bar: "卵石滩", knapping_cliff: "打石崖", deep_pool: "深潭", river_islet: "河洲", lightning_tree: "雷劈树", wolf_den: "狼窝",
+  cattail_reach: "蒲草河湾", great_marsh: "大泽", heron_isles: "鹭岛", cattail_bank: "蒲草岸", weir_shallows: "鱼梁浅滩",
+  old_ferry: "旧渡口", reed_channel: "芦荡水道", floating_mat: "浮草甸", water_chestnut_pond: "菱塘", milu_islet: "麋鹿洲",
+  heronry: "鹭鸟岛", drowned_forest: "沉木林", gator_den: "鼍窟", spring_head: "泉眼",
 };
 const TIME_LABELS = { any: "", dawn: "清晨", day: "白天", dusk: "黄昏", night: "夜里" };
 const DANGER_LABELS = ["无害", "小心", "危险", "致命"];

@@ -6,7 +6,8 @@
     {"id": "xia-fauna.understory-grass", "name": "林下草", "foodTags": ["grass"], "temperatureOptimumC": 15, "temperatureToleranceC": 24, "waterOptimum": 0.55, "waterTolerance": 0.6, "growthRate": 0.7, "woody": false},
     {"id": "xia-fauna.hazel-thicket", "name": "榛丛灌木", "foodTags": ["shrubs", "browse"], "temperatureOptimumC": 13, "temperatureToleranceC": 22, "waterOptimum": 0.5, "waterTolerance": 0.55, "growthRate": 0.4, "woody": true},
     {"id": "xia-fauna.chestnut-oak", "name": "栗栎林", "foodTags": ["mast", "browse"], "temperatureOptimumC": 14, "temperatureToleranceC": 20, "waterOptimum": 0.6, "waterTolerance": 0.5, "growthRate": 0.25, "woody": true, "tags": ["tree"]},
-    {"id": "xia-fauna.reed-sedge", "name": "苇草与莎草", "foodTags": ["sedge", "grass"], "temperatureOptimumC": 18, "temperatureToleranceC": 20, "waterOptimum": 0.85, "waterTolerance": 0.35, "growthRate": 0.8, "woody": false, "tags": ["wetland"]}
+    {"id": "xia-fauna.reed-sedge", "name": "苇草与莎草", "foodTags": ["sedge", "grass"], "temperatureOptimumC": 18, "temperatureToleranceC": 20, "waterOptimum": 0.85, "waterTolerance": 0.35, "growthRate": 0.8, "woody": false, "tags": ["wetland"]},
+    {"id": "xia-fauna.water-weed", "name": "菱与荇菜", "foodTags": ["aquatic-weed"], "temperatureOptimumC": 20, "temperatureToleranceC": 16, "waterOptimum": 0.95, "waterTolerance": 0.2, "growthRate": 0.9, "woody": false, "tags": ["wetland", "aquatic"]}
   ],
   "species": [
     {"id": "xia-fauna.sika-deer", "name": "梅花鹿", "trophicRole": "herbivore", "diet": ["browse", "grass", "mast"],
@@ -40,6 +41,13 @@
     {"id": "xia-fauna.leopard-cat", "name": "豹猫", "trophicRole": "predator", "diet": ["small-herbivore"],
      "temperatureOptimumC": 18, "temperatureToleranceC": 20, "waterOptimum": 0.65, "waterTolerance": 0.5,
      "lifeHistory": {"maturityYears": 1, "lifespanYears": 9, "reproductiveOutput": 0.45, "offspringInvestment": 0.6, "baselineAnnualMortality": 0.18},
-     "tags": ["solitary-hunter"]}
+     "tags": ["solitary-hunter"]},
+    {"id": "xia-fauna.milu", "name": "麋鹿", "trophicRole": "herbivore", "diet": ["sedge", "grass", "aquatic-weed"], "temperatureOptimumC": 16, "temperatureToleranceC": 20, "waterOptimum": 0.85, "waterTolerance": 0.3, "lifeHistory": {"maturityYears": 2, "lifespanYears": 20, "reproductiveOutput": 0.4, "offspringInvestment": 0.8, "baselineAnnualMortality": 0.08}, "tags": ["large-herbivore", "deer", "wetland", "game"]},
+    {"id": "xia-fauna.crucian-carp", "name": "鲫鱼", "trophicRole": "herbivore", "diet": ["aquatic-weed"], "temperatureOptimumC": 20, "temperatureToleranceC": 18, "waterOptimum": 1.0, "waterTolerance": 0.15, "lifeHistory": {"maturityYears": 1, "lifespanYears": 8, "reproductiveOutput": 0.95, "offspringInvestment": 0.1, "baselineAnnualMortality": 0.4}, "tags": ["fish", "small-herbivore", "aquatic"]},
+    {"id": "xia-fauna.mallard", "name": "绿头鸭", "trophicRole": "herbivore", "diet": ["aquatic-weed", "sedge"], "temperatureOptimumC": 14, "temperatureToleranceC": 28, "waterOptimum": 0.9, "waterTolerance": 0.3, "lifeHistory": {"maturityYears": 1, "lifespanYears": 8, "reproductiveOutput": 0.8, "offspringInvestment": 0.3, "baselineAnnualMortality": 0.3}, "tags": ["small-herbivore", "waterfowl", "game"]},
+    {"id": "xia-fauna.egret", "name": "白鹭", "trophicRole": "predator", "diet": ["fish"], "temperatureOptimumC": 20, "temperatureToleranceC": 18, "waterOptimum": 0.9, "waterTolerance": 0.3, "lifeHistory": {"maturityYears": 1, "lifespanYears": 15, "reproductiveOutput": 0.5, "offspringInvestment": 0.6, "baselineAnnualMortality": 0.15}, "tags": ["wader", "colonial"]},
+    {"id": "xia-fauna.otter", "name": "水獭", "trophicRole": "predator", "diet": ["fish"], "temperatureOptimumC": 14, "temperatureToleranceC": 24, "waterOptimum": 0.95, "waterTolerance": 0.25, "lifeHistory": {"maturityYears": 2, "lifespanYears": 10, "reproductiveOutput": 0.4, "offspringInvestment": 0.7, "baselineAnnualMortality": 0.15}, "tags": ["solitary-hunter", "aquatic"]},
+    {"id": "xia-fauna.yangtze-gator", "name": "扬子鼍", "trophicRole": "predator", "diet": ["fish", "waterfowl"], "temperatureOptimumC": 24, "temperatureToleranceC": 14, "waterOptimum": 0.95, "waterTolerance": 0.2, "lifeHistory": {"maturityYears": 5, "lifespanYears": 50, "reproductiveOutput": 0.3, "offspringInvestment": 0.5, "baselineAnnualMortality": 0.03}, "tags": ["ambush-hunter", "beast", "aquatic"]},
+    {"id": "xia-fauna.water-snake", "name": "水蛇", "trophicRole": "predator", "diet": ["fish"], "temperatureOptimumC": 24, "temperatureToleranceC": 16, "waterOptimum": 0.9, "waterTolerance": 0.3, "lifeHistory": {"maturityYears": 2, "lifespanYears": 9, "reproductiveOutput": 0.7, "offspringInvestment": 0.3, "baselineAnnualMortality": 0.25}, "tags": ["ambush-hunter", "venomous"]}
   ]
 }

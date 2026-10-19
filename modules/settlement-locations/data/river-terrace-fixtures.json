@@ -293,6 +293,10 @@
         "trust": 0.5,
         "familiarity": 0.3
       }
-    }
+    },
+    {"id": "fixture:cauldron-tale", "prototypeId": "prototype:glue-cauldron", "label": "守着熬胶釜听阿罟讲大泽", "hint": "熬胶要守一整天，守釜的人总要说点什么；在场的人都会熟络一点。", "line": "釜里咕嘟咕嘟地响，阿罟说起他年轻时撑筏子一直撑到西头泉眼，看见一整岛的白鹭飞起来。", "activity": 1, "cooldownDays": 1, "bond": {"familiarity": 0.3}},
+    {"id": "fixture:grind-herbs", "prototypeId": "prototype:herb-grinder", "label": "帮着推一阵药碾", "hint": "药碾一个人推得慢；推一阵，药庐的人会记你的好。", "line": "石轮在槽里咕噜咕噜地滚，药香一阵阵往上冒。阿芷在旁边记着数，说你推得比她匀。", "activity": 1, "cooldownDays": 2, "bond": {"trust": 0.3}},
+    {"id": "fixture:cot-rest", "prototypeId": "prototype:sick-cot", "label": "在病榻上躺一躺", "hint": "走累了、受了凉，可以在药庐的病榻上歇一会儿，阿芷会给你掖好蒲席。", "line": "蒲席有一股晒过太阳的草味。你闭上眼，听见阿芷在隔壁轻手轻脚地煎药。", "activity": 1, "cooldownDays": 3, "bond": {"familiarity": 0.2}},
+    {"id": "fixture:trellis-turn", "prototypeId": "prototype:drying-trellis", "label": "帮着翻晒药架", "hint": "太阳好的时候把药一层层翻个面，药才晒得匀。", "line": "你一层层翻过去，手上染了一股苦香。阿芷说这一架晒好，够全村过一个冬天的咳嗽。", "activity": 1, "cooldownDays": 2, "bond": {"trust": 0.2}}
   ]
 }

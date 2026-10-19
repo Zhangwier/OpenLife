@@ -25,7 +25,9 @@
     {"key": "hunter", "name": "阿犴", "age": 29, "role": "北坡栗林的猎人", "trait": "脚步轻，认得每一种兽的脚印", "wish": "想在林子里有个肯陪他守一整天的人，好把那头老是糟蹋栗林的野猪撵走。", "wishDeed": {"helps": 3}, "workPlace": "place:chestnut-wood", "homeSpace": "space:hunter-hut", "household": "犴家", "personality": {"diligence": 65, "sociability": 25, "generosity": 50, "caution": 75, "curiosity": 70}, "attributes": {"strength": 8, "dexterity": 8, "wits": 6}, "teaches": {"skill": "tracking", "name": "认踪", "blurb": "跟阿犴学的：在栗林拾木料、打栗子多得一份。", "lessons": 3, "drawBonus": ["place:chestnut-wood|resource:wood", "place:chestnut-wood|resource:chestnut"], "lines": ["{name}蹲下来指着泥里的印子：“两瓣的是鹿，四个圆点的是狐狸。看深浅，就知道它走了多久。”", "{name}折了一根细枝给你看：“断口还湿，刚过去不久。顺着风走，别让它闻见你。”", "{name}让你领路走了一段，只在岔口拉了你一把：“这边。你看，你自己也认得了。”"], "learned": "{name}把一枚磨光的鹿骨哨挂到你脖子上：“林子认你了。往后进山，吹一声，我就知道是你。”"}},
     {"key": "shrine-keeper", "name": "老祝", "age": 63, "role": "河神祠的守祠人", "trait": "记得每一年的水位，也记得每一个走了的人", "wish": "想在祠前立一根刻满各家记号的社木，让以后的孩子知道这村子是怎么来的。", "wishItem": "resource:totem", "workPlace": "place:shrine", "homeSpace": "space:vigil-hut", "household": "祝家", "personality": {"diligence": 55, "sociability": 50, "generosity": 70, "caution": 80, "curiosity": 40}, "attributes": {"strength": 3, "dexterity": 5, "wits": 9}},
     {"key": "market-keeper", "name": "阿贾", "age": 41, "role": "交换场的集头", "trait": "嗓门大、算得精，从不短秤", "wish": "想让交换场一年到头都热闹，不只干等南岸的船。", "wishDeed": {"talks": 4}, "workPlace": "place:market", "homeSpace": "space:longhouse-east", "household": "贾家", "personality": {"diligence": 70, "sociability": 90, "generosity": 45, "caution": 50, "curiosity": 65}, "attributes": {"strength": 6, "dexterity": 6, "wits": 8}},
-    {"key": "longhouse-matron", "name": "阿蘩", "age": 58, "role": "族人长屋的主妇", "trait": "火塘从不让它灭，谁家的孩子都喂过", "wish": "想让长屋的熏架一冬天都挂得满满的，谁家断了粮都能来取一条。", "wishItem": "resource:smoked-meat", "workPlace": "place:longhouse", "homeSpace": "space:longhouse-east", "household": "贾家", "personality": {"diligence": 75, "sociability": 70, "generosity": 85, "caution": 60, "curiosity": 35}, "attributes": {"strength": 5, "dexterity": 6, "wits": 7}}
+    {"key": "longhouse-matron", "name": "阿蘩", "age": 58, "role": "族人长屋的主妇", "trait": "火塘从不让它灭，谁家的孩子都喂过", "wish": "想让长屋的熏架一冬天都挂得满满的，谁家断了粮都能来取一条。", "wishItem": "resource:smoked-meat", "workPlace": "place:longhouse", "homeSpace": "space:longhouse-east", "household": "贾家", "personality": {"diligence": 75, "sociability": 70, "generosity": 85, "caution": 60, "curiosity": 35}, "attributes": {"strength": 5, "dexterity": 6, "wits": 7}},
+    {"key": "fisher", "name": "阿罟", "age": 46, "role": "渔寮的寮主", "trait": "手上全是网绳勒出的老茧，看水色就知道鱼在哪一层", "wish": "想在河口重新立起一道鱼梁，像他年轻时那样，春汛一夜收满十篓。", "wishItem": "resource:rope", "workPlace": "place:fishing-lodge", "homeSpace": "space:lodge-sleep", "household": "罟家", "personality": {"diligence": 80, "sociability": 45, "generosity": 60, "caution": 55, "curiosity": 40}, "attributes": {"strength": 7, "dexterity": 8, "wits": 6}, "teaches": {"skill": "netting", "name": "结网", "blurb": "跟阿罟学的：在渔寮割蒲草、在芦苇滩割苇都多得一份。", "lessons": 3, "drawBonus": ["place:fishing-lodge|resource:cattail", "place:reedbed|resource:reed"], "lines": ["{name}把网梭塞进你手里：“先学打死结。网眼一样大，鱼才钻不出去。”", "{name}抓住你的手腕往回一带：“勒紧，再勒紧。水泡一夜，松了的结就散了。”", "{name}把你结的那片网对着太阳照了照：“嗯，能下水了。”"], "learned": "{name}从腰上解下一枚磨得发亮的骨网梭递给你：“我师父给我的。现在归你了。”"}},
+    {"key": "herbalist", "name": "阿芷", "age": 19, "role": "药庐的学徒", "trait": "闻一下就分得出三十种草，记性好得吓人", "wish": "想把大泽里那些没人认得的草都画下来、写上用处，留给以后的人。", "wishItem": "resource:herb", "workPlace": "place:herb-hut", "homeSpace": "space:herb-sickroom", "household": "芷家", "personality": {"diligence": 85, "sociability": 55, "generosity": 75, "caution": 70, "curiosity": 90}, "attributes": {"strength": 4, "dexterity": 7, "wits": 9}, "teaches": {"skill": "herb-lore", "name": "识草", "blurb": "跟阿芷学的：在药庐取草药、在芦苇滩割苇时多得一份。", "lessons": 3, "drawBonus": ["place:herb-hut|resource:herb", "place:reedbed|resource:fuel"], "lines": ["{name}掐了一片叶子让你闻：“记住这个味。闻着苦的多半能退热，闻着甜的要小心。”", "{name}把两株长得一模一样的草并排放着：“看根。这株根是红的，能吃；那株是白的，吃了要命。”", "{name}考了你七种草，你认对了六种。她笑着把第七种塞进你嘴里：“这是薄荷，别怕。”"], "learned": "{name}把一只小陶药瓶挂在你腰上：“以后谁家有个头疼脑热，你也能先顶一顶了。”"}}
   ],
   "places": [
     {"id": "place:yard", "name": "陶家庭院", "type": "yard", "costDays": 0, "entrySpace": "space:main-sleep", "spaces": [{"id": "space:main-sleep", "name": "主屋寝处", "type": "sleep", "capacity": 4}, {"id": "space:store", "name": "储粮处", "type": "storage", "capacity": 2}, {"id": "space:drying-rack", "name": "晾坯架下", "type": "work", "capacity": 3, "visible": true}]},
@@ -41,7 +43,9 @@
     {"id": "place:shrine", "name": "河神祠", "type": "shrine", "costDays": 2, "purpose": "祭河、守夜与祖骨", "entrySpace": "space:shrine-court", "workSpot": "space:shrine-court", "spaces": [{"id": "space:shrine-court", "name": "祠前空场", "type": "work", "capacity": 0, "visible": true}, {"id": "space:altar", "name": "祭台", "type": "work", "capacity": 2, "visible": true}, {"id": "space:ancestor-niche", "name": "祖骨龛", "type": "storage", "capacity": 2}, {"id": "space:vigil-hut", "name": "守夜棚", "type": "sleep", "capacity": 2}]},
     {"id": "place:market", "name": "交换场", "type": "market", "costDays": 2, "purpose": "摆摊、称货与换东西", "entrySpace": "space:market-row", "workSpot": "space:market-row", "spaces": [{"id": "space:market-row", "name": "摊位行", "type": "work", "capacity": 0, "visible": true}, {"id": "space:weigh-stone", "name": "称货石边", "type": "work", "capacity": 2, "visible": true}, {"id": "space:rest-shed", "name": "歇脚棚", "type": "work", "capacity": 3}, {"id": "space:goods-shed", "name": "货棚", "type": "storage", "capacity": 3}]},
     {"id": "place:chestnut-wood", "name": "北坡栗林", "type": "forest", "costDays": 3, "outdoor": true, "purpose": "拾木料、打栗子、下套", "entrySpace": "space:wood-edge", "workSpot": "space:wood-edge", "jobResource": "resource:wood", "spaces": [{"id": "space:wood-edge", "name": "林缘", "type": "work", "capacity": 0, "visible": true}, {"id": "space:old-chestnut", "name": "老栗树下", "type": "work", "capacity": 0, "visible": true}, {"id": "space:hunter-hut", "name": "犴家窝棚", "type": "sleep", "capacity": 2}]},
-    {"id": "place:stone-beach", "name": "上游石滩", "type": "stone-flat", "costDays": 3, "outdoor": true, "purpose": "捡燧石、打石器", "entrySpace": "space:stone-bar", "workSpot": "space:stone-bar", "jobResource": "resource:stone", "spaces": [{"id": "space:stone-bar", "name": "卵石滩", "type": "work", "capacity": 0, "visible": true}, {"id": "space:knapping-shed", "name": "打石棚", "type": "work", "capacity": 2}]}
+    {"id": "place:stone-beach", "name": "上游石滩", "type": "stone-flat", "costDays": 3, "outdoor": true, "purpose": "捡燧石、打石器", "entrySpace": "space:stone-bar", "workSpot": "space:stone-bar", "jobResource": "resource:stone", "spaces": [{"id": "space:stone-bar", "name": "卵石滩", "type": "work", "capacity": 0, "visible": true}, {"id": "space:knapping-shed", "name": "打石棚", "type": "work", "capacity": 2}]},
+    {"id": "place:fishing-lodge", "name": "渔寮", "type": "fishing-lodge", "costDays": 1, "purpose": "西来河口的渔人寮棚：结网、晒鱼、熬鱼胶", "entrySpace": "space:lodge-netloft", "workSpot": "space:lodge-netloft", "spaces": [{"id": "space:lodge-netloft", "name": "网架廊", "type": "work", "capacity": 0, "visible": true}, {"id": "space:lodge-drying", "name": "晒鱼台", "type": "work", "capacity": 3, "visible": true}, {"id": "space:lodge-glue", "name": "熬胶灶", "type": "work", "capacity": 2, "visible": true}, {"id": "space:lodge-bank", "name": "蒲草岸", "type": "work", "capacity": 3, "visible": true}, {"id": "space:lodge-gear", "name": "渔具棚", "type": "storage", "capacity": 4}, {"id": "space:lodge-sleep", "name": "寮主寝处", "type": "sleep", "capacity": 3}]},
+    {"id": "place:herb-hut", "name": "药庐", "type": "herb-hut", "costDays": 1, "purpose": "看病、种药、煎药，也收留走不动的病人", "entrySpace": "space:herb-porch", "workSpot": "space:herb-porch", "spaces": [{"id": "space:herb-porch", "name": "诊棚", "type": "work", "capacity": 0, "visible": true}, {"id": "space:herb-garden", "name": "药圃", "type": "work", "capacity": 3, "visible": true}, {"id": "space:herb-kitchen", "name": "煎药间", "type": "work", "capacity": 2, "visible": true}, {"id": "space:herb-store", "name": "药柜间", "type": "storage", "capacity": 3}, {"id": "space:herb-sickroom", "name": "病榻间", "type": "sleep", "capacity": 3}]}
   ],
   "yields": [
     {"placeId": "place:river", "resourceId": "resource:water", "label": "河水", "capacity": 40, "renewDays": 1, "unit": "份"},
@@ -54,7 +58,9 @@
     {"placeId": "place:chestnut-wood", "resourceId": "resource:wood", "label": "倒木与枯枝", "capacity": 10, "renewDays": 5, "unit": "段"},
     {"placeId": "place:chestnut-wood", "resourceId": "resource:chestnut", "label": "落地的栗子", "capacity": 12, "renewDays": 6, "unit": "捧", "seasons": ["秋"]},
     {"placeId": "place:stone-beach", "resourceId": "resource:stone", "label": "河卵石里的燧石", "capacity": 8, "renewDays": 6, "unit": "块"},
-    {"placeId": "place:weaving-shed", "resourceId": "resource:fiber", "label": "沤好的麻", "capacity": 6, "renewDays": 4, "unit": "把"}
+    {"placeId": "place:weaving-shed", "resourceId": "resource:fiber", "label": "沤好的麻", "capacity": 6, "renewDays": 4, "unit": "把"},
+    {"placeId": "place:fishing-lodge", "resourceId": "resource:cattail", "label": "岸边的蒲草", "capacity": 6, "renewDays": 5, "unit": "抱"},
+    {"placeId": "place:herb-hut", "resourceId": "resource:herb", "label": "药圃里的草药", "capacity": 4, "renewDays": 6, "unit": "束"}
   ],
   "prototypes": [
     {"id": "prototype:water-jar", "name": "储水陶罐", "material": "fired-clay", "resourceId": "resource:jar", "unit": "个", "mass": 2.6, "capacity": 4, "capabilities": ["carryable", "container", "liquid-holder", "storage"], "durability": 70},
@@ -145,7 +151,24 @@
     {"id": "prototype:fang-necklace", "name": "狼牙项链", "material": "fang-and-thread", "resourceId": "resource:ornament", "unit": "串", "mass": 0.05, "capacity": 0, "capabilities": ["carryable", "wearable", "ornament"], "durability": 60},
     {"id": "prototype:antler-pick", "name": "鹿角锄", "material": "antler-and-cord", "resourceId": "resource:tool", "unit": "把", "mass": 0.9, "capacity": 0, "capabilities": ["carryable", "tool"], "durability": 70},
     {"id": "prototype:fur-hat", "name": "獭皮帽", "material": "otter-fur", "resourceId": "resource:cloth", "unit": "顶", "mass": 0.3, "capacity": 0, "capabilities": ["carryable", "wearable", "warm"], "durability": 45},
-    {"id": "prototype:tusk-pendant", "name": "獠牙坠", "material": "tusk-and-thread", "resourceId": "resource:ornament", "unit": "枚", "mass": 0.1, "capacity": 0, "capabilities": ["carryable", "wearable", "ornament"], "durability": 80}
+    {"id": "prototype:tusk-pendant", "name": "獠牙坠", "material": "tusk-and-thread", "resourceId": "resource:ornament", "unit": "枚", "mass": 0.1, "capacity": 0, "capabilities": ["carryable", "wearable", "ornament"], "durability": 80},
+    {"id": "prototype:fish-weir", "name": "鱼梁", "material": "bamboo-and-stakes", "resourceId": "resource:weir", "unit": "道", "mass": 140, "capacity": 0, "capabilities": ["fixture", "workstation"], "durability": 180, "visible": true},
+    {"id": "prototype:great-net", "name": "大拉网", "material": "knotted-hemp", "resourceId": "resource:great-net", "unit": "张", "mass": 18, "capacity": 0, "capabilities": ["workstation", "workable"], "durability": 120, "visible": true},
+    {"id": "prototype:glue-cauldron", "name": "熬胶陶釜", "material": "fired-clay", "resourceId": "resource:furniture", "unit": "口", "mass": 22, "capacity": 6, "capabilities": ["fixture", "container", "workstation"], "durability": 110, "visible": true},
+    {"id": "prototype:herb-grinder", "name": "石药碾", "material": "ground-stone", "resourceId": "resource:furniture", "unit": "具", "mass": 35, "capacity": 0, "capabilities": ["fixture", "workstation"], "durability": 300, "visible": true},
+    {"id": "prototype:drying-trellis", "name": "晒药架", "material": "bamboo-lattice", "resourceId": "resource:furniture", "unit": "架", "mass": 16, "capacity": 8, "capabilities": ["fixture", "storage"], "durability": 90, "visible": true},
+    {"id": "prototype:sick-cot", "name": "蒲席病榻", "material": "wood-and-cattail", "resourceId": "resource:furniture", "unit": "张", "mass": 20, "capacity": 0, "capabilities": ["fixture", "rest"], "durability": 100, "visible": true},
+    {"id": "prototype:cattail", "name": "蒲草", "material": "cattail", "resourceId": "resource:cattail", "unit": "抱", "mass": 1.2, "capacity": 0, "capabilities": ["carryable", "workable"], "durability": 0},
+    {"id": "prototype:cattail-mat", "name": "蒲席", "material": "woven-cattail", "resourceId": "resource:mat", "unit": "张", "mass": 2.2, "capacity": 0, "capabilities": ["carryable", "rest"], "durability": 60},
+    {"id": "prototype:fish-glue", "name": "鱼胶", "material": "fish-glue", "resourceId": "resource:glue", "unit": "块", "mass": 0.2, "capacity": 0, "capabilities": ["carryable", "workable"], "durability": 0},
+    {"id": "prototype:herb-powder", "name": "药散", "material": "ground-herb", "resourceId": "resource:medicine", "unit": "包", "mass": 0.1, "capacity": 0, "capabilities": ["carryable", "storage"], "durability": 0},
+    {"id": "prototype:herb-broth", "name": "药汤", "material": "herb-broth", "resourceId": "resource:medicine", "unit": "碗", "mass": 0.5, "capacity": 0, "capabilities": ["carryable", "edible"], "durability": 0},
+    {"id": "prototype:water-chestnut", "name": "菱角", "material": "water-chestnut", "resourceId": "resource:water-chestnut", "unit": "捧", "mass": 0.4, "capacity": 0, "capabilities": ["carryable", "edible"], "durability": 0},
+    {"id": "prototype:gator-scute", "name": "鼍甲片", "material": "gator-scute", "resourceId": "resource:scute", "unit": "片", "mass": 0.15, "capacity": 0, "capabilities": ["carryable", "workable"], "durability": 0},
+    {"id": "prototype:egret-plume", "name": "白鹭羽", "material": "egret-feather", "resourceId": "resource:plume", "unit": "根", "mass": 0.01, "capacity": 0, "capabilities": ["carryable", "workable"], "durability": 0},
+    {"id": "prototype:snake-slough", "name": "蛇蜕", "material": "snake-skin", "resourceId": "resource:herb", "unit": "条", "mass": 0.02, "capacity": 0, "capabilities": ["carryable", "storage"], "durability": 0},
+    {"id": "prototype:plume-crown", "name": "鹭羽冠", "material": "plume-and-thread", "resourceId": "resource:plume", "unit": "顶", "mass": 0.2, "capacity": 0, "capabilities": ["carryable", "wearable"], "durability": 30},
+    {"id": "prototype:scute-guard", "name": "鼍甲护心", "material": "scute-and-hide", "resourceId": "resource:scute", "unit": "件", "mass": 1.1, "capacity": 0, "capabilities": ["carryable", "wearable", "warm"], "durability": 150}
   ],
   "resourceLabels": {
     "resource:water": "水",
@@ -190,7 +213,15 @@
     "resource:curio": "怪东西",
     "resource:raft": "筏",
     "resource:drum": "鼓",
-    "resource:fish-rack": "鱼架"
+    "resource:fish-rack": "鱼架",
+    "resource:cattail": "蒲草",
+    "resource:glue": "鱼胶",
+    "resource:medicine": "药",
+    "resource:water-chestnut": "菱角",
+    "resource:scute": "鼍甲",
+    "resource:plume": "鹭羽",
+    "resource:weir": "鱼梁",
+    "resource:great-net": "大拉网"
   },
   "instances": [
     {"id": "instance:jar:0:0", "prototypeId": "prototype:water-jar", "inId": "space:main-sleep", "quantity": 0, "owner": "elder"},
@@ -408,7 +439,14 @@
     {"id": "instance:market:bench", "prototypeId": "prototype:rest-bench", "owner": "market-keeper", "inId": "space:rest-shed"},
     {"id": "instance:market:shelf", "prototypeId": "prototype:goods-shelf", "owner": "market-keeper", "inId": "space:goods-shed"},
     {"id": "instance:market:tusk", "prototypeId": "prototype:boar-tusk", "owner": "market-keeper", "inId": "space:goods-shed"},
-    {"id": "instance:wood:antler", "prototypeId": "prototype:antler", "owner": "hunter", "inId": "space:hunter-hut"}
+    {"id": "instance:wood:antler", "prototypeId": "prototype:antler", "owner": "hunter", "inId": "space:hunter-hut"},
+    {"id": "instance:lodge:cauldron", "prototypeId": "prototype:glue-cauldron", "owner": "fisher", "inId": "space:lodge-glue"},
+    {"id": "instance:lodge:mat", "prototypeId": "prototype:cattail-mat", "owner": "fisher", "inId": "space:lodge-sleep"},
+    {"id": "instance:lodge:net", "prototypeId": "prototype:net", "owner": "fisher", "inId": "space:lodge-gear"},
+    {"id": "instance:herb:grinder", "prototypeId": "prototype:herb-grinder", "owner": "herbalist", "inId": "space:herb-kitchen"},
+    {"id": "instance:herb:trellis", "prototypeId": "prototype:drying-trellis", "owner": "herbalist", "inId": "space:herb-garden"},
+    {"id": "instance:herb:cot", "prototypeId": "prototype:sick-cot", "owner": "herbalist", "inId": "space:herb-sickroom"},
+    {"id": "instance:herb:bundle", "prototypeId": "prototype:herb-bundle", "owner": "herbalist", "inId": "space:herb-store"}
   ],
   "exchange": {
     "values": {
@@ -517,7 +555,9 @@
       "longhouse-matron": [
         "resource:game",
         "resource:fuel"
-      ]
+      ],
+      "fisher": ["resource:rope", "resource:thread", "resource:fuel"],
+      "herbalist": ["resource:herb", "resource:water", "resource:jar"]
     }
   },
   "recipes": [
@@ -539,7 +579,10 @@
     {"id": "recipe:hunt-deer", "label": "进林子追鹿", "hint": "秋冬鹿下山找栗子，带上木弓在老栗树下守一整天，能带回两份野味。", "spaceId": "space:old-chestnut", "inputs": [], "tool": "prototype:bow", "activity": 6, "seasons": ["秋", "冬"], "output": {"prototypeId": "prototype:game", "name": "鹿肉", "durability": 0, "condition": "fresh", "count": 2}, "event": {"type": "settlement-locations.game_caught", "data": {"objectId": "$output", "how": "bow", "count": "$count"}, "significance": 0.06}},
     {"id": "recipe:fell-oak", "label": "伐一棵枯栎", "hint": "拿石斧在老栗树下放倒一棵枯死的栎树，截成两段木料。比拾倒木慢，但不靠存量。", "spaceId": "space:old-chestnut", "inputs": [], "tool": "prototype:stone-axe", "activity": 3, "output": {"prototypeId": "prototype:log", "name": "新伐的栎木", "durability": 60, "count": 2}},
     {"id": "recipe:dugout-fishing", "label": "撑独木舟撒网", "hint": "把渡口的独木舟撑到河心，在深水里撒一网，能带回两条鱼。冬天河面冷，不下水。", "spaceId": "space:ford-landing", "inputs": [], "tool": "prototype:dugout", "activity": 4, "seasons": ["春", "夏", "秋"], "output": {"prototypeId": "prototype:fish", "name": "河心的鱼", "durability": 0, "condition": "fresh", "count": 2}},
-    {"id": "recipe:raft-fishing", "label": "放筏下网", "hint": "木筏比独木舟稳，能拖一张大网，一回带回三条鱼。要渡口岸边停着一张木筏。", "spaceId": "space:ford-landing", "inputs": [], "tool": "prototype:raft", "activity": 5, "seasons": ["春", "夏", "秋"], "output": {"prototypeId": "prototype:fish", "name": "筏上拖来的鱼", "durability": 0, "condition": "fresh", "count": 3}}
+    {"id": "recipe:raft-fishing", "label": "放筏下网", "hint": "木筏比独木舟稳，能拖一张大网，一回带回三条鱼。要渡口岸边停着一张木筏。", "spaceId": "space:ford-landing", "inputs": [], "tool": "prototype:raft", "activity": 5, "seasons": ["春", "夏", "秋"], "output": {"prototypeId": "prototype:fish", "name": "筏上拖来的鱼", "durability": 0, "condition": "fresh", "count": 3}},
+    {"id": "recipe:great-net-haul", "label": "拉大网", "hint": "两个人各执一头，从河湾这边拖到那边，一网能上来四条鱼。要渔具棚里有一张大拉网。", "spaceId": "space:lodge-netloft", "inputs": [], "tool": "prototype:great-net", "activity": 5, "seasons": ["春", "夏", "秋"], "output": {"prototypeId": "prototype:fish", "name": "大网拖上来的鱼", "durability": 0, "condition": "fresh", "count": 4}},
+    {"id": "recipe:weir-watch", "label": "守鱼梁", "hint": "春汛的夜里守在鱼梁边，天亮收篓。要河口立着一道鱼梁。", "spaceId": "space:lodge-drying", "inputs": [], "tool": "prototype:fish-weir", "activity": 3, "seasons": ["春"], "output": {"prototypeId": "prototype:fish", "name": "鱼梁上收的鱼", "durability": 0, "condition": "fresh", "count": 2}},
+    {"id": "recipe:pick-water-chestnut", "label": "坐盆采菱", "hint": "秋天坐在木盆里划进菱塘，翻开菱叶一颗颗采。", "spaceId": "space:lodge-bank", "inputs": [], "activity": 2, "seasons": ["秋"], "output": {"prototypeId": "prototype:water-chestnut", "name": "刚采的菱角", "durability": 0, "condition": "fresh", "count": 2}}
   ],
   "origins": [
     {"id": "potter-kin", "fulfilled": "窑口的灰还热着，你捧出那件属于自己的陶器。陶婶摸了摸罐沿，笑着说：“这下真是陶家的人了。”", "goal": {"kind": "crafted", "recipes": ["recipe:fire-jar", "recipe:fire-bowl"]}, "name": "陶家远亲", "story": "你是陶婶娘家那边的远房侄辈。去年秋天老家遭了水，你一个人背着两团黏土走到这里，陶叔陶婶收留了你，让你睡在主屋的角落。", "aspiration": "烧出第一件属于自己的陶器", "items": [{"prototypeId": "prototype:clay-batch", "count": 2}], "bonds": {"elder": {"familiarity": 4, "trust": 7}, "elder-wife": {"familiarity": 4, "trust": 7}}},
@@ -573,7 +616,12 @@
     "space:longhouse-hall": {"label": "照看长屋火塘", "hint": "添柴、翻熏架上的肉；火塘边的人会记得你。", "helps": true},
     "space:shrine-court": {"label": "打扫祠前", "hint": "扫落叶、把被风吹倒的苇束扶正；守祠人会记得你。", "helps": true},
     "space:market-row": {"label": "在摊位间转转", "hint": "交换场人多嘴杂，转一圈就能听到谁在找什么、谁家缺什么。", "rumor": true},
-    "space:weigh-stone": {"label": "帮着称货", "hint": "帮集头抬秤石、记数；在场的人会记得你。", "helps": true}
+    "space:weigh-stone": {"label": "帮着称货", "hint": "帮集头抬秤石、记数；在场的人会记得你。", "helps": true},
+    "space:lodge-bank": {"label": "割一抱蒲草", "hint": "蹚进齐腰的蒲草里割上一阵，抱回两抱（从岸边的存量里割）。", "gain": {"resourceId": "resource:cattail", "count": 2}},
+    "space:lodge-drying": {"label": "帮着翻晒鱼", "hint": "把晒鱼台上的鱼翻个面、赶走鹭鸟；阿罟在场会记你一份情。", "helps": true},
+    "space:herb-garden": {"label": "照看药圃", "hint": "拔草、浇水、把倒伏的药苗扶起来；阿芷在场时也算帮了她。", "helps": true},
+    "space:herb-store": {"label": "取一束晒好的草药", "hint": "从药柜里取一束晒透的草药（药圃的存量）。", "gain": {"resourceId": "resource:herb", "count": 1}},
+    "space:herb-porch": {"label": "在诊棚帮着照看病人", "hint": "给来看病的人递水、扶人坐下；阿芷在场时也算帮了她一把。", "helps": true}
   },
   "thanks": [
     "{name}冲你点点头：“有你搭把手，轻省多了。”",
@@ -641,7 +689,9 @@
     "hunter": ["阿犴压低声音：“小声点，今早林子里有鹿。”", "阿犴把一串栗子丢给你：“刚打的，生吃也甜。”"],
     "shrine-keeper": ["老祝望着河面：“今年水比去年低了两指。”", "老祝在祭台前摆正一只小陶碗：“河神不缺这一碗，缺的是有人记得。”"],
     "market-keeper": ["阿贾一拍秤石：“一捆柴换一把麻，童叟无欺！”", "阿贾冲你招手：“有闲的东西没有？拿来，我替你找个下家。”"],
-    "longhouse-matron": ["阿蘩用火棍拨了拨火塘：“来，烤烤手。长屋的火是给所有人烧的。”", "阿蘩踮脚翻着熏架上的肉：“再熏两天，就能挂到开春。”"]
+    "longhouse-matron": ["阿蘩用火棍拨了拨火塘：“来，烤烤手。长屋的火是给所有人烧的。”", "阿蘩踮脚翻着熏架上的肉：“再熏两天，就能挂到开春。”"],
+    "fisher": ["阿罟一边补网一边看天：“西边云低，今晚有雨，鱼要浮头了。”", "阿罟把一条刚上来的鲫鱼丢给你：“拿去，烤着吃，别放盐。”"],
+    "herbalist": ["阿芷蹲在药圃里，头也不抬：“小心脚下，那几株刚出芽。”", "阿芷递给你一片叶子：“嚼一嚼，提神的。”"]
   },
   "seasonLife": {
     "focuses": [
@@ -886,7 +936,8 @@
           "秋": "这一季你帮阿缫把新麻捶开晾干，织坊里满是青草味。",
           "冬": "冬天织坊最忙，你和阿缫赶着给各家织御寒的布。"
         }
-      }
+      },
+      {"id": "marsh", "label": "这一季跟着渔寮下水", "hint": "跟阿罟结网、拉网，夏秋顺手割蒲草；冬天帮着熬鱼胶。", "with": ["fisher", "herbalist"], "gains": {"春": [["resource:fish", 2]], "夏": [["resource:cattail", 2]], "秋": [["resource:fish", 2], ["resource:water-chestnut", 1]], "冬": [["resource:glue", 1]]}, "line": {"春": "这一季你守着鱼梁过了好几个春汛夜，鱼腥味洗都洗不掉。", "夏": "这一季你在蒲草岸割了一夏天的蒲，手臂上全是叶子划的细口子。", "秋": "这一季你跟着阿罟拉网，又坐着木盆采了一回菱。", "冬": "冬天河面上冷，你守在熬胶灶边，熬出了第一块透亮的鱼胶。"}}
     ],
     "missed": "{names}好一阵没见你，有点生分了。",
     "closer": "跟{names}的交情更深了。",
@@ -1080,6 +1131,6 @@
       "原先在山里打猎，想换个活法"
     ]
   },
-  "rawPrototypes": {"resource:wood": "prototype:log", "resource:stone": "prototype:flint-stone", "resource:chestnut": "prototype:chestnut", "resource:game": "prototype:game", "resource:hide": "prototype:hide", "resource:antler": "prototype:antler", "resource:thread": "prototype:thread"},
-  "food": {"resource:chestnut": 2, "resource:smoked-meat": 4, "resource:chestnut-cake": 4}
+  "rawPrototypes": {"resource:wood": "prototype:log", "resource:stone": "prototype:flint-stone", "resource:chestnut": "prototype:chestnut", "resource:game": "prototype:game", "resource:hide": "prototype:hide", "resource:antler": "prototype:antler", "resource:thread": "prototype:thread", "resource:cattail": "prototype:cattail", "resource:herb": "prototype:herb-bundle"},
+  "food": {"resource:chestnut": 2, "resource:smoked-meat": 4, "resource:chestnut-cake": 4, "resource:water-chestnut": 2, "resource:medicine": 1}
 }

@@ -1,0 +1,7 @@
+id: xia_west_marsh_v0_1
+name: 西来河与大泽
+display_name: 西来河与大泽
+version: 0.1.0
+schema_version: "0.1"
+type: map_pack
+description: 夏境以西的水乡扩展包。顺着流进夏境的那条河往上游走，先是两岸长满蒲草的西来河湾，再是一望无边的大泽芦荡，最后到大泽西头的鹭岛与沉木林。附带事件点文件 map/event_points.yaml（含水鸟、麋鹿、鼍与泽中怪事）。
