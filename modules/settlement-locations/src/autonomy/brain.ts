@@ -18,7 +18,9 @@
  */
 import type { AgentHost as NpcHost, WorldView } from "@openlife/contracts";
 import { SettlementCommands, SettlementComponents, SettlementId, residentId } from "../vocabulary.ts";
-import { dailyActivity, currentYields, hungerAt, carrying, roofState, wornWrap, seasonOf, activityCostFor, socialOf, openRequest, favourOwed, tradeableGoods, counterpartView } from "../module.ts";
+import { dailyActivity, currentYields, carrying, roofState, wornWrap, seasonOf, activityCostFor, openRequest, favourOwed, tradeableGoods, counterpartView } from "../village-reads.ts";
+import { hungerAt } from "../hunger.ts";
+import { socialOf } from "../world-reads.ts";
 import { whoHas, bondOf, askEase, memoryDays, ASK_COOLDOWN, type SocialMemory } from "../social.ts";
 import { SpaceCommands, SpaceRelations, occupiedPlaceId, occupiedSpaceId } from "@openlife/module-world-space";
 import { ObjectCommands, ObjectRelations, ownerOf, prototypeOf } from "@openlife/module-world-objects";

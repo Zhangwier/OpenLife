@@ -4,7 +4,7 @@
  * each next step; no per-person schedule is authored.
  */
 import type { AgentHost as NpcHost } from "@openlife/contracts";
-import { people } from "../module.ts";
+import { people } from "../village-reads.ts";
 import { ROLES } from "./roles.ts";
 import { runBrainDays } from "./brain.ts";
 

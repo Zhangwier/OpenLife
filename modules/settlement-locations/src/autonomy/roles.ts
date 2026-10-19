@@ -8,7 +8,8 @@
  */
 import { RIVER_TERRACE_PACK, type SettlementPack } from "../content.ts";
 import { residentId, SettlementCommands, SettlementComponents, SettlementId } from "../vocabulary.ts";
-import { currentYields, hungerAt } from "../module.ts";
+import { currentYields } from "../village-reads.ts";
+import { hungerAt } from "../hunger.ts";
 import { occupiedPlaceId } from "@openlife/module-world-space";
 import type { AgentHost } from "@openlife/contracts";
 import type { WorldView } from "@openlife/contracts";

@@ -3,25 +3,15 @@
  *
  * A runtime import cycle makes evaluation order matter: a constant read at a
  * module's top level can be in its temporal dead zone depending on which file
- * was imported first. New cycles are forbidden. The one cycle that exists
- * today (settlement-locations: module.ts <-> its autonomy agents) is frozen
- * here and may only shrink; remove files from KNOWN as they are decoupled.
+ * was imported first. There are none left (the settlement-locations cluster
+ * of module.ts <-> its autonomy agents was broken by moving the shared world
+ * reads into village-reads.ts), so any cycle at all now fails.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { fileCycles, fileImportGraph } from "../../scripts/workspace-graph.ts";
 
-const KNOWN = new Set([
-  "modules/settlement-locations/src/autonomy/brain.ts",
-  "modules/settlement-locations/src/autonomy/npc-cook.ts",
-  "modules/settlement-locations/src/autonomy/npc-exchange.ts",
-  "modules/settlement-locations/src/autonomy/npc-general.ts",
-  "modules/settlement-locations/src/autonomy/npc-reed.ts",
-  "modules/settlement-locations/src/autonomy/npc.ts",
-  "modules/settlement-locations/src/autonomy/roles.ts",
-  "modules/settlement-locations/src/autonomy/village-day.ts",
-  "modules/settlement-locations/src/module.ts",
-]);
+const SETTLEMENT = "modules/settlement-locations/src";
 
 test("the cycle finder sees a real cycle and ignores type-only imports", () => {
   const graph = new Map([
@@ -33,24 +23,28 @@ test("the cycle finder sees a real cycle and ignores type-only imports", () => {
   assert.ok(!(real.get("modules/settlement-locations/src/content.ts") ?? []).includes("modules/settlement-locations/src/happenings.ts"));
 });
 
-test("no import cycle exists outside the frozen settlement-locations cluster", () => {
-  const problems: string[] = [];
-  for (const group of fileCycles(fileImportGraph())) {
-    const extra = group.filter((file) => !KNOWN.has(file));
-    if (extra.length > 0) problems.push(`new import cycle: ${group.join(" <-> ")}`);
-  }
+test("no file-level import cycle exists anywhere", () => {
+  const problems = fileCycles(fileImportGraph()).map((group) => `import cycle: ${group.join(" <-> ")}`);
   assert.deepEqual(problems, []);
 });
 
-test("vocabulary, barter and the files split out of module.ts are outside the cycle", () => {
-  const cyclic = new Set(fileCycles(fileImportGraph()).flat());
-  for (const file of ["vocabulary.ts", "barter.ts", "world-reads.ts", "marriage.ts"].map((f) => `modules/settlement-locations/src/${f}`)) {
-    assert.equal(cyclic.has(file), false, `${file} must not be part of an import cycle`);
-  }
+test("the village agents and the shared reads never import the settlement rules", () => {
+  // module.ts runs the village-day agent, so the agents (and the reads they
+  // use) importing module.ts back is exactly how the old cycle formed.
+  const graph = fileImportGraph();
+  const rules = `${SETTLEMENT}/module.ts`;
+  const offenders = [...graph].filter(([file, deps]) =>
+    (file.startsWith(`${SETTLEMENT}/autonomy/`) || file === `${SETTLEMENT}/village-reads.ts`) && deps.includes(rules)
+  ).map(([file]) => file);
+  assert.deepEqual(offenders, []);
 });
 
-test("the frozen list is still accurate (shrink it when a file is decoupled)", () => {
-  const cyclic = new Set(fileCycles(fileImportGraph()).flat());
-  const decoupled = [...KNOWN].filter((file) => !cyclic.has(file));
-  assert.deepEqual(decoupled, [], "these files left the cycle; remove them from KNOWN");
+test("module.ts still re-exports the reads it used to own", async () => {
+  const rules = await import("../../modules/settlement-locations/src/module.ts");
+  const reads = await import("../../modules/settlement-locations/src/village-reads.ts");
+  for (const name of ["dailyActivity", "currentYields", "carrying", "roofState", "wornWrap", "seasonOf",
+    "activityCostFor", "openRequest", "favourOwed", "tradeableGoods", "counterpartView", "worksites", "people",
+    "familyDue", "seasonTurnDue", "villagePopulation", "DAILY_ACTIVITY_CAPACITY", "ROOF_MAX"]) {
+    assert.equal((rules as Record<string, unknown>)[name], (reads as Record<string, unknown>)[name], name);
+  }
 });
