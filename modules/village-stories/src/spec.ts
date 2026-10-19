@@ -5,6 +5,7 @@
  * pack it refers to (residents, prototypes, feasts, places, resources).
  */
 import { readFileSync } from "node:fs";
+import { withOverlay } from "./overlay.ts";
 import { RIVER_TERRACE_PACK, type SettlementPack } from "@openlife/module-settlement-locations";
 import { BONDS_PACK } from "./bonds.ts";
 
@@ -95,9 +96,9 @@ export interface StoryPack {
   achievements: AchievementSpec[];
 }
 
-export const STORY_PACK: StoryPack = JSON.parse(
+export const STORY_PACK: StoryPack = withOverlay(new URL("../data/river-terrace.stories.json", import.meta.url), JSON.parse(
   readFileSync(new URL("../data/river-terrace.stories.json", import.meta.url), "utf8"),
-) as StoryPack;
+) as StoryPack);
 
 /** Every reference the story pack makes must exist in the settlement pack. Returns problems, [] when sound. */
 export function storyPackProblems(story: StoryPack = STORY_PACK, pack: SettlementPack = RIVER_TERRACE_PACK): string[] {

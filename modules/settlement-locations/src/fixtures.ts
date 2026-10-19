@@ -9,6 +9,7 @@
  * the activity budget injected so it stays outside module.ts's import cycle.
  */
 import { existsSync, readFileSync } from "node:fs";
+import { withOverlay } from "./overlay.ts";
 import type { Effect, JsonValue, WorldView } from "@openlife/contracts";
 import { DAYS_PER_MONTH } from "@openlife/life-contracts";
 import { occupiedPlaceId, occupiedSpaceId } from "@openlife/module-world-space";
@@ -73,7 +74,7 @@ export function validateFixtureBook(book: FixtureBook, pack: SettlementPack): st
 
 function loadFixtures(url: URL, pack: SettlementPack): FixtureBook {
   if (!existsSync(url)) return { id: "none", packId: pack.id, formatVersion: 1, uses: [] };
-  const book = JSON.parse(readFileSync(url, "utf8")) as FixtureBook;
+  const book = withOverlay(url, JSON.parse(readFileSync(url, "utf8")) as FixtureBook);
   const problems = validateFixtureBook(book, pack);
   if (problems.length) throw new Error(`fixture book ${url.pathname} is invalid:\n  ${problems.join("\n  ")}`);
   return book;

@@ -7,6 +7,7 @@
  * uses it, so a broken pack fails loudly at load instead of mid-game.
  */
 import { existsSync, readFileSync } from "node:fs";
+import { withOverlay } from "./overlay.ts";
 import type { OriginSpec, TalentSpec } from "./origin.ts";
 
 export interface ResidentSpec {
@@ -348,10 +349,10 @@ export function validateSettlementPack(pack: SettlementPack): string[] {
 
 /** Loads and validates a pack file; throws with every problem listed. */
 export function loadSettlementPack(url: URL): SettlementPack {
-  const pack = JSON.parse(readFileSync(url, "utf8")) as SettlementPack;
+  const pack = withOverlay(url, JSON.parse(readFileSync(url, "utf8")) as SettlementPack);
   // 村民的为人写在旁边的 <pack>.people.json 里（没有也行）。
   const peopleUrl = new URL(url.href.replace(/\.json$/, ".people.json"));
-  if (!pack.people && existsSync(peopleUrl)) pack.people = JSON.parse(readFileSync(peopleUrl, "utf8")) as Record<string, PersonSpec>;
+  if (!pack.people && existsSync(peopleUrl)) pack.people = withOverlay(peopleUrl, JSON.parse(readFileSync(peopleUrl, "utf8")) as Record<string, PersonSpec>);
   const problems = validateSettlementPack(pack);
   if (problems.length > 0) {
     throw new Error(`settlement pack ${url.pathname} is invalid:\n  ${problems.join("\n  ")}`);
@@ -422,7 +423,7 @@ export function validateRecipeBook(book: RecipeBook, pack: SettlementPack): stri
 }
 
 export function loadRecipeBook(url: URL, pack: SettlementPack): RecipeBook {
-  const book = JSON.parse(readFileSync(url, "utf8")) as RecipeBook;
+  const book = withOverlay(url, JSON.parse(readFileSync(url, "utf8")) as RecipeBook);
   const problems = validateRecipeBook(book, pack);
   if (problems.length > 0) {
     throw new Error(`recipe book ${url.pathname} is invalid:\n  ${problems.join("\n  ")}`);
