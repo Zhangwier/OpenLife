@@ -4,6 +4,7 @@
  * importing it never pulls a file into module.ts's import cycle.
  */
 import type { Effect, WorldView } from "@openlife/contracts";
+import { readField } from "@openlife/contracts";
 import { RIVER_TERRACE_PACK, type ResidentSpec } from "./content.ts";
 import { readSocial, toJson, type SocialMemory } from "./social.ts";
 import { SettlementComponents, residentId } from "./vocabulary.ts";
@@ -29,7 +30,7 @@ export function personName(world: WorldView, personId: string): string {
 }
 
 export function socialOf(world: WorldView, personId: string): SocialMemory {
-  return readSocial(world.getComponent(personId, SettlementComponents.resident)?.social);
+  return readSocial(readField(world, personId, SettlementComponents.resident, "social"));
 }
 
 export function saveSocial(residentIdValue: string, memory: SocialMemory, reason: string): Effect {

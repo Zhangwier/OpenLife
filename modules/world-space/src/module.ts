@@ -120,6 +120,8 @@ export const worldSpaceModule: OpenLifeModule = {
     engineRange: "^0.1.0",
     type: "system-pack",
     name: "World Space",
+    // Every step and repositioning is a trace: the world keeps where people are, the journal need not keep how they got there.
+    traceEvents: { types: ["world-space.moved", "world-space.repositioned"], days: 3 },
     description: "Places and spaces inside a geography location, with explicit entrances, capacity and occupancy.",
     requires: ["time.calendar"],
     optional: ["world.geography"],

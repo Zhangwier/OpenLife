@@ -108,6 +108,17 @@ export interface WorldView {
   }): ReadonlyArray<RelationView>;
   /** Deterministic count of entities of a kind (used by LOD / population). */
   countEntities(kind: string): number;
+  /**
+   * One field of a component, owned by the caller: the same value as
+   * `getComponent(entityId, component)?.[field]`, without copying the rest of
+   * the component. Optional: read it through `readField`, which falls back.
+   */
+  getField?(entityId: string, component: string, field: string): unknown;
+}
+
+/** `world.getComponent(entityId, component)?.[field]`, through the view's cheap path when it has one. */
+export function readField(world: WorldView, entityId: string, component: string, field: string): unknown {
+  return world.getField ? world.getField(entityId, component, field) : world.getComponent(entityId, component)?.[field];
 }
 
 export interface EntityView {

@@ -17,6 +17,7 @@ import type {
   DeterministicRngLike,
   ScheduledTaskView,
   WorldView,
+  WorldEvent,
 } from "@openlife/contracts";
 import { ErrorCode, OpenLifeErrorException, isOpenLifeError } from "@openlife/contracts";
 import type { DefinitionSet, DecisionTrace } from "@openlife/rule-engine";
@@ -438,6 +439,14 @@ export class Kernel {
   /** Structural fingerprint, used to verify Save -> Load round trips. */
   fingerprint(): string {
     return JSON.stringify(this.serialize());
+  }
+
+  /**
+   * Drops journal events `keep` rejects (see Simulation's journal retention).
+   * Only between commands: never while a transaction is open.
+   */
+  compactJournal(keeper: (events: readonly WorldEvent[]) => (event: WorldEvent) => boolean): number {
+    return this.#eventLog.compact(keeper(this.#eventLog.all()));
   }
 
   #buildTransaction(): TransactionEngine {

@@ -50,6 +50,8 @@ export const modernWorldModule: OpenLifeModule = {
     engineRange: "^0.1.0",
     type: "world-pack",
     name: "Modern World",
+    // A year passing has no weight of its own, but calendars and tests count them: keep every one.
+    lastingEvents: ["modern.year_passed"],
     description: "Minimal modern-life ontology: characters, cities, money, calendar.",
     provides: ["life.population", "time.calendar", "economy.currency"],
     expects: [],

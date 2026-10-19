@@ -15,6 +15,8 @@ export interface EventLogState {
 export class EventLog {
   #events: WorldEvent[] = [];
   #seq = 0;
+  /** id → event, so causal lookups stay O(1) however long the journal grows. */
+  #byId = new Map<EventId, WorldEvent>();
 
   get length(): number {
     return this.#events.length;
@@ -32,6 +34,7 @@ export class EventLog {
       seq: this.#seq,
     };
     this.#events.push(record);
+    this.#byId.set(record.id, record);
     return record;
   }
 
@@ -45,9 +48,13 @@ export class EventLog {
    */
   since(afterSeq: number): WorldEvent[] {
     if (afterSeq >= this.#seq) return [];
-    // Events are appended in seq order, so the index is simply seq - 1 offset.
-    const firstIndex = Math.max(0, afterSeq);
-    return this.#events.slice(firstIndex);
+    // Seq order is append order; a compacted journal has gaps, so search.
+    let lo = 0, hi = this.#events.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (this.#events[mid]!.seq <= afterSeq) lo = mid + 1; else hi = mid;
+    }
+    return this.#events.slice(lo);
   }
 
   list(filter: {
@@ -68,7 +75,7 @@ export class EventLog {
   }
 
   get(id: EventId): WorldEvent | undefined {
-    return this.#events.find((event) => event.id === id);
+    return this.#byId.get(id);
   }
 
   /** A cheap rollback point: the journal is append-only, so its length is enough. */
@@ -78,6 +85,7 @@ export class EventLog {
 
   /** Drops everything appended after `mark` (transaction rollback). */
   rollback(mark: { length: number; seq: number }): void {
+    for (let i = mark.length; i < this.#events.length; i += 1) this.#byId.delete(this.#events[i]!.id);
     this.#events.length = Math.min(this.#events.length, mark.length);
     this.#seq = mark.seq;
   }
@@ -90,12 +98,30 @@ export class EventLog {
   restore(state: EventLogState): void {
     this.#events = state.events.map((event) => ({ ...event, data: { ...event.data } }));
     this.#seq = state.seq;
+    this.#reindex();
+  }
+
+  /**
+   * Keeps only the events `keep` accepts, in order; seq numbering continues
+   * where it was. Returns how many were dropped. Never call inside a
+   * transaction (a rollback mark counts positions).
+   */
+  compact(keep: (event: WorldEvent) => boolean): number {
+    const before = this.#events.length;
+    this.#events = this.#events.filter(keep);
+    if (this.#events.length !== before) this.#reindex();
+    return before - this.#events.length;
+  }
+
+  #reindex(): void {
+    this.#byId = new Map(this.#events.map((event) => [event.id, event]));
   }
 
   static deserialize(state: EventLogState): EventLog {
     const log = new EventLog();
     log.#events = state.events.map((event) => ({ ...event, data: { ...event.data } }));
     log.#seq = state.seq;
+    log.#reindex();
     return log;
   }
 }

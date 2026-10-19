@@ -46,6 +46,15 @@ export class WorldStore {
   #relationsByFrom = new Map<EntityId, Set<RelationId>>();
   #relationsByTo = new Map<EntityId, Set<RelationId>>();
   #relationIndex = new Map<string, RelationId>();
+  /**
+   * The same three indexes holding live relations only. A village archives a
+   * relation on every move, hand-over and meal, so after a year of days the
+   * full buckets are mostly history; reading the live world must not walk it.
+   * Each live bucket keeps relation-map order, exactly like the full ones.
+   */
+  #liveByType = new Map<RelationTypeId, Set<RelationId>>();
+  #liveByFrom = new Map<EntityId, Set<RelationId>>();
+  #liveByTo = new Map<EntityId, Set<RelationId>>();
   #entitySeq: number;
   #relationSeq = 0;
   #entityIdPrefix: string;
@@ -204,12 +213,14 @@ export class WorldStore {
     push(this.#relationsByType, record.type, record.id);
     push(this.#relationsByFrom, record.from, record.id);
     push(this.#relationsByTo, record.to, record.id);
+    if (record.archivedAt === undefined) this.#indexLive(record);
     this.#undo?.push(() => {
       this.#relations.delete(record.id);
       if (this.#relationIndex.get(key) === record.id) this.#relationIndex.delete(key);
       remove(this.#relationsByType, record.type, record.id);
       remove(this.#relationsByFrom, record.from, record.id);
       remove(this.#relationsByTo, record.to, record.id);
+      this.#unindexLive(record);
     });
     return record;
   }
@@ -226,24 +237,21 @@ export class WorldStore {
     const out: RelationRecord[] = [];
     // Narrow by the smallest matching index. Every bucket keeps the same
     // relative order as the relation map, so the result order is unchanged.
-    let source: Iterable<RelationRecord> = this.#relations.values();
-    const buckets = [
-      filter.from ? this.#relationsByFrom.get(filter.from) ?? EMPTY : undefined,
-      filter.to ? this.#relationsByTo.get(filter.to) ?? EMPTY : undefined,
-      filter.type ? this.#relationsByType.get(filter.type) ?? EMPTY : undefined,
-    ].filter((bucket): bucket is Set<RelationId> => bucket !== undefined);
-    if (buckets.length) {
-      const smallest = buckets.reduce((a, b) => (b.size < a.size ? b : a));
-      if (smallest.size === 0) return out;
-      const relations = this.#relations;
-      source = (function* () { for (const id of smallest) { const r = relations.get(id); if (r) yield r; } })();
+    const [byFrom, byTo, byType] = includeArchived
+      ? [this.#relationsByFrom, this.#relationsByTo, this.#relationsByType]
+      : [this.#liveByFrom, this.#liveByTo, this.#liveByType];
+    let smallest: Set<RelationId> | undefined;
+    for (const bucket of [filter.from && (byFrom.get(filter.from) ?? EMPTY), filter.to && (byTo.get(filter.to) ?? EMPTY), filter.type && (byType.get(filter.type) ?? EMPTY)]) {
+      if (bucket && (!smallest || bucket.size < smallest.size)) smallest = bucket;
     }
-    for (const relation of source) {
-      if (filter.type && relation.type !== filter.type) continue;
-      if (filter.from && relation.from !== filter.from) continue;
-      if (filter.to && relation.to !== filter.to) continue;
-      if (!includeArchived && relation.archivedAt !== undefined) continue;
-      out.push(relation);
+    const keep = (relation: RelationRecord) =>
+      (!filter.type || relation.type === filter.type) && (!filter.from || relation.from === filter.from) &&
+      (!filter.to || relation.to === filter.to) && (includeArchived || relation.archivedAt === undefined);
+    if (smallest) {
+      // Plain loop over the smallest bucket (this is the hottest read in a village day).
+      for (const id of smallest) { const r = this.#relations.get(id); if (r && keep(r)) out.push(r); }
+    } else {
+      for (const relation of this.#relations.values()) if (keep(relation)) out.push(relation);
     }
     return out;
   }
@@ -264,8 +272,24 @@ export class WorldStore {
     const relation = this.#relations.get(relationId);
     if (!relation) throw new Error(`unknown relation: ${relationId}`);
     this.#rememberArchive(relation);
+    // Undoing an archive puts the relation back among the live ones in its
+    // original position, which a rebuild from relation-map order guarantees.
+    this.#undo?.push(() => { this.#reindex = true; });
     relation.archivedAt = at;
     relation.archivedReason = reason;
+    this.#unindexLive(relation);
+  }
+
+  #indexLive(r: RelationRecord): void {
+    push(this.#liveByType, r.type, r.id);
+    push(this.#liveByFrom, r.from, r.id);
+    push(this.#liveByTo, r.to, r.id);
+  }
+
+  #unindexLive(r: RelationRecord): void {
+    remove(this.#liveByType, r.type, r.id);
+    remove(this.#liveByFrom, r.from, r.id);
+    remove(this.#liveByTo, r.to, r.id);
   }
 
   /** Opens a rollback point (nestable). */
@@ -292,10 +316,14 @@ export class WorldStore {
       this.#relationsByType = new Map();
       this.#relationsByFrom = new Map();
       this.#relationsByTo = new Map();
+      this.#liveByType = new Map();
+      this.#liveByFrom = new Map();
+      this.#liveByTo = new Map();
       for (const relation of this.#relations.values()) {
         push(this.#relationsByType, relation.type, relation.id);
         push(this.#relationsByFrom, relation.from, relation.id);
         push(this.#relationsByTo, relation.to, relation.id);
+        if (relation.archivedAt === undefined) this.#indexLive(relation);
       }
     }
     this.commit(mark);
