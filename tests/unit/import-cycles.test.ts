@@ -28,23 +28,34 @@ test("no file-level import cycle exists anywhere", () => {
   assert.deepEqual(problems, []);
 });
 
-test("the village agents and the shared reads never import the settlement rules", () => {
-  // module.ts runs the village-day agent, so the agents (and the reads they
-  // use) importing module.ts back is exactly how the old cycle formed.
+test("inside settlement-locations only the package entry imports module.ts", () => {
+  // module.ts wires everything together (it runs the village-day agent and
+  // registers marriage, passing, storyteller and season-life rules), so any
+  // file in the package importing it back closes a loop. The old 9-file cycle
+  // formed exactly this way, through the autonomy agents.
   const graph = fileImportGraph();
   const rules = `${SETTLEMENT}/module.ts`;
   const offenders = [...graph].filter(([file, deps]) =>
-    (file.startsWith(`${SETTLEMENT}/autonomy/`) || file === `${SETTLEMENT}/village-reads.ts`) && deps.includes(rules)
+    file.startsWith(`${SETTLEMENT}/`) && file !== `${SETTLEMENT}/index.ts` && deps.includes(rules)
   ).map(([file]) => file);
   assert.deepEqual(offenders, []);
 });
 
-test("module.ts still re-exports the reads it used to own", async () => {
+test("module.ts still re-exports everything it used to own", async () => {
   const rules = await import("../../modules/settlement-locations/src/module.ts");
   const reads = await import("../../modules/settlement-locations/src/village-reads.ts");
   for (const name of ["dailyActivity", "currentYields", "carrying", "roofState", "wornWrap", "seasonOf",
     "activityCostFor", "openRequest", "favourOwed", "tradeableGoods", "counterpartView", "worksites", "people",
-    "familyDue", "seasonTurnDue", "villagePopulation", "DAILY_ACTIVITY_CAPACITY", "ROOF_MAX"]) {
+    "familyDue", "seasonTurnDue", "villagePopulation", "DAILY_ACTIVITY_CAPACITY", "ROOF_MAX", "prototypeForResource"]) {
     assert.equal((rules as Record<string, unknown>)[name], (reads as Record<string, unknown>)[name], name);
+  }
+  const split = {
+    "passing.ts": ["HEIR_AGE", "heirsOf"],
+    "storyteller.ts": ["seasonTurnEffects"],
+    "season-life.ts": ["daysLeftInSeason", "familyOf", "familyView", "liveSeason"],
+  };
+  for (const [file, names] of Object.entries(split)) {
+    const mod = await import(`../../modules/settlement-locations/src/${file}`) as Record<string, unknown>;
+    for (const name of names) assert.equal((rules as Record<string, unknown>)[name], mod[name], `${file}: ${name}`);
   }
 });

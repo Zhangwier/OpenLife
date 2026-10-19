@@ -608,3 +608,18 @@ export function seasonTurnDue(world: WorldView): boolean {
   const s = world.getComponent(SettlementId, SettlementComponents.settlement);
   return Boolean(STORY && s && String(s.lastSeasonTurn ?? "") !== seasonKey(world.tick) && Number(s.foundedAt ?? 0) < world.tick);
 }
+
+/** Maps a bulk resource to the prototype that carries one unit of it. */
+export function prototypeForResource(resourceId: string): string {
+  const mapping: Record<string, string> = {
+    "resource:water": "prototype:water",
+    "resource:grain": "prototype:grain",
+    "resource:clay": "prototype:clay-batch",
+    "resource:fuel": "prototype:fuel-bundle",
+    "resource:reed": "prototype:reed-bundle",
+    "resource:cooked": "prototype:cooked-food",
+    "resource:fish": "prototype:fish",
+    "resource:fiber": "prototype:fiber-bundle", ...(RIVER_TERRACE_PACK.rawPrototypes ?? {}),
+  };
+  return mapping[resourceId] ?? "prototype:grain";
+}
