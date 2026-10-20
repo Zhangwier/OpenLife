@@ -35,6 +35,14 @@ export function codex(simulation: Simulation, actorId: string) {
   const names = new Map(RIVER_TERRACE_PACK.prototypes.map((p) => [p.id, p.name]));
   const resourceNames: Record<string, string> = RIVER_TERRACE_PACK.resourceLabels ?? {};
   const recipes = RIVER_TERRACE_PACK.recipes ?? [];
+  // 做法写的是内部空间 ID（space:reed-cut），图鉴要给玩家看「芦苇滩 · 割苇处」这样的名字。
+  const spaces = new Map(RIVER_TERRACE_PACK.places.flatMap((place) =>
+    place.spaces.map((space) => [space.id, { placeId: place.id, place: place.name, space: space.name }] as const)));
+  const whereOf = (spaceId: string) => {
+    if (spaceId === "@home") return "自己的住处";
+    const s = spaces.get(spaceId);
+    return s ? (s.place === s.space ? s.place : `${s.place} · ${s.space}`) : spaceId;
+  };
   return {
     items: RIVER_TERRACE_PACK.prototypes.map((p) => ({
       id: p.id, name: p.name, material: p.material, unit: p.unit, mass: p.mass, capacity: p.capacity,
@@ -45,12 +53,13 @@ export function codex(simulation: Simulation, actorId: string) {
     recipes: recipes.map((r) => {
       return {
         id: r.id, name: r.label, skill: "", description: r.hint ?? "",
-        where: r.spaceId,
-        placeId: "",
+        where: whereOf(r.spaceId),
+        placeId: r.spaceId === "@home" ? "@home" : spaces.get(r.spaceId)?.placeId ?? "",
         inputs: (r.inputs ?? []).map((i) => ({ name: resourceNames[i.resourceId] ?? i.resourceId, count: i.count })),
         tools: r.tool ? [names.get(r.tool) ?? r.tool] : [],
         outputs: r.output ? [{ name: r.output.name ?? names.get(r.output.prototypeId) ?? r.output.prototypeId, count: 1 }] : [],
-        ready: false, reason: "进入聚落后才能制作。",
+        // 图鉴只是一本参考书，不替玩家判断此刻能不能做；告诉他去哪儿、带什么，到了场景里再动手。
+        ready: false, reason: `到「${whereOf(r.spaceId)}」去，备齐材料${r.tool ? "和工具" : ""}，在那里动手做。`,
       };
     }),
     residents: RIVER_TERRACE_PACK.residents.map((r) => {

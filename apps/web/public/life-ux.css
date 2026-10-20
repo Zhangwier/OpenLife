@@ -1,0 +1,88 @@
+/* 界面交互第四轮（2026-10-20 中午场）。只用 theme.css 的令牌；深色模式随令牌自动切换。 */
+.visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* 1. 人物页 —— 生命线「此刻」 */
+.life-line.has-now { padding-top: 26px; }
+.life-line.has-now .life-line-track { overflow: visible; position: relative; }
+.life-line.has-now .life-line-progress { border-radius: 4px; }
+.life-line.has-now .life-line-labels span:nth-child(2) { visibility: hidden; }
+.life-now {
+  position: absolute; bottom: 10px; transform: translateX(-50%); white-space: nowrap;
+  font-size: 12px; font-weight: 600; color: var(--accent); line-height: 1;
+}
+.life-now::after { content: ""; position: absolute; left: 50%; top: calc(100% + 3px); width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); }
+.life-now[data-align="start"] { transform: translateX(-6px); }
+.life-now[data-align="start"]::after { left: 6px; }
+.life-now[data-align="end"] { transform: translateX(calc(-100% + 6px)); }
+.life-now[data-align="end"]::after { left: calc(100% - 6px); }
+/* 头像：没有立绘时显示名字首字 */
+.portrait:has(.portrait-figure:not(.has-figure)) > span {
+  display: grid !important; place-items: center; position: absolute; inset: 0 0 44px; z-index: 1;
+  font: 600 34px var(--serif); color: var(--primary);
+}
+.portrait-figure:not(.has-figure) { opacity: .9; }
+/* 出身天赋：从项目符号列表改成两张小卡 */
+#screen-character .origin-talents { list-style: none; padding: 0; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+#screen-character .origin-talents li { padding: 10px 12px; border-radius: var(--r-sm); background: var(--surface); border: 1px solid var(--line); font-size: 13px; line-height: 1.6; color: var(--ink-2); }
+#screen-character .origin-talents li b { display: block; font-size: 14px; color: var(--ink); margin-bottom: 2px; }
+/* 五项近况：最后一行不留空格 */
+@media (min-width: 1101px) { #screen-character .soft-stats > div:last-child:nth-child(3n+2) { grid-column: span 2; } }
+
+/* 2. 人际页 —— 认识程度三步 + 交情 */
+.person-heading { position: relative; }
+.person-where { margin-left: auto; align-self: flex-start; font-size: 12px; padding: 3px 10px; border-radius: var(--r-pill); background: var(--surface-3); color: var(--muted); white-space: nowrap; }
+.person-where.is-near { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+.contact-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; counter-reset: step; }
+.contact-steps li { position: relative; padding-top: 10px; font-size: 12px; text-align: center; color: var(--muted); }
+.contact-steps li::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; border-radius: 4px; background: var(--surface-3); }
+.contact-steps li.done::before { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.contact-steps li.current { color: var(--ink); font-weight: 600; }
+.contact-steps li.current::before { background: var(--accent); }
+.person-hearts { display: flex; align-items: center; gap: 10px; margin: 0; }
+.hearts-track { flex: 1; height: 6px; border-radius: 6px; background: var(--surface-3); overflow: hidden; }
+.hearts-track i { display: block; height: 100%; background: var(--danger); border-radius: 6px; }
+.person-hearts small { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.person-card > .person-trait { color: var(--ink-2); }
+.person-later { margin-top: auto !important; font-size: 13px !important; color: var(--muted) !important; }
+.person-card[data-near="0"] { background: var(--surface); }
+
+/* 3. 图鉴 —— 搜索、地点筛选、标签页数量 */
+.codex-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 16px; }
+.codex-search { flex: 1 1 280px; max-width: 460px; }
+.codex-search input, .codex-place select { width: 100%; min-height: 44px; padding: 0 16px; border-radius: var(--r-pill); border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); font: inherit; font-size: 15px; }
+.codex-place { flex: 0 1 200px; }
+.codex-tools small { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.codex-none { margin: 0 0 16px; }
+.codex-count { margin-left: 6px; font-size: 11px; opacity: .7; }
+.codex-card[hidden] { display: none !important; }
+.codex-pin { vertical-align: -2px; color: var(--accent); }
+
+/* 4. 新人生表单 —— 随缘说明、已选数量、选满提示 */
+.talent-count { margin-left: 8px; font-size: 12px; font-weight: 600; color: var(--primary); }
+.talent-random-note { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 12px; border-radius: var(--r-sm); background: var(--surface-2); font-size: 13px; line-height: 1.6; color: var(--ink-2); }
+.talent-random-note .ghost-button { min-height: 36px; padding: 0 14px; font-size: 13px; }
+.new-talents.is-random .talent-list { display: none !important; }
+.talent-limit-hint { margin: 0; font-size: 13px; color: var(--danger); }
+
+/* 5. 加载态 —— 骨架屏与重试 */
+.page-empty.is-loading { position: relative; padding-bottom: 96px !important; color: var(--muted); }
+.page-empty.is-loading::after {
+  content: ""; position: absolute; left: 24px; right: 24px; bottom: 24px; height: 56px; border-radius: var(--r-sm);
+  background:
+    linear-gradient(var(--surface-3), var(--surface-3)) 0 0 / 60% 12px no-repeat,
+    linear-gradient(var(--surface-3), var(--surface-3)) 0 22px / 90% 12px no-repeat,
+    linear-gradient(var(--surface-3), var(--surface-3)) 0 44px / 40% 12px no-repeat;
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-view="text"]) .page-empty.is-loading::after { animation: life-ux-pulse 1.4s ease-in-out infinite; }
+}
+@keyframes life-ux-pulse { 50% { opacity: .45; } }
+.page-empty.is-error { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; border-left: 3px solid var(--danger); }
+.page-retry { min-height: 40px; }
+
+@media (max-width: 600px) {
+  .codex-tools { flex-direction: column; align-items: stretch; }
+  .codex-search, .codex-place { max-width: none; flex: none; }
+  .life-now { font-size: 11px; }
+}
+.new-life-form:has(.new-talents.is-random) #newOriginStory { display: none; }
