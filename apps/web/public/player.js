@@ -42,15 +42,33 @@ export function renderPlayer(s, onAction) {
   renderHandoff(p, c, onAction);
 }
 
+/** 认识的三步，和 settlement-locations 的 contactLevel 一致。 */
+export const CONTACT_STAGES = ["陌生", "见过", "相识"];
+/** 一个人走到了哪一步：返回 0..2；不在表里的说法（比如出身带来的亲近）按已相识算。 */
+export function contactStage(label) {
+  const i = CONTACT_STAGES.indexOf(String(label || "陌生"));
+  return i < 0 ? CONTACT_STAGES.length - 1 : i;
+}
+/** 下一步怎么走：当面聊满 3 回算相识（contactLevel）；出身带来的熟人可能更早。 */
+export function contactNext(stage, conversations = 0) {
+  if (stage <= 0) return "当面搭句话，就算见过了。";
+  if (stage === 1) { const left = Math.max(1, 3 - Number(conversations || 0)); return `再当面聊 ${left} 回，就能相识。`; }
+  return "已经相识，交情会随来往慢慢加深。";
+}
+
 function renderPeople(settlement) {
   const container = $("relationshipOrbit");
   container.classList.add("people-list");
   const contacts = settlement?.contacts ?? [];
   const neighbours = settlement?.neighbours ?? [];
+  const hearts = new Map(neighbours.map(n => [n.id, n.hearts]));
   const nearby = neighbours
     .filter(person => !contacts.some(known => known.id === person.id))
     .map(person => ({ ...person, nearby: true, contact: "陌生", conversations: 0 }));
-  const list = [...contacts.map(person => ({ ...person, nearby: neighbours.some(n => n.id === person.id) })), ...nearby];
+  // 排序规则来自第四轮：在身边的排前面，同样在不在身边时，认识的深的排前面。
+  const known = contacts
+    .map(person => ({ ...person, nearby: neighbours.some(n => n.id === person.id) }))
+    .sort((a, b) => Number(b.nearby) - Number(a.nearby) || contactStage(b.contact) - contactStage(a.contact));
   // 计数只留给读屏；屏幕上说「来往几位」，与「不给玩家看数字」一致。
   const spoken = `来往 ${contacts.length} 人 · 附近 ${neighbours.length} 人`;
   $("relationCount").innerHTML = `<span aria-hidden="true">${contacts.length ? "来往几位" : "还没有熟人"}${neighbours.length ? " · 附近有人" : ""}</span><span class="sr-only">${spoken}</span>`;
@@ -68,14 +86,18 @@ function renderPeople(settlement) {
       <span class="stranger-note">${html(person.dailyNote || "站在那儿，还没搭过话")}</span>
       ${person.nearby ? `<button class="ghost-button compact" data-person-route="${html(person.id)}">搭话</button>` : ""}
     </li>`).join("");
-  const knownCards = contacts.map(person => {
-    const knowing = person.conversations > 0 ? `当面说过 ${person.conversations} 回话` : "认得这个人，还没细说过话";
-    return `<article class="person-card">
+  const knownCards = known.map(person => {
+    const stage = contactStage(person.contact);
+    const h = hearts.get(person.id);
+    return `<article class="person-card" data-near="${person.nearby ? "1" : "0"}" data-stage="${stage}">
     <div class="person-heading"><div class="contact-portrait" aria-hidden="true">${renderFigure(person.id, `${person.role} ${person.name}`)}</div>
-    <div><h4>${html(person.name)}</h4><span>${html(person.role)}</span></div></div>
-    <p class="person-trait">${html(knowing)}</p>
-    <p>${person.nearby ? "就在附近，走过去就能搭话。" : "眼下不在身边，下次遇见再说。"}</p>
-    ${person.nearby ? `<button class="contact-action" data-person-route="${html(person.id)}">找${html(person.name)}说话 →</button>` : ""}
+    <div><h4>${html(person.name)}</h4><span>${html(person.role)} · ${html(person.contact || "陌生")}</span></div>
+    <span class="person-where ${person.nearby ? "is-near" : ""}">${person.nearby ? "在附近" : "不在身边"}</span></div>
+    <ol class="contact-steps" aria-label="认识程度：${html(person.contact || "陌生")}">${CONTACT_STAGES.map((label, i) =>
+      `<li class="${i < stage ? "done" : i === stage ? "current" : ""}"${i === stage ? ' aria-current="step"' : ""}>${label}</li>`).join("")}</ol>
+    ${Number.isFinite(h) ? `<p class="person-hearts" aria-label="交情 ${h} / 10"><span class="hearts-track"><i style="width:${Math.max(0, Math.min(10, h)) * 10}%"></i></span><small>交情 ${h} / 10</small></p>` : ""}
+    <p class="person-trait">${person.conversations > 0 ? `当面聊过 ${person.conversations} 次。` : ""}${contactNext(stage, person.conversations)}</p>
+    ${person.nearby ? `<button class="contact-action" data-person-route="${html(person.id)}">去找${html(person.name)} →</button>` : '<p class="person-later">下次遇见再聊。</p>'}
   </article>`;
   }).join("");
 

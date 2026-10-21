@@ -21,9 +21,21 @@ const TABS = [
 ];
 let activeTab = "recipes";
 let lastData = null;
+/** 做法页的搜索词与地点筛选；翻页、动手做之后重绘时保留。 */
+let recipeQuery = "";
+let recipePlace = "";
+
+/** 搜索：多个词都要命中，不分大小写。导出给单测用。 */
+export function recipeMatches(recipe, query, place) {
+  if (place && recipe.placeId !== place) return false;
+  const text = [recipe.name, recipe.where, recipe.description, ...recipe.inputs.map((i) => i.name),
+    ...recipe.outputs.map((o) => o.name), ...recipe.tools].join(" ").toLowerCase();
+  return String(query || "").trim().toLowerCase().split(/\s+/).filter(Boolean).every((w) => text.includes(w));
+}
+const tabCount = (data, id) => ({ recipes: data.recipes, items: data.items, people: data.residents, lore: data.lore, music: data.music }[id]?.length ?? 0);
 
 export async function loadCodex(screen, onSettlementAction) {
-  screen.innerHTML = '<p class="page-empty panel">正在翻开图鉴…</p>';
+  if (!lastData) screen.innerHTML = '<p class="page-empty panel">正在翻开图鉴…</p>';
   try {
     const response = await fetch("/api/codex");
     if (!response.ok) throw new Error("图鉴读取失败，请稍后再打开。");
@@ -38,9 +50,9 @@ function renderCodex(screen, onSettlementAction) {
   const data = lastData;
   screen.innerHTML = `<section class="codex panel">
     <div class="codex-intro"><div class="overview-label">河岸台地 · 图鉴</div>
-      <p>这里记着聚落里认得的东西、会做的手艺、住着的人和流传的故事。做法会按你此刻能不能做来排序。</p></div>
+      <p>这里记着聚落里认得的东西、会做的手艺、住着的人和流传的故事。做法可以按名字、材料、成品或地点来找。</p></div>
     <div class="codex-tabs" role="tablist" aria-label="图鉴分类">${TABS.map(([id, label]) =>
-      `<button role="tab" data-codex-tab="${id}" aria-selected="${id === activeTab}">${label}</button>`).join("")}</div>
+      `<button role="tab" data-codex-tab="${id}" aria-selected="${id === activeTab}">${label}<small class="codex-count">${tabCount(data, id)}</small></button>`).join("")}</div>
     <div class="codex-body" role="tabpanel">${renderTab(data)}</div>
   </section>`;
   screen.querySelectorAll("[data-codex-tab]").forEach((button) => button.onclick = () => {
@@ -52,6 +64,23 @@ function renderCodex(screen, onSettlementAction) {
     await onSettlementAction("settlement-locations.craft", { recipeId: button.dataset.craft });
     await loadCodex(screen, onSettlementAction);
   });
+  const search = screen.querySelector("[data-recipe-search]"), placeSel = screen.querySelector("[data-recipe-place]");
+  const filter = () => {
+    recipeQuery = search?.value ?? ""; recipePlace = placeSel?.value ?? "";
+    let shown = 0;
+    for (const card of screen.querySelectorAll("[data-recipe]")) {
+      const r = data.recipes.find((x) => x.id === card.dataset.recipe);
+      const hit = r ? recipeMatches(r, recipeQuery, recipePlace) : true;
+      card.hidden = !hit; if (hit) shown++;
+    }
+    const count = screen.querySelector("[data-recipe-count]");
+    if (count) count.textContent = recipeQuery || recipePlace ? `显示 ${shown} / ${data.recipes.length}` : `共 ${data.recipes.length} 种做法`;
+    const none = screen.querySelector("[data-recipe-none]");
+    if (none) none.hidden = shown > 0;
+  };
+  search?.addEventListener("input", filter);
+  placeSel?.addEventListener("change", filter);
+  if (search) filter();
   screen.querySelectorAll("[data-bgm]").forEach((button) => button.onclick = () => playTrack(button.dataset.bgm));
   screen.querySelector("[data-bgm-stop]")?.addEventListener("click", stopMusic);
 }
@@ -66,9 +95,16 @@ function renderTab(data) {
 
 function renderRecipes(recipes) {
   const sorted = [...recipes].sort((a, b) => Number(b.ready) - Number(a.ready));
-  return `<div class="codex-grid">${sorted.map((r) => `<article class="codex-card${r.ready ? " is-ready" : ""}">
-    <header><h3>${html(r.name)}</h3><span class="codex-tag">${html(r.skill)}</span></header>
-    <p class="codex-where">在 ${html(r.where)}</p>
+  const places = [...new Map(recipes.filter((r) => r.placeId).map((r) => [r.placeId, r.where.split(" · ")[0]])).entries()];
+  const tools = `<div class="codex-tools">
+    <label class="codex-search"><span class="visually-hidden">搜索做法</span><input type="search" data-recipe-search value="${html(recipeQuery)}" placeholder="搜做法、材料或成品，比如：芦苇、陶" autocomplete="off" /></label>
+    ${places.length > 1 ? `<label class="codex-place"><span class="visually-hidden">按地点筛选</span><select data-recipe-place><option value="">所有地点</option>${places.map(([id, name]) =>
+      `<option value="${html(id)}"${id === recipePlace ? " selected" : ""}>${html(name)}</option>`).join("")}</select></label>` : ""}
+    <small data-recipe-count aria-live="polite">共 ${recipes.length} 种做法</small></div>
+    <p class="page-empty codex-none" data-recipe-none hidden>没有对得上的做法，换个词或换个地点试试。</p>`;
+  return `${tools}<div class="codex-grid">${sorted.map((r) => `<article class="codex-card${r.ready ? " is-ready" : ""}" data-recipe="${html(r.id)}">
+    <header><h3>${html(r.name)}</h3>${r.skill ? `<span class="codex-tag">${html(r.skill)}</span>` : ""}</header>
+    <p class="codex-where"><svg class="codex-pin" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg> ${html(r.where)}</p>
     <dl class="codex-parts">
       <dt>材料</dt><dd>${r.inputs.map((i) => `${html(i.name)} × ${i.count}`).join("、")}</dd>
       <dt>工具</dt><dd>${r.tools.length ? r.tools.map(html).join("、") : "不需要"}</dd>
