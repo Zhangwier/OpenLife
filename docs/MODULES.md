@@ -24,25 +24,6 @@
 
 ## modules/ · 60 个模块包
 
-### system（7）
-
-| 目录 | 名称 | 模块 id（导出） | provides | requires | 依赖（workspace） |
-| --- | --- | --- | --- | --- | --- |
-| `modules/civilization` | 文明层 | `civilization` (`civilizationModule`) | `world.polities` | — | contracts, life-contracts, module-polity, module-tech | 可关 |
-| `modules/culture` | 文化与信仰 | `culture` (`cultureModule`) | `culture.beliefs` | — | contracts, life-contracts, module-office, module-polity, module-tech | 可关 |
-| `modules/economy` | 经济与交换 | `economy` (`economyModule`) | `economy.cycle` | — | contracts, life-contracts, module-polity, module-tech | 可关 |
-| `modules/office` | 职位与公事 | `office` (`officeModule`) | `polity.office` | `life.settlement` | contracts, life-contracts, module-polity, module-settlement-locations, module-world-objects | 可关 |
-| `modules/settlement-build` | 盖房子 | `settlement-build` (`settlementBuildModule`) | `settlement.housing` | `life.settlement` | contracts, life-contracts, module-settlement-locations, module-world-space | 可关 |
-| `modules/travel` | 远行 | `travel` (`travelModule`) | `world.travel` | — | contracts, life-contracts, module-map-pack, module-settlement-locations | 可关 |
-| `modules/world-deposits` | 矿藏与资源分布 | `world-deposits` (`worldDepositsModule`) | `world.deposits` | — | contracts, life-contracts, module-tech | 可关 |
-
-### content（2）
-
-| 目录 | 名称 | 模块 id（导出） | provides | requires | 依赖（workspace） |
-| --- | --- | --- | --- | --- | --- |
-| `modules/narrative-voice` | 河岸台地叙事与言语 | `narrative-voice` (`default`) | `narrative-voice.say`, `narrative-voice.narrate` | — | contracts, life-contracts | 可关 |
-| `modules/narrative-voice` | 河岸台地叙事与言语 | `narrative-voice` (`narrativeVoiceModule`) | `narrative-voice.say`, `narrative-voice.narrate` | — | contracts, life-contracts | 可关 |
-
 ### World Pack · 世界观（4）
 
 | 目录 | 名称 | 模块 id（导出） | provides | requires | 依赖（workspace） |
@@ -52,12 +33,15 @@
 | `modules/robot-test-world` | 机器人测试世界 | `robot-test-world` (`robotTestWorldModule`) | `robot.population`, `robot.energy_network`, `time.machine_cycle` | — | contracts | 可关 |
 | `modules/world-clock` | 世界时钟 | `world-clock` (`worldClockModule`) | `time.life-scale`, `time.scale` | `time.calendar` | contracts, life-contracts, module-practice-runtime | core |
 
-### System Pack · 通用系统（42）
+### System Pack · 通用系统（51）
 
 | 目录 | 名称 | 模块 id（导出） | provides | requires | 依赖（workspace） |
 | --- | --- | --- | --- | --- | --- |
 | `modules/basic-autonomy` | 人物自主行为 | `basic-autonomy` (`basicAutonomyModule`) | `autonomy.basic` | `time.calendar`, `life.population`, `education.provider`, `career.provider`, `family.relationship_provider`, `family.heir_provider` | contracts, life-contracts | 可关 |
 | `modules/career` | 职业原型 | `career` (`careerModule`) | `career.provider` | `time.calendar` | contracts, life-contracts | 可关 |
+| `modules/civilization` | 文明层 | `civilization` (`civilizationModule`) | `world.polities` | — | contracts, life-contracts, module-polity, module-tech | 可关 |
+| `modules/culture` | 文化与信仰 | `culture` (`cultureModule`) | `culture.beliefs` | — | contracts, life-contracts, module-office, module-polity, module-tech | 可关 |
+| `modules/economy` | 经济与交换 | `economy` (`economyModule`) | `economy.cycle` | — | contracts, life-contracts, module-polity, module-tech | 可关 |
 | `modules/education` | 教育原型 | `education` (`educationModule`) | `education.provider` | `time.calendar` | contracts, life-contracts | 可关 |
 | `modules/epistemic-state` | 人物认知 | `epistemic-state` (`epistemicStateModule`) | `cognition.epistemic-state` | — | contracts | 可关 |
 | `modules/era-ladder` | 时代识别 | `era-ladder` (`eraLadderModule`) | `era.current` | — | contracts | 可关 |
@@ -72,19 +56,25 @@
 | `modules/life-stages` | 人生阶段 | `life-stages` (`lifeStagesModule`) | `life.stages` | `life.settlement` | contracts, life-contracts, module-settlement-locations, module-world-space | 可关 |
 | `modules/map-pack` | 地图包 | `map-pack` (`mapPackModule`) | `world.map-packs` | `world.geography` | contracts, module-world-geography, simulation | 可关 |
 | `modules/modern-science` | 文明认知 | `modern-science` (`modernScienceModule`) | `knowledge.modern-science` | `life.population` | contracts, life-contracts | 可关 |
+| `modules/narrative-voice` | 河岸台地叙事与言语 | `narrative-voice` (`default`) | `narrative-voice.say`, `narrative-voice.narrate` | — | contracts, life-contracts | 可关 |
+| `modules/narrative-voice` | 河岸台地叙事与言语 | `narrative-voice` (`narrativeVoiceModule`) | `narrative-voice.say`, `narrative-voice.narrate` | — | contracts, life-contracts | 可关 |
+| `modules/office` | 职位与公事 | `office` (`officeModule`) | `polity.office` | `life.settlement` | contracts, life-contracts, module-polity, module-settlement-locations, module-world-objects | 可关 |
 | `modules/polity` | 政治 | `polity` (`polityModule`) | `polity.institutions`, `polity.authority` | — | contracts | 可关 |
 | `modules/polity-bondage` | 债役 | `polity-bondage` (`polityBondageModule`) | `polity.labor` | `polity.institutions` | contracts | 可关 |
 | `modules/practice-autonomy` | 自主参与活动 | `practice-autonomy` (`practiceAutonomyModule`) | `practice.autonomy` | `practice.runtime` | contracts, module-practice-runtime | 可关 |
 | `modules/practice-runtime` | 持续活动 | `practice-runtime` (`practiceRuntimeModule`) | `practice.runtime` | — | contracts | core |
 | `modules/science-research` | 研究活动 | `science-research` (`scienceResearchModule`) | `science.research-practice` | `practice.runtime` | contracts, module-practice-runtime | 可关 |
+| `modules/settlement-build` | 盖房子 | `settlement-build` (`settlementBuildModule`) | `settlement.housing` | `life.settlement` | contracts, life-contracts, module-settlement-locations, module-world-space | 可关 |
 | `modules/settlement-goals` | 村落成长目标 | `settlement-goals` (`settlementGoalsModule`) | `settlement.goals` | — | contracts, life-contracts, module-settlement-locations | 可关 |
 | `modules/social-conflict` | 乡邻纠纷 | `social-conflict` (`socialConflictModule`) | `social.conflict` | — | contracts | 可关 |
 | `modules/story-director` | 叙事者 | `story-director` (`storyDirectorModule`) | `story.director` | — | contracts | 可关 |
 | `modules/tech` | 科技 | `tech` (`techModule`) | `tech.invention`, `tech.learning`, `tech.need-ledger` | — | contracts | 可关 |
+| `modules/travel` | 远行 | `travel` (`travelModule`) | `world.travel` | — | contracts, life-contracts, module-map-pack, module-settlement-locations | 可关 |
 | `modules/village-chronicle` | 村史 | `village-chronicle` (`villageChronicleModule`) | `chronicle.village` | — | contracts, module-era-ladder, module-fate, module-heredity, module-polity, module-polity-bondage, module-tech, simulation | 可关 |
 | `modules/village-secrets` | 村里的事 | `village-secrets` (`villageSecretsModule`) | `settlement.secrets` | `cognition.epistemic-state` | contracts, module-settlement-locations, module-world-space | 可关 |
 | `modules/village-wants` | 愿望与恐惧 | `village-wants` (`villageWantsModule`) | `life.wants` | `life.settlement` | contracts, module-settlement-locations, module-world-space | 可关 |
 | `modules/world-climate` | 气候 | `world-climate` (`worldClimateModule`) | `world.climate-profile` | `world.geography`, `world.geosphere-profile` | contracts, module-world-geography, module-world-geosphere | 可关 |
+| `modules/world-deposits` | 矿藏与资源分布 | `world-deposits` (`worldDepositsModule`) | `world.deposits` | — | contracts, life-contracts, module-tech | 可关 |
 | `modules/world-ecology` | 生态 | `world-ecology` (`worldEcologyModule`) | `world.ecology-state` | `world.geography`, `world.climate-profile`, `world.hydrology-state` | contracts, module-world-climate, module-world-geography, module-world-hydrology | 可关 |
 | `modules/world-geography` | 地理与连通 | `boundary-handshake` (`boundaryHandshakeModule`) | `world.boundary-handshake` | `world.geography` | contracts | 可关 |
 | `modules/world-geography` | 地理与连通 | `world-geography` (`worldGeographyModule`) | `world.geography` | — | contracts | 可关 |

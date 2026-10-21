@@ -56,13 +56,13 @@ function createMockWorld(initialComponents: Record<string, Record<string, unknow
     },
     seasonAt(tick = 0): "春" | "夏" | "秋" | "冬" {
       const seasons: Array<"春" | "夏" | "秋" | "冬"> = ["春", "夏", "秋", "冬"];
-      return seasons[Math.abs(Math.floor(tick)) % 4];
+      return seasons[Math.abs(Math.floor(tick)) % 4] ?? "春";
     },
     applyEffects(effects) {
       for (const ef of effects) {
         if (ef.type === "setComponent") {
           if (!store[ef.entityId]) store[ef.entityId] = {};
-          store[ef.entityId][ef.componentId] = JSON.parse(JSON.stringify(ef.value));
+          store[ef.entityId]![ef.componentId] = JSON.parse(JSON.stringify(ef.value));
         }
       }
     },
@@ -253,7 +253,7 @@ describe("modules/narrative-voice", () => {
     const restoredStore = JSON.parse(savedSnapshotJson) as Record<string, Record<string, unknown>>;
     const worldAfterLoad = createMockWorld(restoredStore);
 
-    const memoryAfterLoad = worldAfterLoad.getComponent<{ recentLines: string[] }>(
+    const memoryAfterLoad = worldAfterLoad.getComponent?.<{ recentLines: string[] }>(
       "res-awu",
       VOICE_MEMORY_COMPONENT_ID
     );

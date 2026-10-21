@@ -51,7 +51,7 @@ test("包的抉择事件被合并，并带上原本的选项", () => {
   try {
     const ext = readExtension(dir);
     assert.deepEqual(checkExtension(ext, base), []);
-    const merged = mergeExtensions(base, { recipes: [] }, [ext]);
+    const merged = mergeExtensions(base, { id: "book:test", packId: base.id, formatVersion: 1, recipes: [] }, [ext]);
     assert.equal(merged.incidents.length, 1);
     const incident = merged.incidents[0]!;
     assert.equal(incident.id, "incident:probe.pick");

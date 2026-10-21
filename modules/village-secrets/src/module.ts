@@ -288,7 +288,7 @@ export const villageSecretsModule: OpenLifeModule = {
 
     const usable = (world: WorldView, command: CommandIntent, verb: string): ConstraintOutcome => {
       const me = command.actorId ?? "";
-      const spec = secretById(String(command.payload.secretId ?? ""));
+      const spec = secretById(String(command.payload?.secretId ?? ""));
       if (!spec) return refuse("没有这桩事。");
       if (!me || me !== playerId(world)) return refuse("只有你自己能拿主意。");
       if (!world.getComponent(residentId(spec.owner), SettlementComponents.resident)) return refuse("这个人已经不在村里了。");

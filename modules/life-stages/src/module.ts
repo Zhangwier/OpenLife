@@ -708,13 +708,7 @@ export const lifeStagesModule: OpenLifeModule = {
           locked: STAGES.filter((s) => s.id !== stage.id)
             .flatMap((s) => s.actions.map((id) => ({ id, stage: s.name }))),
           deeds: deeds(world, me),
-          lastWords: words ? {
-            from: String(obj(words).from ?? ""),
-            fromName: String(obj(words).fromName ?? ""),
-            unfinished: String(obj(words).unfinished ?? ""),
-            craft: String(obj(words).craft ?? ""),
-            secrets: Array.isArray(obj(words).secrets) ? obj(words).secrets.length : 0,
-          } : null,
+          lastWords: words ? lastWordsOf(words) : null,
           tutelage: Number(tutelage.times ?? 0) > 0 ? { times: Number(tutelage.times), from: String(tutelage.from ?? "") } : null,
         };
       },
@@ -748,9 +742,25 @@ function unfinishedWish(world: WorldView, id: string): string {
   return String(wish.text ?? wish.wishId ?? "");
 }
 
+/** 遗言在投影里只需要这几项；拆出来让 tsc 能把 `words` 收窄成对象。 */
+function lastWordsOf(words: unknown): {
+  from: string; fromName: string; unfinished: string; craft: string; secrets: number;
+} {
+  const w = obj(words);
+  const secrets = obj(w.secrets);
+  const kept = Array.isArray(w.secrets) ? w.secrets.length : Object.keys(secrets).length;
+  return {
+    from: String(w.from ?? ""),
+    fromName: String(w.fromName ?? ""),
+    unfinished: String(w.unfinished ?? ""),
+    craft: String(w.craft ?? ""),
+    secrets: kept,
+  };
+}
+
 /** 他确知的心事（读 village-secrets 的组件，只读；只听说的不算）。 */
 function confirmedSecrets(world: WorldView, id: string): LastWords["secrets"] {
-  const entries = obj(world.getComponent(id, "village-secrets.known").entries);
+  const entries = obj(world.getComponent(id, "village-secrets.known")?.entries);
   const out: LastWords["secrets"] = [];
   for (const entry of Object.values(entries)) {
     const e = obj(entry);

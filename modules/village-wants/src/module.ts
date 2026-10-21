@@ -21,7 +21,7 @@
 import type { ConstraintOutcome, Effect, JsonValue, OpenLifeModule, WorldView } from "@openlife/contracts";
 import { occupiedPlaceId } from "@openlife/module-world-space";
 import {
-  RIVER_TERRACE_PACK, SettlementComponents, residentId, seasonOf, yieldPoints,
+  RIVER_TERRACE_PACK, SettlementComponents, personName, residentId, seasonOf, yieldPoints,
 } from "@openlife/module-settlement-locations";
 import {
   FEARS, MOOD_MAX, WANTS_PACK, WISHES, fearById, wishById, wantsProblems, type FearSpec, type WishSpec,
@@ -294,7 +294,7 @@ export const villageWantsModule: OpenLifeModule = {
               kind: "emitEvent", eventType: "village-wants.thought_of_leaving", actorId: who,
               data: {
                 fearId: spec.id, level,
-                line: `${String(c.world.getEntity(who)?.name ?? "他")}这几天话少了，眼睛总往渡口那边看。`,
+                line: `${personName(c.world, who)}这几天话少了，眼睛总往渡口那边看。`,
               },
               historicalSignificance: 0.2,
             });
@@ -399,7 +399,7 @@ export const villageWantsModule: OpenLifeModule = {
               ...(by ? { targetId: by } : {}),
               data: {
                 wishId: wish.wishId, text: spec.text,
-                line: `${String(c.world.getEntity(owner)?.name ?? "他")}这一季想要的，有着落了。`,
+                line: `${personName(c.world, owner)}这一季想要的，有着落了。`,
               },
               historicalSignificance: 0.05,
             },

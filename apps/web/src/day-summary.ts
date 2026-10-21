@@ -12,7 +12,7 @@
  *
  * 放在投影层（apps/web/src/），不进 server.ts —— 后者已冻结在行数上限。
  */
-import type { WorldView } from "@openlife/world-model";
+import type { WorldView } from "@openlife/contracts";
 import {
   acquaintanceOf, homestead, RESOURCE_LABELS, residentId, yieldPoints,
 } from "@openlife/module-settlement-locations";

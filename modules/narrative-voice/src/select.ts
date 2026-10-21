@@ -438,7 +438,7 @@ export function selectAuthoredLine(
   }
 
   unrepeated.sort((a, b) => b.priority - a.priority);
-  const topPriority = unrepeated[0].priority;
+  const topPriority = unrepeated[0]!.priority;
   const topGroup = unrepeated.filter((item) => item.priority === topPriority);
   const chosen = pickWithRng(topGroup, rng);
 
@@ -526,7 +526,7 @@ export function selectAndExpandVoice(
     let roll = nextDeterministicFloat(rng) * totalScore;
     let startIndex = 0;
     for (let i = 0; i < orderedPool.length; i++) {
-      roll -= orderedPool[i].score;
+      roll -= orderedPool[i]!.score;
       if (roll <= 0) {
         startIndex = i;
         break;
@@ -535,7 +535,7 @@ export function selectAndExpandVoice(
 
     for (let offset = 0; offset < orderedPool.length; offset++) {
       const idx = (startIndex + offset) % orderedPool.length;
-      const cand = orderedPool[idx].candidate;
+      const cand = orderedPool[idx]!.candidate;
       // 每个候选最多尝试 3 次展开以避开 recentLines
       for (let attempt = 0; attempt < 3; attempt++) {
         const rendered = expand(grammar, cand.template, facts, rng);

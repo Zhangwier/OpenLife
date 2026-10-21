@@ -4,6 +4,7 @@
  */
 
 import { readFileSync } from "node:fs";
+import type { ModuleType } from "@openlife/contracts";
 import { expand } from "./grammar.ts";
 import { selectAndExpandVoice } from "./select.ts";
 import type {
@@ -42,9 +43,25 @@ export interface VoiceCapabilityResponse extends SelectVoiceResult {
   effects: OpenLifeEffect[];
 }
 
+/**
+ * The module's own view of the registration context: only the members this
+ * file actually touches, plus the rng a hand-built harness can inject.
+ *
+ * Every member is written as a *method* signature, not a function-valued
+ * property, on purpose: method parameters are compared bivariantly, so this
+ * narrow view still satisfies the kernel's `OpenLifeModule` contract in
+ * `@openlife/contracts` (which hands over the wider `ModuleRegistrationContext`
+ * with `registerComponent(definition)` and a `CapabilityId` id). Written as
+ * function properties under `strictFunctionTypes` the two are incompatible and
+ * `apps/web/src/modules.ts` refuses to take the module.
+ *
+ * `registerComponent` also still accepts a bare string id, which is how the
+ * unit-test harness registers components; the kernel never passes a string, so
+ * the extra shape costs nothing at runtime.
+ */
 export interface ModuleRegisterContext {
   rng?: DeterministicRngLike;
-  registerComponent: (
+  registerComponent(
     idOrDef:
       | string
       | {
@@ -53,27 +70,23 @@ export interface ModuleRegisterContext {
           defaultValue?: () => VoiceMemoryState;
         },
     maybeDef?: unknown
-  ) => void;
-  provideCapability: (name: string, handler: (...args: unknown[]) => unknown) => void;
-  registerCommand?: (name: string, handler: (...args: unknown[]) => unknown) => void;
-  registerReactionRule?: (rule: unknown) => void;
-  registerResolutionRule?: (rule: unknown) => void;
-  registerAgent?: (agent: unknown) => void;
-  registerProjection?: (projection: unknown) => void;
+  ): void;
+  provideCapability(name: string, handler: (...args: unknown[]) => unknown): void;
 }
 
+/** Same bivariance rules as `ModuleRegisterContext` above. */
 export interface OpenLifeModule {
   manifest: {
     id: string;
     version: string;
     engineRange: string;
-    type: string;
+    type: ModuleType;
     name: string;
     description: string;
     provides: string[];
   };
-  register: (ctx: ModuleRegisterContext) => void;
-  activate?: (ctx: unknown) => void;
+  register(ctx: ModuleRegisterContext): void;
+  activate?(ctx: unknown): void;
 }
 
 let cachedNeolithicGrammar: GrammarData | null = null;
@@ -175,7 +188,7 @@ export const narrativeVoiceModule: OpenLifeModule = {
     id: VOICE_MODULE_ID,
     version: "0.1.0",
     engineRange: "^0.1.0",
-    type: "content",
+    type: "system-pack",
     name: "河岸台地叙事与言语模块",
     description:
       "基于确定性 Tracery 文法展开与多条件加权选句的新石器时代村民台词与故事旁白生成模块",

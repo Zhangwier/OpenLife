@@ -9,7 +9,8 @@
  * 放在这个文件里而不是 module.ts：后者被 source-size 棘轮冻结在 4971 行，
  * 一行都加不进去。module.ts 只 import 一个函数名并把 register 接上。
  */
-import type { Effect, JsonValue, Registration, WorldView } from "@openlife/contracts";
+import type { Effect, JsonValue, WorldView } from "@openlife/contracts";
+import type { Registration } from "./rules.ts";
 import { SettlementComponents } from "./vocabulary.ts";
 
 /**

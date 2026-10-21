@@ -117,7 +117,7 @@ test("矿藏图随存档持久化", () => {
   const loaded = Simulation.load(saved, [modernWorldModule, worldClockModule, worldSpaceModule,
     worldObjectsModule, worldDepositsModule]);
   assert.equal(loaded.result.ok, true);
-  const after = loaded.simulation.worldView().getComponent("world-deposits:map", "world-deposits.map") as
+  const after = loaded.simulation!.worldView().getComponent("world-deposits:map", "world-deposits.map") as
     { deposits: unknown[] } | undefined;
   assert.equal(after?.deposits.length, count, "读档后矿藏还在");
 });

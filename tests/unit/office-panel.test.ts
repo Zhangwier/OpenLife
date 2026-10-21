@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { degree, daysLeft, renderOffice } from "../../apps/web/public/office-panel.js";
 
 /** Strip tags so assertions are about words, not markup. */
-const text = (html) => html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+const text = (html: string) => html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
 test("程度用文字表示，不出现百分比或分数", () => {
   assert.equal(degree(0), "没有");

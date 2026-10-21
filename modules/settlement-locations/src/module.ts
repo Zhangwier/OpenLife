@@ -23,16 +23,14 @@ import { fixtureActions, registerFixtures } from "./fixtures.ts";
  */
 
 import type { ComponentData, Effect, JsonValue, OpenLifeModule, WorldView } from "@openlife/contracts";
-import { readField } from "@openlife/contracts";
-import { DAYS_PER_MONTH, DAY_TICKS_PER_YEAR } from "@openlife/life-contracts";
-import { feastOn, feastSoon, illnessOn, illnessSpec, isIll, calendarDate, pickIndex, seasonOf } from "./happenings.ts";
-export { pickIndex, seasonOf } from "./happenings.ts";
-import { HUNGER_MIN_CAPACITY, hungerLevel, hungerToll } from "./hunger-toll.ts";
+import { DAY_TICKS_PER_YEAR } from "@openlife/life-contracts";
+import { feastOn, feastSoon, illnessOn, illnessSpec, isIll, calendarDate } from "./happenings.ts";
+import { HUNGER_MIN_CAPACITY, hungerToll } from "./hunger-toll.ts";
 export { HUNGER_MIN_CAPACITY, HUNGER_SICK_DAYS, hungerToll } from "./hunger-toll.ts";
 import { chooseSeasonStory, storyHistory } from "./story-pick.ts";
-import { acquaintanceOf, askedToday, contactConversations, describeStranger, happeningsView, heardAbout, knowsName, knownName, registerAskAbout, type Acquaintance } from "./knowledge.ts";
+import { acquaintanceOf, askedToday, describeStranger, happeningsView, knowsName, registerAskAbout, type Acquaintance } from "./knowledge.ts";
 import { registerStock } from "./stock.ts";
-import { appraise, type CounterpartView, type Closeness } from "./exchange.ts";
+import { appraise } from "./exchange.ts";
 import { skyOn, isWet, OUTDOOR_PLACES, SKY_NOTE } from "./weather.ts";
 import {
   ObjectCommands,
@@ -63,10 +61,10 @@ import {
 } from "@openlife/module-world-space";
 import { VILLAGE_DAY_AGENT, runVillageAgent } from "./autonomy/village-day.ts";
 import { residentMind, temperamentWords } from "./autonomy/mind.ts";
-import { personOf, heartsOf, tasteOf, isBirthday, birthdayWords, nextHeartEvent, keyOfResident, tieWarmth, type Taste } from "./people.ts";
-import { readSocial, bondOf, withBond, mergeHeard, withNews, freshNews, toJson, ASK_COOLDOWN, REQUEST_DAYS, type SocialMemory } from "./social.ts";
-import { readOrigin, mergedEffects, originById, talentById, originProblem, type PlayerOrigin } from "./origin.ts";
-import { RIVER_TERRACE_PACK, type ResidentSpec, type PlaceSpec, type YieldSpec, type PrototypeSpec, type RecipeSpec } from "./content.ts";
+import { personOf, heartsOf, tasteOf, isBirthday, birthdayWords, nextHeartEvent, keyOfResident, type Taste } from "./people.ts";
+import { bondOf, withBond, mergeHeard, withNews, freshNews, ASK_COOLDOWN, REQUEST_DAYS, type SocialMemory } from "./social.ts";
+import { mergedEffects, originById, talentById, originProblem } from "./origin.ts";
+import { RIVER_TERRACE_PACK, type PrototypeSpec, type RecipeSpec } from "./content.ts";
 
 const OWNER = "settlement-locations";
 const WORLD = "modern:world";
@@ -83,28 +81,28 @@ import {
 import { RESIDENTS, activeId, personName, saveSocial, socialOf } from "./world-reads.ts";
 import { HUNGER_DAYS_PER_POINT, HUNGER_EASED, hungerAt } from "./hunger.ts";
 export { HUNGER_DAYS_PER_POINT, hungerAt };
-import {
-  PEOPLE_TIES_SPOUSE, courtRefusal, engagedTo, registerMarriage, romanceOf, spouseOf, wedRefusal,
-} from "./marriage.ts";
-export { socialOf } from "./world-reads.ts";
+import { courtRefusal, engagedTo, registerMarriage, romanceOf, spouseOf, wedRefusal } from "./marriage.ts";
+export { personName, socialOf } from "./world-reads.ts";
 export { COURT_HEARTS, WED_AFTER_DAYS, romanceOf, spouseOf } from "./marriage.ts";
-
-/** Places of the settlement, each with a purpose and a cost to reach. */
-// Open outdoor arrival spots allow villagers and visitors to pass; 0 is the
-// shared world-space convention for unbounded open areas. Indoor rooms remain
-// capacity-limited. The main household accommodates its two adults + guests.
-const PLACES: PlaceSpec[] = RIVER_TERRACE_PACK.places;
-
-/** Renewing resources. Each has one authoritative owner: this module. */
-const YIELDS: YieldSpec[] = RIVER_TERRACE_PACK.yields;
+import { ACTIVITY_COST, DAILY_ACTIVITY_CAPACITY, EXCHANGE_VALUES, PLACES, PURPOSE, RESOURCE_LABELS, ROOF_MAX, TEACHERS, YIELDS, activityCostFor, carrying, childrenOf, contactConversations, contactLevel, counterpartView, dailyActivity, favourOwed, feltCloseness, fill, hungerLevel, openRequest, originOf, people, pickIndex, prototypeForResource, readResident, requestOf, roofState, seasonOf, seasonTurnDue, skillCut, skillsOf, talentFx, tradeableGoods, wantsOf, worksites, wornWrap, yieldPoints, type Teacher, type YieldState } from "./village-reads.ts";
+export {
+  CARRY_DAYS, DAILY_ACTIVITY_CAPACITY, RESOURCE_LABELS, prototypeForResource, ROOF_LEAKS_AT, ROOF_MAX, activityCostFor, carrying,
+  childrenOf, counterpartView, currentYields, dailyActivity, familyDue, favourOwed, openRequest,
+  originOf, people, pickIndex, roofState, seasonOf, seasonTurnDue, skillsOf, talentFx,
+  tradeableGoods, villagePopulation, worksites, wornWrap, yieldPoints
+} from "./village-reads.ts";
+import { ALIVE, registerPassing } from "./passing.ts";
+import { registerStoryteller, seasonTurnEffects } from "./storyteller.ts";
+export { HEIR_AGE, heirsOf } from "./passing.ts";
+export { seasonTurnEffects } from "./storyteller.ts";
+import { SEASON_LIFE, daysLeftInSeason, familyView, registerFamilyLife, registerSeasonLife, seasonRefusal } from "./season-life.ts";
+export { daysLeftInSeason, familyOf, familyView, liveSeason } from "./season-life.ts";
 
 /**
  * Object prototypes. Capabilities decide what can be done with a thing, so a
  * new vessel never needs a new button (OBJ-001).
  */
 const PROTOTYPES: PrototypeSpec[] = RIVER_TERRACE_PACK.prototypes;
-
-export const RESOURCE_LABELS: Record<string, string> = RIVER_TERRACE_PACK.resourceLabels;
 /** Named routine holders, sent to clients so they never hardcode a villager. */
 const ROLE_VIEW = Object.fromEntries(Object.entries(RIVER_TERRACE_PACK.autonomy).map(([role, key]) => {
   const resident = RIVER_TERRACE_PACK.residents.find((r) => r.key === key)!;
@@ -532,49 +530,6 @@ function registerArrive(ctx: Registration): void {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Reading: homestead, people, worksites
-// ---------------------------------------------------------------------------
-
-interface YieldState {
-  placeId: string;
-  resourceId: string;
-  label: string;
-  unit: string;
-  capacity: number;
-  stock: number;
-  renewDays: number;
-  lastRenewedAt: number;
-}
-
-/** Every yield point, with the stock that has regenerated since it was last drawn. */
-/** Cheap read of every gathering point's current stock (no object counting). */
-export function currentYields(world: WorldView): YieldState[] { return yieldPoints(world); }
-export function yieldPoints(world: WorldView): YieldState[] {
-  return world
-    .listEntities({ kind: "settlement-locations.yield-point" })
-    .filter((entity) => entity.archivedAt === undefined)
-    .map((entity) => {
-      const raw = entity.components[SettlementComponents.yieldPoint] ?? {};
-      const state: YieldState = {
-        placeId: String(raw.placeId ?? ""),
-        resourceId: String(raw.resourceId ?? ""),
-        label: String(raw.label ?? ""),
-        unit: String(raw.unit ?? "份"),
-        capacity: Math.max(0, Number(raw.capacity ?? 0)),
-        stock: Math.max(0, Number(raw.stock ?? 0)),
-        renewDays: Math.max(1, Number(raw.renewDays ?? 30)),
-        lastRenewedAt: Math.max(0, Number(raw.lastRenewedAt ?? 0)),
-      };
-      // Capacity and pace come from the content pack, so a rebalanced pack
-      // also applies to worlds founded before it (the stored values are a cache).
-      const spec = yieldSpecFor(state.placeId, state.resourceId);
-      if (spec) { state.capacity = spec.capacity; state.renewDays = spec.renewDays; }
-      return { ...state, stock: renewedStock(state, world.tick, renewalPerCycle(world, spec), spec?.seasons) };
-    })
-    .sort((a, b) => (a.placeId + a.resourceId).localeCompare(b.placeId + b.resourceId));
-}
-
 /**
  * Deterministic renewal: one unit per whole `renewDays` since the last draw.
  *
@@ -594,72 +549,11 @@ function renewalAnchor(point: YieldState, tick: number): number {
   return point.lastRenewedAt + cycles * point.renewDays;
 }
 
-function renewedStock(state: YieldState, tick: number, perCycle: number, seasons?: string[]): number {
-  const elapsed = Math.max(0, tick - state.lastRenewedAt);
-  const cycles = Math.floor(elapsed / state.renewDays);
-  // perCycle 0 means the point never renews on its own (e.g. finite seed grain
-  // in a pack that does not model other households' fields).
-  if (!seasons?.length || perCycle <= 0) return Math.min(state.capacity, state.stock + cycles * perCycle);
-  // Seasonal points only grow back in cycles that end in one of their seasons.
-  let stock = state.stock;
-  for (let k = 1; k <= cycles && stock < state.capacity; k += 1) {
-    if (seasons.includes(seasonOf(state.lastRenewedAt + k * state.renewDays))) stock += perCycle;
-  }
-  return Math.min(state.capacity, stock);
-}
-
-function yieldSpecFor(placeId: string, resourceId: string): YieldSpec | undefined {
-  return YIELDS.find((y) => y.placeId === placeId && y.resourceId === resourceId);
-}
-
-/** Living villagers (residents and the player alike) who eat from shared stores. */
-export function villagePopulation(world: WorldView): number {
-  return world.listEntities({ kind: "modern.character" })
-    .filter((e) => e.archivedAt === undefined && readField(world, e.id, "modern.vitals", "alive") !== false)
-    .length;
-}
-
-/**
- * Units a point regains per renewal cycle. Points with `perResidents` represent
- * the whole village's off-screen work (other households cooking, other fields),
- * so they scale with how many people live here: one unit per `perResidents`
- * people, rounded up. Grain without `perResidents` stays finite seed stock.
- */
-function renewalPerCycle(world: WorldView, spec: YieldSpec | undefined): number {
-  if (spec?.perResidents) return Math.max(1, Math.ceil(villagePopulation(world) / spec.perResidents));
-  return spec?.resourceId === "resource:grain" ? 0 : 1;
-}
-
-function readResident(world: WorldView, residentId: string) {
-  const raw = world.getComponent(residentId, SettlementComponents.resident);
-  if (!raw) return undefined;
-  return {
-    household: String(raw.household ?? ""),
-    role: String(raw.role ?? ""),
-    trait: String(raw.trait ?? ""),
-    wish: String(raw.wish ?? ""),
-    workPlace: String(raw.workPlace ?? ""),
-    homeSpace: String(raw.homeSpace ?? ""),
-    hunger: Math.max(0, Number(raw.hunger ?? 0)),
-    rested: Math.max(0, Number(raw.rested ?? 1)),
-    lastRoutineAt: Number(raw.lastRoutineAt ?? -1),
-    standingRoutine: String(raw.standingRoutine ?? ""),
-    lastRoutineActions: Array.isArray(raw.lastRoutineActions) ? raw.lastRoutineActions : [],
-    tradeCount: Number(raw.tradeCount ?? 0),
-  };
-}
-
 /** 给界面看的性格词（来自数据包里的性格数值）。 */
 export function residentTemperament(id: string): string[] {
   const mind = residentMind(id);
   return mind ? temperamentWords(mind) : [];
 }
-
-/** The player's 出身与天赋 (none for villagers and for lives saved before 0.2.0). */
-export function originOf(world: WorldView, actorId: string): PlayerOrigin {
-  return readOrigin(world.getComponent(actorId, SettlementComponents.holding)?.origin);
-}
-export function talentFx(world: WorldView, actorId: string) { return mergedEffects(originOf(world, actorId)); }
 /** A walk inside the village costs one unit; 腿脚快 makes the first few each day free. */
 export function walkCost(world: WorldView, actorId: string): number {
   const free = talentFx(world, actorId).freeWalks;
@@ -672,17 +566,6 @@ export function walkCost(world: WorldView, actorId: string): number {
 export function recipeActivity(world: WorldView, actorId: string, recipe: RecipeSpec): number {
   return Math.max(1, recipe.activity - talentFx(world, actorId).craftActivity - skillCut(world, actorId, recipe.id));
 }
-
-// ---------------------------------------------------------------------------
-// 手艺：跟村里人一课一课学来的本事（陶叔的看火、岚母的编织、阿予的认地）。
-// ---------------------------------------------------------------------------
-type Teacher = { residentId: string; key: string; name: string; teaches: NonNullable<ResidentSpec["teaches"]> };
-const TEACHERS: Teacher[] = RIVER_TERRACE_PACK.residents.filter((r) => r.teaches)
-  .map((r) => ({ residentId: `settlement-locations:resident:${r.key}`, key: r.key, name: r.name, teaches: r.teaches! }));
-export function skillsOf(world: WorldView, actorId: string): string[] {
-  const raw = world.getComponent(actorId, SettlementComponents.holding)?.skills;
-  return Array.isArray(raw) ? raw.map(String) : [];
-}
 function lessonsOf(world: WorldView, actorId: string): Record<string, { n: number; at: number }> {
   const raw = world.getComponent(actorId, SettlementComponents.holding)?.lessons;
   const out: Record<string, { n: number; at: number }> = {};
@@ -692,10 +575,6 @@ function lessonsOf(world: WorldView, actorId: string): Record<string, { n: numbe
       out[k] = { n: Number(o.n ?? 0), at: Number(o.at ?? -1) };
     }
   return out;
-}
-function skillCut(world: WorldView, actorId: string, recipeId: string): number {
-  const skills = skillsOf(world, actorId);
-  return TEACHERS.some((t) => skills.includes(t.teaches.skill) && t.teaches.recipes?.includes(recipeId)) ? 1 : 0;
 }
 function skillDrawBonus(world: WorldView, actorId: string, placeId: string, resourceId: string): number {
   const skills = skillsOf(world, actorId);
@@ -769,77 +648,6 @@ function cropSummary(world: WorldView): string {
   if (crop.phase === "ready") return `粟已经成熟，${seasonOf(world.tick)}收可得 ${cropYield(world.tick)} 份：三份随身，其余入田边粮堆。`;
   if (!crop.tended) return `粟正在生长，还需要照料；距成熟约 ${crop.remainingDays} 天。`;
   return `粟已经照料，距成熟约 ${crop.remainingDays} 天。`;
-}
-
-/** M2-UX2-A: a bounded capacity for actions within the current kernel day.
- * This is NOT a second clock: an old save without these fields starts with
- * 8 free activity units at the world's current tick. Time still advances via
- * the existing Simulation clock and its scheduler.
- */
-export const DAILY_ACTIVITY_CAPACITY = 8;
-const ACTIVITY_COST: Partial<Record<string, number>> = {
-  [SettlementCommands.eat]: 1,
-  [SettlementCommands.drink]: 1,
-  [SettlementCommands.draw]: 2,
-  [SettlementCommands.talk]: 1,
-  [SettlementCommands.learn]: 2,
-  [SettlementCommands.cook]: 2,
-  [SettlementCommands.weaveBag]: 2,
-  [SettlementCommands.weaveMat]: 2,
-  [SettlementCommands.prepareFiber]: 2,
-  [SettlementCommands.weaveWrap]: 2,
-  [SettlementCommands.sow]: 3,
-  [SettlementCommands.harvest]: 3,
-  [SettlementCommands.tend]: 3,
-  [SettlementCommands.rest]: 2,
-  [SettlementCommands.craft]: 2,
-};
-
-/** A garment the wearer actually has on: any worn prototype with the `wearable` capability (not only the fiber wrap). */
-export function wornWrap(world: WorldView, actorId: string): string {
-  const id = wornByActor(world, actorId);
-  if (!id) return "";
-  const worn = world.getEntity(id);
-  if (!worn || worn.archivedAt !== undefined) return "";
-  return prototypeOf(world, id).capabilities.includes("wearable") ? id : "";
-}
-const CRAFT_COMMANDS = new Set<string>([SettlementCommands.weaveBag, SettlementCommands.weaveMat,
-  SettlementCommands.prepareFiber, SettlementCommands.weaveWrap, SettlementCommands.cook]);
-const OUTDOOR_WORK = new Set<string>([SettlementCommands.draw, SettlementCommands.tend, SettlementCommands.sow, SettlementCommands.harvest]);
-export function activityCostFor(world: WorldView, actorId: string, commandType: string): number {
-  let cost = ACTIVITY_COST[commandType] ?? 0;
-  const fx = talentFx(world, actorId);
-  if (cost && CRAFT_COMMANDS.has(commandType)) {
-    const recipe = (RIVER_TERRACE_PACK.recipes ?? []).find((r) => r.command === commandType);
-    cost = Math.max(1, cost - fx.craftActivity - (recipe ? skillCut(world, actorId, recipe.id) : 0));
-  }
-  // Rain and snow make outdoor labour heavier (unless you are used to hardship).
-  if (cost && OUTDOOR_WORK.has(commandType) && isWet(world.tick) && !fx.ignoreWet &&
-      OUTDOOR_PLACES.has(occupiedPlaceId(world, actorId))) cost += 1;
-  if (commandType === SettlementCommands.tend &&
-      occupiedSpaceId(world, actorId) === "space:field-edge" && wornWrap(world, actorId)) {
-    cost -= 1;
-  }
-  return cost;
-}
-
-export function dailyActivity(world: WorldView, actorId: string) {
-  const raw = world.getComponent(actorId, SettlementComponents.holding);
-  const day = world.tick;
-  // A genuinely used sleeping mat grants exactly one extra unit the next day.
-  // The existing world tick stays authoritative; an old save gets 8 units.
-  // Preserve today\'s already earned bonus if the player rests again today.
-  const extraToday = day > 0 && (Number(raw?.matRestedAt ?? -1) === day - 1 ||
-    Number(raw?.matBonusPreservedAt ?? -1) === day);
-  // A winter night by one's own fire is worth another unit, on top of a mat.
-  const warmToday = day > 0 && Number(raw?.warmNightAt ?? -1) === day - 1;
-  const capacity = Math.max(HUNGER_MIN_CAPACITY,
-    DAILY_ACTIVITY_CAPACITY + (extraToday ? 1 : 0) + (warmToday ? 1 : 0) + talentFx(world, actorId).dailyActivity
-    - hungerToll(world, actorId).units);
-  const used = Number(raw?.activityDay ?? -1) === day
-    ? Math.max(0, Math.min(capacity, Number(raw?.activityUsed ?? 0)))
-    : 0;
-  return { day, used, remaining: capacity - used, capacity };
 }
 
 function registerActivityBudget(ctx: Registration): void {
@@ -1118,64 +926,11 @@ function registerNpcDayMarker(ctx: Registration): void {
     }],
   });
 }
-
-/**
- * M3-B: narrow, explicit two-party barter between the cook and the farmer.
- * Proposal records the cook's consent; acceptance is a second command by Yu.
- * The single acceptance transaction swaps existing ownership AND custody of
- * two concrete, individually held resource bundles. No parallel stock.
- */
-
-
-// ---------------------------------------------------------------------------
-// General exchange (any two people, any valued goods, favours owed)
-// ---------------------------------------------------------------------------
-
-const EXCHANGE_VALUES: Record<string, number> = RIVER_TERRACE_PACK.exchange?.values ?? {};
-const EXCHANGE_WANTS: Record<string, string[]> = RIVER_TERRACE_PACK.exchange?.wants ?? {};
 const MAX_EXCHANGE_ITEMS = 4;
 
 function isPerson(world: WorldView, id: string): boolean {
   const entity = world.getEntity(id);
   return Boolean(entity && entity.archivedAt === undefined && entity.kind === "modern.character");
-}
-
-/** Items a person holds and owns outright that can change hands, by resource. */
-export function tradeableGoods(world: WorldView, personId: string): Record<string, string[]> {
-  const out: Record<string, string[]> = {};
-  const held = world.listRelations({ type: ObjectRelations.heldBy, to: personId }).map((r) => r.from).sort();
-  for (const id of held) {
-    const resourceId = prototypeOf(world, id).resourceId ?? "";
-    if (!resourceId || !(resourceId in EXCHANGE_VALUES) || !tradeReady(world, id, personId, resourceId)) continue;
-    (out[resourceId] ??= []).push(id);
-  }
-  return out;
-}
-
-/** Favours: worth units `debtorId` owes `creditorId` (kept on the creditor). */
-export function favourOwed(world: WorldView, creditorId: string, debtorId: string): number {
-  const raw = readField(world, creditorId, SettlementComponents.resident, "favours") ??
-    readField(world, creditorId, SettlementComponents.holding, "favours");
-  const map = raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, JsonValue> : {};
-  return Number(map[debtorId] ?? 0);
-}
-
-function wantsOf(world: WorldView, personId: string): string[] {
-  const key = RESIDENTS.find((r) => residentId(r.key) === personId)?.key;
-  return key ? EXCHANGE_WANTS[key] ?? [] : [];
-}
-
-
-export function counterpartView(world: WorldView, proposerId: string, targetId: string): CounterpartView {
-  const goods = tradeableGoods(world, targetId);
-  return {
-    name: personName(world, targetId),
-    hunger: hungerLevel(world, targetId),
-    holds: Object.fromEntries(Object.entries(goods).map(([r, ids]) => [r, ids.length])),
-    wants: wantsOf(world, targetId),
-    closeness: feltCloseness(world, proposerId, targetId),
-    owed: favourOwed(world, targetId, proposerId),
-  };
 }
 
 interface ExchangePayload { targetId: string; give: string[]; askResource: string; askAmount: number; credit: boolean }
@@ -1314,8 +1069,6 @@ function registerExchange(ctx: Registration): void {
  * command authorizes a concrete quote, and only the player's own acceptance
  * swaps the two real item IDs in a single world transaction.
  */
-
-
 
 /**
  * NPC-owned request/answer. These are ordinary world commands, not a scripted
@@ -1586,11 +1339,6 @@ export interface HomesteadView {
   note: string;
 }
 
-function contactLevel(world: WorldView, actorId: string, targetId: string): string {
-  const count = contactConversations(world, actorId, targetId);
-  return count >= 3 ? "相识" : count > 0 ? "见过" : "陌生";
-}
-
 export function homestead(world: WorldView, actorId: string): HomesteadView {
   const placeId = occupiedPlaceId(world, actorId);
   const spaceId = occupiedSpaceId(world, actorId);
@@ -1790,17 +1538,6 @@ export function homestead(world: WorldView, actorId: string): HomesteadView {
       : "这个世界还没有这座聚落。",
   };
 }
-
-const PURPOSE: Record<string, string> = {
-  "place:yard": "住处与储粮",
-  "place:hearth-yard": "做饭与分食",
-  "place:river": "取水",
-  "place:field": "田地与收成",
-  "place:kiln": "烧制陶器",
-  "place:claypits": "取黏土",
-  "place:reedbed": "割芦苇与柴草",
-  "place:ford": "过河与交换", ...Object.fromEntries(RIVER_TERRACE_PACK.places.filter((p) => p.purpose).map((p) => [p.id, p.purpose!])),
-};
 
 function homesteadActions(
   world: WorldView,
@@ -2021,7 +1758,6 @@ function homesteadActions(
         grainId && fuelId ? { grainId, fuelId } : {});
     }
   }
-
 
   if (placeId === "place:hearth-yard" &&
       occupiedPlaceId(world, residentId("cook")) === placeId &&
@@ -2324,98 +2060,6 @@ function nameOfObject(world: WorldView, objectId: string): string {
   return instance.name || prototypeOf(world, objectId).name;
 }
 
-export function carrying(world: WorldView, actorId: string): { resourceId: string; label: string; count: number; unit: string }[] {
-  const rows = new Map<string, { resourceId: string; label: string; count: number; unit: string }>();
-  const held = world.listRelations({ type: ObjectRelations.heldBy, to: actorId }).map((relation) => relation.from);
-  for (const objectId of held) {
-    const entity = world.getEntity(objectId);
-    if (!entity || entity.archivedAt !== undefined) continue;
-    const prototype = prototypeOf(world, objectId);
-    const instance = readObject(entity.components[ObjectComponents.object]);
-    const amount = prototype.capacity > 0 && instance.quantity === 0 ? 1 : Math.max(1, instance.quantity);
-    const row = rows.get(prototype.resourceId) ?? {
-      resourceId: prototype.resourceId,
-      label: RESOURCE_LABELS[prototype.resourceId] ?? prototype.name,
-      count: 0,
-      unit: prototype.unit,
-    };
-    row.count += amount;
-    rows.set(prototype.resourceId, row);
-    // Contents of a carried container travel with it.
-    for (const inner of contentsOf(world, objectId)) {
-      const innerPrototype = prototypeOf(world, inner);
-      const innerInstance = readObject(world.getComponent(inner, ObjectComponents.object));
-      const innerRow = rows.get(innerPrototype.resourceId) ?? {
-        resourceId: innerPrototype.resourceId,
-        label: RESOURCE_LABELS[innerPrototype.resourceId] ?? innerPrototype.name,
-        count: 0,
-        unit: innerPrototype.unit,
-      };
-      innerRow.count += Math.max(1, innerInstance.quantity);
-      rows.set(innerPrototype.resourceId, innerRow);
-    }
-  }
-  return [...rows.values()].sort((a, b) => a.resourceId.localeCompare(b.resourceId));
-}
-
-export function people(world: WorldView): { residents: Record<string, unknown>[]; households: number } {
-  const residents = world
-    .listEntities({ kind: "modern.character" })
-    .filter((entity) => entity.archivedAt === undefined && Boolean(entity.components[SettlementComponents.resident]))
-    .map((entity) => {
-      const resident = readResident(world, entity.id)!;
-      return {
-        id: entity.id,
-        name: String(entity.components["modern.identity"]?.givenName ?? entity.id),
-        age: Math.floor((world.tick - Number(entity.components["modern.identity"]?.bornAt ?? world.tick)) / DAY_TICKS_PER_YEAR),
-        ...resident,
-        placeId: occupiedPlaceId(world, entity.id),
-        placeName: PLACES.find((place) => place.id === occupiedPlaceId(world, entity.id))?.name ?? "",
-        spaceName: String(world.getComponent(resident.homeSpace, SpaceComponents.space)?.name ?? ""),
-      };
-    })
-    .sort((a, b) => a.id.localeCompare(b.id));
-  return { residents, households: new Set(residents.map((resident) => resident.household)).size };
-}
-
-export function worksites(world: WorldView): {
-  places: { placeId: string; name: string; purpose: string; costDays: number; occupants: number; resources: YieldState[]; objects: number }[];
-  totals: { resourceId: string; label: string; stock: number; capacity: number; unit: string }[];
-} {
-  const points = yieldPoints(world);
-  // Where every live item stands, read once (not once per place).
-  const standsIn = new Map<string, string[]>();
-  for (const entity of world.listEntities({ kind: ObjectKinds.item })) {
-    standsIn.set(entity.id, world.listRelations({ type: ObjectRelations.containedIn, from: entity.id }).map((r) => r.to));
-  }
-  const places = PLACES.map((place) => {
-    // Objects count as "in this place" when they stand in the place itself or
-    // in one of its spaces; a jar in the storage room is still the yard's jar.
-    const holders = new Set<string>([place.id, ...place.spaces.map((space) => space.id)]);
-    return {
-      placeId: place.id,
-      name: place.name,
-      purpose: PURPOSE[place.id] ?? "生活空间",
-      costDays: place.costDays,
-      occupants: world.listRelations({ type: SpaceRelations.occupancy, to: place.id }).length,
-      resources: points.filter((point) => point.placeId === place.id),
-      objects: [...standsIn.values()].filter((to) => to.some((id) => holders.has(id))).length,
-    };
-  });
-  const totals = new Map<string, { resourceId: string; label: string; stock: number; capacity: number; unit: string }>();
-  for (const point of points) {
-    const row = totals.get(point.resourceId) ?? {
-      resourceId: point.resourceId,
-      label: RESOURCE_LABELS[point.resourceId] ?? point.label,
-      stock: 0, capacity: 0, unit: point.unit,
-    };
-    row.stock += point.stock;
-    row.capacity += point.capacity;
-    totals.set(point.resourceId, row);
-  }
-  return { places, totals: [...totals.values()].sort((a, b) => a.resourceId.localeCompare(b.resourceId)) };
-}
-
 function isStandingIn(world: WorldView, objectId: string, placeId: string): boolean {
   const container = world
     .listRelations({ type: ObjectRelations.containedIn, from: objectId })
@@ -2525,7 +2169,10 @@ export function talkLine(world: WorldView, actorId: string, targetId: string, co
   const fill = (t: string) => t.replace("{name}", name).replace("{wish}", spec?.wish ?? "")
     .replace(/：“\{weather\}”/, saysWeather ? "：“{weather}”" : "。").replace(/([。！？])\{weather\}”/, saysWeather ? "$1{weather}”" : "$1”")
     .replace("{weather}", saysWeather ? DIALOGUE.weather[skyOn(world.tick)] ?? "" : "");
-  if (conversations === 1) { const line = fill(pick(spec?.firstMet ?? DIALOGUE.firstMet ?? [], "first")).replace("{name}", name); return { line: `${line}（这是${name}）`, reveal: false }; }
+  // 第一回说话先报名：能拿到这个人自己的话就用自己的，否则用陌生人的通用话。
+  // ResidentSpec 没有 firstMet 字段（那是 pack:new 的旧模板留下的假字段），
+  // 每个人自己的话在 residentLines 里，按 key 取。
+  if (conversations === 1) { const line = fill(pick(RESIDENT_LINES[key] ?? DIALOGUE.stranger, "first")).replace("{name}", name); return { line: `${line}（这是${name}）`, reveal: false }; }
   if (bond.grudge >= 3) return { line: fill(pick(DIALOGUE.grudge, "g")), reveal: false };
   // 交情到了，会讲一段只跟你讲的往事（每段只讲一次）。
   // 往事不会一口气讲完：同一个人隔几天才再讲一段，一天里最多听一个人讲。
@@ -2849,7 +2496,6 @@ function registerEat(ctx: Registration): void {
   });
 }
 
-
 /**
  * M2-A1: turn one personally gathered grain and one fuel bundle into one
  * cooked ration at the shared hearth.  Inputs and output share one transaction.
@@ -2940,7 +2586,6 @@ function registerCook(ctx: Registration): void {
     },
   });
 }
-
 
 /** M2-B-A: weave two personally held reed bundles into a real carrying bag.
  * The original bundles are archived in the same world transaction.
@@ -3210,7 +2855,6 @@ function registerHarvest(ctx: Registration): void {
   });
 }
 
-
 function registerTend(ctx: Registration): void {
   ctx.registerConstraintRule({
     id: `${SettlementCommands.tend}.allowed`,
@@ -3457,21 +3101,6 @@ export function fillEffects(world: WorldView, actorId: string, containerId: stri
   return effects;
 }
 
-/** Maps a bulk resource to the prototype that carries one unit of it. */
-export function prototypeForResource(resourceId: string): string {
-  const mapping: Record<string, string> = {
-    "resource:water": "prototype:water",
-    "resource:grain": "prototype:grain",
-    "resource:clay": "prototype:clay-batch",
-    "resource:fuel": "prototype:fuel-bundle",
-    "resource:reed": "prototype:reed-bundle",
-    "resource:cooked": "prototype:cooked-food",
-    "resource:fish": "prototype:fish",
-    "resource:fiber": "prototype:fiber-bundle", ...(RIVER_TERRACE_PACK.rawPrototypes ?? {}),
-  };
-  return mapping[resourceId] ?? "prototype:grain";
-}
-
 // ---------------------------------------------------------------------------
 // Authored instances: 80+ objects with a real place and a real owner
 // ---------------------------------------------------------------------------
@@ -3507,7 +3136,6 @@ function clampInt(value: unknown, fallback: number, min: number, max: number): n
   return Math.max(min, Math.min(max, Math.round(number)));
 }
 
-
 /** Exported so tests can assert the authored density without duplicating it. */
 export const SettlementContent = {
   residents: RESIDENTS.length,
@@ -3529,7 +3157,6 @@ export function instanceSpecs(): readonly InstanceSpec[] {
 }
 
 export type { ComponentData };
-
 
 /* ------------------------------------------------------------------ */
 /* Generic recipes: inputs + tool + workplace + time → one output.     */
@@ -3629,11 +3256,6 @@ function registerCraft(ctx: Registration): void {
   });
 }
 
-
-function fill(template: string | number, ctx: Record<string, JsonValue>): JsonValue {
-  return typeof template === "string" && template.startsWith("$") && template in ctx ? ctx[template]! : template;
-}
-
 /**
  * One recipe as one transaction: inputs leave the hands and are archived, the
  * outputs appear owned by the maker (in hand, or at the workplace when they
@@ -3696,31 +3318,6 @@ function recipeForCommand(command: string): RecipeSpec {
   return r;
 }
 
-
-// ---------------------------------------------------------------------------
-// Homes: roofs wear in rain and snow and are mended with reed, rope and clay.
-// ---------------------------------------------------------------------------
-
-export const ROOF_MAX = 10;
-/** At or below this the roof leaks: a wet night at home gives no rest bonus. */
-export const ROOF_LEAKS_AT = 3;
-/** Wet days of wear per lost level (snow counts double). */
-const ROOF_WEAR_PER_LEVEL = 4;
-
-/** Lazy roof state: computed from the last mending and the deterministic weather since. */
-export function roofState(world: WorldView, spaceId: string) {
-  const raw = world.hasEntity(spaceId) ? world.getComponent(spaceId, SettlementComponents.roof) : undefined;
-  const level = Math.max(0, Math.min(ROOF_MAX, Number(raw?.level ?? ROOF_MAX)));
-  const since = Math.max(0, Math.floor(Number(raw?.mendedAt ?? 0)));
-  let wear = 0;
-  for (let d = Math.max(since + 1, world.tick - 720); d <= world.tick; d++) {
-    const sky = skyOn(d);
-    wear += sky === "雪" ? 2 : sky === "雨" ? 1 : 0;
-  }
-  const condition = Math.max(0, level - Math.floor(wear / ROOF_WEAR_PER_LEVEL));
-  return { condition, max: ROOF_MAX, leaking: condition <= ROOF_LEAKS_AT, mendedAt: since };
-}
-
 function roofMendEffects(world: WorldView, actorId: string, recipe: RecipeSpec, ids: string[], used: number, charge: boolean): Effect[] {
   const spaceId = occupiedSpaceId(world, actorId);
   const before = roofState(world, spaceId).condition;
@@ -3751,31 +3348,6 @@ export interface PlayerRequestView {
   here: boolean; whereName: string;
 }
 
-interface RequestRecord {
-  status: string; to: string; at: number; resourceId: string; give: string[];
-  kind: "borrow" | "trade" | "collect"; placeId: string; reason: string;
-}
-
-
-
-function requestOf(world: WorldView, residentId: string): RequestRecord | null {
-  const raw = world.getComponent(residentId, SettlementComponents.resident)?.request;
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const r = raw as Record<string, JsonValue>;
-  const kind = r.kind === "trade" || r.kind === "collect" ? r.kind : "borrow";
-  return {
-    status: String(r.status ?? ""), to: String(r.to ?? ""), at: Number(r.at ?? -100),
-    resourceId: String(r.resourceId ?? ""), give: Array.isArray(r.give) ? r.give.map(String) : [],
-    kind, placeId: String(r.placeId ?? ""), reason: String(r.reason ?? ""),
-  };
-}
-
-/** A request still waiting for the person it was made to. */
-export function openRequest(world: WorldView, residentId: string): RequestRecord | null {
-  const r = requestOf(world, residentId);
-  return r && r.status === "pending" && world.tick - r.at <= REQUEST_DAYS ? r : null;
-}
-
 function worth(resourceId: string): number { return EXCHANGE_VALUES[resourceId] ?? 0; }
 
 function handover(itemId: string, from: string, to: string, reason: string): Effect[] {
@@ -3797,18 +3369,6 @@ function setFavour(world: WorldView, creditorId: string, debtorId: string, value
   const v = Math.round(value * 10) / 10;
   if (v > 0) favours[debtorId] = v; else delete favours[debtorId];
   return [{ kind: "modifyComponent", entityId: creditorId, component, patch: { favours }, reason }];
-}
-
-
-/** How close the counterpart feels to the proposer: talk counts, and so do their own memories. */
-function feltCloseness(world: WorldView, proposerId: string, targetId: string): Closeness {
-  const base = contactLevel(world, proposerId, targetId) as Closeness;
-  if (!world.getComponent(targetId, SettlementComponents.resident)) return base;
-  const bond = bondOf(socialOf(world, targetId), proposerId);
-  if (bond.grudge >= 3) return "陌生";
-  if (base === "陌生" && bond.familiarity >= 4) return bond.trust >= 7 ? "相识" : "见过";
-  if (base === "见过" && (bond.trust >= 8 || bond.familiarity >= 6)) return "相识";
-  return base;
 }
 
 /** What a resident feels about you, in a few words. */
@@ -4057,7 +3617,6 @@ function registerSocial(ctx: Registration): void {
   });
 }
 
-
 // ---------------------------------------------------------------------------
 // 出身与天赋：新的人生开始时选一次。起始物品真实生成、归玩家所有；
 // 认得你的村民把这份熟悉记在自己的人情账上（social.ts），之后照常变化。
@@ -4137,7 +3696,6 @@ export function originView(world: WorldView, actorId: string) {
     daysHere: o.chosenAt >= 0 ? world.tick - o.chosenAt + 1 : null,
   };
 }
-
 
 // ---------------------------------------------------------------------------
 // 送礼与心愿：玩家主动把自己的一样东西当面交给村民；正中心愿时心愿了结。
@@ -4327,7 +3885,6 @@ function registerGift(ctx: Registration): void {
   });
 }
 
-
 function giftDays(world: WorldView, me: string): Record<string, number> {
   const raw = world.getComponent(me, SettlementComponents.holding)?.giftDay;
   return raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, number> : {};
@@ -4390,581 +3947,3 @@ function personCard(world: WorldView, me: string, rid: string) {
   };
 }
 
-
-// ---------------------------------------------------------------------------
-// 一季一季地过：人生不能一天天抠，把心思放在一处，一季过去再结算。
-// 时间一口气推过去时村里不逐日模拟（内核把长跳当作略过），所以由这里按
-// 「这一季你多半在干什么、跟谁在一起」结算口粮、交情、手艺与收获。
-// ---------------------------------------------------------------------------
-const SEASON_LIFE = RIVER_TERRACE_PACK.seasonLife;
-type Season = "春" | "夏" | "秋" | "冬";
-
-/** 从今天到这一季结束还剩几天（含今天之后的日子，至少 1 天）。 */
-export function daysLeftInSeason(tick: number): number {
-  const season = seasonOf(tick);
-  let d = 1;
-  while (seasonOf(tick + d) === season && d < 120) d += 1;
-  return d;
-}
-
-function seasonRefusal(world: WorldView, me: string): string {
-  if (isIll(world.tick, me)) return "病着，先把身子养好";
-  if (world.getComponent(me, "practice-runtime.active")) return "手上的手艺还没做完";
-  return "";
-}
-
-function pendingSeason(world: WorldView, me: string): { from: number; focus: string; season: Season; age: number } | null {
-  const raw = world.getComponent(me, SettlementComponents.holding)?.seasonPending;
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const r = raw as Record<string, JsonValue>;
-  return { from: Number(r.from), focus: String(r.focus), season: String(r.season) as Season, age: Number(r.age ?? 0) };
-}
-
-/** 一起过日子的人：配偶、孩子，以及出身里就一起住的人（如陶家）。 */
-export function familyOf(world: WorldView, me: string): string[] {
-  const out = new Set<string>();
-  for (const r of world.listRelations({ type: "family.married_to", from: me })) out.add(r.to);
-  for (const r of world.listRelations({ type: "family.parent_of", from: me })) out.add(r.to);
-  for (const r of world.listRelations({ type: "family.parent_of", to: me })) out.add(r.from);
-  const origin = originOf(world, me);
-  const spec = (RIVER_TERRACE_PACK.origins ?? []).find((o) => o.id === origin.id);
-  for (const [key, b] of Object.entries(spec?.bonds ?? {})) if (Number(b.familiarity ?? 0) >= 4) out.add(residentId(key));
-  return [...out].filter((id) => world.getEntity(id) && world.getEntity(id)!.archivedAt === undefined &&
-    world.getComponent(id, "modern.vitals")?.alive !== false);
-}
-
-function registerSeasonLife(ctx: Registration): void {
-  ctx.registerConstraintRule({
-    id: `${SettlementCommands.beginSeason}.allowed`, commandType: SettlementCommands.beginSeason,
-    evaluate: (c) => {
-      const me = c.command.actorId ?? "";
-      if (!me || me !== activeId(c.world) || !occupiedPlaceId(c.world, me)) return refuse(SettlementRejection.NotYours, "只有在村里落了脚，才谈得上怎么过日子。");
-      if (!SEASON_LIFE?.focuses.some((f) => f.id === String(c.command.payload.focus))) return refuse(SettlementRejection.Busy, "要先想好这一季把心思放在哪儿。");
-      const why = seasonRefusal(c.world, me);
-      return why ? refuse(SettlementRejection.Busy, `${why}。`) : { ok: true };
-    },
-  });
-  ctx.registerResolutionRule({
-    id: `${SettlementCommands.beginSeason}.resolve`, commandType: SettlementCommands.beginSeason,
-    resolve: (c): Effect[] => {
-      const me = c.command.actorId as string;
-      const seasonPending = { from: c.world.tick, focus: String(c.command.payload.focus), season: seasonOf(c.world.tick),
-        age: Number(c.world.getComponent(me, "modern.vitals")?.ageYears ?? 0) };
-      const holding = c.world.getComponent(me, SettlementComponents.holding);
-      return [holding
-        ? { kind: "modifyComponent", entityId: me, component: SettlementComponents.holding, patch: { seasonPending }, reason: "a season to live through" }
-        : { kind: "setComponent", entityId: me, component: SettlementComponents.holding, value: { seasonPending }, reason: "a season to live through" }];
-    },
-  });
-  ctx.registerConstraintRule({
-    id: `${SettlementCommands.settleSeason}.allowed`, commandType: SettlementCommands.settleSeason,
-    evaluate: (c) => pendingSeason(c.world, c.command.actorId ?? "") ? { ok: true } : refuse(SettlementRejection.Busy, "没有正在过的一季。"),
-  });
-  ctx.registerResolutionRule({
-    id: `${SettlementCommands.settleSeason}.resolve`, commandType: SettlementCommands.settleSeason,
-    resolve: (c): Effect[] => settleSeasonEffects(c.world, c.command.actorId as string),
-  });
-}
-
-/** 一次结算里对同一个人的记忆改好几回时，先在这里攒着，最后一并写回（不互相覆盖）。 */
-type SocialDraft = Map<string, SocialMemory>;
-const draftOf = (draft: SocialDraft, world: WorldView, id: string) => draft.get(id) ?? socialOf(world, id);
-const flushDraft = (draft: SocialDraft, reason: string): Effect[] => [...draft].map(([id, m]) => saveSocial(id, m, reason));
-
-function settleSeasonEffects(world: WorldView, me: string): Effect[] {
-  const draft: SocialDraft = new Map();
-  const pending = pendingSeason(world, me)!;
-  const focus = SEASON_LIFE!.focuses.find((f) => f.id === pending.focus)!;
-  const tick = world.tick, season = pending.season;
-  const effects: Effect[] = [];
-  const lines: string[] = [focus.line[season]];
-  const alive = (id: string) => world.getEntity(id) && world.getEntity(id)!.archivedAt === undefined && world.getComponent(id, "modern.vitals")?.alive !== false;
-  const villagers = RESIDENTS.map((r) => residentId(r.key)).filter(alive);
-  const family = familyOf(world, me);
-  const companions = focus.with === "*" ? villagers : focus.with === "family" ? family : focus.with.map(residentId).filter(alive);
-
-  // 这一季家里有口粮、有火：回来时不饿；村里人也一样过来了。
-  for (const e of world.listEntities()) {
-    const has = Boolean(world.getComponent(e.id, SettlementComponents.holding));
-    if (!has && !world.getComponent(e.id, SettlementComponents.resident)) continue;
-    const patch = { hunger: 0, hungerAt: tick, ...(e.id === me ? { seasonPending: null, lastSeasonAt: tick } : {}) };
-    effects.push(has ? { kind: "modifyComponent", entityId: e.id, component: SettlementComponents.holding, patch, reason: "a season of ordinary meals" }
-      : { kind: "setComponent", entityId: e.id, component: SettlementComponents.holding, value: patch, reason: "a season of ordinary meals" });
-  }
-
-  // 交情：一起过了一季的人更亲；原本要好、这一季却少见的人，有点生分。
-  const closer: string[] = [], missed: string[] = [];
-  const holdingNow = world.getComponent(me, SettlementComponents.holding);
-  const missedSaid = { ...((holdingNow?.missedSaid ?? {}) as Record<string, number>) };
-  for (const id of villagers) {
-    const memory = draftOf(draft, world, id);
-    const bond = bondOf(memory, me);
-    const together = companions.includes(id), kin = family.includes(id);
-    const change = together ? { familiarity: focus.with === "*" ? 1 : 2, trust: focus.with === "*" ? 0.5 : 1 }
-      : kin ? { familiarity: 0.5, trust: 0 }
-      : bond.familiarity >= 4 ? { familiarity: -0.5, trust: 0 } : null;
-    if (!change) continue;
-    if (together && focus.with !== "*") closer.push(personName(world, id));
-    if (change.familiarity < 0 && tick - Number(missedSaid[id] ?? -999) >= 360) { missed.push(personName(world, id)); missedSaid[id] = tick; }
-    draft.set(id, withBond(memory, me, change, tick));
-  }
-  if (focus.with === "*") lines.push("村里人跟你都更熟了。");
-  if (closer.length) lines.push(SEASON_LIFE!.closer.replace("{names}", closer.join("、")));
-  if (missed.length) effects.push({ kind: "modifyComponent", entityId: me, component: SettlementComponents.holding, patch: { missedSaid: missedSaid as unknown as JsonValue }, reason: "said once a year" });
-  if (missed.length) lines.push(SEASON_LIFE!.missed.replace("{names}", missed.slice(0, 3).join("、") + (missed.length > 3 ? "他们" : "")));
-
-  // 手艺：跟着肯教你的人一整季，那门手艺也就摸熟了。
-  const skills = skillsOf(world, me);
-  for (const t of TEACHERS) {
-    if (!companions.includes(t.residentId) || skills.includes(t.teaches.skill) || focus.with === "*" || isIll(tick, t.residentId)) continue;
-    if (bondOf(socialOf(world, t.residentId), me).familiarity < 2) continue;
-    skills.push(t.teaches.skill);
-    lines.push(SEASON_LIFE!.learned.replace("{name}", t.name).replace("{skill}", t.teaches.name));
-  }
-  if (skills.length !== skillsOf(world, me).length)
-    effects.push({ kind: "modifyComponent", entityId: me, component: SettlementComponents.holding, patch: { skills }, reason: "a season of practice" });
-
-  // 收获：这一季攒下的东西（拿得下多少算多少）。
-  let n = 0;
-  const got: string[] = [], left: string[] = [];
-  const keeper = companions.find((id) => id !== me && villagers.includes(id));
-  for (const [resourceId, count] of focus.gains[season] ?? []) {
-    const prototypeId = prototypeForResource(resourceId);
-    for (let k = 0; k < count; k++) {
-      // 手上拿不下的，先存在一起干活的人那儿（还是他的，回头可以去换、去讨）。
-      const mine = canCarryPrototype(world, me, prototypeId, "", got.length + 1);
-      if (!mine && !keeper) break;
-      const holder = mine ? me : keeper!;
-      const objectId = `settlement-locations:season:${tick}:${me}:${n}`;
-      effects.push(
-        { kind: "spawnEntity", localId: `season:${n}`, id: objectId, entityKind: ObjectKinds.item,
-          components: { [ObjectComponents.object]: { prototypeId, name: "", condition: "fresh", quantity: 1, durability: 0, madeAt: tick,
-            provenance: { from: "season", at: tick }, visibleFromOutside: true } as unknown as Record<string, never> }, announce: false },
-        { kind: "addRelation", type: ObjectRelations.instanceOf, from: objectId, to: prototypeId, announce: false },
-        { kind: "addRelation", type: ObjectRelations.ownedBy, from: objectId, to: holder, announce: false },
-        { kind: "addRelation", type: ObjectRelations.heldBy, from: objectId, to: holder, announce: false });
-      n += 1;
-      (mine ? got : left).push(RESOURCE_LABELS[resourceId] ?? "东西");
-    }
-  }
-  const tally = (xs: string[]) => [...new Set(xs)].map((g) => `${g}${xs.filter((x) => x === g).length > 1 ? `×${xs.filter((x) => x === g).length}` : ""}`).join("、");
-  if (got.length) lines.push(`攒下了${tally(got)}，都在手边。`);
-  if (left.length) lines.push(`手上拿不下，${tally(left)}留给了${personName(world, keeper!)}。`);
-  const age = Number(world.getComponent(me, "modern.vitals")?.ageYears ?? 0);
-  if (age > pending.age) lines.push(`不知不觉，你${age}岁了。`);
-
-  const turn = seasonTurnDue(world) ? seasonTurnEffects(world, true, draft) : { effects: [], lines: [] };
-  effects.push(...turn.effects);
-  lines.push(...turn.lines);
-  const fam = familyEffects(world, me, tick - pending.from, true, draft);
-  effects.push(...fam.effects);
-  lines.push(...fam.lines);
-  effects.push(...flushDraft(draft, "a season of village life"));
-  effects.push({ kind: "emitEvent", eventType: "settlement-locations.season_lived", actorId: me,
-    data: { focus: focus.id, season, from: pending.from, days: tick - pending.from, lines, line: lines.join("") }, historicalSignificance: 0.05 });
-  return effects;
-}
-
-/** 过完这一季：记下心思，一口气推到季末，再结算。返回这一季的叙述。 */
-export function liveSeason(sim: { tick: number; dispatch: (c: never) => { ok: boolean; errors?: Array<{ message: string }> }; advanceBy: (n: number) => void; worldView: () => WorldView },
-  actorId: string, focus: string): { ok: boolean; lines: string[]; days: number; error?: string } {
-  const begun = sim.dispatch({ type: SettlementCommands.beginSeason, actorId, source: "player", payload: { focus } } as never);
-  if (!begun.ok) return { ok: false, lines: [], days: 0, error: begun.errors?.[0]?.message };
-  const days = daysLeftInSeason(sim.tick);
-  // 剩下的日子不长，村里照常一天天过；长了，内核按「略过」一口气推过去。
-  sim.advanceBy(days);
-  const settled = sim.dispatch({ type: SettlementCommands.settleSeason, actorId, source: "player", payload: {} } as never);
-  if (!settled.ok) return { ok: false, lines: [], days, error: settled.errors?.[0]?.message };
-  return { ok: true, lines: [], days };
-}
-
-
-// ---------------------------------------------------------------------------
-// 成家以后：添丁、出生、孩子一年年长大。六岁起孩子就是村里的一个人，自己过日子。
-// ---------------------------------------------------------------------------
-const FAMILY = RIVER_TERRACE_PACK.family;
-export const CARRY_DAYS = 270;
-/** 年岁以每年长一岁的 vitals 为准（村民的出生日可能早于世界开始，不能拿来算）。 */
-const AGE_OF = (world: WorldView, id: string) => {
-  const years = world.getComponent(id, "modern.vitals")?.ageYears;
-  if (typeof years === "number") return years;
-  const born = Number(world.getComponent(id, "modern.identity")?.bornAt ?? world.tick);
-  return Math.floor((world.tick - born) / DAY_TICKS_PER_YEAR);
-};
-export function childrenOf(world: WorldView, me: string): string[] {
-  return world.listRelations({ type: "family.parent_of", from: me }).map((r) => r.to)
-    .filter((id) => world.getEntity(id) && world.getEntity(id)!.archivedAt === undefined);
-}
-function expectingAt(world: WorldView, me: string): number {
-  const v = world.getComponent(me, SettlementComponents.holding)?.expectingAt;
-  return typeof v === "number" ? v : -1;
-}
-function stageOf(age: number): string {
-  let out = "";
-  for (const [from, words] of FAMILY?.stages ?? []) if (age >= from) out = words;
-  return out;
-}
-
-/** 这段日子里（days 天）家里发生了什么：怀上、出生、孩子长到六岁。 */
-function familyEffects(world: WorldView, me: string, days: number, inSeason = false, shared?: SocialDraft): { effects: Effect[]; lines: string[] } {
-  const effects: Effect[] = [], lines: string[] = [];
-  const draft: SocialDraft = shared ?? new Map();
-  if (!FAMILY) return { effects, lines };
-  const tick = world.tick, spouse = spouseOf(world, me);
-  const kids = childrenOf(world, me);
-  const expecting = expectingAt(world, me);
-  const fill = (t: string, vars: Record<string, string>) => t.replace(/\{(\w+)\}/g, (_, k: string) => vars[k] ?? "");
-  // 出生：怀上九个月。
-  if (expecting >= 0 && tick - expecting >= CARRY_DAYS) {
-    const bornAt = expecting + CARRY_DAYS;
-    const n = kids.length;
-    const used = new Set(kids.map((k) => personName(world, k)));
-    const pool = FAMILY.names.filter((x) => !used.has(x));
-    const name = (pool.length ? pool[pickIndex(`${me}:${bornAt}:name`, pool.length)] : undefined) ?? `孩子${n + 1}`;
-    const sex = pickIndex(`${me}:${bornAt}:sex`, 2) === 0 ? "female" : "male";
-    const id = `settlement-locations:child:${bornAt}:${n}`;
-    const identity = world.getComponent(me, "modern.identity");
-    effects.push(
-      { kind: "spawnEntity", localId: `child:${n}`, id, entityKind: "modern.character", components: {
-        "modern.identity": { givenName: name, familyName: String(identity?.familyName ?? ""), sex,
-          generation: Number(identity?.generation ?? 1) + 1, lineageId: String(identity?.lineageId ?? "family:lineage:1"), bornAt },
-        "modern.vitals": { alive: true, health: 1, ageYears: 0, lifespan: 78 },
-        "modern.residence": { cityId: "modern:city:north" }, "modern.wealth": { cash: 0, debt: 0 } }, announce: false },
-      { kind: "addRelation", type: "family.parent_of", from: me, to: id, components: { "family.parent": { since: bornAt } }, announce: false },
-      ...(spouse ? [{ kind: "addRelation" as const, type: "family.parent_of", from: spouse, to: id, components: { "family.parent": { since: bornAt } }, announce: false }] : []),
-      { kind: "modifyComponent", entityId: me, component: SettlementComponents.holding, patch: { expectingAt: null, lastBornAt: bornAt }, reason: "a child is born" },
-      { kind: "emitEvent", eventType: "family.child_born", actorId: me, targetId: id,
-        data: { givenName: name, ...(inSeason ? {} : { line: fill(FAMILY.born, { month: String(calendarDate(bornAt).month), sex: sex === "female" ? "女孩" : "男孩", name }) }) }, historicalSignificance: 0.6 });
-    for (const r of RESIDENTS) {
-      const rid = residentId(r.key);
-      if (world.getEntity(rid)?.archivedAt !== undefined) continue;
-      draft.set(rid, withNews(draftOf(draft, world, rid), `born:${id}`, { about: me, text: `${personName(world, me)}家添了个${sex === "female" ? "闺女" : "小子"}，叫${name}`, at: tick }));
-    }
-    lines.push(fill(FAMILY.born, { month: String(calendarDate(bornAt).month), sex: sex === "female" ? "女孩" : "男孩", name }));
-  } else if (expecting < 0 && spouse && world.getComponent(spouse, "modern.vitals")?.alive !== false && kids.length < 4) {
-    // 怀上：成了亲、两人都还年轻、上一个孩子满了一岁半；一季大约三成机会。
-    const ages = [AGE_OF(world, me), AGE_OF(world, spouse)];
-    const lastBorn = Number(world.getComponent(me, SettlementComponents.holding)?.lastBornAt ?? -9999);
-    if (ages.every((a) => a >= 18 && a <= 45) && tick - lastBorn >= 720) {
-      const perDay = 1 / 360;
-      const chance = 1 - Math.pow(1 - perDay, Math.max(1, days));
-      if (pickIndex(`${me}:${tick}:conceive`, 1000) < Math.round(chance * 1000)) {
-        effects.push({ kind: "modifyComponent", entityId: me, component: SettlementComponents.holding, patch: { expectingAt: tick }, reason: "expecting a child" });
-        const line = fill(FAMILY.expecting, { spouse: personName(world, spouse) });
-        effects.push({ kind: "emitEvent", eventType: "settlement-locations.expecting", actorId: me, targetId: spouse, data: inSeason ? {} : { line }, historicalSignificance: 0.1 });
-        lines.push(line);
-      }
-    }
-  }
-  // 长到六岁：成了村里的一个人，跟着家里人过日子。
-  for (const kid of kids) {
-    if (world.getComponent(kid, SettlementComponents.resident) || AGE_OF(world, kid) < 6) continue;
-    const parent = spouse && world.getComponent(spouse, SettlementComponents.resident) ? readResident(world, spouse)! : undefined;
-    const name = personName(world, kid);
-    effects.push(
-      { kind: "setComponent", entityId: kid, component: SettlementComponents.resident, value: {
-        household: parent?.household ?? "你家", role: "孩子", trait: "", wish: "",
-        workPlace: "place:yard", homeSpace: parent?.homeSpace ?? "", hunger: 0, rested: 1, standingRoutine: "",
-        social: toJson(withBond(readSocial(undefined), me, { familiarity: 8, trust: 9 }, tick)) } as unknown as Record<string, never>, reason: "old enough to help at home" },
-      { kind: "setComponent", entityId: kid, component: SettlementComponents.holding, value: { hunger: 0, hungerAt: tick }, reason: "a child's own day" },
-      { kind: "addRelation", type: SpaceRelations.occupancy, from: kid, to: "place:yard",
-        components: { [SpaceComponents.occupancy]: { placeId: "place:yard", spaceId: "", since: tick } }, announce: false },
-      { kind: "emitEvent", eventType: "settlement-locations.child_grew", actorId: me, targetId: kid, data: inSeason ? {} : { line: fill(FAMILY.grows, { name }) }, historicalSignificance: 0.1 });
-    lines.push(fill(FAMILY.grows, { name }));
-  }
-  if (!shared) effects.push(...flushDraft(draft, "family news"));
-  return { effects, lines };
-}
-
-/** 家里的样子：配偶、孩子几岁在做什么、是不是要添丁了。 */
-export function familyView(world: WorldView, me: string) {
-  const spouse = spouseOf(world, me);
-  return {
-    spouse: spouse ? { id: spouse, name: personName(world, spouse) } : null,
-    expecting: expectingAt(world, me) >= 0,
-    children: childrenOf(world, me).map((id) => {
-      const age = AGE_OF(world, id);
-      return { id, name: personName(world, id), age, stage: stageOf(age), alive: world.getComponent(id, "modern.vitals")?.alive !== false };
-    }),
-  };
-}
-
-/** 今天家里有没有要发生的事（没事就不发命令，不占一条记录）。 */
-export function familyDue(world: WorldView, me: string): boolean {
-  return Boolean(me && FAMILY && familyEffects(world, me, 1).effects.length);
-}
-
-function registerFamilyLife(ctx: Registration): void {
-  ctx.registerConstraintRule({
-    id: `${SettlementCommands.familyTick}.allowed`, commandType: SettlementCommands.familyTick,
-    evaluate: (c) => {
-      const me = c.command.actorId ?? "";
-      if (!me || me !== activeId(c.world)) return refuse(SettlementRejection.NotYours, "只看你自己家。");
-      // 没有要发生的事就不记一笔。
-      return familyEffects(c.world, me, 1).effects.length ? { ok: true } : refuse(SettlementRejection.Busy, "家里今天一切照常。");
-    },
-  });
-  ctx.registerResolutionRule({
-    id: `${SettlementCommands.familyTick}.resolve`, commandType: SettlementCommands.familyTick,
-    resolve: (c): Effect[] => familyEffects(c.world, c.command.actorId as string, 1).effects,
-  });
-}
-
-
-// ---------------------------------------------------------------------------
-// 人走了：全村都知道，家里人难过一阵；你走了，长大的孩子接过这一生。
-// ---------------------------------------------------------------------------
-export const HEIR_AGE = 16;
-const ALIVE = (world: WorldView, id: string) => world.getEntity(id) !== undefined && world.getEntity(id)!.archivedAt === undefined && world.getComponent(id, "modern.vitals")?.alive !== false;
-
-/** 能接过这一生的孩子：在世、满十六。 */
-export function heirsOf(world: WorldView, me: string): Array<{ id: string; name: string; age: number }> {
-  return world.listRelations({ type: "family.parent_of", from: me }).map((r) => r.to).filter((id) => ALIVE(world, id))
-    .map((id) => ({ id, name: personName(world, id), age: AGE_OF(world, id) })).filter((h) => h.age >= HEIR_AGE);
-}
-
-function registerPassing(ctx: Registration): void {
-  ctx.registerReactionRule({
-    id: "settlement-locations.passing.remembered", eventType: "modern.character_died",
-    react: (c): Effect[] => {
-      const dead = c.event.actorId ?? "";
-      const player = activeId(c.world);
-      if (!dead || !c.world.getComponent(SettlementId, SettlementComponents.settlement)) return [];
-      const isVillager = Boolean(c.world.getComponent(dead, SettlementComponents.resident));
-      if (!isVillager && dead !== player) return [];
-      const name = personName(c.world, dead), age = AGE_OF(c.world, dead), tick = c.world.tick;
-      const effects: Effect[] = [];
-      const kin = new Set([...world_kin(c.world, dead)]);
-      for (const r of c.world.listEntities({ kind: "modern.character" })) {
-        if (r.id === dead || r.archivedAt !== undefined || !c.world.getComponent(r.id, SettlementComponents.resident)) continue;
-        effects.push(saveSocial(r.id, withNews(socialOf(c.world, r.id), `died:${dead}`, { about: dead, text: `${name}走了，${age}岁`, at: tick }), "news of a death"));
-        if (kin.has(r.id)) effects.push({ kind: "modifyComponent", entityId: r.id, component: SettlementComponents.resident, patch: { mournAt: tick }, reason: "mourning" });
-      }
-      if (dead !== player && player) {
-        const close = spouseOf(c.world, player) === dead ? "你的另一半" : childrenOf(c.world, player).includes(dead) ? "你的孩子" : "";
-        const hearts = heartsOf(bondOf(socialOf(c.world, dead), player));
-        const line = close
-          ? `${close}${name}走了，才${age}岁。家里一下子空了许多。`
-          : `${name}走了，${age}岁。${hearts >= 5 ? "你想起和${name}一起的那些日子，心里空落落的。".replace("${name}", name) : "全村人送了最后一程。"}`;
-        effects.push({ kind: "emitEvent", eventType: "settlement-locations.passed_away", actorId: dead, targetId: player, data: { line, age }, historicalSignificance: 0.3 });
-      }
-      return effects;
-    },
-  });
-  ctx.registerConstraintRule({
-    id: `${SettlementCommands.handoff}.allowed`, commandType: SettlementCommands.handoff,
-    evaluate: (c) => {
-      const me = c.command.actorId ?? "", to = String(c.command.payload.targetId ?? "");
-      if (!me || me !== activeId(c.world)) return refuse(SettlementRejection.NotYours, "只能交给你自己的孩子。");
-      if (ALIVE(c.world, me)) return refuse(SettlementRejection.Busy, "这一生还没有走完。");
-      if (!heirsOf(c.world, me).some((h) => h.id === to)) return refuse(SettlementRejection.NoSuchResident, `要在世、满${HEIR_AGE}岁的孩子才能接过来。`);
-      return { ok: true };
-    },
-  });
-  ctx.registerResolutionRule({
-    id: `${SettlementCommands.handoff}.resolve`, commandType: SettlementCommands.handoff,
-    resolve: (c): Effect[] => {
-      const me = c.command.actorId as string, child = String(c.command.payload.targetId), tick = c.world.tick;
-      const parent = personName(c.world, me), name = personName(c.world, child), age = AGE_OF(c.world, child);
-      const parentHolding = c.world.getComponent(me, SettlementComponents.holding);
-      const childHolding = c.world.getComponent(child, SettlementComponents.holding) ?? {};
-      // 家传：手艺、出身（村里人当你是这家的孩子），家里人记着的情分照旧。
-      const skills = [...new Set([...(Array.isArray(childHolding.skills) ? childHolding.skills.map(String) : []), ...skillsOf(c.world, me)])];
-      const effects: Effect[] = [
-        { kind: "modifyComponent", entityId: "modern:world", component: "modern.world_state",
-          patch: { activeCharacterId: child, generation: Number(c.world.getComponent(child, "modern.identity")?.generation ?? 2) }, reason: "the next generation" },
-        { kind: "setComponent", entityId: child, component: SettlementComponents.holding,
-          value: { ...childHolding, hunger: 0, hungerAt: tick, skills, inheritedFrom: me,
-            origin: (parentHolding?.origin ?? { id: "none", talents: [], chosenAt: -1 }) } as unknown as Record<string, never>, reason: "a life handed down" },
-      ];
-      effects.push({ kind: "emitEvent", eventType: "modern.generation_switched", actorId: child,
-        data: { previousCharacterId: me, line: `${parent}走了。你是${name}，${age}岁，从今天起，这个家由你撑起来。${skills.length ? "家里传下来的手艺，你也都会。" : ""}` }, historicalSignificance: 0.6 });
-      return effects;
-    },
-  });
-}
-
-function world_kin(world: WorldView, id: string): string[] {
-  const out = new Set<string>();
-  for (const r of world.listRelations({ type: "family.married_to", from: id })) out.add(r.to);
-  for (const r of world.listRelations({ type: "family.parent_of", from: id })) out.add(r.to);
-  for (const r of world.listRelations({ type: "family.parent_of", to: id })) out.add(r.from);
-  const home = RESIDENTS.find((r) => residentId(r.key) === id)?.homeSpace;
-  if (home) for (const r of RESIDENTS) if (r.homeSpace === home) out.add(residentId(r.key));
-  return [...out];
-}
-
-
-// ---------------------------------------------------------------------------
-// 村里的年景与人事：每到换季，村里总会有点事——年景好坏、天灾来客；
-// 村民之间处得好的会结亲、添丁；人少了，渡口会来落脚的外乡人。
-// 一季只结算一次（记在聚落上），日子一天天过和一季一季过都走这里。
-// ---------------------------------------------------------------------------
-const STORY = RIVER_TERRACE_PACK.storyteller;
-const seasonKey = (tick: number) => `${Math.floor(tick / DAY_TICKS_PER_YEAR)}:${seasonOf(tick)}`;
-function sexOf(world: WorldView, id: string): string {
-  const sex = String(world.getComponent(id, "modern.identity")?.sex ?? "other");
-  return sex !== "other" ? sex : personOf(id)?.sex ?? "other";
-}
-export function seasonTurnDue(world: WorldView): boolean {
-  const s = world.getComponent(SettlementId, SettlementComponents.settlement);
-  return Boolean(STORY && s && String(s.lastSeasonTurn ?? "") !== seasonKey(world.tick) && Number(s.foundedAt ?? 0) < world.tick);
-}
-const villagersAlive = (world: WorldView) => world.listEntities({ kind: "modern.character" })
-  .filter((e) => e.archivedAt === undefined && e.components["modern.vitals"]?.alive !== false && Boolean(e.components[SettlementComponents.resident]))
-  .map((e) => e.id);
-
-export function seasonTurnEffects(world: WorldView, inSeason = false, shared?: SocialDraft): { effects: Effect[]; lines: string[] } {
-  const draft: SocialDraft = shared ?? new Map();
-  const tick = world.tick, key = seasonKey(tick), season = seasonOf(tick);
-  const effects: Effect[] = [{ kind: "modifyComponent", entityId: SettlementId, component: SettlementComponents.settlement, patch: { lastSeasonTurn: key }, reason: "a new season" }];
-  const lines: string[] = [];
-  // 刚落脚的那一季不算「换季」：只记下来，不讲事。
-  if (!STORY || !world.getComponent(SettlementId, SettlementComponents.settlement)?.lastSeasonTurn) return { effects, lines };
-  const fill = (t: string, v: Record<string, string>) => t.replace(/\{(\w+)\}/g, (_, k: string) => v[k] ?? "");
-  const living = villagersAlive(world);
-  const player = activeId(world);
-  const news = (text: string, id: string) => {
-    for (const rid of living) draft.set(rid, withNews(draftOf(draft, world, rid), id, { about: rid, text, at: tick }));
-  };
-  const tell = (line: string) => {
-    lines.push(line);
-    if (!inSeason && player) effects.push({ kind: "emitEvent", eventType: "settlement-locations.village_story", targetId: player, data: { line }, historicalSignificance: 0.05 });
-  };
-
-  // 1. 年景：不是每季都有事。
-  const stockTotal = (resourceId: string) =>
-    yieldPoints(world).filter((y) => y.resourceId === resourceId).reduce((n, y) => n + y.stock, 0);
-  const ev = chooseSeasonStory(world, { season, key, population: living.length, stockTotal,
-    roofLeaking: HOME_SPACES.some((space) => roofState(world, space).leaking) });
-  if (ev) {
-    for (const [where, factor] of Object.entries(ev.yields ?? {})) {
-      const [, placeId, resourceId] = where.match(/^(place:[^:]+):(.+)$/) ?? [];
-      const point = yieldPoints(world).find((y) => y.placeId === placeId && y.resourceId === resourceId);
-      if (!point) continue;
-      effects.push({ kind: "setComponent", entityId: `yield:${placeId}:${resourceId}`, component: SettlementComponents.yieldPoint,
-        value: { placeId, resourceId, label: point.label, unit: point.unit, capacity: point.capacity,
-          stock: Math.min(point.capacity, Math.round(point.stock * factor)), renewDays: point.renewDays, lastRenewedAt: tick } as unknown as Record<string, never>,
-        reason: `season story: ${ev.id}` });
-    }
-    // Remember when it happened, so its cooldown is a real one.
-    effects.push({ kind: "modifyComponent", entityId: SettlementId, component: SettlementComponents.settlement,
-      patch: { storyLastAt: { ...storyHistory(world), [ev.id]: tick } }, reason: `story happened: ${ev.id}` });
-    news(ev.text, `story:${key}`);
-    tell(ev.text);
-  }
-
-  // 1b. 一季下来，一起干活的、本来要好的村民彼此更熟一些（一天天过时，碰面本身就会让人更熟）。
-  if (inSeason) for (const a of living) for (const b of living) {
-    if (a === b || b === player) continue;
-    const ra = readResident(world, a), rb = readResident(world, b);
-    const near = (ra?.workPlace && ra.workPlace === rb?.workPlace) || tieWarmth(a, b) > 0 || ra?.homeSpace === rb?.homeSpace;
-    if (near) draft.set(a, withBond(draftOf(draft, world, a), b, { familiarity: 0.5 }, tick));
-  }
-
-  // 2. 结亲：两个都没成家的大人，彼此都熟、都有好感，就有可能。一季最多一对。
-  const age = (id: string) => AGE_OF(world, id);
-  const single = living.filter((id) => !spouseOf(world, id) && !PEOPLE_TIES_SPOUSE.has(keyOfResident(id)) && age(id) >= 18 && age(id) <= 45 && id !== player
-    && engagedTo(world, player) !== id);
-  const kinOfId = (id: string) => new Set(world_kin(world, id));
-  let wed = false;
-  for (let i = 0; i < single.length && !wed; i++) for (let j = i + 1; j < single.length && !wed; j++) {
-    const a = single[i]!, b = single[j]!;
-    if (kinOfId(a).has(b) || Math.abs(age(a) - age(b)) > 16) continue;
-    const ab = bondOf(draftOf(draft, world, a), b), ba = bondOf(draftOf(draft, world, b), a);
-    const warmth = ab.familiarity + ba.familiarity + (tieWarmth(a, b) + tieWarmth(b, a)) * 2;
-    if (warmth < 8 || ab.grudge + ba.grudge > 1) continue;
-    if (pickIndex(`wed:${key}:${a}:${b}`, 100) >= 35) continue;
-    wed = true;
-    effects.push(
-      { kind: "addRelation", type: "family.married_to", from: a, to: b, components: { "family.marriage": { since: tick, trust: 0.8 } }, announce: false },
-      { kind: "addRelation", type: "family.married_to", from: b, to: a, components: { "family.marriage": { since: tick, trust: 0.8 } }, announce: false });
-    const text = fill(STORY.couple, { a: personName(world, a), b: personName(world, b) });
-    news(text, `wed:${a}:${b}`);
-    tell(text);
-  }
-
-  // 3. 添丁：村里成了亲的人家（不算你家，你家自己算）。一季最多一个。
-  const couples = living.filter((id) => spouseOf(world, id) && id < spouseOf(world, id) && spouseOf(world, id) !== player && id !== player);
-  for (const a of couples) {
-    const b = spouseOf(world, a);
-    if (!living.includes(b) || age(a) > 45 || age(b) > 45) continue;
-    if (new Set([sexOf(world, a), sexOf(world, b)]).size !== 2) continue;
-    const kids = world.listRelations({ type: "family.parent_of", from: a }).length;
-    const last = Number(world.getComponent(a, SettlementComponents.resident)?.lastBornAt ?? -9999);
-    if (kids >= 3 || tick - last < 720 || pickIndex(`npcborn:${key}:${a}`, 100) >= 22) continue;
-    const used = new Set(world.listEntities({ kind: "modern.character" }).map((e) => String(e.components["modern.identity"]?.givenName ?? "")));
-    const names = (FAMILY?.names ?? []).filter((x) => !used.has(x));
-    const name = names.length ? names[pickIndex(`npcname:${key}:${a}`, names.length)]! : `${personName(world, a).slice(-1)}娃`;
-    const id = `settlement-locations:child:${tick}:${a}`;
-    const home = readResident(world, a);
-    effects.push(
-      { kind: "spawnEntity", localId: `npc-child:${a}`, id, entityKind: "modern.character", components: {
-        "modern.identity": { givenName: name, familyName: "", sex: pickIndex(`${id}:sex`, 2) ? "male" : "female", generation: 1, lineageId: `npc:${home?.household ?? ""}`, bornAt: tick },
-        "modern.vitals": { alive: true, health: 1, ageYears: 0, lifespan: 78 },
-        "modern.residence": { cityId: "modern:city:north" }, "modern.wealth": { cash: 0, debt: 0 } }, announce: false },
-      { kind: "addRelation", type: "family.parent_of", from: a, to: id, components: { "family.parent": { since: tick } }, announce: false },
-      { kind: "addRelation", type: "family.parent_of", from: b, to: id, components: { "family.parent": { since: tick } }, announce: false },
-      { kind: "modifyComponent", entityId: a, component: SettlementComponents.resident, patch: { lastBornAt: tick }, reason: "a child born" });
-    const text = fill(STORY.npcBirth, { parent: `${personName(world, a)}和${personName(world, b)}`, name });
-    news(text, `born:${id}`);
-    tell(text);
-    break;
-  }
-
-  // 4. 村里的孩子长到六岁，就是村里的一个人了。
-  for (const e of world.listEntities({ kind: "modern.character" })) {
-    if (e.archivedAt !== undefined || e.components[SettlementComponents.resident] || e.id === player) continue;
-    const parents = world.listRelations({ type: "family.parent_of", to: e.id }).map((r) => r.from);
-    if (!parents.length || parents.includes(player) || AGE_OF(world, e.id) < 6) continue;
-    const home = parents.map((p) => readResident(world, p)).find(Boolean);
-    if (!home) continue;
-    effects.push(
-      { kind: "setComponent", entityId: e.id, component: SettlementComponents.resident, value: { household: home.household, role: "孩子", trait: "", wish: "",
-        workPlace: home.workPlace, homeSpace: home.homeSpace, hunger: 0, rested: 1, standingRoutine: "" } as unknown as Record<string, never>, reason: "old enough to help" },
-      { kind: "setComponent", entityId: e.id, component: SettlementComponents.holding, value: { hunger: 0, hungerAt: tick }, reason: "a child's own day" },
-      { kind: "addRelation", type: SpaceRelations.occupancy, from: e.id, to: home.workPlace || "place:yard",
-        components: { [SpaceComponents.occupancy]: { placeId: home.workPlace || "place:yard", spaceId: "", since: tick } }, announce: false });
-  }
-
-  // 5. 人少了：渡口来一个外乡人，住进空出来的屋子。
-  if (living.length < RESIDENTS.length - 2 && pickIndex(`newcomer:${key}`, 100) < 40) {
-    const used = new Set(world.listEntities({ kind: "modern.character" }).map((e) => String(e.components["modern.identity"]?.givenName ?? "")));
-    const names = STORY.newcomerNames.filter((x) => !used.has(x));
-    if (names.length) {
-      const name = names[pickIndex(`newcomer:${key}:name`, names.length)]!;
-      const occupied = new Set(living.map((id) => readResident(world, id)?.homeSpace));
-      const empty = RESIDENTS.find((r) => !occupied.has(r.homeSpace));
-      const homeSpace = empty?.homeSpace ?? "space:ford-sleep";
-      const workPlace = empty?.workPlace ?? "place:ford";
-      const id = `settlement-locations:newcomer:${tick}`;
-      const ageYears = 20 + pickIndex(`${id}:age`, 16);
-      effects.push(
-        { kind: "spawnEntity", localId: "newcomer", id, entityKind: "modern.character", components: {
-          "modern.identity": { givenName: name, familyName: "", sex: pickIndex(`${id}:sex`, 2) ? "male" : "female", generation: 0, lineageId: `npc:${name}`, bornAt: tick - ageYears * DAY_TICKS_PER_YEAR },
-          "modern.vitals": { alive: true, health: 1, ageYears, lifespan: 78 },
-          "modern.residence": { cityId: "modern:city:north" }, "modern.wealth": { cash: 0, debt: 0 },
-          [SettlementComponents.resident]: { household: `${name}家`, role: "新来的外乡人", trait: "", wish: "", workPlace, homeSpace, hunger: 0, rested: 1, standingRoutine: "" } as unknown as Record<string, never>,
-          [SettlementComponents.holding]: { hunger: 0, hungerAt: tick } as unknown as Record<string, never> }, announce: false },
-        { kind: "addRelation", type: SpaceRelations.occupancy, from: id, to: "place:ford",
-          components: { [SpaceComponents.occupancy]: { placeId: "place:ford", spaceId: "", since: tick } }, announce: false });
-      const text = fill(STORY.newcomer, { name, from: STORY.newcomerFrom[pickIndex(`${id}:from`, STORY.newcomerFrom.length)]!,
-        home: String(world.getComponent(homeSpace, SpaceComponents.space)?.name ?? "一间空屋") });
-      news(text, `newcomer:${id}`);
-      tell(text);
-    }
-  }
-  if (!shared) effects.push(...flushDraft(draft, "village news"));
-  return { effects, lines };
-}
-
-function registerStoryteller(ctx: Registration): void {
-  ctx.registerConstraintRule({
-    id: `${SettlementCommands.seasonTurn}.allowed`, commandType: SettlementCommands.seasonTurn,
-    evaluate: (c) => seasonTurnDue(c.world) ? { ok: true } : refuse(SettlementRejection.Busy, "这一季的事已经过去了。"),
-  });
-  ctx.registerResolutionRule({
-    id: `${SettlementCommands.seasonTurn}.resolve`, commandType: SettlementCommands.seasonTurn,
-    resolve: (c): Effect[] => seasonTurnEffects(c.world).effects,
-  });
-}

@@ -20,9 +20,9 @@ const visible = (out: string) => out.replace(/title="[^"]*"/g, "").replace(/<[^>
 
 test("HUD: 越难受越红，且只有真影响干活才转危险色", () => {
   // 分级必须单调：从吃饱到饿极，tone 只会越来越重，不会来回跳。
-  const order = { ok: 0, warn: 1, danger: 2 };
-  const tones = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((h) => order[hungerLevel(h).tone]);
-  assert.deepEqual(tones, [...tones].sort((a, b) => a - b), "饥饿分级不单调");
+  const order: Record<string, number> = { ok: 0, warn: 1, danger: 2 };
+  const tones = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((h) => order[hungerLevel(h).tone] ?? 0);
+  assert.deepEqual(tones, [...tones].sort((a, b) => (a ?? 0) - (b ?? 0)), "饥饿分级不单调");
   // 4 分只是「有点饿」，不该报警；8 分起才真拖累劳动。
   assert.equal(hungerLevel(0).tone, "ok");
   assert.equal(hungerLevel(4).tone, "ok");

@@ -35,8 +35,10 @@ test("加载态：只把「正在…」认作加载，报错文字不算", () =>
 });
 
 test("人际阶段与 settlement-locations 的 contactLevel 用同一套说法", () => {
-  const module = readFileSync(new URL("../../modules/settlement-locations/src/module.ts", import.meta.url), "utf8");
-  assert.match(module, /count >= 3 \? "相识" : count > 0 \? "见过" : "陌生"/);
+  // contactLevel 现在住在 village-reads.ts（module.ts 拆出读侧之后），断言跟着搬家，
+  // 否则测试会因为文件改名变红——那不是界面说了两套话。
+  const reads = readFileSync(new URL("../../modules/settlement-locations/src/village-reads.ts", import.meta.url), "utf8");
+  assert.match(reads, /count >= 3 \? "相识" : count > 0 \? "见过" : "陌生"/);
   assert.match(pub("player.js"), /CONTACT_STAGES = \["陌生", "见过", "相识"\]/);
   assert.match(pub("player.js"), /3 - Number\(conversations/);
 });

@@ -202,7 +202,7 @@ export const settlementBuildModule: OpenLifeModule = {
     id: BUILD_OWNER,
     version: "0.1.0",
     engineRange: "^0.1.0",
-    type: "system",
+    type: "system-pack",
     name: "盖房子",
     provides: ["settlement.housing"],
     requires: ["life.settlement"],
@@ -273,9 +273,9 @@ export const settlementBuildModule: OpenLifeModule = {
         if (!site) return refuse(BuildRejection.NoSite, "还没有动工的地。");
         const blueprint = blueprintOf(site.blueprintId)!;
         const resourceId = String(c.command.payload.resourceId ?? "");
-        if (!(blueprint.materials[resourceId] > 0)) return refuse(BuildRejection.MissingMaterial, "这种料用不上。");
+        if (!((blueprint.materials[resourceId] ?? 0) > 0)) return refuse(BuildRejection.MissingMaterial, "这种料用不上。");
         const missing = shortfall(world, site, blueprint);
-        if (!(missing[resourceId] > 0)) return refuse(BuildRejection.AlreadyBuilt, `这一项已经备够了。`);
+        if (!((missing[resourceId] ?? 0) > 0)) return refuse(BuildRejection.AlreadyBuilt, `这一项已经备够了。`);
         if (stockOf(world, resourceId) <= 0) return refuse(BuildRejection.MissingMaterial, `村里没有${LABEL[resourceId] ?? "这种料"}了。`);
         return { ok: true };
       },

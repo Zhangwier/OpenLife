@@ -150,7 +150,7 @@ test("完整链路：参选 → 拉票 → 当选 → 断一桩争执", { timeou
   assert.equal(count.ok, true, JSON.stringify(count.errors));
 
   const panel = sim.project({ id: OfficeProjections.panel, params: {} });
-  assert.equal(panel.ok, true, JSON.stringify(panel.errors));
+  assert.equal(panel.ok, true, JSON.stringify(panel.error));
   const data = panel.data as Record<string, unknown>;
   // 玩家是唯一的候选人，所以应当当选。
   assert.ok(data.holding, `应当当选，实际面板：${JSON.stringify(data)}`);

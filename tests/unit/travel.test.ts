@@ -118,7 +118,7 @@ test("远行状态随存档持久化", () => {
   const loaded = Simulation.load(saved, [modernWorldModule, worldClockModule, worldSpaceModule,
     worldObjectsModule, travelModule]);
   assert.equal(loaded.result.ok, true);
-  const after = loaded.simulation.worldView().getComponent("travel:current", "travel.journey") as
+  const after = loaded.simulation!.worldView().getComponent("travel:current", "travel.journey") as
     { to: string; daysLeft: number } | undefined;
   assert.equal(after?.to, "远山", "读档后还在路上");
   assert.equal(after?.daysLeft, 3);

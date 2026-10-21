@@ -77,7 +77,8 @@ test("关掉一个插件：天气与水灾年份完全不变", { timeout: 120000
   const weatherOf = (sim: Simulation) =>
     sim.kernel.internals.eventLog.list({})
       .filter((e) => String(e.type).startsWith("world-clock.") || String(e.type).startsWith("world-hazard."))
-      .map((e) => `${e.type}:${e.tick}`);
+      // 事件上的时间字段叫 at，不是 tick（WorldEvent.at: SimTick）。
+      .map((e) => `${e.type}:${e.at}`);
 
   assert.deepEqual(weatherOf(withoutEra), weatherOf(withEra),
     "关掉一个插件，天气与水灾年份完全不变");

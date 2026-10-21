@@ -162,15 +162,11 @@ export function checkExtension(ext: SettlementExtension, pack: SettlementPack): 
       problems.push(`${where}: resident ${r.key} lives in ${r.homeSpace}, which no pack defines`);
     }
   }
-  // A place must be reachable from somewhere that already exists.
-  const placeIds = new Set([...pack.places.map((p) => p.id), ...(ext.items.places ?? []).map((p) => p.id)]);
-  for (const p of ext.items.places ?? []) {
-    for (const link of p.connections ?? []) {
-      if (!placeIds.has(link.to) && !link.to.startsWith("place:")) {
-        problems.push(`${where}: place ${p.id} connects to ${link.to}, which looks like neither a place id nor a namespace`);
-      }
-    }
-  }
+  // Reachability is not checked here: a place's links are not part of
+  // PlaceSpec. The map packs wire places up with `world-geography.adjacent_to`
+  // relations, and the travel module's `travel.destinations` projection skips
+  // anything it cannot reach, so a pack that forgets a link shows up as a
+  // place nobody can walk to instead of as a load failure.
   // Dialogue must hang off a resident that exists (base or pack).
   const residentKeys = new Set([
     ...pack.residents.map((r) => r.key),

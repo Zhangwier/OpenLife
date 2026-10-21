@@ -118,7 +118,7 @@ test("投影说得清还差什么", () => {
   const shed = BLUEPRINTS.find((b) => b.homes > 0)!;
   act(BuildCommands.plan, { blueprintId: shed.id });
   const view = sim.project({ id: BuildProjections.build, params: {} });
-  assert.equal(view.ok, true, JSON.stringify(view.errors));
+  assert.equal(view.ok, true, JSON.stringify(view.error));
   const data = view.data as Record<string, unknown>;
   assert.ok(typeof data.line === "string" && (data.line as string).length > 0);
   assert.ok(Array.isArray(data.blueprints));

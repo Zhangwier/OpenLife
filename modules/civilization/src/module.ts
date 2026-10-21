@@ -82,7 +82,7 @@ export const civilizationModule: OpenLifeModule = {
     id: CIVILIZATION_OWNER,
     version: "0.1.0",
     engineRange: "^0.1.0",
-    type: "system",
+    type: "system-pack",
     name: "文明层",
     provides: ["world.polities"],
     requires: [],
@@ -163,7 +163,7 @@ export const civilizationModule: OpenLifeModule = {
       resolve: (c): Effect[] => {
         const state = readNetwork(c.world)!;
         const year = state.year + 1;
-        const inventions = ((c.command.payload.inventions ?? []) as InventionLike[])
+        const inventions = ((c.command.payload.inventions ?? []) as unknown as InventionLike[])
           .map((i) => ({ id: i.id, answers: i.answers ?? [], difficulty: Number(i.difficulty ?? 25) }));
 
         // A4: read the deposit map if world-deposits is installed. A polity
@@ -294,4 +294,7 @@ function describeYear(result: ReturnType<typeof civilizationYear>): string {
 }
 
 export { polityFromSettlement, contactNetwork, aggregateNeed, networkHolders, meetsIndustrialGate };
-export type { Polity, Contact, Diffusion };
+// Contact lives in network.ts and is re-exported from there by index.ts; naming
+// it here as well was a duplicate (and referenced a symbol this file never
+// imported).
+export type { Polity, Diffusion };

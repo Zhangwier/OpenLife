@@ -48,7 +48,7 @@ export const cultureModule: OpenLifeModule = {
     id: CULTURE_OWNER,
     version: "0.1.0",
     engineRange: "^0.1.0",
-    type: "system",
+    type: "system-pack",
     name: "文化与信仰",
     provides: ["culture.beliefs"],
     requires: [],

@@ -22,7 +22,7 @@ import {
   type StoryEventSpec, type StoryChoiceSpec,
 } from "@openlife/module-settlement-locations";
 import { installPackIncidents, packChoice, packIncidentSource } from "./pack-incidents.ts";
-import { STORY_PACK, saidFlag, storyPackProblems, type QuestSpec } from "./spec.ts";
+import { STORY_PACK, saidFlag, storyPackProblems, type BondChange, type QuestSpec } from "./spec.ts";
 import { bondsProblems } from "./bonds.ts";
 import { dailyGuide, guideProblems } from "./guide.ts";
 import {

@@ -76,7 +76,7 @@ test("合法的抉择事件通过校验，且会被合并进事件池", () => {
   });
   const ext = readExtension(dir);
   assert.deepEqual(checkExtension(ext, base), []);
-  const merged = mergeExtensions(base, { recipes: [] }, [ext]);
+  const merged = mergeExtensions(base, { id: "book:test", packId: base.id, formatVersion: 1, recipes: [] }, [ext]);
   assert.equal(merged.incidents.length, 1);
   assert.equal(merged.incidents[0]!.choices?.length, 2);
 });
@@ -147,7 +147,7 @@ test("合并不会改动基础包（只增不改）", () => {
   const base = loadSettlementPack(BASE);
   const before = JSON.stringify(BASE_RIVER_TERRACE_PACK);
   const exts = discoverExtensions(EXAMPLES);
-  mergeExtensions(base, { recipes: [] }, exts);
+  mergeExtensions(base, { id: "book:test", packId: base.id, formatVersion: 1, recipes: [] }, exts);
   assert.equal(JSON.stringify(BASE_RIVER_TERRACE_PACK), before, "the shipped pack must stay untouched");
   assert.equal(validateSettlementPack(RIVER_TERRACE_PACK).length, 0);
 });

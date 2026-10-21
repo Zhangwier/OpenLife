@@ -28,7 +28,7 @@ function world(seed = 5) {
 
 test("初始价格表是数据", () => {
   assert.ok(Object.keys(BASE_PRICES).length >= 4);
-  assert.equal(BASE_PRICES["resource:grain"].ratio, 1, "粮是基准");
+  assert.equal(BASE_PRICES["resource:grain"]!.ratio, 1, "粮是基准");
 });
 
 test("荒年粮价上涨", () => {
@@ -36,8 +36,8 @@ test("荒年粮价上涨", () => {
   const demand = { "resource:grain": 10, "resource:fuel": 20 };
   const normal = updatePrices(BASE_PRICES, supply, demand, false, () => ({ chance: () => false }));
   const lean = updatePrices(BASE_PRICES, supply, demand, true, () => ({ chance: () => false }));
-  assert.ok(lean["resource:grain"].ratio > normal["resource:grain"].ratio,
-    `荒年粮价该涨（正常 ${normal["resource:grain"].ratio} → 荒年 ${lean["resource:grain"].ratio}）`);
+  assert.ok(lean["resource:grain"]!.ratio > normal["resource:grain"]!.ratio,
+    `荒年粮价该涨（正常 ${normal["resource:grain"]!.ratio} → 荒年 ${lean["resource:grain"]!.ratio}）`);
 });
 
 test("荒年交换要用更多东西换粮", () => {
@@ -89,7 +89,7 @@ test("荒年推进一年后，粮价真的涨了", () => {
   assert.equal(r.ok, true, JSON.stringify(r.errors));
   const after = sim.worldView().getComponent("economy:village", "economy.state") as
     { prices: Record<string, { ratio: number }> } | undefined;
-  assert.ok(after!.prices["resource:grain"].ratio > before!.prices["resource:grain"].ratio,
+  assert.ok(after!.prices["resource:grain"]!.ratio > before!.prices["resource:grain"]!.ratio,
     "荒年粮价该涨");
 });
 
@@ -113,7 +113,7 @@ test("经济状态随存档持久化", () => {
   const loaded = Simulation.load(saved, [modernWorldModule, worldClockModule, worldSpaceModule,
     worldObjectsModule, economyModule]);
   assert.equal(loaded.result.ok, true);
-  const after = loaded.simulation.worldView().getComponent("economy:village", "economy.state") as
+  const after = loaded.simulation!.worldView().getComponent("economy:village", "economy.state") as
     { prices: Record<string, { ratio: number }> } | undefined;
   assert.equal(after?.prices["resource:grain"]?.ratio, before?.prices["resource:grain"]?.ratio,
     "读档后粮价还在");

@@ -110,7 +110,7 @@ test("信仰状态随存档持久化", () => {
   const loaded = Simulation.load(saved, [modernWorldModule, worldClockModule, worldSpaceModule,
     worldObjectsModule, cultureModule]);
   assert.equal(loaded.result.ok, true);
-  const after = loaded.simulation.worldView().getComponent("culture:village", "culture.state") as
+  const after = loaded.simulation!.worldView().getComponent("culture:village", "culture.state") as
     { beliefs: Record<string, number> } | undefined;
   assert.deepEqual(after?.beliefs, before?.beliefs, "读档后信仰还在");
 });

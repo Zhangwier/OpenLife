@@ -10,7 +10,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 // Both sides added imports here: extensions.ts is the content-pack v2 loader,
 // overlay.ts merges the deep-content files. Both are used further down.
-import { checkExtension, discoverExtensions, mergeExtensions, type SettlementExtension } from "./extensions.ts";
+import { checkExtension, discoverExtensions, mergeExtensions, type ExtensionDialogue, type SettlementExtension } from "./extensions.ts";
 import { withOverlay } from "./overlay.ts";
 import type { OriginSpec, TalentSpec } from "./origin.ts";
 
@@ -576,7 +576,14 @@ export function loadRecipeBook(url: URL, pack: SettlementPack): RecipeBook {
  * Merges data-only content packs into a pack and its recipe book, running the
  * same validation the base pack passes; throws with every problem listed.
  */
-export function applyExtensions(pack: SettlementPack, book: RecipeBook, exts: SettlementExtension[]): { pack: SettlementPack; book: RecipeBook } {
+export function applyExtensions(pack: SettlementPack, book: RecipeBook, exts: SettlementExtension[]): {
+  pack: SettlementPack;
+  book: RecipeBook;
+  /** Choice events the packs contribute (settlement-locations.stories v2). */
+  incidents: StoryEventSpec[];
+  /** Extra dialogue fragments the packs contribute, keyed by resident. */
+  dialogue: ExtensionDialogue[];
+} {
   const problems = exts.flatMap((ext) => checkExtension(ext, pack));
   const ids = exts.map((ext) => ext.manifest.id);
   for (const id of ids) if (ids.indexOf(id) !== ids.lastIndexOf(id)) problems.push(`content pack ${id} is installed twice`);

@@ -10,7 +10,7 @@
 import type { AgentHost as NpcHost } from "@openlife/contracts";
 import { occupiedPlaceId } from "@openlife/module-world-space";
 import { SettlementCommands, residentId } from "../vocabulary.ts";
-import { tradeableGoods, counterpartView } from "../module.ts";
+import { tradeableGoods, counterpartView } from "../village-reads.ts";
 import { RIVER_TERRACE_PACK } from "../content.ts";
 import { EDIBLE } from "../exchange.ts";
 

@@ -75,8 +75,6 @@ const KINDS = {
     description: "新增村民说的话。",
     files: {
       "dialogue.json": `{
-  "firstMet": ["第一次见面说的话。"],
-  "smallTalk": ["闲聊说的话。"],
   "met": ["认识以后说的话。"],
   "acquainted": ["熟了以后说的话。"]
 }

@@ -33,13 +33,18 @@ function village(seed = 7) {
   return sim;
 }
 
+/** The ledger fields are unknown at the type level; read the array once, typed. */
+function membersOf(record: Record<string, unknown>): unknown[] {
+  return Array.isArray(record.members) ? record.members : [];
+}
+
 test("建村后每个居民都进了科技账本", () => {
   resetBridgeFailures();
   const sim = village();
   startHistory(sim);
   const record = sim.worldView().getComponent("tech:village", "tech.village");
   assert.ok(record, "村子开始记事了");
-  assert.ok((record.members ?? []).length >= 10, `账本里有人（${(record.members ?? []).length}）`);
+  assert.ok(membersOf(record).length >= 10, `账本里有人（${membersOf(record).length}）`);
   assert.deepEqual(bridgeFailures(), [], "接线不该有任何失败");
 });
 
@@ -61,7 +66,7 @@ test("每季推进后村子会发明东西（按引擎自己的节奏）", { tim
   }
   const record = sim.worldView().getComponent("tech:village", "tech.village");
   assert.ok(record, "村子一直在记事");
-  assert.ok((record.members ?? []).length >= 10, "账本里有人");
+  assert.ok(membersOf(record).length >= 10, "账本里有人");
   assert.ok(Object.keys(record.needs ?? {}).length > 0, "需要簿里有东西");
   // 0 or 1+ inventions are both honest outcomes at this pace; what must never
   // happen is a silent failure.

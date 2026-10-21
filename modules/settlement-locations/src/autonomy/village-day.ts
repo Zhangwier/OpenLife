@@ -11,7 +11,7 @@
 import type { AgentHost, AgentStep } from "@openlife/contracts";
 import { scaleIn } from "@openlife/life-contracts";
 import { SettlementId, SettlementCommands } from "../vocabulary.ts";
-import { familyDue, seasonTurnDue } from "../module.ts";
+import { familyDue, seasonTurnDue } from "../village-reads.ts";
 import { runFirstNpcDay, type NpcDailyResult } from "./npc.ts";
 import { runSecondNpcDay } from "./npc-cook.ts";
 import { runThirdNpcDay } from "./npc-reed.ts";

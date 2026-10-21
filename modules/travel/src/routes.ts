@@ -115,7 +115,7 @@ export function journeyArrived(journey: Journey): boolean {
 /** 路上可能遇到的事，按地形给。 */
 export function encounterFor(
   terrain: Route["terrain"],
-  keyed: (purpose: string, ...parts: Array<string | number>) => { chance(p: number): boolean },
+  keyed: (purpose: string, ...parts: Array<string | number>) => { chance(p: number): boolean; nextFloat(): number },
 ): string | null {
   const chance = terrain === "mountain" ? 0.3 : terrain === "marsh" ? 0.25 : 0.1;
   if (!keyed("encounter", terrain).chance(chance)) return null;
@@ -126,7 +126,9 @@ export function encounterFor(
     marsh: ["陷进泥里，费了半天劲", "遇上一个采苇的"],
   };
   const pool = table[terrain];
-  return pool[Math.floor(keyed("encounter", terrain, "which").chance(1) * pool.length)] ?? null;
+  // chance(1) 永远返回 true（布尔），乘上长度要么 NaN 要么越界，所以这里必须用
+  // nextFloat()：路上遇到什么事是抽的，不是判的。
+  return pool[Math.floor(keyed("encounter", terrain, "which").nextFloat() * pool.length)] ?? null;
 }
 
 /** 远行的可读描述。 */

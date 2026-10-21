@@ -152,11 +152,11 @@ export function pickWithRng<T>(items: readonly T[], rng: RngInput): T {
   }
   if (items.length === 1) {
     nextDeterministicFloat(rng);
-    return items[0];
+    return items[0] as T;
   }
   const u = nextDeterministicFloat(rng);
   const idx = Math.min(items.length - 1, Math.floor(u * items.length));
-  return items[idx];
+  return items[idx] as T;
 }
 
 /**
@@ -229,6 +229,7 @@ function selectSymbolRule(
 
   if (weighted.length === 0) {
     const fallback = entries[0];
+    if (fallback === undefined) return "";
     return typeof fallback === "string" ? fallback : fallback.text;
   }
 
@@ -240,7 +241,7 @@ function selectSymbolRule(
       return item.text;
     }
   }
-  return weighted[weighted.length - 1].text;
+  return weighted[weighted.length - 1]?.text ?? "";
 }
 
 /**
@@ -258,11 +259,11 @@ export function interpolateFacts(text: string, facts: NarrativeFacts): string {
     season: String(facts.season ?? "春")
   };
 
-  return text.replace(/\{([a-zA-Z0-9_]+)\}/g, (full, key: string) => {
+  return text.replace(/\{([a-zA-Z0-9_]+)\}/g, (full: string, key: string) => {
     if (key in lookup) {
-      return lookup[key];
+      return lookup[key] ?? full;
     }
-    const rawVal = facts[key];
+    const rawVal = (facts as Record<string, unknown>)[key];
     return typeof rawVal === "string" && rawVal.length > 0 ? rawVal : full;
   });
 }
@@ -306,9 +307,9 @@ export function sanitizeNeolithicText(text: string, grammar: GrammarData): strin
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
 
-  let selectedSentences = sentences.slice(0, 4);
-  if (selectedSentences.length === 1 && selectedSentences[0].includes("，")) {
-    const parts = selectedSentences[0].split("，");
+  let selectedSentences: string[] = sentences.slice(0, 4);
+  if (selectedSentences.length === 1 && selectedSentences[0]!.includes("，")) {
+    const parts = selectedSentences[0]!.split("，");
     if (parts.length >= 3) {
       const mid = Math.ceil(parts.length / 2);
       const firstHalf = parts.slice(0, mid).join("，") + "。";

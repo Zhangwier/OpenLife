@@ -46,7 +46,7 @@ export const worldDepositsModule: OpenLifeModule = {
     id: DEPOSITS_OWNER,
     version: "0.1.0",
     engineRange: "^0.1.0",
-    type: "system",
+    type: "system-pack",
     name: "矿藏与资源分布",
     provides: ["world.deposits"],
     requires: [],
@@ -116,7 +116,9 @@ export const worldDepositsModule: OpenLifeModule = {
     ctx.registerProjection({
       id: DepositsProjections.near,
       description: "What a polity can reach: deposits within radius, plus what is missing.",
-      build: ({ world, params }: { world: WorldView; params: Record<string, JsonValue> }): Record<string, JsonValue> => {
+      // params 是 Record<string, unknown>（ProjectionContext 的定义），标注成
+      // Record<string, JsonValue> 会让整个 build 与契约逆变不兼容（TS2322）。
+      build: ({ world, params }: { world: WorldView; params: Record<string, unknown> }): Record<string, unknown> => {
         const map = readMap(world);
         if (!map) return { near: [], missing: [], line: "矿藏图还没铺开。" };
         const x = Number(params.x ?? 0), y = Number(params.y ?? 0);

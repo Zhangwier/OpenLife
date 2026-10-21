@@ -10,7 +10,7 @@ import { hungerLevel } from "./hunger-toll.ts";
 import { readOrigin } from "./origin.ts";
 import { isBirthday } from "./people.ts";
 import { refuse, type Registration } from "./rules.ts";
-import { withBond } from "./social.ts";
+import { withBond, bondOf } from "./social.ts";
 import { SettlementCommands, SettlementComponents, SettlementRejection, residentId } from "./vocabulary.ts";
 import { RESIDENTS, personName, saveSocial, socialOf } from "./world-reads.ts";
 
@@ -78,9 +78,9 @@ export function acquaintanceOf(world: WorldView, actorId: string, targetId: stri
   // 完全陌生的人做这些事而不认识他。
   const key = RESIDENTS.find((r) => residentId(r.key) === targetId)?.key;
   if (key) {
-    const bond = socialOf(world, actorId, targetId);
-    if (bond && Number(bond.familiarity ?? 0) >= 0.5) return "acquainted";
-    if (bond && Number(bond.familiarity ?? 0) > 0) return "met";
+    const bond = bondOf(socialOf(world, actorId), targetId);
+    if (Number(bond.familiarity ?? 0) >= 0.5) return "acquainted";
+    if (Number(bond.familiarity ?? 0) > 0) return "met";
   }
   // 出身里就有交情的人（陶叔陶婶、教你搓绳的阿岚…）：一开始就认识。
   const origin = readOrigin(world.getComponent(actorId, SettlementComponents.holding)?.origin);

@@ -47,7 +47,7 @@ export const economyModule: OpenLifeModule = {
     id: ECONOMY_OWNER,
     version: "0.1.0",
     engineRange: "^0.1.0",
-    type: "system",
+    type: "system-pack",
     name: "经济与交换",
     provides: ["economy.cycle"],
     requires: [],

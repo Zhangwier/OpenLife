@@ -80,7 +80,7 @@ test("整个网络铺开后，政体、联系、投影都在", { timeout: 60000 
     { name: "东岭", x: 6, y: 2, population: 8 },
   ]);
   const view = sim.project({ id: CivilizationProjections.network, params: {} });
-  assert.equal(view.ok, true, JSON.stringify(view.errors));
+  assert.equal(view.ok, true, JSON.stringify(view.error));
   const data = view.data as Record<string, unknown>;
   assert.equal((data.polities as unknown[]).length, 3, "三个节点");
   assert.ok((data.contacts as unknown[]).length > 0, "有联系");
@@ -171,7 +171,7 @@ test("网络状态随存档持久化", () => {
   const loaded = Simulation.load(saved, [modernWorldModule, worldClockModule, worldSpaceModule,
     worldObjectsModule, civilizationModule]);
   assert.equal(loaded.result.ok, true, JSON.stringify(loaded.result.errors));
-  const after = loaded.simulation.worldView().getComponent("civilization:network", "civilization.network") as
+  const after = loaded.simulation!.worldView().getComponent("civilization:network", "civilization.network") as
     { year: number } | undefined;
   assert.equal(after?.year, 1, "读档后年份还在");
 });

@@ -15,6 +15,7 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 import { REPO_ROOT } from "./workspace-graph.ts";
 
 export type ErrorCounts = Record<string, number>;
@@ -59,4 +60,17 @@ function main(): void {
   if (!v.ok) process.exitCode = 1;
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)) main();
+/**
+ * True when this file is the process entry point.
+ *
+ * `new URL(import.meta.url).pathname` is a POSIX path ("/D:/MG/...") on
+ * Windows, so comparing it with `path.resolve(argv[1])` ("D:\\MG\\...") was
+ * always false here: the gate printed nothing and exited 0 with 119 type
+ * errors in the tree. fileURLToPath gives the native path on every platform.
+ */
+function isEntryPoint(): boolean {
+  const entry = process.argv[1];
+  return Boolean(entry) && path.resolve(entry!) === path.resolve(fileURLToPath(import.meta.url));
+}
+
+if (isEntryPoint()) main();

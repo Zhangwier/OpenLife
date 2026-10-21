@@ -78,15 +78,8 @@ export interface OfficeState {
   history: string[];
 }
 
-interface Race {
-  officeId: string;
-  candidates: string[];
-  leanings: Record<string, string>;
-  votes: Record<string, string>;
-  openedAt: number;
-  closesAt: number;
-  rounds: Record<string, number>;
-}
+/* Race is imported from ./canvass.ts — the local copy that used to sit here
+ * shadowed it (TS2440) and the two could drift apart. */
 
 function emptyState(): OfficeState {
   return {
@@ -123,7 +116,7 @@ export const officeModule: OpenLifeModule = {
     id: OFFICE_OWNER,
     version: "0.1.0",
     engineRange: "^0.1.0",
-    type: "system",
+    type: "system-pack",
     name: "职位与公事",
     provides: ["polity.office"],
     requires: ["life.settlement"],
@@ -321,7 +314,7 @@ export const officeModule: OpenLifeModule = {
         const state = read(c.world) ?? emptyState();
         const next: OfficeState = {
           ...state,
-          pledges: [...state.pledges, { to: target, what, at: c.world.tick, status: "open" }].slice(-20),
+          pledges: [...state.pledges, { to: target, what, at: c.world.tick, status: "open" as const }].slice(-20),
         };
         return [
           save(c.world, next, `promised ${target}: ${what}`),
@@ -637,6 +630,3 @@ export const officeModule: OpenLifeModule = {
     });
   },
 };
-
-void (0 as unknown as CommandIntent);
-void (0 as unknown as POLITY_CAPABILITY);

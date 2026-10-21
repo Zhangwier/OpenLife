@@ -32,7 +32,7 @@ function world(seed = 5) {
 test("map-pack 加载地图后，远行的目的地投影能列出真实的地点", { timeout: 60000 }, () => {
   const sim = world();
   const view = sim.project({ id: TravelProjections.destinations, params: {} });
-  assert.equal(view.ok, true, JSON.stringify(view.errors));
+  assert.equal(view.ok, true, JSON.stringify(view.error));
   const data = view.data as Record<string, unknown>;
   // 至少能列出一些地点（如果 map-pack 加载了地图）
   assert.ok(Array.isArray(data.destinations));

@@ -18,9 +18,11 @@ test("手机版规则只有一份，由 html.is-phone 触发", () => {
   const forced = CSS.match(/:where\(html\.is-phone\) /g) ?? [];
   assert.ok(forced.length > 40, `expected the phone rules under one selector, got ${forced.length}`);
   // 关键属性各自只该出现在 scoped 规则里，不能有一条漏在外面。
-  for (const [what, re] of [
+  // 标注成元组数组，否则解构出来是 string | RegExp，.test 不存在。
+  const scoped: Array<[string, RegExp]> = [
     ["nav pinned to the bottom", /#appNavigation\.app-navigation \{[^}]*position: fixed/],
-  ]) {
+  ];
+  for (const [what, re] of scoped) {
     assert.ok(re.test(CSS), `${what} must be scoped to the phone layout`);
   }
 });
