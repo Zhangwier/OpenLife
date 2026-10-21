@@ -6,6 +6,7 @@ import { renderGuide } from "/guide.js";
 import { renderFigure } from "/character-appearance.js";
 import { playActionFx } from "/action-fx.js";
 import { isTextMode } from "/view-mode.js";
+import "/time-ux.js";
 import { renderLifeLog, renderHopes, logAction, diffSettlement, chipText } from "/life-log.js";
 const $ = (id) => document.getElementById(id);
 let state;
@@ -84,6 +85,7 @@ function render(s, animate = false) {
   renderShell(s);
   renderStories(s, performSettlementAction);
   renderGuide(s, performSettlementAction);
+  window.dispatchEvent(new CustomEvent("openlife:state", { detail: s }));
 }
 
 function renderActions(actions) {
@@ -477,6 +479,8 @@ function updateContinuousControls(message = "") {
   $("timeRibbon").querySelector(".time-copy").textContent =
     continuousRunning ? "自动推进中 · 可暂停" : `${state?.era ?? ""} · ${state?.month ?? 1} 月 · 已暂停`;
 }
+/** 时间与日程第五轮：把推进的开始、每一批、结束告诉 time-ux.js（只读，不影响推进）。 */
+function autorunEvent(detail) { window.dispatchEvent(new CustomEvent("openlife:autorun", { detail })); return detail; }
 function pauseContinuousLife() {
   if (!continuousRunning) return;
   stopRequested = true;
@@ -494,6 +498,7 @@ async function startContinuousLife() {
   busy = true;
   document.body.classList.add("is-busy");
   updateContinuousControls();
+  autorunEvent({ phase: "start", state });
   const days = Number($("autoSpeed").value) || 3;
   let batches = 0;
   let endMessage = "已暂停，控制权交还给你。";
@@ -515,6 +520,7 @@ async function startContinuousLife() {
       state = data.state;
       render(state);
       batches += 1;
+      autorunEvent({ phase: "batch", result: data.result, state });
       if (data.result.interrupted) {
         endMessage = data.result.stopReason || "发生需要你处理的重要事情。";
         continuousRunning = false;
@@ -535,8 +541,9 @@ async function startContinuousLife() {
     updateContinuousControls(endMessage);
     busy = false;
     document.body.classList.remove("is-busy");
+    const ended = autorunEvent({ phase: "end", message: endMessage, batches, state });
     if (batches > 0) await autoRemember();
-    showToast(endMessage);
+    if (!ended.handled) showToast(endMessage);
   }
 }
 $("startContinuousAuto").addEventListener("click", () => { void startContinuousLife(); });
