@@ -1,5 +1,7 @@
 import { renderPlayer, renderActionButtons, installModalAccess, selectView } from "/player.js";
 import { installShell, renderShell, enterLife } from "/shell.js";
+import "/memory-ux.js";
+import "/menu-ux.js";
 import { renderSettlement, describeSettlementResult } from "/settlement.js";
 import { renderStories } from "/stories.js";
 import { renderGuide } from "/guide.js";
@@ -263,7 +265,14 @@ function readMemory(slot) {
 }
 
 function writeMemory(slot, value) {
-  localStorage.setItem(SAVE_PREFIX + slot, JSON.stringify(value));
+  try {
+    localStorage.setItem(SAVE_PREFIX + slot, JSON.stringify(value));
+  } catch (error) {
+    // 第六轮：浏览器存储满了时给中文原因，memory-ux.js 据此提示清空一个记忆。
+    window.__openlifeLastMemoryError = error;
+    if (error?.name === "QuotaExceededError") throw new Error("浏览器存储空间满了，清空一个不要的记忆再试。");
+    throw error;
+  }
 }
 
 function memorySummary(entry) {
@@ -316,6 +325,7 @@ async function autoRemember() {
     await captureMemory("auto", true);
   } catch (error) {
     console.warn("OpenLife autosave failed", error);
+    window.__openlifeAutoMemoryError = { message: error?.message || String(error), at: new Date().toISOString() };
   }
 }
 
@@ -663,8 +673,10 @@ document.querySelectorAll("[data-save-slot]").forEach((button) => {
   button.addEventListener("click", async () => {
     button.disabled = true;
     try {
+      window.__openlifeLastMemoryError = null;
       await captureMemory(button.dataset.saveSlot);
     } catch (error) {
+      window.__openlifeLastMemoryError ||= error;
       showToast(error.message);
     } finally {
       button.disabled = false;
