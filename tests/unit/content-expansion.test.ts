@@ -45,7 +45,10 @@ function livedSeasons(sim: Simulation, seasons: number): string[] {
   const told: string[] = [];
   for (let i = 0; i < seasons; i += 1) {
     sim.advanceBy(90);
-    const before = sim.kernel.internals.eventLog.since(0).length;
+    // The mark has to be a real seq, not since(0).length: journal retention
+    // drops routine events, so the log keeps gaps and its length no longer
+    // equals the sequence number of the last event.
+    const before = sim.kernel.internals.eventLog.nextSeq - 1;
     const turn = sim.dispatch({ type: SettlementCommands.seasonTurn, source: "system", payload: {} as never });
     assert.equal(turn.ok, true, JSON.stringify(turn.errors));
     for (const event of sim.kernel.internals.eventLog.since(before)) {

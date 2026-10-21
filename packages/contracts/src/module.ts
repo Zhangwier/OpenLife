@@ -43,6 +43,18 @@ export interface ModuleManifest {
   permissions?: string[];
   /** Public exports other modules may depend on. */
   exports?: string[];
+  /**
+   * Event types this module writes as moment-to-moment traces (a step, a
+   * repositioning, a night's rest): the journal keeps them only `days` days,
+   * unless they carry historical weight or something lasting names them as a
+   * cause. Everything else follows the simulation's routine retention.
+   */
+  traceEvents?: { types: string[]; days: number };
+  /**
+   * Event types the journal keeps for good although they carry no historical
+   * weight: milestones other code counts (a year passing).
+   */
+  lastingEvents?: string[];
 }
 
 /**

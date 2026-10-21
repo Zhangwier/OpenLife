@@ -20,7 +20,7 @@ import { ErrorCode, OpenLifeErrorException, fail } from "@openlife/contracts";
 import type { DecisionTrace, TaggedEffect } from "@openlife/rule-engine";
 import { reactionSetFor, runReactions } from "@openlife/rule-engine";
 import type { WorldStore } from "@openlife/world-model";
-import { StoreBackedWorldView } from "@openlife/world-model";
+import { StoreBackedWorldView, deepClone } from "@openlife/world-model";
 import type { EventLog } from "./event-log.ts";
 import type { FactStore } from "./facts.ts";
 import type { Scheduler } from "./scheduler.ts";
@@ -170,12 +170,14 @@ export class TransactionEngine {
     switch (effect.kind) {
       case "setComponent": {
         const id = this.#ref(effect.entityId, state);
-        this.#deps.store.setComponent(id, effect.component, effect.value);
+        // The store owns what it keeps: a rule holding on to its effect value can
+        // never change the world afterwards (views share stored values lazily).
+        this.#deps.store.setComponent(id, effect.component, deepClone(effect.value));
         return [];
       }
       case "modifyComponent": {
         const id = this.#ref(effect.entityId, state);
-        this.#deps.store.mergeComponent(id, effect.component, effect.patch);
+        this.#deps.store.mergeComponent(id, effect.component, deepClone(effect.patch));
         return [];
       }
       case "spawnEntity": {
@@ -406,7 +408,7 @@ function cloneComponents(
 ): Record<string, ComponentData> {
   const out: Record<string, ComponentData> = {};
   for (const [key, value] of Object.entries(components)) {
-    out[key] = { ...value };
+    out[key] = deepClone(value);
   }
   return out;
 }

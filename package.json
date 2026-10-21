@@ -28,7 +28,8 @@
     "design:check": "node scripts/design-check.ts",
     "chronicle": "node scripts/chronicle.ts",
     "pack:new": "node scripts/pack-new.ts",
-    "pack:preview": "node scripts/pack-preview.ts"
+    "pack:preview": "node scripts/pack-preview.ts",
+    "bench": "node scripts/bench-days.ts"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

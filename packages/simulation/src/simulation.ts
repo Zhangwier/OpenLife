@@ -10,6 +10,7 @@
  */
 
 import type {
+  WorldEvent,
   CommandIntent,
   CommandResult,
   LoadOptions,
@@ -42,7 +43,26 @@ export interface SimulationOptions {
   maxEventsPerTransaction?: number;
   /** See KernelOptions.agentCatchUpLimit. */
   agentCatchUpLimit?: number;
+  /** How long routine events stay in the journal (see JournalRetention). */
+  journal?: Partial<JournalRetention>;
 }
+
+/**
+ * Journal retention. A village day writes about a hundred routine events
+ * (walks, rests, daily summaries) with no historical weight; kept forever they
+ * turned one in-game year into a 17 MB journal. Every event with any
+ * historical significance is kept for good, and so is every event such an
+ * event names as a cause; routine events are kept for `routineDays` days.
+ *
+ * The cut-off moves in steps of `stepDays` and depends only on the current
+ * tick, so a run that was saved and loaded keeps exactly the same journal as
+ * one that never stopped, and an old, unbounded save is trimmed on load.
+ */
+export interface JournalRetention {
+  routineDays: number;
+  stepDays: number;
+}
+export const DEFAULT_JOURNAL_RETENTION: JournalRetention = { routineDays: 30, stepDays: 10 };
 
 export interface SimulationSaveInput {
   label?: string;
@@ -74,6 +94,7 @@ export class Simulation {
   constructor(options: SimulationOptions) {
     this.#engineVersion = options.engineVersion ?? ENGINE_VERSION;
     this.#historyThreshold = options.historyThreshold ?? 0.25;
+    this.#retention = { ...DEFAULT_JOURNAL_RETENTION, ...(options.journal ?? {}) };
     this.definitions = new DefinitionSet();
     this.kernel = new Kernel({
       worldSeed: options.worldSeed,
@@ -124,8 +145,15 @@ export class Simulation {
   }
 
   install(module: OpenLifeModule): InstalledModuleInfo {
-    return this.modules.install(module);
+    const info = this.modules.install(module);
+    const traces = module.manifest.traceEvents;
+    if (traces && traces.days >= 0) for (const type of traces.types) this.#traceDays.set(type, traces.days);
+    for (const type of module.manifest.lastingEvents ?? []) this.#traceDays.set(type, Number.POSITIVE_INFINITY);
+    return info;
   }
+
+  /** Event type → days it is kept (manifests' `traceEvents`; Infinity for `lastingEvents`). */
+  #traceDays = new Map<string, number>();
 
   unload(moduleId: ModuleId): InstalledModuleInfo {
     return this.modules.unload(moduleId);
@@ -182,6 +210,20 @@ export class Simulation {
   syncHistory(): void {
     this.#history.sync();
     this.#history.reconcileArchivedSubjects();
+    this.#retainJournal();
+  }
+
+  #retention: JournalRetention = DEFAULT_JOURNAL_RETENTION;
+  #retainedAt = Number.NaN;
+
+  /** Applies journal retention once per step (events are folded into history first). */
+  #retainJournal(): void {
+    const { routineDays, stepDays } = this.#retention;
+    if (!(routineDays >= 0) || !(stepDays > 0)) return;
+    const step = Math.floor(this.kernel.tick / stepDays) * stepDays;
+    if (step === this.#retainedAt) return;
+    this.#retainedAt = step;
+    this.kernel.compactJournal((events) => journalKeeper(events, step - routineDays, this.#traceDays, step));
   }
 
   project(request: ProjectionRequest): ProjectionResult {
@@ -386,4 +428,20 @@ export function requireSimulation(result: {
     );
   }
   return result.simulation;
+}
+
+/** Which events survive a cut-off: anything historical, anything recent, and the causes of what survives. */
+export function journalKeeper(
+  events: readonly WorldEvent[], cutoffTick: number,
+  traceDays: ReadonlyMap<string, number> = new Map(), now = cutoffTick,
+): (event: WorldEvent) => boolean {
+  const cutoffOf = (e: WorldEvent) => {
+    const d = traceDays.get(e.type);
+    if (d === undefined) return cutoffTick;
+    return d === Number.POSITIVE_INFINITY ? Number.NEGATIVE_INFINITY : Math.max(cutoffTick, now - d);
+  };
+  const lasting = (e: WorldEvent) => e.historicalSignificance > 0 || e.at >= cutoffOf(e);
+  const causes = new Set<string>();
+  for (const e of events) if (lasting(e)) for (const id of e.causedBy ?? []) causes.add(id);
+  return (e) => lasting(e) || causes.has(e.id);
 }

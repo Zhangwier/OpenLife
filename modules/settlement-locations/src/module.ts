@@ -23,6 +23,7 @@ import { fixtureActions, registerFixtures } from "./fixtures.ts";
  */
 
 import type { ComponentData, Effect, JsonValue, OpenLifeModule, WorldView } from "@openlife/contracts";
+import { readField } from "@openlife/contracts";
 import { DAYS_PER_MONTH, DAY_TICKS_PER_YEAR } from "@openlife/life-contracts";
 import { feastOn, feastSoon, illnessOn, illnessSpec, isIll, calendarDate, pickIndex, seasonOf } from "./happenings.ts";
 export { pickIndex, seasonOf } from "./happenings.ts";
@@ -117,6 +118,8 @@ export const settlementLocationsModule: OpenLifeModule = {
     engineRange: "^0.1.0",
     type: "content-pack",
     name: "Settlement Locations",
+    // Walking into a place and a night's rest are traces; meals, work, gifts and the NPCs' day summaries stay routine.
+    traceEvents: { types: ["settlement-locations.arrived", "settlement-locations.rested"], days: 3 },
     description: "The first inhabited settlement: places, spaces, renewing resources, residents and the first daily loop.",
     requires: ["world.space", "world.objects", "time.life-scale"],
     optional: ["world.geography"],
@@ -227,9 +230,7 @@ function registerFound(ctx: Registration): void {
     id: `${SettlementCommands.found}.allowed`,
     commandType: SettlementCommands.found,
     evaluate: (c) => {
-      if (c.world.getEntity(SettlementId)) {
-        return refuse(SettlementRejection.Already, "这个聚落已经存在了。");
-      }
+      if (c.world.getEntity(SettlementId)) { return refuse(SettlementRejection.Already, "这个聚落已经存在了。"); }
       const locationId = String(c.command.payload.locationId ?? "");
       const knownLocations = c.world.listEntities({ kind: "world-geography.location" });
       if (locationId && !knownLocations.some((entity) => entity.id === locationId)) {
@@ -614,7 +615,7 @@ function yieldSpecFor(placeId: string, resourceId: string): YieldSpec | undefine
 /** Living villagers (residents and the player alike) who eat from shared stores. */
 export function villagePopulation(world: WorldView): number {
   return world.listEntities({ kind: "modern.character" })
-    .filter((e) => e.archivedAt === undefined && e.components["modern.vitals"]?.alive !== false)
+    .filter((e) => e.archivedAt === undefined && readField(world, e.id, "modern.vitals", "alive") !== false)
     .length;
 }
 
@@ -1153,8 +1154,8 @@ export function tradeableGoods(world: WorldView, personId: string): Record<strin
 
 /** Favours: worth units `debtorId` owes `creditorId` (kept on the creditor). */
 export function favourOwed(world: WorldView, creditorId: string, debtorId: string): number {
-  const raw = world.getComponent(creditorId, SettlementComponents.resident)?.favours ??
-    world.getComponent(creditorId, SettlementComponents.holding)?.favours;
+  const raw = readField(world, creditorId, SettlementComponents.resident, "favours") ??
+    readField(world, creditorId, SettlementComponents.holding, "favours");
   const map = raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, JsonValue> : {};
   return Number(map[debtorId] ?? 0);
 }
@@ -2382,6 +2383,11 @@ export function worksites(world: WorldView): {
   totals: { resourceId: string; label: string; stock: number; capacity: number; unit: string }[];
 } {
   const points = yieldPoints(world);
+  // Where every live item stands, read once (not once per place).
+  const standsIn = new Map<string, string[]>();
+  for (const entity of world.listEntities({ kind: ObjectKinds.item })) {
+    standsIn.set(entity.id, world.listRelations({ type: ObjectRelations.containedIn, from: entity.id }).map((r) => r.to));
+  }
   const places = PLACES.map((place) => {
     // Objects count as "in this place" when they stand in the place itself or
     // in one of its spaces; a jar in the storage room is still the yard's jar.
@@ -2393,14 +2399,7 @@ export function worksites(world: WorldView): {
       costDays: place.costDays,
       occupants: world.listRelations({ type: SpaceRelations.occupancy, to: place.id }).length,
       resources: points.filter((point) => point.placeId === place.id),
-      objects: world
-        .listEntities({ kind: ObjectKinds.item })
-        .filter((entity) => entity.archivedAt === undefined)
-        .filter((entity) =>
-          world
-            .listRelations({ type: ObjectRelations.containedIn, from: entity.id })
-            .some((relation) => holders.has(relation.to)),
-        ).length,
+      objects: [...standsIn.values()].filter((to) => to.some((id) => holders.has(id))).length,
     };
   });
   const totals = new Map<string, { resourceId: string; label: string; stock: number; capacity: number; unit: string }>();

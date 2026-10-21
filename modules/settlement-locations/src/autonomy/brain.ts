@@ -169,7 +169,8 @@ function look(world: WorldView, actorId: string, resident: Record<string, unknow
     if (!at || person.id === actorId) continue;
     if (at === here) present.add(person.id);
     // 在屋里睡着的人不算「人多热闹」。
-    if (occupiedSpaceId(world, person.id) === person.home || HOME_SPACES.has(occupiedSpaceId(world, person.id))) continue;
+    const space = occupiedSpaceId(world, person.id);
+    if (space === person.home || HOME_SPACES.has(space)) continue;
     crowd.set(at, (crowd.get(at) ?? 0) + 1);
     peopleAt.set(at, [...(peopleAt.get(at) ?? []), person.id]);
   }
