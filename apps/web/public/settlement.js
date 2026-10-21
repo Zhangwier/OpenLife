@@ -4,6 +4,7 @@
  * projection over the same authoritative actions, never a parallel inventory.
  */
 import { icon, actionIconName, placeIconName } from "/icons.js";
+import { renderHud } from "/hud.js";
 import { renderSceneFx, daypartOf } from "/scene-fx.js";
 import { setAudioScene } from "/audio.js";
 import { renderFigure } from "./character-appearance.js";
@@ -131,39 +132,8 @@ function renderPaintedStage(s) {
  $("sceneStageHint").textContent="观察眼前物品与村民，轻触即可互动";
 }
 let previousScenePlace = "";
-/**
- * 状态用一句话说，不给玩家看数字（DESIGN.md 原则 3）。
- *
- * 以前这里是「饥饿 0/10 + 进度条 + 今日活动 8/8 格」，一屏四个数字，
- * 与设计规范正面冲突；现在只留「肚子 / 今天」，各一句白话。
- * 屏幕阅读器仍能读到完整数值（sr-only），看得到的界面保持无数字。
- */
-function hudWord(label, word, tone) {
-  return `<span class="hud-item ${tone || ""}"><span class="hud-label">${label}</span><b>${word}</b></span>`;
-}
-/** 饥饿 0–10 分成五档，只有真饿到影响干活时才用危险色。 */
-function hungerWord(hunger, toll) {
-  if (toll?.sick) return { word: "饿病了", tone: "warn" };
-  if (hunger >= 10) return { word: "眼前发黑", tone: "warn" };
-  if (hunger >= 8) return { word: "饿得发慌", tone: "warn" };
-  if (hunger >= 6) return { word: "空着肚子", tone: "watch" };
-  if (hunger >= 3) return { word: "有点饿", tone: "" };
-  return { word: "吃得饱", tone: "" };
-}
-/** 今日活动格：说「还能做几件事」，不报格数。 */
-function activityWord(remaining) {
-  if (remaining <= 0) return { word: "今天做不动了", tone: "watch" };
-  if (remaining <= 2) return { word: "还能做一点", tone: "watch" };
-  if (remaining <= 4) return { word: "还能做几件事", tone: "" };
-  return { word: "一整天都在", tone: "" };
-}
-/** 负重：用「背得动 / 有点沉 / 背不动了」。 */
-function loadWord(mass, maxMass) {
-  const ratio = maxMass ? mass / maxMass : 0;
-  if (ratio >= 1) return { word: "背不动了", tone: "warn" };
-  if (ratio >= 0.75) return { word: "有点沉", tone: "watch" };
-  return { word: "背得动", tone: "" };
-}
+/* 状态分级与白话文案都在 /hud.js：那是纯函数，单测能直接调；
+ * 这里只负责把它摆到画面上。 */
 function renderInSceneMenu(s, heading, candidates, onAction) {
   const theater = $("sceneTheater"), box = $("sceneQuickActions");
   if (!box || !theater) return;
@@ -268,19 +238,12 @@ export function renderSettlement(state, onAction) {
     s.outfit ? `已穿：${s.outfit.name}` : "",
     s.barter?.status === "offered" && s.barter.offeredAt === state.tick ? `${cookOf(s).name}正在等待你回复报价` : "",
   ];
-  const act = s.dailyActivity || { remaining: 0, capacity: 8 };
-  const load = s.portableLoad;
-  const hunger = hungerWord(s.hunger ?? 0, s.hungerToll);
-  const today = activityWord(act.remaining ?? 0);
-  const loadWordState = load ? loadWord(Number(load.mass.toFixed(1)), load.maxMass) : null;
-  const note = s.hungerToll?.line || "";
+  // 读屏拿完整数值，画面只有白话（DESIGN.md 原则 3）。
+  // 分级阈值和文案统一在 /hud.js，这里只管摆放。
   $("sceneSummary").innerHTML = `<span class="sr-only">${esc(spoken.filter(Boolean).join(" · "))}</span>
-    <span class="hud" aria-hidden="true">
-      ${hudWord("肚子", hunger.word, hunger.tone)}
-      ${hudWord("今天", today.word, today.tone)}
-      ${loadWordState ? hudWord("身上", loadWordState.word, loadWordState.tone) : ""}
-      ${s.roof ? hudWord(s.roof.leaking ? "屋顶" : "屋顶", s.roof.leaking ? "在漏雨" : "还挡得住", s.roof.leaking ? "warn" : "") : ""}
-    </span>${note ? `<span class="hud-note">${esc(note)}</span>` : ""}`;
+    <span class="hud" aria-hidden="true">${renderHud(s)}</span>`;
+  const note = s.hungerToll?.line || "";
+  if (note) $("sceneSummary").insertAdjacentHTML("beforeend", `<span class="hud-note">${esc(note)}</span>`);
   renderPaintedStage(s);
 
   const story = $("communityFeed");

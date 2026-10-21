@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="/stories.css" />
   <link rel="stylesheet" href="/guide.css">
   <link rel="stylesheet" href="/scene.css" />
+  <link rel="stylesheet" href="/ui-polish.css" />
   <link rel="icon" href="data:," />
   <meta name="color-scheme" content="light dark" />
   <meta name="theme-color" content="#f2ece1" />
@@ -294,7 +295,10 @@
         <button data-route="family">家族谱</button>
         <button data-route="history">记忆与历史</button>
         <button data-route="world">时代与世界</button>
+        <button data-route="map">地图与地点</button>
+        <button data-route="codex">图鉴</button>
         <button data-route="modules">模块管理</button>
+        <button type="button" data-coach-reopen>新手引导</button>
         <button data-route="home">返回主菜单</button>
         <button data-control="resetButton">开启新人生</button>
       </div>
@@ -428,6 +432,7 @@
     </section>
   </div>
   <script type="module" src="/app.js"></script>
+  <script type="module" src="/ui-polish.js"></script>
 
   <div class="sound-panel" id="soundPanel" role="dialog" aria-label="声音设置" hidden>
     <div class="sound-head"><strong>声音</strong><span id="soundStatus">关闭</span></div>

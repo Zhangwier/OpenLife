@@ -928,7 +928,7 @@ body[data-screen="activities"]:not(:has(.modal-backdrop:not([hidden]))) #toast {
   :where(html:not([data-layout="desktop"])) .application-layout { display: block; padding: 12px 12px calc(var(--nav-h) + 20px + env(safe-area-inset-bottom)); }
   :where(html:not([data-layout="desktop"])) #appNavigation.app-navigation {
     position: fixed; z-index: 90; left: 0; right: 0; bottom: 0; top: auto;
-    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px;
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px;
     padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
     background: var(--glass); backdrop-filter: blur(10px);
     border-top: 1px solid var(--line); box-shadow: 0 -6px 20px rgba(0, 0, 0, .08);
@@ -993,7 +993,7 @@ body[data-screen="activities"]:not(:has(.modal-backdrop:not([hidden]))) #toast {
 :where(html.is-phone) .application-layout { display: block; padding: 12px 12px calc(var(--nav-h) + 20px + env(safe-area-inset-bottom)); }
 :where(html.is-phone) #appNavigation.app-navigation {
     position: fixed; z-index: 90; left: 0; right: 0; bottom: 0; top: auto;
-    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px;
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px;
     padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
     background: var(--glass); backdrop-filter: blur(10px);
     border-top: 1px solid var(--line); box-shadow: 0 -6px 20px rgba(0, 0, 0, .08);
@@ -1118,4 +1118,6 @@ body.has-overlay .scene-theater .scene-backdrop { filter: var(--scene-dim-behind
 .scene-theater .painted-exit { bottom: 14px !important; }
 @media (max-width: 600px) { .scene-theater .painted-exit .exit-icon { width: 42px; height: 42px; } .scene-theater .painted-exit { bottom: 10px !important; } }
 :where(html.is-phone) .scene-theater .painted-exit .exit-icon { width: 42px; height: 42px; } .scene-theater .painted-exit { bottom: 10px !important; } 
+
+
 
