@@ -47,11 +47,28 @@ test("brain: personality and attributes come from the data pack, or a stable der
 test("brain: nobody is scheduled, yet villagers pursue multi-day goals through real commands", () => {
   const { sim, playerId } = village(7);
   const before = dailyActivity(sim.worldView(), playerId).used;
-  const reports = days(sim, 12);
-  // Someone who wanted a jar dug clay, shaped greenware, waited for it to dry, fetched fuel and fired it.
-  const potters = RIVER_TERRACE_PACK.residents.map((r) => residentId(r.key))
-    .filter((id) => owns(sim, id, "resource:jar") > 0 && reports.some((d) => d.residents.find((x) => x.actorId === id)?.actions.some((a) => a.includes("陶坯"))));
+  const residents = RIVER_TERRACE_PACK.residents.map((r) => residentId(r.key));
+  // Someone who wanted a jar dug clay, shaped greenware, waited for it to dry,
+  // fetched fuel and fired it. Track jars *ever* held, not jars held on the last
+  // day: a potter who fires a jar and then trades it for a mat still fired it,
+  // and the end-of-run snapshot would make that read as "never made one".
+  const everOwnedJar = new Set<string>();
+  const shapedGreenware = new Set<string>();
+  const reports: VillageDayBoundary[] = [];
+  for (let i = 0; i < 12; i++) {
+    sim.advanceBy(1);
+    const report = sim.agentReport(VILLAGE_DAY_AGENT);
+    assert.equal(report?.error, undefined, String(report?.error));
+    const day = report!.report as VillageDayBoundary;
+    reports.push(day);
+    for (const r of residents) {
+      if (owns(sim, r, "resource:jar") > 0) everOwnedJar.add(r);
+      if (day.residents.find((x) => x.actorId === r)?.actions.some((a) => a.includes("陶坯"))) shapedGreenware.add(r);
+    }
+  }
+  const potters = residents.filter((id) => everOwnedJar.has(id) && shapedGreenware.has(id));
   assert.ok(potters.length > 0, reports.map((d) => d.notes.join("\n")).join("\n==\n"));
+
   // Cold season: villagers without clothing made their own.
   assert.ok(reports[0]!.notes.some((n) => n.includes("裹身") && n.includes("御寒")), reports[0]!.notes.join("\n"));
   // Different temperaments produce different days.

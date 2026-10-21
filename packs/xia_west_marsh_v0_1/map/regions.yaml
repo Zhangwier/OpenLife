@@ -1,0 +1,12 @@
+# 三个区域：由东向西，从夏境的入河口逆流而上，经过河湾，进入大泽，最后是大泽西头的岛与沉木林。
+# 与 v0.1 规范一致，区域只记录身份；气候、物种、资源属于其他模块。
+regions:
+  - id: W01
+    name: 西来河湾
+    type: cattail_reach
+  - id: W02
+    name: 大泽芦荡
+    type: great_marsh
+  - id: W03
+    name: 鹭岛与沉木林
+    type: heron_isles

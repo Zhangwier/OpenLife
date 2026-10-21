@@ -1,0 +1,193 @@
+# 西泽事件点·深挖（2026-10-19 第二轮）：由 map-pack 加载器追加到 event_points.yaml 之后，按同样规则校验。
+# 重点：水獭、绿头鸭、鲫鱼、麋鹿、扬子鼍、水蛇、白鹭的出没、行为与掉落；村里对应的事件在 river-terrace.stories.deep.json。
+event_points:
+  - id: EP_OTTER_SLIDE
+    name: 水獭滑道
+    location_id: W0102
+    kind: encounter
+    season: winter
+    text: 蒲草湾的雪坡上有几道光溜溜的槽，是水獭从岸上滑进水里玩出来的。清早蹲在下风处，能看见它们一只接一只地滑。
+    time: dawn
+    creature: 水獭（一家四五只）
+    behavior: 成群在岸边滑雪、打滚，饿了钻进冰窟窿捉鱼；被人撞见就叫着散进水里，过一会儿又探出头来看。
+    drops:
+      - 獭毛（蹭在滑道上的）
+      - 吃剩的鲫鱼
+    danger: 0
+
+  - id: EP_OTTER_RAID
+    name: 掏篓的水獭
+    location_id: W0103
+    kind: hazard
+    season: autumn
+    text: 秋天鱼梁上的鱼篓常在夜里被掏空。篓口挂着棕毛、泥上满是梅花一样的爪印，不是人干的。
+    time: night
+    creature: 水獭
+    behavior: 专挑没扎紧的鱼篓下手，一夜能掏三四只；人举火把过去就弃鱼逃走，第二夜换一只篓再来。
+    drops:
+      - 没叼走的鲫鱼
+    danger: 1
+
+  - id: EP_MALLARD_RAFT
+    name: 鸭排
+    location_id: W0203
+    kind: encounter
+    season: autumn
+    text: 深秋绿头鸭成百上千地落在菱塘里，挤成一大片“鸭排”。一只惊起，整排都轰地飞起来，遮住半边天。
+    time: dawn
+    creature: 绿头鸭
+    behavior: 白天成群浮在开阔水面上，翻菱叶、啄水草；黄昏飞去芦荡过夜。下套的人在芦苇根下能找到它们的窝。
+    drops:
+      - 鸭羽
+      - 野鸭蛋（春天）
+    danger: 0
+
+  - id: EP_CARP_SPAWN
+    name: 鲫鱼甩籽
+    location_id: W0102
+    kind: gathering
+    season: spring
+    text: 谷雨前后，蒲草湾的浅水里哗啦啦一片响，是鲫鱼在蒲根上甩籽。这几天不下网，等籽孵出来，秋天才有鱼吃。
+    time: dawn
+    creature: 鲫鱼
+    behavior: 成群挤进浅水草丛产卵，激起一片水花；这时最好捉，也最不该捉。
+    drops:
+      - 鲜鲫鱼
+    danger: 0
+
+  - id: EP_CARP_GASP
+    name: 翻塘
+    location_id: W0203
+    kind: hazard
+    season: summer
+    text: 大旱的夏天，菱塘水浅水热，天亮前鲫鱼成片浮头张嘴。白鹭、水獭闻讯都来，塘边一片狼藉。
+    time: dawn
+    creature: 鲫鱼与赶来的白鹭、水獭
+    behavior: 鱼浮头喘气，鹭和獭趁机大吃；不引水进塘，一早上能死掉半塘鱼。
+    drops:
+      - 翻塘的死鱼（只能喂鸭）
+    danger: 1
+
+  - id: EP_MILU_SHED
+    name: 麋鹿换角
+    location_id: W0204
+    kind: gathering
+    season: winter
+    text: 冬至前后，麋鹿洲上的公麋一头接一头地掉角。旧角又大又重，撑筏的人会专程上洲来捡。
+    time: day
+    creature: 麋鹿
+    behavior: 换角时脾气暴，守着刚落的角不让靠近；等它下水游走再上洲。
+    drops:
+      - 整副麋角
+    danger: 1
+
+  - id: EP_MILU_SWIM
+    name: 麋鹿横渡
+    location_id: W0201
+    kind: encounter
+    season: summer
+    text: 涨水的夏天，成群麋鹿从芦荡水道里游过去，只露着头和角，像一片会走的枯树枝。撑筏的人要停篙等它们过完。
+    time: dusk
+    creature: 麋鹿
+    behavior: 成群泅水横渡，不避筏；被拦住会用角顶筏帮，人一停篙它们就绕过去。
+    drops:
+      - 漂在水上的麋毛
+    danger: 1
+
+  - id: EP_GATOR_SUN
+    name: 晒背的老鼍
+    location_id: W0302
+    kind: hazard
+    season: spring
+    text: 开春第一个暖和的晌午，沉木林的倒木上趴着一条一动不动的老鼍，背上的甲沾着青苔。看着像沉木，离近了才见它眨眼。
+    time: day
+    creature: 扬子鼍
+    behavior: 晒背时不动不追，人筏离它一篙之内，它会猛地甩尾翻进水里，浪能掀翻小筏。
+    drops:
+      - 蜕下的鼍甲片
+    danger: 2
+
+  - id: EP_GATOR_EGGS
+    name: 鼍的草窝
+    location_id: W0303
+    kind: hazard
+    season: summer
+    text: 盛夏鼍窟边堆起一个半人高的烂草堆，热乎乎的，里面埋着鼍蛋。母鼍就伏在旁边的水里。
+    time: day
+    creature: 母鼍（扬子鼍）
+    behavior: 护窝时会离水扑人，追出五六步；绕到对岸就没事。秋初小鼍破壳，会叫着找妈妈。
+    drops:
+      - 鼍蛋壳（入药）
+    danger: 3
+
+  - id: EP_GATOR_WINTER
+    name: 冬眠的鼍窟
+    location_id: W0303
+    kind: omen
+    season: winter
+    text: 入冬后鼍窟洞口封着一层泥，里面静悄悄的。老人说鼍窟封得早，这年冬天就冷得早。
+    time: any
+    creature: 扬子鼍（冬眠）
+    behavior: 封洞冬眠到开春；洞要是被冻塌，它会冻僵在洞口，几天就醒不过来。
+    drops:
+      - 冻塌洞口边的鼍甲
+    danger: 1
+
+  - id: EP_SNAKE_NEST
+    name: 蛇窝边的止血草
+    location_id: W0202
+    kind: gathering
+    season: summer
+    text: 浮草甸边上开着一片紫花，是阿芷要的止血草。可它只长在水蛇窝旁边，草丛里时常盘着两三条晒太阳的蛇。
+    time: day
+    creature: 水蛇
+    behavior: 盘在草上晒太阳，被踩到才咬；拿篙子在远处拍水，它们就游开。
+    drops:
+      - 蛇蜕
+      - 止血草
+    danger: 2
+
+  - id: EP_EGRET_FISHING
+    name: 鹭鸟围鱼
+    location_id: W0201
+    kind: encounter
+    season: summer
+    text: 清早几十只白鹭在芦荡水道里排成一排，一步一步把鱼往浅处赶，然后一齐低头啄下去。
+    time: dawn
+    creature: 白鹭
+    behavior: 成群协作赶鱼，有人撑筏经过就整排飞起、落到前面接着赶。
+    drops:
+      - 白鹭羽
+      - 被惊飞的小鱼
+    danger: 0
+
+  - id: EP_EGRET_FALLEN
+    name: 掉窝的幼鹭
+    location_id: W0301
+    kind: encounter
+    season: summer
+    text: 夏天鹭岛的树下常有掉下窝的小鹭，灰扑扑的，叫得可怜。大鹭不会下来救它。
+    time: day
+    creature: 白鹭（幼鸟）
+    behavior: 幼鹭摔断腿就只能在树下等死；有人靠近时大鹭在头顶盘旋惊叫，但不会攻击。
+    drops:
+      - 白鹭羽
+    danger: 0
+
+  - id: EP_SUNKEN_LOG_HAUL
+    name: 捞沉木
+    location_id: W0302
+    kind: gathering
+    season: autumn
+    text: 枯水的秋天，沉木林的老树露出水面一大截。绳子拴住根部，两三个人撑筏一起拖，才拖得动一截。
+    time: day
+    danger: 1
+
+  - id: EP_HERON_FESTIVAL
+    name: 放鹭节
+    location_id: W0301
+    kind: festival
+    season: autumn
+    text: 秋末白鹭南飞前一天，两岸的人撑着筏子到鹭岛下，把一年里救下的伤鹭放飞。阿芷会给每只鹭腿上系一根红麻线。
+    time: dusk
+    danger: 0

@@ -8,3 +8,4 @@
 - 处理：裁成 3:4，缩放到 480×640，JPEG 质量 3（ffmpeg）。
 - 2026-10-17 补：`healer.jpg`（蓍婆）、`stonesmith.jpg`（阿砺）按同一风格以现有立绘为参照生成；`reed-worker.jpg` 以原图为参照重绘，镰刀改为绑在木柄上的打制石镰（原“金属镰”问题已解决）。
 - 2026-10-18 补：`weaver.jpg`（阿缫）、`hunter.jpg`（阿犴）、`shrine-keeper.jpg`（老祝）、`market-keeper.jpg`（阿贾）、`longhouse-matron.jpg`（阿蘩）按同一风格、以现有立绘为参照生成，裁成 3:4、480×640。
+- 2026-10-19 补：`fisher.jpg`（阿罟）、`herbalist.jpg`（阿芷）按同一风格、以现有立绘为参照由 AI 图像模型生成，裁成 3:4、480×640。

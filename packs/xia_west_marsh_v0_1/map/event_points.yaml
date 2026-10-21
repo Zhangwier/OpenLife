@@ -1,0 +1,177 @@
+# 事件点：地点上的可写内容（地标、季节采集点、遭遇、险情、征兆、节庆）。
+# 字段同北坡包：time、creature、behavior、drops、danger（0 无害…3 致命）。
+# 注册地图包不会自动触发它们；村里对应的事件与掉落写在 river-terrace 数据包（渔寮、药庐与泽地事件）。
+event_points:
+  - id: EP_RIVER_MOUTH_STONES
+    name: 记水石
+    location_id: W0101
+    kind: landmark
+    season: any
+    text: 河口北岸立着一排刻了横道的石头，每道是一年最高的水位。最上面那道比人还高，旁边刻着一条鱼，没人知道是哪年。
+    time: any
+    danger: 0
+
+  - id: EP_CATTAIL_HARVEST
+    name: 割蒲
+    location_id: W0102
+    kind: gathering
+    season: summer
+    text: 夏末蒲草长到齐胸，蒲棒还没炸絮。割下来晒三天，叶子编席，蒲棒的絮塞枕头、塞冬衣都暖和。
+    time: day
+    danger: 0
+
+  - id: EP_WEIR_RUN
+    name: 鱼梁上的春汛
+    location_id: W0103
+    kind: gathering
+    season: spring
+    text: 开春鱼往上游产卵，在鱼梁的竹栅前挤成一团。守梁的人一夜不睡，天亮时鱼篓装得提不动。
+    time: night
+    creature: 鲤与鲫
+    behavior: 逆水成群上溯，被竹栅拦住后在缺口处打转；月亮亮的夜晚上得最多。
+    drops:
+      - 鲜鱼
+      - 鱼鳔（熬胶用）
+    danger: 0
+
+  - id: EP_OLD_FERRY_POST
+    name: 半截渡桩
+    location_id: W0104
+    kind: landmark
+    season: any
+    text: 旧渡口只剩半截渡桩，桩上的绳槽磨得发亮。老人说早先大泽两边的人在这里换盐换鱼，后来河改道，渡口就荒了。
+    time: any
+    danger: 0
+
+  - id: EP_REED_MAZE
+    name: 芦荡迷水
+    location_id: W0201
+    kind: hazard
+    season: autumn
+    text: 秋天芦苇比人高两头，水道一天一个样。进芦荡要在筏头系一根长绳拴住来路，不然转一下午还在原地。起风时芦苇倒伏，把水道盖住，得看太阳和水流方向认路。
+    time: day
+    danger: 2
+
+  - id: EP_FLOATING_MAT
+    name: 踩不得的草甸
+    location_id: W0202
+    kind: hazard
+    season: any
+    text: 浮草甸看着像实地，底下是一人多深的烂泥。走之前拿篙子戳一戳，戳得透就绕开。
+    time: any
+    creature: 水蛇
+    behavior: 夏天成群盘在草甸上晒太阳，被踩到才咬人；咬了不致命，伤口肿上三天。
+    drops:
+      - 蛇蜕（药庐收）
+    danger: 2
+
+  - id: EP_WATER_CHESTNUT
+    name: 采菱
+    location_id: W0203
+    kind: gathering
+    season: autumn
+    text: 菱角塘的水面铺满菱叶，翻过来就是两角的菱。坐在木盆里一边划一边采，生吃脆甜，煮熟了粉。
+    time: day
+    danger: 0
+
+  - id: EP_MILU_HERD
+    name: 麋鹿过水
+    location_id: W0204
+    kind: encounter
+    season: any
+    text: 麋鹿在洲上吃草，人一靠近就整群下水，只露着头和角游到对面去。它们的蹄子宽，在烂泥里比人走得稳。
+    time: dawn
+    creature: 麋鹿
+    behavior: 成群在洲上啃草，受惊下水游走；入冬换角，洲上能捡到整副旧角。
+    drops:
+      - 麋角
+    danger: 0
+
+  - id: EP_MILU_RUT
+    name: 发情的公麋
+    location_id: W0204
+    kind: hazard
+    season: summer
+    text: 盛夏公麋角上挂满水草，见什么顶什么，连筏子也顶。这时候别上麋鹿洲。
+    time: dusk
+    creature: 公麋鹿
+    behavior: 争偶时用角挑起水草挂在角上示威，冲撞靠近的人和筏；人退回水里它就不追。
+    drops:
+      - 麋角
+    danger: 2
+
+  - id: EP_HERONRY
+    name: 鹭鸟回岛
+    location_id: W0301
+    kind: encounter
+    season: spring
+    text: 春分前后，白鹭一群一群落回岛上，树杈上全是窝。整座岛都是腥味和叫声，可没人去掏它们的蛋。
+    time: dusk
+    creature: 白鹭
+    behavior: 白天散到大泽各处觅鱼，傍晚成群回岛；有人上岛就满天飞起，久久不落。
+    drops:
+      - 白鹭羽
+    danger: 0
+
+  - id: EP_DROWNED_FOREST
+    name: 水下的老林子
+    location_id: W0302
+    kind: landmark
+    season: any
+    text: 枯水那几年，能看见水下一片站着的老树，树皮都黑了，硬得像石头。捞上来的沉木不烂不蛀，能凿船、能做祭器。
+    time: day
+    danger: 1
+
+  - id: EP_GATOR_DEN
+    name: 鼍公的窟
+    location_id: W0303
+    kind: hazard
+    season: summer
+    text: 鼍窟边的泥坡被压出一道道光溜溜的槽。夏天正午，老鼍趴在洞口晒背，一动不动，像一截沉木。
+    time: day
+    creature: 鼍（扬子鼍）
+    behavior: 白天晒背、夜里下水捕鱼；不主动追人，但被逼到洞口会甩尾扑咬。入冬钻进洞里睡到开春。
+    drops:
+      - 鼍甲片
+      - 鼍皮（极少）
+    danger: 3
+
+  - id: EP_GATOR_DRUM
+    name: 鼍鸣如鼓
+    location_id: W0303
+    kind: omen
+    season: summer
+    text: 大雨前一天，鼍窟那边会传来一声一声闷响，像有人在水底敲鼓。渔人一听见就收网回寮，说鼍公在叫雨。
+    time: night
+    creature: 鼍（扬子鼍）
+    behavior: 雨前在洞口鸣叫，叫声隔着大泽也听得见；鸣得越久，雨下得越大。
+    danger: 1
+
+  - id: EP_MARSH_LIGHTS
+    name: 泽上的鬼火
+    location_id: W0202
+    kind: omen
+    season: autumn
+    text: 秋夜浮草甸上会亮起一点点青火，一会儿聚一会儿散。药庐的阿芷说是烂草里冒的气，老人说是迷路的人在找筏子。
+    time: night
+    creature: 泽火（老人叫它“引筏鬼”）
+    behavior: 无风的夜里贴着草甸游走，人一走近就灭；跟着走的人会被引到烂泥深处。
+    danger: 2
+
+  - id: EP_SPRING_HEAD
+    name: 西头泉眼
+    location_id: W0304
+    kind: landmark
+    season: any
+    text: 大泽西头有一眼冬暖夏凉的泉，水从石缝里一股一股往上冒。整条西来河都是从这里起头的。
+    time: any
+    danger: 0
+
+  - id: EP_FIRST_NET
+    name: 开网节
+    location_id: W0103
+    kind: festival
+    season: spring
+    text: 春汛第一网的鱼不吃，放回河里一条最大的，剩下的煮一大锅分给两岸的人。渔寮的阿罟会在鱼梁上唱一段谁也听不懂的老调。
+    time: dawn
+    danger: 0

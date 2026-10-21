@@ -217,6 +217,24 @@
       "b": "hunter",
       "type": "friend",
       "label": "换皮子和麻线的"
+    },
+    {
+      "a": "healer",
+      "b": "herbalist",
+      "type": "kin",
+      "label": "师徒，也像祖孙"
+    },
+    {
+      "a": "fisher",
+      "b": "trader-elder",
+      "type": "friend",
+      "label": "年轻时一起撑过筏"
+    },
+    {
+      "a": "herbalist",
+      "b": "water-child",
+      "type": "friend",
+      "label": "一起去采药的伴"
     }
   ],
   "routines": {
@@ -332,6 +350,22 @@
       "encounters": {
         "暮": "阿犴一身露水地进了长屋，把一串野兔挂上熏架，在火塘边蹲下烤手。",
         "雨": "雨天阿犴不进林子，蹲在窝棚口削箭杆，削好一根就对着天光瞄一瞄。"
+      }
+    },
+    "fisher": {
+      "暮": "space:lodge-glue",
+      "雨": "space:lodge-gear",
+      "encounters": {
+        "暮": "天擦黑，阿罟守在熬胶灶边，一边拨火一边补网，鱼胶的腥味飘得老远。",
+        "雨": "雨天阿罟不下水，蹲在渔具棚里一枚一枚地削网坠，削好了就丢进陶罐里。"
+      }
+    },
+    "herbalist": {
+      "暮": "space:herb-kitchen",
+      "雨": "space:herb-store",
+      "encounters": {
+        "暮": "傍晚药庐的煎药间亮着火，阿芷守着陶锅，一边扇火一边背草名。",
+        "雨": "雨天阿芷把晒药架全盖上，坐在药柜间里一包一包地分药散。"
       }
     }
   },
@@ -651,6 +685,36 @@
       "npc": "stonesmith",
       "tier": "close",
       "text": "阿砺把一块他舍不得用的黑曜石放到你手心：“等你真需要一把好刀的时候，拿它来找我。”"
+    },
+    {
+      "npc": "fisher",
+      "tier": "acquaint",
+      "text": "阿罟在网架下朝你扬了扬下巴，算是打过招呼。走过晒鱼台时，他塞给你一条小鱼干。"
+    },
+    {
+      "npc": "fisher",
+      "tier": "friend",
+      "text": "阿罟在渔具棚里给你也挂了一只网梭：“以后来了，自己拿。”"
+    },
+    {
+      "npc": "fisher",
+      "tier": "close",
+      "text": "阿罟头一回带你撑筏子进了芦荡，在筏头拴上长绳：“记住，拴着来路，你就永远回得来。”"
+    },
+    {
+      "npc": "herbalist",
+      "tier": "acquaint",
+      "text": "阿芷记住了你的名字，看见你就问：“上回那个咳嗽好了没有？”"
+    },
+    {
+      "npc": "herbalist",
+      "tier": "friend",
+      "text": "阿芷把药柜最底下一格清出来：“这格给你放东西。别放熏肉。”"
+    },
+    {
+      "npc": "herbalist",
+      "tier": "close",
+      "text": "阿芷在草册里给你留了一页，上面压着一片你帮她找到的紫花：“这一种，名字你来取。”"
     }
   ],
   "services": [

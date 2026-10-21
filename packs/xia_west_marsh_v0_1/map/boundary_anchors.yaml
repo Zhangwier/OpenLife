@@ -1,0 +1,24 @@
+# 东缘的入河口，接夏境的 WEST_RIVER_IN（L0101，west）：河从这里流进夏境。
+# 西头泉眼留作再往西扩展的接口。
+boundary_anchors:
+  - id: EAST_RIVER_OUT
+    type: river_outlet
+    location_id: W0101
+    edge: east
+    compatibility_tags:
+      - river
+      - downstream
+      - freshwater
+    accepts_types:
+      - river_inlet
+
+  - id: WEST_SPRING_ONWARD
+    type: river_source
+    location_id: W0304
+    edge: west
+    compatibility_tags:
+      - river
+      - upstream
+      - spring
+    accepts_types:
+      - river_source

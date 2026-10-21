@@ -742,7 +742,11 @@ test("M2-B: Web weaves a carrying bag and sleeping mat with real storage and res
 // Spawns a real server and drives a full HTTP loop; ~33s warm, and the whole
 // suite runs in parallel, so 40s was clipping under load. The work itself is
 // unchanged -- only the ceiling above it.
-test("Web player walks the settlement, borrows a jar, fetches water and returns it", { timeout: 90000 }, async () => {
+// This one walks the whole settlement over HTTP with the full pack loaded. It
+// takes ~80s on its own and more when the suite runs files in parallel, so the
+// cap has to be well above the serial time or it fails for being busy rather
+// than for being wrong.
+test("Web player walks the settlement, borrows a jar, fetches water and returns it", { timeout: 180000 }, async () => {
   const child = spawn(process.execPath, [fileURLToPath(new URL("../../apps/web/server.ts", import.meta.url))], {
     env: { ...process.env, OPENLIFE_PERSISTENCE: "0", PORT: "0", OPENLIFE_HUNGER_TOLL: "0" }, stdio: ["ignore", "pipe", "pipe"],
   });
