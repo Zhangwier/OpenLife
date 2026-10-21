@@ -7,7 +7,7 @@
  * predation. Species, individuals, evolution and disease come later.
  */
 
-import type { OpenLifeModule, WorldView } from "@openlife/contracts";
+import type { OpenLifeModule, WorldView, Effect } from "@openlife/contracts";
 import { GeographyKinds } from "@openlife/module-world-geography";
 import type { ClimateApi, ClimateProfileSnapshot } from "@openlife/module-world-climate";
 import type { HydrologyApi, HydrologySnapshot } from "@openlife/module-world-hydrology";
@@ -19,7 +19,7 @@ export const EcologyComponents = {
   state: "world-ecology.state",
 } as const;
 
-export interface EcologySnapshot {
+export type EcologySnapshot = {
   plantBiomass: number;
   herbivorePopulation: number;
   predatorPopulation: number;
@@ -31,7 +31,7 @@ export interface EcologySnapshot {
   predationPressure: number;
   foodStress: number;
   updatedAt: number;
-}
+};
 
 export interface EcologyApi {
   state(world: WorldView, locationId: string): EcologySnapshot | undefined;
@@ -155,7 +155,7 @@ export const worldEcologyModule: OpenLifeModule = {
     ctx.registerResolutionRule({
       id: "world-ecology.advance_location.resolve",
       commandType: "world-ecology.advance_location",
-      resolve: (c) => {
+      resolve: (c): Effect[] => {
         const locationId = c.command.targetId as string;
         const current = snapshot(c.world.getComponent(locationId, EcologyComponents.state) ?? {});
         const climateState = climate.profile(c.world, locationId)!;

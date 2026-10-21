@@ -52,13 +52,11 @@ const simpleModule: OpenLifeModule = {
     });
     ctx.registerConstraintRule({
       id: "demo.do.allowed",
-      kind: "constraint",
       commandType: "demo.do",
       evaluate: () => ({ ok: true }),
     });
     ctx.registerResolutionRule({
       id: "demo.do.resolve",
-      kind: "resolution",
       commandType: "demo.do",
       resolve: () => [{ kind: "emitEvent", eventType: "demo.done", data: {} }],
     });

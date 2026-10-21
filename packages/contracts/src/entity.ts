@@ -68,8 +68,8 @@ export interface RelationDefinition {
   id: RelationTypeId;
   owner: string;
   /** Namespaced kinds this relation may connect (empty = any). */
-  allowedFrom?: string[];
-  allowedTo?: string[];
+  allowedFrom?: readonly string[];
+  allowedTo?: readonly string[];
   persist: boolean;
   description?: string;
 }

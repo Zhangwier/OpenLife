@@ -26,7 +26,7 @@ export const activeId = (world: WorldView) =>
 /** A resident's authored name, else the entity's own name. */
 export function personName(world: WorldView, personId: string): string {
   const key = RESIDENTS.find((r) => residentId(r.key) === personId);
-  return key?.name ?? (world.getEntity(personId)?.name || String(world.getComponent(personId, "modern.identity")?.givenName ?? "") || "对方");
+  return key?.name ?? (String(world.getComponent(personId, "modern.identity")?.givenName ?? "") || "对方");
 }
 
 export function socialOf(world: WorldView, personId: string): SocialMemory {

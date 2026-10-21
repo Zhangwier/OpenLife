@@ -7,7 +7,7 @@
  * exposes only civilization knowledge, never hidden world-law state.
  */
 
-import type { KnowledgeDefinition, OpenLifeModule, WorldView } from "@openlife/contracts";
+import type { KnowledgeDefinition, OpenLifeModule, WorldView, Effect } from "@openlife/contracts";
 import { WORLD_ENTITY_ID } from "@openlife/life-contracts/modern";
 
 const OWNER = "modern-science";
@@ -260,7 +260,7 @@ export const modernScienceModule: OpenLifeModule = {
     ctx.registerReactionRule({
       id: "modern-science.world_initialized.seed",
       eventType: "modern.world_initialized",
-      react: () => [
+      react: (): Effect[] => [
         {
           kind: "setComponent",
           entityId: WORLD_ENTITY_ID,

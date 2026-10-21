@@ -1,25 +1,21 @@
 /**
- * Type-check ratchet.
+ * Type-check gate.
  *
- * The tree had ~250 TypeScript errors when type checking was first wired in
- * (none of them break the tests: Node strips types). Fixing them all at once
- * is a separate job; letting them grow is not acceptable. This script runs
- * `tsc --noEmit` over the whole workspace and compares the error count per
- * file with scripts/typecheck-baseline.json:
+ * The tree type-checks with zero errors (2026-10-19; it had 251 when type
+ * checking was first wired in and a per-file ratchet held them). Node strips
+ * types, so a type error never stops the tests - which is how three latent
+ * crashes and two tests that asserted nothing went unnoticed. From here on
+ * any error fails:
  *
- *   npm run typecheck          fail if any file has more errors than its baseline
- *                              (or a file without a baseline has any)
- *   npm run typecheck:update   rewrite the baseline after fixing errors
+ *   npm run typecheck     tsc --noEmit over the whole workspace; exit 1 on any error
  *
- * The baseline may only go down; review a baseline diff like code.
+ * A tsc run that fails without a single parseable error line (a broken
+ * tsconfig, a crash) fails too.
  */
 import { spawnSync } from "node:child_process";
-import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { REPO_ROOT } from "./workspace-graph.ts";
-
-export const BASELINE_PATH = path.join(REPO_ROOT, "scripts", "typecheck-baseline.json");
 
 export type ErrorCounts = Record<string, number>;
 
@@ -35,49 +31,32 @@ export function countErrors(output: string): ErrorCounts {
   return Object.fromEntries(Object.entries(counts).sort(([a], [b]) => a.localeCompare(b)));
 }
 
-export interface RatchetReport {
-  /** Files with more errors than allowed: [file, now, allowed]. */
-  regressions: [string, number, number][];
-  /** Files with fewer errors than the baseline: [file, now, baseline]. */
-  improvements: [string, number, number][];
+/** The verdict on one tsc run: ok only with no errors and a clean exit. */
+export function verdict(output: string, exitCode: number | null): { ok: boolean; total: number; files: ErrorCounts; reason: string } {
+  const files = countErrors(output);
+  const total = Object.values(files).reduce((a, b) => a + b, 0);
+  if (total > 0) return { ok: false, total, files, reason: `${total} errors in ${Object.keys(files).length} files` };
+  if (exitCode !== 0) return { ok: false, total, files, reason: `tsc exited with ${exitCode} without reporting a type error` };
+  return { ok: true, total, files, reason: "0 errors" };
 }
 
-export function compare(now: ErrorCounts, baseline: ErrorCounts): RatchetReport {
-  const regressions: RatchetReport["regressions"] = [];
-  const improvements: RatchetReport["improvements"] = [];
-  for (const [file, count] of Object.entries(now)) {
-    const allowed = baseline[file] ?? 0;
-    if (count > allowed) regressions.push([file, count, allowed]);
-  }
-  for (const [file, allowed] of Object.entries(baseline)) {
-    const count = now[file] ?? 0;
-    if (count < allowed) improvements.push([file, count, allowed]);
-  }
-  return { regressions, improvements };
-}
-
-function runTsc(): string {
+function runTsc(): { output: string; status: number | null } {
   const tsc = createRequire(import.meta.url).resolve("typescript/bin/tsc");
   const result = spawnSync(process.execPath, [tsc, "-p", "tsconfig.json", "--noEmit", "--pretty", "false"], {
     cwd: REPO_ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024,
   });
-  return `${result.stdout ?? ""}${result.stderr ?? ""}`;
+  return { output: `${result.stdout ?? ""}${result.stderr ?? ""}`, status: result.status };
 }
 
 function main(): void {
-  const now = countErrors(runTsc());
-  const total = Object.values(now).reduce((a, b) => a + b, 0);
-  if (process.argv.includes("--update")) {
-    fs.writeFileSync(BASELINE_PATH, `${JSON.stringify(now, null, 2)}\n`);
-    console.log(`typecheck baseline written: ${total} errors in ${Object.keys(now).length} files`);
-    return;
+  const { output, status } = runTsc();
+  const v = verdict(output, status);
+  if (!v.ok) {
+    process.stderr.write(output.split(/\r?\n/).filter((l) => / error TS\d+:/.test(l)).join("\n") || output);
+    process.stderr.write("\n");
   }
-  const baseline = JSON.parse(fs.readFileSync(BASELINE_PATH, "utf8")) as ErrorCounts;
-  const report = compare(now, baseline);
-  for (const [file, count, allowed] of report.regressions) console.error(`REGRESSION ${file}: ${count} errors (baseline ${allowed})`);
-  for (const [file, count, was] of report.improvements) console.log(`improved   ${file}: ${count} errors (baseline ${was}) - run npm run typecheck:update`);
-  console.log(`typecheck: ${total} errors in ${Object.keys(now).length} files; ${report.regressions.length} regressions`);
-  if (report.regressions.length > 0) process.exitCode = 1;
+  console.log(`typecheck: ${v.reason}`);
+  if (!v.ok) process.exitCode = 1;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)) main();

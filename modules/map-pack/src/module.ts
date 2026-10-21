@@ -11,7 +11,7 @@
  */
 
 import type { OpenLifeModule } from "@openlife/contracts";
-import { GeographyKinds } from "@openlife/module-world-geography";
+import { GeographyKinds, GeographyRelations } from "@openlife/module-world-geography";
 
 const OWNER = "map-pack";
 

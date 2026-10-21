@@ -23,7 +23,6 @@
     "catalog:check": "node scripts/gen-module-catalog.ts --check",
     "coverage": "node scripts/content-coverage.ts",
     "typecheck": "node scripts/typecheck.ts",
-    "typecheck:update": "node scripts/typecheck.ts --update",
     "pack:check": "node scripts/pack-check.ts",
     "design:check": "node scripts/design-check.ts",
     "chronicle": "node scripts/chronicle.ts",

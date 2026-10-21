@@ -347,7 +347,7 @@ export const practiceRuntimeModule: OpenLifeModule = {
     ctx.registerResolutionRule({
       id: "practice-runtime.advance.resolve",
       commandType: "practice-runtime.advance",
-      resolve: (c) => {
+      resolve: (c): Effect[] => {
         const practiceId = String(c.command.payload.practiceId ?? c.command.targetId);
         const entity = c.world.getEntity(practiceId)!;
         const state = entity.components[PracticeComponents.practice] ?? {};
@@ -390,7 +390,7 @@ export const practiceRuntimeModule: OpenLifeModule = {
                   interactionMode: decision.checkpoint.interactionMode,
                   ...(decision.checkpoint.resolverRole ? { resolverRole: decision.checkpoint.resolverRole } : {}),
                   context: decision.checkpoint.context ?? {},
-                  candidateActions: decision.checkpoint.candidateActions ?? [],
+                  candidateActions: (decision.checkpoint.candidateActions ?? []) as unknown as JsonValue[],
                   status: "pending",
                   createdAt: c.world.tick,
                 },
@@ -507,7 +507,7 @@ export const practiceRuntimeModule: OpenLifeModule = {
     ctx.registerResolutionRule({
       id: "practice-runtime.resolve_checkpoint.resolve",
       commandType: "practice-runtime.resolve_checkpoint",
-      resolve: (c) => {
+      resolve: (c): Effect[] => {
         const checkpointId = String(c.command.payload.checkpointId ?? c.command.targetId);
         const checkpoint = c.world.getEntity(checkpointId)!;
         const checkpointState = checkpoint.components[PracticeComponents.checkpoint] ?? {};

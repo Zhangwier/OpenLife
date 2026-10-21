@@ -84,16 +84,6 @@ export interface BoundaryAnchorSnapshot {
   packId: string;
 }
 
-/**
- * Reserved name for the object two matched boundary anchors will form.
- * Step 2 deliberately does not produce or store these.
- */
-export interface BoundarySeamCandidate {
-  westAnchorId: string;
-  eastAnchorId: string;
-  sharedTags: string[];
-}
-
 export interface RegionNeighborSnapshot {
   regionId: string;
   /** How many location-to-location connections cross the border. */

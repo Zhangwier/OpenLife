@@ -79,13 +79,11 @@ export type { WorldEdge } from "./ids.ts";
 export type {
   AdjacencyEntry,
   BoundaryAnchorSnapshot,
-  BoundarySeamCandidate,
   ConnectionFact,
   GeographyGraphIndex,
   LocationSnapshot,
   RegionNeighborSnapshot,
   RegionSnapshot,
-  WorldEdge,
 } from "./geography-graph.ts";
 
 /**

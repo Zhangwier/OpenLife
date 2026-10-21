@@ -63,7 +63,7 @@ function setupClayOnly(seed = 15001, clay: Record<string, unknown> = {}) {
     payload: {
       definitionId: PotteryPracticeDefinitions.prepareClay,
       goal: "prepare clay for a vessel",
-      context: { clay },
+      context: { clay: clay as never },
       decisionMode: "manual",
     },
   });
@@ -98,7 +98,7 @@ function setupVessel(
     payload: {
       definitionId: PotteryPracticeDefinitions.makeVessel,
       goal: "make one useful ceramic vessel",
-      context: { clay },
+      context: { clay: clay as never },
       role: "potter",
       decisionMode: "manual",
     },

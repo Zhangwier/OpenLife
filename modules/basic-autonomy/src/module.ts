@@ -126,7 +126,7 @@ function lifeDecision(characterId: string, age: number, generation: number): Com
 
   if (age === 18) {
     const occupations = ["engineer", "teacher", "trader"] as const;
-    const occupation = occupations[Math.abs(generation - 1) % occupations.length];
+    const occupation = occupations[Math.abs(generation - 1) % occupations.length]!;
     return {
       type: "career.get_job",
       actorId: characterId,
@@ -146,7 +146,7 @@ function lifeDecision(characterId: string, age: number, generation: number): Com
       actorId: characterId,
       source: "autosim",
       payload: {
-        spouseName: spouseNames[Math.abs(generation - 1) % spouseNames.length],
+        spouseName: spouseNames[Math.abs(generation - 1) % spouseNames.length]!,
         autonomyCategory: "relationship",
       },
     };
@@ -159,7 +159,7 @@ function lifeDecision(characterId: string, age: number, generation: number): Com
       actorId: characterId,
       source: "autosim",
       payload: {
-        givenName: childNames[Math.abs(generation - 1) % childNames.length],
+        givenName: childNames[Math.abs(generation - 1) % childNames.length]!,
         autonomyCategory: "family",
       },
     };

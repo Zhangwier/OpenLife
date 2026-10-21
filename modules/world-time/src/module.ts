@@ -7,7 +7,8 @@
  * never domain truth.
  */
 
-import type { OpenLifeModule } from "@openlife/contracts";
+import type { ComponentData, OpenLifeModule, Effect } from "@openlife/contracts";
+import { writeComponent } from "@openlife/contracts";
 import { GeographyKinds, GeographyRelations } from "@openlife/module-world-geography";
 import { HydrologyComponents } from "@openlife/module-world-hydrology";
 import { EcologyComponents } from "@openlife/module-world-ecology";
@@ -112,7 +113,7 @@ export const worldTimeModule: OpenLifeModule = {
     ctx.registerResolutionRule({
       id: "world-time.set_resolution.resolve",
       commandType: "world-time.set_resolution",
-      resolve: (c) => {
+      resolve: (c): Effect[] => {
         const locationId = c.command.targetId as string;
         const tier = String(c.command.payload.tier) as WorldResolutionTier;
         const regionId = c.world.listRelations({ type: GeographyRelations.contains, to: locationId })[0]!.from;
@@ -122,13 +123,8 @@ export const worldTimeModule: OpenLifeModule = {
           updatedAt: c.world.tick,
         };
         const exists = Boolean(c.world.getComponent(locationId, WorldTimeComponents.resolution));
-        return [{
-          kind: exists ? "modifyComponent" as const : "setComponent" as const,
-          entityId: locationId,
-          component: WorldTimeComponents.resolution,
-          ...(exists ? { patch: state } : { value: state }),
-          reason: "location simulation resolution was assigned",
-        }, {
+        return [writeComponent(exists, locationId, WorldTimeComponents.resolution, state as unknown as ComponentData,
+          "location simulation resolution was assigned"), {
           kind: "scheduleTask",
           taskType: REGION_PULSE_TASK,
           afterTicks: 1,

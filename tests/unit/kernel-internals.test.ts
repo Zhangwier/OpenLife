@@ -14,7 +14,7 @@ function kernel() {
 }
 
 test("internals expose no mutators", () => {
-  const { store, eventLog, scheduler, facts, rng } = kernel().internals as unknown as Record<string, Record<string, unknown>>;
+  const { store, eventLog, scheduler, facts, rng } = kernel().internals as unknown as Record<"store" | "eventLog" | "scheduler" | "facts" | "rng", Record<string, unknown>>;
   for (const name of ["createEntity", "setComponent", "mergeComponent", "archiveEntity", "addRelation", "restore"]) {
     assert.equal(store[name], undefined, `store.${name}`);
   }

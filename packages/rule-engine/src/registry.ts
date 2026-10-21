@@ -38,6 +38,8 @@ export interface OwnedDefinition {
 }
 
 export type Registered<T> = T & OwnedDefinition;
+/** A definition as handed to `register`: the owner comes from the registering module, not the definition. */
+export type Unowned<T> = Omit<T, "owner"> & { owner?: string };
 
 export class DefinitionRegistry<T extends { id?: string; type?: string }> {
   readonly #items = new Map<string, Registered<T>>();
@@ -47,7 +49,7 @@ export class DefinitionRegistry<T extends { id?: string; type?: string }> {
     this.#kindLabel = kindLabel;
   }
 
-  register(key: string, definition: T, owner: string): Registered<T> {
+  register(key: string, definition: Unowned<T>, owner: string): Registered<T> {
     assertNamespacedId(key, `${this.#kindLabel} id`);
     if (!isNamespaceCompatible(owner, namespaceOf(key))) {
       fail(
@@ -63,7 +65,7 @@ export class DefinitionRegistry<T extends { id?: string; type?: string }> {
         { key, existingOwner: this.#items.get(key)?.owner, owner },
       );
     }
-    const registered: Registered<T> = { ...definition, owner, enabled: true };
+    const registered = { ...definition, owner, enabled: true } as Registered<T>;
     this.#items.set(key, registered);
     return registered;
   }

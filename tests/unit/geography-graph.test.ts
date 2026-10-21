@@ -246,7 +246,7 @@ test("B: neighborsOf matches the authored connections exactly", () => {
   assert.equal(toL0102.terrainCost, 1.0);
 
   // terrainCost stays a raw spatial fact: nothing multiplies it here.
-  assert.equal("travelCost" in (toL0102 as Record<string, unknown>), false);
+  assert.equal("travelCost" in (toL0102 as unknown as Record<string, unknown>), false);
 
   // An isolated-looking leaf still reports its single neighbor.
   assert.deepEqual(

@@ -58,7 +58,7 @@ function buildKernel(seed = 1234): Kernel {
   definitions.tasks.register(
     "demo.tick",
     {
-      id: "demo.tick",
+      type: "demo.tick",
       handler: (ctx) => ({
         command: { type: "demo.ping", actorId: ctx.payload.actorId as string, source: "system" },
       }),
@@ -68,7 +68,7 @@ function buildKernel(seed = 1234): Kernel {
   definitions.tasks.register(
     "demo.batch_tick",
     {
-      id: "demo.batch_tick",
+      type: "demo.batch_tick",
       handler: (ctx) => ({
         commands: [
           { type: "demo.ping", actorId: ctx.payload.actorId as string, source: "system" },

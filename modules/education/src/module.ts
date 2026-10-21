@@ -86,7 +86,6 @@ export const educationModule: OpenLifeModule = {
     // --- create the school once the world exists -------------------------
     ctx.registerReactionRule({
       id: "education.world_initialized.create_school",
-      kind: "reaction",
       eventType: "modern.world_initialized",
       react: () => [
         {
@@ -116,7 +115,6 @@ export const educationModule: OpenLifeModule = {
     // --- enrolment --------------------------------------------------------
     ctx.registerConstraintRule({
       id: "education.enroll_school.allowed",
-      kind: "constraint",
       commandType: "education.enroll_school",
       evaluate: (c) => {
         const actorId = c.command.actorId;
@@ -149,7 +147,6 @@ export const educationModule: OpenLifeModule = {
 
     ctx.registerResolutionRule({
       id: "education.enroll_school.resolve",
-      kind: "resolution",
       commandType: "education.enroll_school",
       resolve: (c) => {
         const actorId = c.command.actorId as string;
@@ -211,7 +208,6 @@ export const educationModule: OpenLifeModule = {
     // --- graduation -------------------------------------------------------
     ctx.registerConstraintRule({
       id: "education.graduate.allowed",
-      kind: "constraint",
       commandType: "education.graduate",
       evaluate: (c) => {
         const actorId = c.command.actorId;
@@ -230,7 +226,6 @@ export const educationModule: OpenLifeModule = {
 
     ctx.registerResolutionRule({
       id: "education.graduate.resolve",
-      kind: "resolution",
       commandType: "education.graduate",
       resolve: (c) => {
         const actorId = c.command.actorId as string;

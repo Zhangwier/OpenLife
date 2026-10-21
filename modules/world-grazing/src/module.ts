@@ -6,7 +6,8 @@
  * it does not own a second copy of either population or vegetation state.
  */
 
-import type { JsonValue, OpenLifeModule, WorldView } from "@openlife/contracts";
+import type { ComponentData, JsonValue, OpenLifeModule, WorldView, Effect } from "@openlife/contracts";
+import { writeComponent } from "@openlife/contracts";
 import { GeographyKinds } from "@openlife/module-world-geography";
 import { VegetationComponents, type VegetationApi, type VegetationPopulationSnapshot } from "@openlife/module-world-vegetation";
 import type { SpeciesApi, SpeciesDefinition, SpeciesPopulationSnapshot } from "@openlife/module-world-species";
@@ -87,7 +88,7 @@ export const worldGrazingModule: OpenLifeModule = {
     ctx.registerResolutionRule({
       id: "world-grazing.advance_location.resolve",
       commandType: "world-grazing.advance_location",
-      resolve: (c) => {
+      resolve: (c): Effect[] => {
         const locationId = c.command.targetId as string;
         const days = Number(c.command.payload.days ?? 30);
         const months = days / 30;
@@ -144,13 +145,8 @@ export const worldGrazingModule: OpenLifeModule = {
           component: VegetationComponents.composition,
           patch: { byVegetation: toVegetationMap(grazed), updatedAt: c.world.tick },
           reason: "concrete herbivores consumed vegetation matching their diets",
-        }, {
-          kind: alreadyObserved ? "modifyComponent" as const : "setComponent" as const,
-          entityId: locationId,
-          component: GrazingComponents.pressure,
-          ...(alreadyObserved ? { patch: pressure as unknown as Record<string, JsonValue> } : { value: pressure as unknown as JsonValue }),
-          reason: "aggregate grazing pressure was observed without duplicating plant or animal truth",
-        }, {
+        }, writeComponent(alreadyObserved, locationId, GrazingComponents.pressure, pressure as unknown as ComponentData,
+          "aggregate grazing pressure was observed without duplicating plant or animal truth"), {
           kind: "emitEvent",
           eventType: "world-grazing.location_advanced",
           targetId: locationId,

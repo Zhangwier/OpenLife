@@ -37,7 +37,7 @@ function patched(sim: Simulation, mutate: (entities: Array<{ id: string; compone
   mutate(copy.snapshot.world.store.entities, sim.tick);
   copy.manifest.snapshotHash = hashSnapshot(copy.snapshot);
   const loaded = Simulation.load(copy, modules);
-  assert.ok(loaded.simulation, JSON.stringify(loaded.errors));
+  assert.ok(loaded.simulation, JSON.stringify(loaded.result.errors));
   return loaded.simulation!;
 }
 

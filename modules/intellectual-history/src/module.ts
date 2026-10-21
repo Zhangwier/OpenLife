@@ -198,7 +198,7 @@ function registerProposeIdea(ctx: Registration): void {
   ctx.registerResolutionRule({
     id: "intellectual-history.propose_idea.resolve",
     commandType: "intellectual-history.propose_idea",
-    resolve: (c) => {
+    resolve: (c): Effect[] => {
       const actorId = c.command.actorId as string;
       const title = String(c.command.payload.title);
       const thesis = String(c.command.payload.thesis);
@@ -236,11 +236,11 @@ function registerProposeIdea(ctx: Registration): void {
           type: IntellectualRelations.embraces,
           from: actorId,
           to: "@idea",
-          components: {
+          components: { [IntellectualRelations.embraces]: {
             conviction: 1,
             adoptedAt: c.world.tick,
             source: "founder",
-          },
+          } },
           announce: false,
         },
         {
@@ -302,11 +302,11 @@ function registerAdoptIdea(ctx: Registration): void {
       type: IntellectualRelations.embraces,
       from: c.command.actorId as string,
       to: c.command.targetId as string,
-      components: {
+      components: { [IntellectualRelations.embraces]: {
         conviction: clamp01(Number(c.command.payload.conviction ?? 0.65)),
         adoptedAt: c.world.tick,
         source: String(c.command.payload.source ?? "encounter"),
-      },
+      } },
       announce: false,
     }, {
       kind: "emitEvent",
@@ -346,7 +346,7 @@ function registerTeachIdea(ctx: Registration): void {
   ctx.registerResolutionRule({
     id: "intellectual-history.teach_idea.resolve",
     commandType: "intellectual-history.teach_idea",
-    resolve: (c) => {
+    resolve: (c): Effect[] => {
       const teacherId = c.command.actorId as string;
       const studentId = c.command.targetId as string;
       const ideaId = String(c.command.payload.ideaId);
@@ -361,11 +361,11 @@ function registerTeachIdea(ctx: Registration): void {
           type: IntellectualRelations.embraces,
           from: studentId,
           to: ideaId,
-          components: {
+          components: { [IntellectualRelations.embraces]: {
             conviction: clamp01(Number(c.command.payload.conviction ?? 0.6)),
             adoptedAt: c.world.tick,
             source: teacherId,
-          },
+          } },
           announce: false,
         },
         {
@@ -466,10 +466,10 @@ function registerFormSchool(ctx: Registration): void {
           type: IntellectualRelations.memberOf,
           from: adherent.from,
           to: "@school",
-          components: {
+          components: { [IntellectualRelations.memberOf]: {
             joinedAt: c.world.tick,
             founder: adherent.from === founderId,
-          },
+          } },
           announce: false,
         });
       }
@@ -520,7 +520,7 @@ function registerJoinSchool(ctx: Registration): void {
       type: IntellectualRelations.memberOf,
       from: c.command.actorId as string,
       to: c.command.targetId as string,
-      components: { joinedAt: c.world.tick, founder: false },
+      components: { [IntellectualRelations.memberOf]: { joinedAt: c.world.tick, founder: false } },
       announce: false,
     }, {
       kind: "emitEvent",
@@ -559,7 +559,7 @@ function registerBranchIdea(ctx: Registration): void {
   ctx.registerResolutionRule({
     id: "intellectual-history.branch_idea.resolve",
     commandType: "intellectual-history.branch_idea",
-    resolve: (c) => {
+    resolve: (c): Effect[] => {
       const actorId = c.command.actorId as string;
       const parentIdeaId = String(c.command.payload.parentIdeaId);
       const title = String(c.command.payload.title);
@@ -600,11 +600,11 @@ function registerBranchIdea(ctx: Registration): void {
           type: IntellectualRelations.embraces,
           from: actorId,
           to: "@branchIdea",
-          components: {
+          components: { [IntellectualRelations.embraces]: {
             conviction: 0.85,
             adoptedAt: c.world.tick,
             source: "reinterpretation",
-          },
+          } },
           announce: false,
         },
         {
@@ -666,7 +666,7 @@ function registerApplyIdea(ctx: Registration): void {
   ctx.registerResolutionRule({
     id: "intellectual-history.apply_idea.resolve",
     commandType: "intellectual-history.apply_idea",
-    resolve: (c) => {
+    resolve: (c): Effect[] => {
       const ideaId = String(c.command.payload.ideaId);
       const targetId = c.command.targetId as string;
       return [{
@@ -674,11 +674,11 @@ function registerApplyIdea(ctx: Registration): void {
         type: IntellectualRelations.influences,
         from: ideaId,
         to: targetId,
-        components: {
+        components: { [IntellectualRelations.influences]: {
           adoptedAt: c.world.tick,
           sponsorId: c.command.actorId as string,
           strength: clamp01(Number(c.command.payload.strength ?? 0.6)),
-        },
+        } },
         announce: false,
       }, {
         kind: "emitEvent",

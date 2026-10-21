@@ -33,10 +33,10 @@ async function start(path: string, interval = "0") {
   } };
 }
 
-async function post(base: string, route: string, body: unknown) {
+async function post(base: string, route: string, body: unknown): Promise<Record<string, any>> {
   const response = await fetch(base + route, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   assert.equal(response.status, 200);
-  return response.json() as Promise<any>;
+  return await response.json() as Record<string, any>;
 }
 
 /**

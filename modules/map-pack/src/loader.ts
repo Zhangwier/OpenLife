@@ -39,6 +39,7 @@ import {
   type MapPackContents,
   type MapPackEdge,
   type MapPackIssue,
+  type MapPackIssueCodeValue,
   type MapPackLoadResult,
   type MapPackLocation,
   type MapPackManifest,
@@ -636,7 +637,7 @@ function buildChecks(
       label: "edges valid",
       ok: !issues.some((issue) =>
         issue.file.endsWith(MAP_PACK_FILES.edges)
-        && [
+        && ([
           MapPackIssueCode.SelfEdge,
           MapPackIssueCode.DuplicateEdge,
           MapPackIssueCode.InvalidField,
@@ -644,7 +645,7 @@ function buildChecks(
           MapPackIssueCode.FileMalformed,
           MapPackIssueCode.RootShape,
           MapPackIssueCode.EmptyCollection,
-        ].includes(issue.code)),
+        ] as MapPackIssueCodeValue[]).includes(issue.code)),
     },
     {
       id: "boundary-anchors",
