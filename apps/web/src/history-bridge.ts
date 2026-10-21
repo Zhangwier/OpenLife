@@ -57,11 +57,15 @@ export function materialsForTech(world: ReturnType<Simulation["worldView"]>): st
 
 import type { Simulation } from "@openlife/simulation";
 import { SettlementComponents, SettlementId } from "@openlife/module-settlement-locations";
+import { AGE_OF } from "@openlife/module-settlement-locations";
+import { DAY_TICKS_PER_YEAR } from "@openlife/life-contracts";
 
 /** The tech module's singleton village entity. */
 const TECH_VILLAGE = "tech:village";
 /** The era ladder's singleton state entity. */
 const ERA_ENTITY = "era:ladder";
+/** The polity module's singleton village entity. */
+const POLITY_ENTITY = "polity:village";
 
 interface VillageRecord {
   members?: string[];
@@ -69,8 +73,18 @@ interface VillageRecord {
   accepted?: Record<string, unknown>;
 }
 
+/**
+ * The year each world was last told about.
+ *
+ * `era-ladder.check` and `polity.year` are yearly facts, but the bridge's hook
+ * is the season. Keeping the mark on the world (not in this file) means a
+ * second world in the same process, or a reload, does not inherit the first
+ * one's calendar.
+ */
+const TOLD_YEAR = new WeakMap<Simulation, number>();
+
 /** Which optional modules this world actually has. */
-function installedOf(sim: Simulation): { heredity: boolean; tech: boolean; era: boolean } {
+function installedOf(sim: Simulation): { heredity: boolean; tech: boolean; era: boolean; polity: boolean } {
   // `sim.modules.get(id)` is the kernel's own registry lookup; it returns
   // undefined for a module that was never installed, which is exactly the
   // question being asked. No throwing, no string parsing.
@@ -78,7 +92,7 @@ function installedOf(sim: Simulation): { heredity: boolean; tech: boolean; era: 
   const has = (id: string) => {
     try { return Boolean(registry?.get?.(id)); } catch { return false; }
   };
-  return { heredity: has("heredity"), tech: has("tech"), era: has("era-ladder") };
+  return { heredity: has("heredity"), tech: has("tech"), era: has("era-ladder"), polity: has("polity") };
 }
 
 /**
@@ -192,6 +206,14 @@ export function historyDay(sim: Simulation): void {
     if (have.heredity) fire(sim, "heredity.found", { origin: "migrant" }, undefined, id);
     fire(sim, "tech.enroll", {}, undefined, id);
   }
+  // The dead leave the ledger the day they die, not the day someone remembers
+  // to tell the bridge. Reading it off the ledger means a death that happens
+  // inside a batch, a load, or an NPC's own day still costs the village what
+  // only that person knew.
+  for (const id of [...known]) {
+    if (sim.worldView().getComponent(id, "modern.vitals")?.alive !== false) continue;
+    historyPersonGone(sim, id);
+  }
 }
 
 /**
@@ -247,6 +269,112 @@ export function historySeason(sim: Simulation): void {
   for (const phenomenonId of ["river-flood", "season-change", "clay-deposit"]) {
     fire(sim, "tech.observe", { phenomenonId });
   }
+  historyYear(sim);
+}
+
+/**
+ * Once a year: the numbers the era ladder and the polity need.
+ *
+ * These are yearly commands with no other caller in the web app — the
+ * chronicle runner (`modules/village-chronicle/src/run.ts`) drives them in the
+ * offline simulation, so until this existed the browser world never left
+ * `era:settled-village` and `polity.year` never ran: no prestige, no
+ * institutions, no debts, and `historyEra()` read "尚未定名" forever.
+ *
+ * The two commands take different payloads, and both are taken from what the
+ * village actually has this moment rather than from a year-end plan, because in
+ * the browser the year ends when the player's seasons do.
+ */
+function historyYear(sim: Simulation): void {
+  const have = installedOf(sim);
+  const world = sim.worldView();
+  const year = Math.floor(world.tick / DAY_TICKS_PER_YEAR);
+  if (TOLD_YEAR.get(sim) === year) return;
+  TOLD_YEAR.set(sim, year);
+
+  const alive = residents(sim);
+  if (!alive.length) return;
+  // Adults are what the polity counts for prestige; the ladder only needs a
+  // headcount. Ages come from the same reader the settlement uses, so a person
+  // whose `modern.vitals` lacks `ageYears` still counts correctly.
+  const adults = alive
+    .map((id) => ({ id, age: Math.floor(AGE_OF(world, id)) }))
+    .filter((a) => a.age >= 16);
+
+  if (have.polity) {
+    if (world.getComponent(POLITY_ENTITY, "polity.state")) {
+      const grain = storedFood(world);
+      fire(sim, "polity.year", {
+        population: alive.length,
+        // `polity.year` only asks whether the year was a surplus one
+        // (`surplus > 0 ? surplusYears + 1 : 0`), and its institution table
+        // reads `surplusYears`. Days of grain is the same answer the granary
+        // panel gives, so a village that looks fed in the UI also looks fed
+        // to its institutions.
+        surplus: grain,
+        contacts: reachablePlaces(world),
+        adults,
+        gone: [],
+      });
+    } else {
+      // `polity.year` refuses with E_POLITY_NO_VILLAGE until the village has a
+      // polity record; founding it is one command and changes nothing else.
+      fire(sim, "polity.found", {});
+    }
+  }
+
+  if (have.era) {
+    fire(sim, "era-ladder.check", {
+      population: alive.length,
+      contacts: reachablePlaces(world),
+      // The browser world has one settlement; the map packs give it places, not
+      // other villages with headcounts. Reporting our own size is the honest
+      // answer, and the ladder takes `max(reported, population)` anyway.
+      largestSettlement: alive.length,
+    });
+  }
+}
+
+/**
+ * How many places outside the village you can actually walk to.
+ *
+ * This is what "contacts" means for the era ladder in the browser: the offline
+ * chronicle has neighbour villages with populations, the browser has a map of
+ * places wired by `world-geography.adjacent_to`. A place you cannot reach is not
+ * a contact — same rule the travel module uses to build its destination list.
+ */
+function reachablePlaces(world: ReturnType<Simulation["worldView"]>): number {
+  const home = String(world.getComponent(SettlementId, SettlementComponents.settlement)?.placeId ?? "");
+  if (!home) return 0;
+  const seen = new Set<string>([home]);
+  const adjacency = world.listRelations({ type: "world-geography.adjacent_to" });
+  // One hop: neighbours of the village, not everywhere on the map. The ladder
+  // asks about the village's contacts, not about the size of the world.
+  for (const r of adjacency) {
+    if (r.from === home && r.to) seen.add(r.to);
+    else if (r.to === home && r.from) seen.add(r.from);
+  }
+  seen.delete(home);
+  return [...seen].filter((id) => world.getEntity(id)?.archivedAt === undefined).length;
+}
+
+/**
+ * Grain on hand, as days the village could eat.
+ *
+ * Same measure `settlement-goals` uses for `foodDays` (grain stock ÷ heads,
+ * one unit per person per day), so the two panels cannot disagree about whether
+ * the granary is full. Returns 0 when nothing grows grain — a village with no
+ * fields is not in surplus.
+ */
+function storedFood(world: ReturnType<Simulation["worldView"]>): number {
+  let grain = 0;
+  for (const entity of world.listEntities()) {
+    if (entity.archivedAt !== undefined) continue;
+    const point = entity.components[SettlementComponents.yieldPoint];
+    if (point?.resourceId !== "resource:grain") continue;
+    grain += Math.max(0, Number(point.stock ?? 0));
+  }
+  return Math.round(grain * 100) / 100;
 }
 
 /** Someone died or left: what only they knew is lost. */

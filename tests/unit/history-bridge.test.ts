@@ -16,15 +16,17 @@ import { settlementLocationsModule, SettlementCommands } from "@openlife/module-
 import { heredityModule } from "@openlife/module-heredity";
 import { techModule } from "@openlife/module-tech";
 import { eraLadderModule } from "@openlife/module-era-ladder";
+import { polityModule } from "@openlife/module-polity";
+import { WEB_MODULE_ENTRIES, webModules } from "../../apps/web/src/modules.ts";
 import {
   startHistory, historyDay, historySeason, historyEra, knownInventions,
   bridgeFailures, resetBridgeFailures, materialsForTech,
 } from "../../apps/web/src/history-bridge.ts";
 
-function village(seed = 7) {
+function village(seed = 7, extra: typeof eraLadderModule[] = []) {
   const sim = new Simulation({ worldSeed: seed,
     modules: [modernWorldModule, worldClockModule, worldSpaceModule, worldObjectsModule,
-      settlementLocationsModule, heredityModule, techModule, eraLadderModule] });
+      settlementLocationsModule, heredityModule, techModule, eraLadderModule, ...extra] });
   sim.dispatch({ type: "modern.initialize_world" });
   sim.dispatch({ type: "modern.create_character", payload: { givenName: "禾", familyName: "林", lifespan: 90 } });
   const me = String(sim.worldView().getComponent("modern:world", "modern.world_state")?.activeCharacterId);
@@ -102,4 +104,59 @@ test("没有历史模块时，接线是空操作", () => {
   assert.deepEqual(bridgeFailures(), [], "没装就不该尝试，更不该报错");
   assert.equal(knownInventions(sim).length, 0);
   assert.equal(historyEra(sim), null, "没有 era 模块就返回 null，让界面自己决定不渲染");
+});
+
+/**
+ * 网页版真的装了历史实验室。
+ *
+ * 上面那些测试自己把 heredity / tech / era-ladder 传进 Simulation，所以它们能
+ * 在网页版一个都没装的情况下全绿——这条链路就这样静默空转了整整一个版本：
+ * `startHistory` 第一天就 `if (!have.heredity && !have.tech) return`，浏览器世界
+ * 里从来没有 `tech:village`，一个发明也攒不出来，`historyEra()` 恒为 null。
+ *
+ * 这条测试盯的是清单本身，不是函数。
+ */
+test("网页版的模块清单装上了历史实验室的四个模块", () => {
+  const ids = new Set(WEB_MODULE_ENTRIES.map((e) => e.module.manifest.id as string));
+  for (const id of ["heredity", "tech", "polity", "era-ladder"]) {
+    assert.ok(ids.has(id), `网页版没装 ${id}，历史桥接会整条空转`);
+  }
+  // 顺序有意义：tech 把天赋当发明乘数（optional: life.heredity），
+  // era-ladder 要读制度清单（polity.institutions）。装反了不报错，只是少东西。
+  const order = WEB_MODULE_ENTRIES.map((e) => e.module.manifest.id as string);
+  assert.ok(order.indexOf("heredity") < order.indexOf("tech"), "heredity 要在 tech 之前");
+  assert.ok(order.indexOf("polity") < order.indexOf("era-ladder"), "polity 要在 era-ladder 之前");
+});
+
+/**
+ * 年度钩子：一年一次，把时代阶梯与村政推一步。
+ *
+ * 这两个命令（`era-ladder.check` / `polity.year`）在网页版此前**没有任何调用点**
+ * ——只有离线编排器 `modules/village-chronicle/src/run.ts` 里才有。结果是浏览器
+ * 世界永远停在 `era:settled-village`，村政没有声望、没有制度、没有欠账。
+ */
+test("过一年就把时代阶梯和村政推一步", { timeout: 120000 }, () => {
+  resetBridgeFailures();
+  const sim = village(21, [polityModule]);
+  startHistory(sim);
+  // 一季 90 天。tick 0 时算第 0 年（村子刚立，先记一笔），360 天算第 1 年。
+  // 十二季 = 三个年度节点，正好能看出「每年都问一次」而不是「问过一次就停了」。
+  for (let season = 0; season < 12; season += 1) {
+    historySeason(sim);
+    sim.advanceBy(90);
+  }
+  const world = sim.worldView();
+  const era = world.getComponent("era:ladder", "era-ladder.state");
+  assert.ok(era, "时代阶梯被真的问过了（否则这里永远是 undefined）");
+  assert.equal(era.current, "era:settled-village", "第一年当然还是定居村落");
+  // streak 是它逐个时代比过之后留下的痕迹：十个时代各一条。
+  assert.equal(Object.keys(era.streak ?? {}).length, 10, "十个时代都逐个比过，说明真的在评估");
+  const polity = world.getComponent("polity:village", "polity.state");
+  assert.ok(polity, "村政被真的建起来了");
+  assert.ok(Number(polity.population) > 0, "村政知道村里有多少人");
+  // 余粮年数是逐年累加的，只有「每年都调 polity.year」才会涨。第一年只是建政，
+  // 所以两个年度节点之后它应该至少是 1。
+  assert.ok(Number(polity.surplusYears) >= 1,
+    `村政年年在数余粮（surplusYears=${polity.surplusYears}）`);
+  assert.deepEqual(bridgeFailures(), [], "年度钩子不该有失败");
 });

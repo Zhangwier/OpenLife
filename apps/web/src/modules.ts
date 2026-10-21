@@ -45,6 +45,15 @@ import { villageWantsModule } from "@openlife/module-village-wants";
 import { lifeStagesModule } from "@openlife/module-life-stages";
 import { storyDirectorModule } from "@openlife/module-story-director";
 import { settlementGoalsModule } from "@openlife/module-settlement-goals";
+// 历史实验室：科技、遗传、时代三段。apps/web/src/history-bridge.ts 每天/每季都在叫
+// 它们（startHistory / historyDay / historySeason），但很长一段时间这份清单里没有
+// 它们 —— bridge 里 `installedOf(sim)` 直接 early return，网页世界永远没有
+// `tech:village` / `era:ladder`，`historyEra()` 恒为 null，一个发明也攒不出来。
+// 桥接的单元测试自己把模块传进 Simulation，所以一直是绿的：测的是函数，不是这份清单。
+import { techModule } from "@openlife/module-tech";
+import { heredityModule } from "@openlife/module-heredity";
+import { polityModule } from "@openlife/module-polity";
+import { eraLadderModule } from "@openlife/module-era-ladder";
 import { resolveModules, type ModuleEntry } from "./module-plan.ts";
 
 export const WEB_MODULE_ENTRIES: ModuleEntry[] = [
@@ -75,6 +84,14 @@ export const WEB_MODULE_ENTRIES: ModuleEntry[] = [
   // 与"没有阶梯"的旧样子（docs/plans/EXPANSION_PLAN_2026-10.md §5）。
   { module: storyDirectorModule },
   { module: settlementGoalsModule },
+  // 历史实验室：加进来才让 bridge 真的跑起来。heredity 先于 tech（tech 的
+  // `optional: ["life.heredity"]` 拿天赋当发明的乘数），polity 先于 era-ladder
+  // （时代条件里要读 surplusYears 与制度清单）。都不是 core：关掉就把历史实验室
+  // 关回「只是背景资料」，村子照常过日子。
+  { module: heredityModule },
+  { module: techModule },
+  { module: polityModule },
+  { module: eraLadderModule },
   { module: familyModule, core: true },
   { module: modernScienceModule },
   { module: earlyCivilizationModule },

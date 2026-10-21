@@ -86,7 +86,7 @@ export { personName, socialOf } from "./world-reads.ts";
 export { COURT_HEARTS, WED_AFTER_DAYS, romanceOf, spouseOf } from "./marriage.ts";
 import { ACTIVITY_COST, DAILY_ACTIVITY_CAPACITY, EXCHANGE_VALUES, PLACES, PURPOSE, RESOURCE_LABELS, ROOF_MAX, TEACHERS, YIELDS, activityCostFor, carrying, childrenOf, contactConversations, contactLevel, counterpartView, dailyActivity, favourOwed, feltCloseness, fill, hungerLevel, openRequest, originOf, people, pickIndex, prototypeForResource, readResident, requestOf, roofState, seasonOf, seasonTurnDue, skillCut, skillsOf, talentFx, tradeableGoods, wantsOf, worksites, wornWrap, yieldPoints, type Teacher, type YieldState } from "./village-reads.ts";
 export {
-  CARRY_DAYS, DAILY_ACTIVITY_CAPACITY, RESOURCE_LABELS, prototypeForResource, ROOF_LEAKS_AT, ROOF_MAX, activityCostFor, carrying,
+  AGE_OF, CARRY_DAYS, DAILY_ACTIVITY_CAPACITY, RESOURCE_LABELS, prototypeForResource, ROOF_LEAKS_AT, ROOF_MAX, activityCostFor, carrying,
   childrenOf, counterpartView, currentYields, dailyActivity, familyDue, favourOwed, openRequest,
   originOf, people, pickIndex, roofState, seasonOf, seasonTurnDue, skillsOf, talentFx,
   tradeableGoods, villagePopulation, worksites, wornWrap, yieldPoints
