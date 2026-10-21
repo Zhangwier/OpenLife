@@ -132,6 +132,11 @@ export function secretProblems(
   for (const kind of SECRET_KINDS) {
     if (!pack.secrets.some((s) => s.kind === kind)) problems.push(`no secret of kind ${kind}`);
   }
-  if (pack.secrets.length < 15 || pack.secrets.length > 20) problems.push(`${pack.secrets.length} secrets (expected 15-20)`);
+  // 规模随人口走：每人 1–2 件是硬要求，总数下限自然就是人口数。
+  // 写死 15–20 只在 16 人的河岸台地成立，内容包一加人就会变成假失败。
+  const least = pack.cast.length;
+  const most = pack.cast.length * 2;
+  if (pack.secrets.length < least || pack.secrets.length > most)
+    problems.push(`${pack.secrets.length} secrets for ${pack.cast.length} cast (expected ${least}-${most})`);
   return problems;
 }

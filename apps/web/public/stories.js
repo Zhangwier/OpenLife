@@ -10,6 +10,8 @@ let installed = false;
 const PLACE = {
   "place:yard": "陶家庭院", "place:hearth-yard": "公用灶台", "place:river": "河边取水点", "place:field": "河岸旱地",
   "place:kiln": "共用陶窑", "place:claypits": "河湾黏土坑", "place:reedbed": "芦苇滩", "place:ford": "渡口",
+  "place:longhouse": "族人长屋", "place:weaving-shed": "织坊", "place:shrine": "河神祠", "place:market": "交换场",
+  "place:chestnut-wood": "北坡栗林", "place:stone-beach": "上游石滩",
 };
 const KIND = { main: "主线", side: "支线" };
 const TIE = { kin: "亲", friend: "友", rival: "仇" };

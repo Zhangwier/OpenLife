@@ -76,7 +76,9 @@ test("loading an engine-mismatched save is refused unless allowed", () => {
 });
 
 test("simulation continues identically after load", () => {
-  const { simulation, characterId } = bootWorld({ seed: 8 });
+  // 种子 8 的主角在第 17 年出意外走了，这条用例要它活过 20 年去换工作。
+  // 意外按 (角色, 年龄) 键控，换种子就是换骰子；断言不动。
+  const { simulation, characterId } = bootWorld({ seed: 1 });
   simulation.advanceBy(20 * TICKS_PER_YEAR);
   mustDispatch(simulation, {
     type: "career.get_job",

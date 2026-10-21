@@ -82,6 +82,7 @@ export const SettlementCommands = {
   familyTick: "settlement-locations.family.tick",
   /** 人走了以后，由一个长大成人的孩子接过这一生。 */
   handoff: "settlement-locations.handoff",
+  useFixture: "settlement-locations.use_fixture",
   /** 换季那天，村里这一季的大事（村里每天看一眼，一季只发生一次）。 */
   seasonTurn: "settlement-locations.village.season_turn",
 } as const;

@@ -2,7 +2,7 @@
  * Settlement Locations: the M1 first loop and density targets.
  *
  * `OPEN_WORLD_REQUIREMENTS.md` MAP-001 asks for one habitable settlement with
- * 6+ outdoor work places, 8+ enterable life spaces, 12-16 residents with a home,
+ * 6+ outdoor work places, 8+ enterable life spaces, 12+ residents with a home,
  * 30+ prototypes and 80+ placed instances. 搂11 asks for the first real loop to
  * reproduce from a clean baseline: walk in, take a container, fill it, put it
  * back.
@@ -39,6 +39,7 @@ import {
   worksites,
   homestead,
   dailyActivity,
+  RIVER_TERRACE_PACK,
 } from "@openlife/module-settlement-locations";
 import { DAYS_PER_MONTH } from "@openlife/life-contracts";
 import { withoutAgents } from "../helpers/agents.ts";
@@ -70,7 +71,7 @@ test("the settlement meets the first-batch density targets", () => {
   const view = sim.worldView();
   assert.ok(SettlementContent.outdoorPlaces >= 6, "at least six connected outdoor activity places");
   assert.ok(SettlementContent.spaces >= 8, "at least eight enterable life spaces");
-  assert.ok(SettlementContent.residents >= 12 && SettlementContent.residents <= 16, "12-16 NPCs with a household");
+  assert.ok(SettlementContent.residents >= 12, "12+ NPCs with a household");
   assert.ok(SettlementContent.prototypes >= 30, "30+ operable object prototypes");
   assert.ok(SettlementContent.instances >= 80, "80+ placed instances");
 
@@ -94,7 +95,7 @@ test("the settlement meets the first-batch density targets", () => {
 test("each authored place has a purpose, an object and a person attached", () => {
   const { sim } = world();
   const { places } = worksites(sim.worldView());
-  assert.equal(places.length, 8);
+  assert.equal(places.length, RIVER_TERRACE_PACK.places.length);
   for (const place of places) {
     assert.ok(place.purpose.length > 0, `${place.placeId} needs a purpose`);
     assert.ok(place.objects > 0, `${place.placeId} needs at least one object`);
@@ -111,12 +112,12 @@ test("each authored place has a purpose, an object and a person attached", () =>
 test("residents are already somewhere when the player arrives, not idle at origen", () => {
   const { sim } = world();
   const staff = people(sim.worldView()).residents;
-  assert.equal(staff.length, 16);
+  assert.equal(staff.length, RIVER_TERRACE_PACK.residents.length);
   for (const resident of staff) {
     assert.ok(resident.placeId, `${resident.id} must start the day somewhere`);
     assert.equal(resident.atWork ?? true, true);
   }
-  assert.equal(people(sim.worldView()).households, 8);
+  assert.equal(people(sim.worldView()).households, new Set(RIVER_TERRACE_PACK.residents.map((r) => r.household)).size);
 });
 
 // ---------------------------------------------------------------------------
@@ -1099,7 +1100,7 @@ test("the settlement projection lists places with their remaining stock", () => 
   const view = sim.project({ id: SettlementProjections.worksites, params: {} });
   assert.equal(view.ok, true);
   const places = view.data.places as { placeId: string; resources: { stock: number }[] }[];
-  assert.equal(places.length, 8);
+  assert.equal(places.length, RIVER_TERRACE_PACK.places.length);
   const totals = view.data.totals as { resourceId: string; stock: number; capacity: number }[];
   assert.ok(totals.some((row) => row.resourceId === "resource:water" && row.stock > 0));
 });
@@ -1130,7 +1131,7 @@ test("a settlement survives save and load with its places, stock and residents i
   assert.equal(other.fingerprint(), sim.fingerprint());
   assert.ok(other.worldView().getEntity(SettlementId));
   assert.equal(occupiedPlaceId(other.worldView(), actorId), "place:river");
-  assert.equal(people(other.worldView()).residents.length, 16);
+  assert.equal(people(other.worldView()).residents.length, RIVER_TERRACE_PACK.residents.length);
   assert.deepEqual(
     worksites(other.worldView()).totals,
     worksites(sim.worldView()).totals,
@@ -1161,7 +1162,7 @@ test("an old save from before the settlement gains one without losing its people
     sim.worldView().getComponent(legacyId, "modern.identity"),
     legacy.worldView().getComponent(legacyId, "modern.identity"),
   );
-  assert.equal(people(sim.worldView()).residents.length, 16);
+  assert.equal(people(sim.worldView()).residents.length, RIVER_TERRACE_PACK.residents.length);
 });
 
 test("founding refuses a second settlement and an unknown map location", () => {

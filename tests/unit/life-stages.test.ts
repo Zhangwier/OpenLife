@@ -22,7 +22,7 @@ import {
 
 const YEAR = 360;
 
-function boot(seed = 7) {
+function boot(seed = 1) {
   const sim = new Simulation({
     worldSeed: seed,
     modules: [
@@ -41,9 +41,18 @@ function boot(seed = 7) {
 const view = (sim: Simulation, id: string) =>
   sim.project({ id: StageProjections.life, params: { actorId: id } }).data as any;
 
-/** 把这一生推进到某个年龄（走一年一跳，跨段那天的规则会自己记下来）。 */
+/**
+ * 把这一生推进到某个年龄（走一年一跳，跨段那天的规则会自己记下来）。
+ *
+ * 世界种子固定，但现代世界每年都有一次意外掷骰（`modern-world` 的
+ * `accident`，0.004/年）。所以这里的种子必须挑一个「主角能活到 60」的：
+ * 换了种子或改了模块数量，先把失败信息读清楚，再决定是挑种子还是改断言，
+ * 不要盲改断言把死亡当成「到岁数了」。
+ */
 function growTo(sim: Simulation, me: string, years: number) {
   for (let i = 0; i < years && ageOf(sim.worldView(), me) < years; i += 1) sim.advanceBy(YEAR);
+  const alive = sim.worldView().getComponent(me, "modern.vitals")?.alive;
+  assert.equal(alive, true, `主角在 ${ageOf(sim.worldView(), me)} 岁死了（目标是 ${years} 岁）；换一个能活到的种子`);
   assert.ok(ageOf(sim.worldView(), me) >= years, `reached ${years} (at ${ageOf(sim.worldView(), me)})`);
 }
 

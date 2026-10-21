@@ -31,11 +31,20 @@ export class DeterministicRng implements DeterministicRngLike {
   readonly label: string;
   #state: number;
   #draws: number;
+  /**
+   * The seed of the stream this one was derived from, carried down the fork
+   * chain. `keyed()` keys on this instead of `label`, because a fork's label is
+   * a bare rule id — it holds no world seed at all. Keying on the label alone
+   * made every world roll the same dice regardless of `worldSeed`; keying on
+   * the origin keeps the stream a pure function of (world seed, parts).
+   */
+  readonly #origin: number;
 
-  constructor(seed: number, label = "root", draws = 0) {
+  constructor(seed: number, label = "root", draws = 0, origin?: number) {
     this.#state = seed >>> 0;
     this.#draws = draws;
     this.label = label;
+    this.#origin = (origin ?? seed) >>> 0;
   }
 
   static fromSeed(seed: number | string, label = "root"): DeterministicRng {
@@ -57,7 +66,7 @@ export class DeterministicRng implements DeterministicRngLike {
    */
   static keyed(worldSeed: number, ...parts: Array<string | number>): DeterministicRng {
     const seed = hashString([worldSeed, ...parts].join(":"));
-    return new DeterministicRng(seed, `keyed:${parts.join(":")}`);
+    return new DeterministicRng(seed, `keyed:${parts.join(":")}`, 0, worldSeed);
   }
 
   get drawCount(): number {
@@ -112,10 +121,13 @@ export class DeterministicRng implements DeterministicRngLike {
    * Derive an independent stream. The child seed is a pure function of
    * (parent seed, label, draw count) so the parent is not advanced and forks
    * stay reproducible regardless of call order.
+   *
+   * The child remembers the same origin seed as its parent, so `keyed()` on a
+   * nested stream still resolves to (world seed, parts).
    */
   fork(label: string): DeterministicRng {
     const seed = (hashString(`${this.label}|${label}|${this.#state}|${this.#draws}`) ^ this.#state) >>> 0;
-    return new DeterministicRng(seed, label);
+    return new DeterministicRng(seed, label, 0, this.#origin);
   }
 
   /**
@@ -123,15 +135,16 @@ export class DeterministicRng implements DeterministicRngLike {
    *
    * Use for anything that must be reproducible regardless of what else happened:
    * a yearly roll, an inspiration, a gift's reception. The seed is a pure
-   * function of (this stream's label, parts), so two calls with the same parts
-   * give the same stream, no matter how many draws happened in between.
+   * function of (origin seed, parts), so two calls with the same parts give the
+   * same stream, no matter how many draws happened in between, and no matter
+   * which rule made the call.
    *
-   * The label carries the lineage (root, or a command fork), which is what
-   * makes the stream unique; the draw count is deliberately left out.
+   * The origin carries the world seed down the fork chain, which is what makes
+   * two different worlds roll different dice while one world replays exactly.
    */
   keyed(...parts: Array<string | number>): DeterministicRng {
-    const seed = hashString([this.label, ...parts].join(":"));
-    return new DeterministicRng(seed, `keyed:${parts.join(":")}`);
+    const seed = hashString([this.#origin, ...parts].join(":"));
+    return new DeterministicRng(seed, `keyed:${parts.join(":")}`, 0, this.#origin);
   }
 
   snapshot(): RngState {

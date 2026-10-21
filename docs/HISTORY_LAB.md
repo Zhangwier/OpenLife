@@ -56,8 +56,15 @@ npm run chronicle -- --seed 7 --years 300 --inspire 40:theory:leverage:8 --encou
 - ~~邻村只是人口占位，不会自己发明~~ **已改**：`modules/civilization`（A3）。政体是真实
   节点，有位置、人口、聚合科技；发明沿联系网络扩散，工业门槛由网络里掌握它的人数决定。
 - ~~随机数按指令序号分流~~ **已改**：A2 键控流 `rng.keyed(...)`，种子只由
-  (世界种子, 键) 决定，与命令顺序和抽取次数无关。chronicle / tech / heredity / polity
-  已迁移，office 与 fate 本来就不用 rng。
+  (世界种子, 键) 决定，与命令顺序和抽取次数无关。chronicle / tech / heredity / polity /
+  civilization / culture / economy / travel / deposits / modern-world 已迁移，
+  office 与 fate 本来就不用 rng。
+  - 迁移中查出一个真 bug：规则里拿到的流是 `rng.fork(rule.id)`，而 `fork` 后的
+    `label` 只是规则 id、**不含世界种子**，实例 `keyed()` 却用 `label` 当键——
+    结果所有世界、所有种子共用同一副骰子（抽样时 40 个种子全在 29 岁「意外」死）。
+    现在每条流都携带 origin 世界种子（`#origin`），`keyed = hash(origin, parts)`，
+    `fork` 把它传下去，读档时也用 `worldSeed` 复原 origin。
+
 - 数值仍是占位调校，换种子差异很大，这是有意的。
 
 ## 当前真实的边界

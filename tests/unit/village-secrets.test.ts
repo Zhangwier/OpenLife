@@ -81,8 +81,11 @@ test("secret data is sound: owners exist, hints are non-empty, kinds are legal",
     for (const hint of spec.hints) assert.ok(hint.trim().length > 0);
     assert.ok(SECRET_KINDS.includes(spec.kind), `${spec.id} kind ${spec.kind}`);
   }
-  // 首批规模：每位基础村民 1–2 件，四类都有。
-  assert.ok(SECRETS.length >= 15 && SECRETS.length <= 20, `${SECRETS.length} secrets`);
+  // 规模：每位基础村民 1–2 件，四类都要有。上限按人数算——村子会随内容包长人，
+  // 写死总数会在加人之后变成假失败（21 人时最低就要 21 件）。
+  const lo = Math.ceil(keys.length * 0.9);
+  const hi = keys.length * 2;
+  assert.ok(SECRETS.length >= lo && SECRETS.length <= hi, `${SECRETS.length} secrets for ${keys.length} residents`);
   for (const kind of SECRET_KINDS) assert.ok(SECRETS.some((s) => s.kind === kind), `kind ${kind} present`);
   for (const key of keys) {
     const n = secretsOf(key).length;
@@ -244,24 +247,38 @@ test("advising in private either mends or shames, depending on how they feel abo
 
 test("exposing someone in front of others costs them and starts a grievance (当众揭发)", () => {
   const { sim, me } = boot();
-  // 当众：同处得有至少两个别的村民。渡口人多（阿岚、埴公、阿砺），用埴公的事。
-  const spec = SECRETS.find((s) => s.owner === "trader-elder")!;
+  // 当众：同处至少还有两个别的村民。别写死「渡口人多」——村子会长人、
+  // 站位也会随内容包变；这里按实际站位挑一个人多的地点。
+  const view0 = sim.worldView();
+  const byPlace = new Map<string, string[]>();
+  for (const r of RIVER_TERRACE_PACK.residents) {
+    const place = occupiedPlaceId(view0, residentId(r.key));
+    if (!byPlace.has(place)) byPlace.set(place, []);
+    byPlace.get(place)!.push(r.key);
+  }
+  const crowd = [...byPlace.entries()].find(([, keys]) => keys.length >= 3);
+  assert.ok(crowd, `some place should hold three villagers, saw ${JSON.stringify([...byPlace])}`);
+  const [place, keys] = crowd!;
+  const ownerKey = keys.find((k) => SECRETS.some((s) => s.owner === k))!;
+  assert.ok(ownerKey, `one of ${keys.join(", ")} should own a secret`);
+  const spec = SECRETS.find((s) => s.owner === ownerKey)!;
+
   makeKnown(sim, me, spec.id);
-  const place = occupiedPlaceId(sim.worldView(), residentId("trader-elder"));
   go(sim, me, place);
-  const audience = RIVER_TERRACE_PACK.residents.filter((r) => occupiedPlaceId(sim.worldView(), residentId(r.key)) === place && r.key !== "trader-elder");
-  assert.ok(audience.length >= 2, `the ford has an audience (${audience.length})`);
+  const audience = RIVER_TERRACE_PACK.residents
+    .filter((r) => occupiedPlaceId(sim.worldView(), residentId(r.key)) === place && r.key !== ownerKey);
+  assert.ok(audience.length >= 2, `${place} has an audience (${audience.length})`);
 
   const r = sim.dispatch({ type: SecretCommands.expose, actorId: me, source: "player", payload: { secretId: spec.id } });
   assert.equal(r.ok, true, r.errors[0]?.message);
   const exposed = sim.kernel.internals.eventLog.all().filter((e) => e.type === "village-secrets.exposed");
   assert.equal(exposed.length, 1);
-  const ledger = sim.project({ id: SecretProjections.ledger, params: { ownerId: residentId("trader-elder") } }).data as any;
+  const ledger = sim.project({ id: SecretProjections.ledger, params: { ownerId: residentId(ownerKey) } }).data as any;
   assert.equal(ledger.exposed.length, 1);
 
   // 揭发把怨气交给 social-conflict 自己记：推进一天，任务转调它的命令。
   sim.advanceBy(2);
-  const grievance = sim.project({ id: "social-conflict.grievances", params: { holderId: residentId("trader-elder") } }).data as any;
+  const grievance = sim.project({ id: "social-conflict.grievances", params: { holderId: residentId(ownerKey) } }).data as any;
   assert.ok(grievance.byTarget[me], "the exposed villager now holds a grievance against the player");
   assert.match(String(grievance.byTarget[me].causes[0].cause), /village-secrets\.exposed/);
 });

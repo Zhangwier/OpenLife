@@ -29,7 +29,7 @@ export async function worldCatalog(simulation: Simulation) {
   const maps = discoverMapPacks(join(ROOT, "packs")).map(({ dirName, directory }) => {
     const result = loadMapPack(directory, { dryRun: true });
     const id = result.manifest?.id ?? dirName;
-    return { id, label: result.manifest?.displayName ?? result.manifest?.name ?? dirName, ok: result.ok, regions: result.pack?.regions ?? [], locations: result.pack?.locations ?? [], edges: result.pack?.edges.length ?? 0, boundaryAnchors: result.pack?.boundaryAnchors.length ?? 0 };
+    return { id, label: result.manifest?.displayName ?? result.manifest?.name ?? dirName, ok: result.ok, regions: result.pack?.regions ?? [], locations: result.pack?.locations ?? [], edges: result.pack?.edges.length ?? 0, boundaryAnchors: result.pack?.boundaryAnchors.length ?? 0, eventPoints: result.pack?.eventPoints ?? [] };
   });
   return { modules, maps };
 }

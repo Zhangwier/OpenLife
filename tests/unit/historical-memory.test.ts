@@ -25,8 +25,11 @@ function onlyEntity(sim: Simulation, kind: string) {
 }
 
 test("world truth, surviving evidence and public historical memory can diverge then reconcile", () => {
+  // 这个世界种子要让第一个角色活过前 14 年：意外死亡按 (角色, 年龄) 键控，
+  // 寿命钉在 95 只挡老死，挡不住意外。这条用例演的是「记忆与真相分家再对上」，
+  // 主角得在场，所以选一个能活到那时的世界，而不是改断言。
   const sim = new Simulation({
-    worldSeed: 8101,
+    worldSeed: 1,
     modules: [
       modernWorldModule,
       familyModule,

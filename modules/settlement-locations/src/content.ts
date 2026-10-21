@@ -60,6 +60,10 @@ export interface PlaceSpec {
   workSpot?: string;
   /** What a villager working here gathers in a generic day (omitted: nothing). */
   jobResource?: string;
+  /** What the place is for, as the map and place card say it (built-in places keep their own lines). */
+  purpose?: string;
+  /** Open to the sky: rain and snow make work here heavier. */
+  outdoor?: boolean;
 }
 
 export interface YieldSpec {
@@ -93,6 +97,14 @@ export interface SettlementPack {
   yields: YieldSpec[];
   prototypes: PrototypeSpec[];
   resourceLabels: Record<string, string>;
+  /**
+   * The prototype that carries one unit of a bulk resource gathered from a
+   * yield or a season (resource → prototype). Built-in raw goods keep their
+   * own mapping; a pack adds its new raw goods here.
+   */
+  rawPrototypes?: Record<string, string>;
+  /** Carried foods a pack adds: resource → hunger eased by eating one. */
+  food?: Record<string, number>;
   instances: InstanceSeed[];
   /**
    * General exchange: each resource's base worth, and what each resident needs
@@ -338,6 +350,16 @@ export function validateSettlementPack(pack: SettlementPack): string[] {
     if (!prototypes.has(i.prototypeId)) problems.push(`instance ${i.id}: unknown prototype ${i.prototypeId}`);
     if (!residents.has(i.owner)) problems.push(`instance ${i.id}: unknown owner ${i.owner}`);
     if (!spaces.has(i.inId) && !instances.has(i.inId)) problems.push(`instance ${i.id}: unknown location ${i.inId}`);
+  }
+  for (const [resource, proto] of Object.entries(pack.rawPrototypes ?? {})) {
+    if (!pack.resourceLabels[resource]) problems.push(`raw prototype: unknown resource ${resource}`);
+    const p = pack.prototypes.find((x) => x.id === proto);
+    if (!p) problems.push(`raw prototype ${resource}: unknown prototype ${proto}`);
+    else if (p.resourceId !== resource) problems.push(`raw prototype ${resource}: ${proto} carries ${p.resourceId}`);
+  }
+  for (const [resource, eased] of Object.entries(pack.food ?? {})) {
+    if (!pack.resourceLabels[resource]) problems.push(`food: unknown resource ${resource}`);
+    if (!(eased >= 1 && eased <= 6)) problems.push(`food ${resource}: hunger eased must be 1-6`);
   }
   for (const [key, list] of Object.entries(pack.exchange?.wants ?? {})) {
     if (!residents.has(key)) problems.push(`exchange wants: unknown resident ${key}`);

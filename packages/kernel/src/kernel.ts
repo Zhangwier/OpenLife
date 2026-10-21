@@ -437,7 +437,10 @@ export class Kernel {
   restore(state: KernelState): void {
     this.#store = WorldStore.deserialize(state.store);
     this.#clock = { ...state.clock };
-    this.#rng = new DeterministicRng(state.rng.seed, "root", state.rng.draws);
+    // The origin seed must be the world seed, not the resumed state: `keyed()`
+    // resolves (origin, parts) into a stream, and a resumed world must roll the
+    // same dice it would have rolled without a save/load in between.
+    this.#rng = new DeterministicRng(state.rng.seed, "root", state.rng.draws, state.worldSeed);
     this.#eventLog = EventLog.deserialize(state.eventLog);
     this.#scheduler = Scheduler.deserialize(state.scheduler);
     this.#facts = FactStore.deserialize(state.facts);

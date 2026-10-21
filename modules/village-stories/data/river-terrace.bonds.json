@@ -157,6 +157,66 @@
         "sideB": "你替岚母说话，阿灶把锅盖一摔。",
         "mediate": "你提议各家按人头凑柴、记在墙上。阿灶和岚母都说这法子公道，各自让了一步。"
       }
+    },
+    {
+      "a": "shrine-keeper",
+      "b": "hunter",
+      "type": "kin",
+      "label": "舅甥"
+    },
+    {
+      "a": "weaver",
+      "b": "lan-mother",
+      "type": "friend",
+      "label": "一起沤麻的姐妹"
+    },
+    {
+      "a": "market-keeper",
+      "b": "trader-elder",
+      "type": "friend",
+      "label": "带出来的后生"
+    },
+    {
+      "a": "weaver",
+      "b": "market-keeper",
+      "type": "friend",
+      "label": "长屋邻居"
+    },
+    {
+      "a": "hunter",
+      "b": "reed-worker",
+      "type": "friend",
+      "label": "拾柴的伴"
+    },
+    {
+      "a": "longhouse-matron",
+      "b": "market-keeper",
+      "type": "kin",
+      "label": "母子"
+    },
+    {
+      "a": "longhouse-matron",
+      "b": "weaver",
+      "type": "friend",
+      "label": "长屋邻居"
+    },
+    {
+      "a": "hunter",
+      "b": "longhouse-matron",
+      "type": "friend",
+      "label": "常在火塘边吃饭的"
+    },
+    {
+      "a": "shrine-keeper",
+      "b": "longhouse-matron",
+      "type": "friend",
+      "label": "一起熬冬夜的老人"
+    },
+    {
+      "a": "weaver",
+      "b": "hunter",
+      "type": "friend",
+      "label": "换皮子和麻线的"
     }
   ],
   "routines": {
@@ -217,7 +277,61 @@
       "雨": "place:ford",
       "encounters": {
         "暮": "阿砺端着碗蹲在公灶边，难得开口：“今天打坏了三块料。”",
-        "雨": "下雨天阿砺照样在渡口乱石滩敲石头，见你来，把一块刚打好的石片递给你看。"
+        "雨": "下雨天阿砺躲在上游石滩的打石棚里照样敲石头，见你来，把一块刚打好的石片递给你看。"
+      }
+    },
+    "weaver": {
+      "晨": "space:retting-pool",
+      "午": "space:loom-room",
+      "暮": "space:longhouse-west",
+      "雨": "space:spinning-porch",
+      "encounters": {
+        "晨": "阿缫挽着裤腿站在沤麻池里，正把泡透的麻秆一根根捞上岸，见你来，抬了抬下巴示意你搭把手。",
+        "午": "织机间里咔嗒咔嗒响，阿缫头也不回：“坐，别碰经线。”",
+        "暮": "西间里点着一小盏油，阿缫坐在土台上就着光补衣裳，把你的袖子也拉过去看了看。",
+        "雨": "下雨天阿缫挪到纺线廊下纺线，雨水顺着檐滴成一排，她纺线的节拍跟雨点一样匀。"
+      }
+    },
+    "market-keeper": {
+      "晨": "space:goods-shed",
+      "午": "space:market-row",
+      "暮": "space:longhouse-east",
+      "雨": "space:rest-shed",
+      "encounters": {
+        "晨": "货棚里阿贾正一样样清点昨天换来的东西，嘴里念着数：“三块盐、两张席……”",
+        "午": "摊位行上阿贾的嗓门最大：“盐！南岸的好盐！拿柴拿麻都能换！”",
+        "暮": "东间里阿贾盘腿坐着，把今天换来的海贝一枚枚摆在土台上，摆成一个圈。",
+        "雨": "下雨天集上没人，阿贾缩在歇脚棚里跟过路的挑夫聊天，见你来，往边上挪了挪。"
+      }
+    },
+    "shrine-keeper": {
+      "晨": "space:shrine-court",
+      "午": "space:altar",
+      "暮": "space:vigil-hut",
+      "encounters": {
+        "晨": "老祝拿着苇扫帚在祠前空场扫落叶，扫一下，停一下，看一眼河。",
+        "午": "老祝跪在祭台前，把昨天的陶碗换成新的，嘴里念着谁也听不清的话。",
+        "暮": "守夜棚里火盆已经点上了，老祝拍拍身边的草垫：“坐。今晚的河声好听。”"
+      }
+    },
+    "longhouse-matron": {
+      "晨": "space:longhouse-hall",
+      "午": "space:longhouse-loft",
+      "暮": "space:longhouse-hall",
+      "雨": "space:longhouse-hall",
+      "encounters": {
+        "晨": "阿蘩蹲在火塘边拨开昨夜埋的炭，火苗一下子窜起来：“来得正好，帮我递根柴。”",
+        "午": "储物阁上传来阿蘩的声音：“上来帮我数数，这瓮里还剩几份粟？”",
+        "暮": "火塘边已经围了一圈人，阿蘩往锅里又添了一瓢水：“多一个人，多一把米的事。”",
+        "雨": "雨天长屋里挤满了人，阿蘩在火塘边忙得脚不沾地，还不忘冲你招手。"
+      }
+    },
+    "hunter": {
+      "暮": "space:longhouse-hall",
+      "雨": "space:hunter-hut",
+      "encounters": {
+        "暮": "阿犴一身露水地进了长屋，把一串野兔挂上熏架，在火塘边蹲下烤手。",
+        "雨": "雨天阿犴不进林子，蹲在窝棚口削箭杆，削好一根就对着天光瞄一瞄。"
       }
     }
   },
@@ -352,6 +466,156 @@
       "npc": "cook-helper",
       "tier": "friend",
       "text": "阿稷偷偷给你留了一块锅巴，烤得正好：“别让阿灶看见。”"
+    },
+    {
+      "npc": "weaver",
+      "tier": "friend",
+      "text": "阿缫把纺线廊最亮的那个位置让给你：“以后你来，就坐这儿。”"
+    },
+    {
+      "npc": "weaver",
+      "tier": "close",
+      "text": "阿缫把她娘留下的纺轮放在你手心：“你转一圈给我看。……嗯，就这样。它认你了。”",
+      "reward": {
+        "flags": [
+          "weaver-whorl-shown"
+        ]
+      }
+    },
+    {
+      "npc": "hunter",
+      "tier": "friend",
+      "text": "阿犴在林缘给你也搭了一个歇脚的窝：“下雨的时候，进来躲。”"
+    },
+    {
+      "npc": "hunter",
+      "tier": "close",
+      "text": "阿犴第一次带你走进雾岭的边缘，指着一棵被雷劈开的老树：“我爹最后一次，就是在这儿和我分开的。”",
+      "reward": {
+        "flags": [
+          "fog-ridge-shown"
+        ]
+      }
+    },
+    {
+      "npc": "shrine-keeper",
+      "tier": "friend",
+      "text": "老祝把守夜的那盏小火交给你守了半夜：“你守着，我放心。”"
+    },
+    {
+      "npc": "shrine-keeper",
+      "tier": "close",
+      "text": "老祝在刻横道的石头上，让你亲手刻下今年那一道。",
+      "reward": {
+        "flags": [
+          "year-mark-carved"
+        ]
+      }
+    },
+    {
+      "npc": "market-keeper",
+      "tier": "friend",
+      "text": "阿贾在摊位行给你留了一块空地：“想摆什么就摆，不收你的地钱。”"
+    },
+    {
+      "npc": "market-keeper",
+      "tier": "close",
+      "text": "阿贾把他的秤石借给你称了一回货：“秤在你手里，我信得过。”",
+      "reward": {
+        "flags": [
+          "market-scale-trusted"
+        ]
+      }
+    },
+    {
+      "npc": "longhouse-matron",
+      "tier": "friend",
+      "text": "阿蘩在火塘边给你留了一个固定的位置，旁边还多铺了一层草垫。"
+    },
+    {
+      "npc": "longhouse-matron",
+      "tier": "close",
+      "text": "阿蘩教你封火：夜里把炭埋进灰里，第二天一早拨开，火还活着。“长屋的火，就是这么传下来的。”",
+      "reward": {
+        "flags": [
+          "longhouse-fire-taught"
+        ]
+      }
+    },
+    {
+      "npc": "weaver",
+      "tier": "acquaint",
+      "text": "阿缫第一次主动跟你说话：“你那根腰带要断了。”第二天，你的门口多了一根新编的麻绳腰带。"
+    },
+    {
+      "npc": "weaver",
+      "tier": "bosom",
+      "text": "阿缫在织机前给你留了一个位置，教你织她娘的水波纹：“这个花样，我只教一个人。”",
+      "reward": {
+        "flags": [
+          "weaver-wave-pattern"
+        ]
+      }
+    },
+    {
+      "npc": "hunter",
+      "tier": "acquaint",
+      "text": "阿犴在林缘冲你点了下头，算是打过招呼。走了几步又回头：“那边有窝蜂，别去。”"
+    },
+    {
+      "npc": "hunter",
+      "tier": "bosom",
+      "text": "阿犴把他爹留下的那张旧弓给你看，弓背上刻着一排小记号：“一道一头鹿。他想等我刻满另一张。”",
+      "reward": {
+        "flags": [
+          "hunter-father-bow"
+        ]
+      }
+    },
+    {
+      "npc": "shrine-keeper",
+      "tier": "acquaint",
+      "text": "老祝记住了你的名字，扫地时顺口念了一句：“今天你也来了。”"
+    },
+    {
+      "npc": "shrine-keeper",
+      "tier": "bosom",
+      "text": "老祝把祖骨龛的钥匙——一根磨光的鹿骨——挂在你脖子上：“我走了以后，这龛你来守。”",
+      "reward": {
+        "flags": [
+          "shrine-heir"
+        ]
+      }
+    },
+    {
+      "npc": "market-keeper",
+      "tier": "acquaint",
+      "text": "阿贾记住了你，远远就喊：“哎！上回那位！”"
+    },
+    {
+      "npc": "market-keeper",
+      "tier": "bosom",
+      "text": "阿贾把南岸带来的最后一枚大海贝交给你：“我娘说，这是我爹的。给你，比放在我这儿有用。”",
+      "reward": {
+        "flags": [
+          "market-father-shell"
+        ]
+      }
+    },
+    {
+      "npc": "longhouse-matron",
+      "tier": "acquaint",
+      "text": "阿蘩开始叫你“孩子”，跟叫长屋里其他人一样。"
+    },
+    {
+      "npc": "longhouse-matron",
+      "tier": "bosom",
+      "text": "阿蘩在长屋的墙上给你刻了一个位置：“长屋接出来的第三间，往后留给你。”",
+      "reward": {
+        "flags": [
+          "longhouse-room-promised"
+        ]
+      }
     }
   ],
   "services": [

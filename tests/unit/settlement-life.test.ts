@@ -10,7 +10,14 @@ import { settlementLifeModule, Life } from "@openlife/module-settlement-life";
 import { runPlayerAction, playerView } from "../../apps/web/src/player.ts";
 
 const modules = [modernWorldModule, familyModule, earlyCivilizationModule, practiceRuntimeModule, craftPotteryModule, settlementLifeModule];
-function setup(seed = 104) {
+/**
+ * 默认种子挑的是「父子都活到成年」的那一个。
+ *
+ * 现代世界每年都给每个人掷一次意外（`modern-world` 的 `accident`，0.004/年，
+ * 按 (角色, 年龄) 键控）。种子 104 会让孩子在 6 岁那年意外走掉，而这里的用例
+ * 要验的是「交接给孩子」的逻辑，不是死亡率 —— 换种子，别把死亡当成交接成功。
+ */
+function setup(seed = 1) {
   const sim = new Simulation({ worldSeed: seed, modules });
   assert.equal(sim.dispatch({ type: "modern.initialize_world" }).ok, true);
   assert.equal(sim.dispatch({ type: "modern.create_character", payload: { givenName: "启", familyName: "禾", lifespan: 90 } }).ok, true);

@@ -13,8 +13,14 @@ import {
   settlementLocationsModule, SettlementCommands, homestead, residentId, liveSeason, romanceOf, spouseOf, socialOf, bondOf, heartsOf, kinOf,
 } from "@openlife/module-settlement-locations";
 
-function life(years = 18) {
-  const sim = new Simulation({ worldSeed: 7, modules: [modernWorldModule, familyModule, worldClockModule, worldSpaceModule, worldObjectsModule, settlementLocationsModule] });
+/**
+ * `seed` 是参数的第二个位置：这个文件多数用例只推进几个季节，任一世界种子都行；
+ * 但「人走了一整村都知道」那条要用阿汲做那个「出意外的人」，它得活到那时候。
+ * 意外死亡按 (角色, 年龄) 键控，所以换种子等于换一副骰子——选一个阿汲活着的世界，
+ * 而不是把断言放宽到「谁死了都行」。
+ */
+function life(years = 18, seed = 7) {
+  const sim = new Simulation({ worldSeed: seed, modules: [modernWorldModule, familyModule, worldClockModule, worldSpaceModule, worldObjectsModule, settlementLocationsModule] });
   sim.dispatch({ type: "modern.initialize_world" });
   sim.dispatch({ type: "modern.create_character", payload: { givenName: "禾", familyName: "林", lifespan: 90 } });
   sim.advanceBy(360 * years);
@@ -96,7 +102,8 @@ test("married life: a child is on the way, born months later, and at six lives i
 
 test("when a villager dies the whole village hears of it; when you die, a grown child takes up your life", async () => {
   const { familyView, heirsOf } = await import("@openlife/module-settlement-locations");
-  const { sim, me, act, meet } = life();
+  // 这条用例要拿阿汲当「出事的那个人」，所以挑一个阿汲能活到这时候的世界（见 life() 注释）。
+  const { sim, me, act, meet } = life(18, 1);
   const yu = residentId("yu");
   for (let i = 0; i < 5; i++) liveSeason(sim as never, me, "farm");
   meet(yu); act(SettlementCommands.court, { targetId: yu }); sim.advanceBy(3); meet(yu); act(SettlementCommands.wed, { targetId: yu });

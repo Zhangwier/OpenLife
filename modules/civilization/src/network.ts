@@ -132,12 +132,18 @@ export function contactNetwork(polities: readonly Polity[]): Contact[] {
  *
  * 需求强度 = B 缺它的程度 × B 用得上它的程度。
  * 已经有它就没有需求；没有它的前置就没有需求。
+ *
+ * `materialAvailable` 是材料门槛：附近没有必需矿藏、又没有贸易路线，需求就是 0。
+ * 这个参数必须存在，否则「炼铜」会从有铜的村子沿着联系传进没铜的村子——
+ * 扩散路径和自主发明路径用的是同一份材料事实，不能只在其中一条上查。
  */
 export function needStrength(
   inventionId: string,
   polity: Polity,
   inventionNeeds: (inventionId: string) => string[],
+  materialAvailable = true,
 ): number {
+  if (!materialAvailable) return 0;
   if ((polity.known[inventionId] ?? 0) >= 0.5) return 0;        // already widespread
   const needs = inventionNeeds(inventionId);
   if (!needs.length) return 0.2;                                // a curiosity, weak pull
@@ -227,6 +233,11 @@ export function civilizationYear(
   inventionNeeds: (inventionId: string) => string[],
   rng: { nextFloat(): number; chance(p: number): boolean },
   keyed: (purpose: string, ...parts: Array<string | number>) => { nextFloat(): number; chance(p: number): boolean },
+  /**
+   * A4 材料门槛，与自主发明共用同一条事实：附近没有必需矿藏且没有贸易路线，
+   * 这个政体就学不走也传不进这项发明。默认全部可用（不装矿藏模块时行为不变）。
+   */
+  materialOk: (polityId: string, inventionId: string) => boolean = () => true,
 ): CivilizationYear {
   const events: CivilizationYear["events"] = [];
   const diffusions: Diffusion[] = [];
@@ -256,7 +267,11 @@ export function civilizationYear(
       const haveA = a.known[invention.id] ?? 0;
       const haveB = b.known[invention.id] ?? 0;
       if (haveA >= 0.3 && haveB < haveA - 0.1) {
-        const need = needStrength(invention.id, b, inventionNeeds);
+        // A4: a polity without the deposit (and without a trade route) cannot
+        // take the invention in, however close the neighbour is. The gate has
+        // to sit on this path too, not just on a polity's own year — otherwise
+        // copper smelting walks into a village that has no copper.
+        const need = needStrength(invention.id, b, inventionNeeds, materialOk(b.id, invention.id));
         const chance = diffusionChance(contact, need);
         if (keyed("diffusion", year, contact.a, contact.b, invention.id).chance(chance)) {
           b.known[invention.id] = Math.min(haveA, haveB + 0.1);

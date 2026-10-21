@@ -297,14 +297,29 @@ const TERRAIN_LABELS = {
   basin_rim: "盆缘", frontier_bank: "边地河岸", frontier_post: "边地哨所", slope: "山坡", ridge: "山脊", pass: "垭口",
   hill_slope: "丘陵坡地", oak_slope: "栎树坡", cave: "洞穴", bamboo_valley: "竹谷", bamboo_grove: "竹林", stream_ford: "溪滩",
   valley_floor: "谷底", waterfall_pool: "瀑潭", salt_spring_terrace: "盐泉台地", salt_spring: "盐泉", salt_flat: "盐滩",
+  chestnut_slope: "栗林坡地", stone_bar_reach: "石滩河段", misty_ridge: "雾岭", chestnut_grove: "栗树林", rooting_ground: "野猪拱地",
+  cobble_bar: "卵石滩", knapping_cliff: "打石崖", deep_pool: "深潭", river_islet: "河洲", lightning_tree: "雷劈树", wolf_den: "狼窝",
 };
+const TIME_LABELS = { any: "", dawn: "清晨", day: "白天", dusk: "黄昏", night: "夜里" };
+const DANGER_LABELS = ["无害", "小心", "危险", "致命"];
+// 事件点的可选细节：何时出现、遇见什么、它怎么做、能留下什么。
+function eventPointDetail(point) {
+  const bits = [];
+  if (point.time && TIME_LABELS[point.time]) bits.push(`<span class="codex-tag">${html(TIME_LABELS[point.time])}</span>`);
+  if (point.danger !== undefined) bits.push(`<span class="codex-tag">${html(DANGER_LABELS[point.danger] ?? "")}</span>`);
+  if (point.creature) bits.push(`<strong>${html(point.creature)}</strong>`);
+  const lines = [];
+  if (point.behavior) lines.push(`<small>习性：${html(point.behavior)}</small>`);
+  if (point.drops?.length) lines.push(`<small>可能留下：${html(point.drops.join("、"))}</small>`);
+  return bits.length || lines.length ? `<div class="event-detail">${bits.join(" ")}${lines.join("<br>")}</div>` : "";
+}
 const EVENT_KIND_LABELS = { landmark: "地标", gathering: "采集", encounter: "相遇", hazard: "险情", omen: "征兆", festival: "节庆" };
 const SEASON_LABELS = { any: "四季", spring: "春", summer: "夏", autumn: "秋", winter: "冬" };
 function terrainLabel(type) { return TERRAIN_LABELS[type] ?? String(type ?? "").replaceAll("_", " "); }
 function eventPointList(map) {
   if (!map.eventPoints?.length) return "";
   const names = new Map(map.locations.map(loc => [loc.id, loc.name]));
-  return `<details class="region-fold event-fold"><summary>查看 ${map.eventPoints.length} 个事件点</summary><ul class="event-points">${map.eventPoints.map(point => `<li><div><strong>${html(point.name)}</strong><span class="codex-tag">${html(EVENT_KIND_LABELS[point.kind] ?? point.kind)} · ${html(SEASON_LABELS[point.season] ?? point.season)}</span></div><small>${html(names.get(point.locationId) ?? point.locationId)}</small><p>${html(point.text)}</p></li>`).join("")}</ul></details>`;
+  return `<details class="region-fold event-fold"><summary>查看 ${map.eventPoints.length} 个事件点</summary><ul class="event-points">${map.eventPoints.map(point => `<li><div><strong>${html(point.name)}</strong><span class="codex-tag">${html(EVENT_KIND_LABELS[point.kind] ?? point.kind)} · ${html(SEASON_LABELS[point.season] ?? point.season)}</span></div><small>${html(names.get(point.locationId) ?? point.locationId)}</small><p>${html(point.text)}</p>${eventPointDetail(point)}</li>`).join("")}</ul></details>`;
 }
 async function loadMap() {
   const screen = $("screen-map");

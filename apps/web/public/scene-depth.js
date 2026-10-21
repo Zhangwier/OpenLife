@@ -14,6 +14,12 @@ export const GROUND = {
   "place:reedbed":    { avatar: [.30, .84], actors: [[.56, .70], [.70, .78], [.44, .88], [.80, .66]], objects: [[.48, .76], [.62, .86], [.36, .68]], yields: [[.24, .56], [.72, .62]], horizon: .5 },
   "place:ford":       { avatar: [.33, .86], actors: [[.58, .72], [.72, .80], [.47, .90], [.82, .70]], objects: [[.50, .78], [.64, .88], [.40, .70]], yields: [[.63, .52]], horizon: .5 },
 };
+// 新增地点（2026-10-18）：还没有专属插画，沿用同类插画的构图站位。
+Object.assign(GROUND, {
+  "place:longhouse": GROUND["place:yard"], "place:weaving-shed": GROUND["place:yard"],
+  "place:shrine": GROUND["place:hearth-yard"], "place:market": GROUND["place:ford"],
+  "place:chestnut-wood": GROUND["place:reedbed"], "place:stone-beach": GROUND["place:river"],
+});
 const FALLBACK = GROUND["place:yard"];
 
 /** Depth scale for a foot position v (0 top … 1 bottom of the painting). */

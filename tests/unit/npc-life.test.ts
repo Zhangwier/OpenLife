@@ -58,7 +58,7 @@ test("M3-C: one authoritative day-boundary advances both NPCs once; replay after
     const first = liveDay(sim);
     assert.equal(first.ran, true);
     assert.equal(first.tick, start + 1);
-    assert.equal(first.notes.length, 16);
+    assert.equal(first.notes.length, RIVER_TERRACE_PACK.residents.length);
     assert.equal(sim.worldView().getComponent(residentId("reed-worker"), SettlementComponents.resident)?.lastRoutineAt, sim.tick);
     const cook = residentId("cook"), farmer = residentId("yu");
     assert.equal(sim.worldView().getComponent(cook, SettlementComponents.resident)?.lastRoutineAt, sim.tick);
@@ -442,7 +442,7 @@ test("M3: no hardcoded sixth-day exchange; real resource-based routines persist"
     const before = sim.tick;
     const report = liveDay(sim);
     assert.equal(report.ran, true);
-    assert.equal(report.notes.length, 16);
+    assert.equal(report.notes.length, RIVER_TERRACE_PACK.residents.length);
     assert.equal(Number(sim.worldView().getComponent(cook, SettlementComponents.resident)?.npcDailyCount), day + 1);
     assert.equal(Number(sim.worldView().getComponent(yu, SettlementComponents.resident)?.npcDailyCount), day + 1);
     assert.equal(dailyActivity(sim.worldView(), playerId).used, 0);

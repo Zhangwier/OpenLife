@@ -179,10 +179,22 @@ export const civilizationModule: OpenLifeModule = {
           const polity = state.polities.find((p) => p.id === polityId)!;
           const base = aggregateNeed(polity, inventionId, (id) => inventions.find((i) => i.id === id)?.answers ?? []);
           // A4: a deposit-gated invention needs the deposit nearby, or a trade route.
-          const inv = inventions.find((i) => i.id === inventionId);
-          const material = inv?.answers?.find((a) => a.startsWith("deposit:"));
-          if (material && !hasDeposit(material, polity.x, polity.y)) return 0;
+          if (!materialOk(polityId, inventionId)) return 0;
           return base;
+        };
+
+        // A4 的门槛同时要用在「自己发明」和「从邻村传来」两条路上：只挡前者，
+        // 炼铜会顺着联系网络走进一个没有铜的村子。
+        // 贸易路线还没有在这层建模（`world-deposits` 的 route 来自投影参数，
+        // 不是持久状态），所以这里只认「附近有矿」——等路线进了状态，再把
+        // 路线判断加在这一处，两条路径同时生效。
+        const materialOk = (polityId: string, inventionId: string): boolean => {
+          const polity = state.polities.find((p) => p.id === polityId);
+          if (!polity) return true;
+          const material = inventions.find((i) => i.id === inventionId)
+            ?.answers?.find((a) => a.startsWith("deposit:"));
+          if (!material) return true;
+          return hasDeposit(material, polity.x, polity.y);
         };
 
         const result = civilizationYear(
@@ -193,6 +205,7 @@ export const civilizationModule: OpenLifeModule = {
           (id) => inventions.find((i) => i.id === id)?.answers ?? [],
           c.rng,
           (purpose, ...parts) => c.rng.keyed("civilization", purpose, ...parts),
+          materialOk,
         );
 
         const next: NetworkState = {

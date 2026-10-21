@@ -518,7 +518,13 @@ function registerTickYear(ctx: Parameters<OpenLifeModule["register"]>[0]): void 
         });
 
         const overLifespan = age >= lifespan;
-        const accident = age > 5 && c.rng.chance(0.004);
+        // A2: keyed by (module, purpose, character, age) instead of the command
+        // fork. The fork seed contains the command id, which is globally
+        // increasing — so adding any module shifted every later id and moved
+        // this roll. That made "install a plugin" silently rewrite who dies in
+        // year 17. A keyed stream is a pure function of the parts, so the same
+        // character at the same age always gets the same verdict.
+        const accident = age > 5 && c.rng.keyed("modern-world", "accident", character.id, age).chance(0.004);
         if (overLifespan || accident) {
           c.note("mortality triggered", { characterId: character.id, age, overLifespan, accident });
           effects.push({

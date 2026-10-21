@@ -16,6 +16,8 @@ export * from "./social.ts";
 export * from "./origin.ts";
 export * from "./happenings.ts";
 export * from "./people.ts";
+// Both sides added exports here; keep every one of them.
 export * from "./extensions.ts";
 export * from "./stock.ts";
 export * from "./knowledge.ts";
+export * from "./fixtures.ts";

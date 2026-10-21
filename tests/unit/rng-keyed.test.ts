@@ -67,6 +67,35 @@ test("世界种子变了，同一个键的结果才变", () => {
   );
 });
 
+test("实例 keyed 把世界种子带下去：两个世界不该掷同一副骰子", () => {
+  // 曾经的 bug：实例 keyed 用 `this.label` 当键，而 fork 后的 label 只是规则 id
+  // （"tech.season"），里面没有世界种子 —— 于是不论 worldSeed 是几，任何模块在
+  // 规则里 keyed 出来的流都一模一样，所有世界共用一副骰子。
+  const keyOf = (seed: number) =>
+    Array.from(
+      { length: 4 },
+      () => DeterministicRng.fromSeed(seed).fork("tech.season").keyed("tech", "season", 3).nextUint32(),
+    );
+  assert.notDeepEqual(keyOf(7), keyOf(8), "两个世界种子的 keyed 流必须不同");
+  assert.deepEqual(keyOf(7), keyOf(7), "同一个世界种子必须复现");
+
+  // 同一世界种子、同一 parts，无论从哪条 fork 出发，结果都一样：键里只该有
+  // (世界种子, parts)，不该有「谁调用了我」。
+  const viaSeason = DeterministicRng.fromSeed(7).fork("tech.season").keyed("tech", "season", 3).nextUint32();
+  const viaObserve = DeterministicRng.fromSeed(7).fork("tech.observe").keyed("tech", "season", 3).nextUint32();
+  assert.equal(viaSeason, viaObserve, "keyed 是 (世界种子, keys) 的纯函数");
+});
+
+test("keyed 流经过存档读档后仍掷同一副骰子", () => {
+  const root = DeterministicRng.fromSeed(31);
+  const before = root.fork("command:x:1").keyed("polity", "year", 2).nextUint32();
+  const state = root.snapshot();
+  // 读档：种子与 draws 复原，世界种子作为 origin 显式传回。
+  const resumed = new DeterministicRng(state.seed, "root", state.draws, 31);
+  const after = resumed.fork("command:x:99").keyed("polity", "year", 2).nextUint32();
+  assert.equal(before, after, "命令 id 变了也不该改变 keyed 的结果");
+});
+
 test("旧 fork 行为不变（向后兼容）", () => {
   // fork 仍然按命令 id 派生——这是既有行为，不能因为新增 keyed 而改变。
   const root = DeterministicRng.fromSeed(7);

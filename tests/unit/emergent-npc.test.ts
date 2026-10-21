@@ -6,7 +6,7 @@ import { worldClockModule } from "@openlife/module-world-clock";
 import { worldSpaceModule } from "@openlife/module-world-space";
 import { worldObjectsModule, ObjectRelations, ownerOf, holderOf, prototypeOf } from "@openlife/module-world-objects";
 import { settlementLocationsModule, SettlementComponents, SettlementCommands, residentId, people,
-  VILLAGE_DAY_AGENT, type VillageDayBoundary } from "@openlife/module-settlement-locations";
+  VILLAGE_DAY_AGENT, RIVER_TERRACE_PACK, type VillageDayBoundary } from "@openlife/module-settlement-locations";
 
 const modules = [modernWorldModule, worldClockModule, worldSpaceModule, worldObjectsModule, settlementLocationsModule];
 
@@ -33,10 +33,10 @@ function run30(seed: number, resumeAt = -1) {
   for (let day = 1; day <= 30; day++) {
     const boundary = liveDay(sim);
     assert.equal(boundary.ran, true);
-    assert.equal(boundary.notes.length, 16, "all authored villagers have a daily decision");
+    assert.equal(boundary.notes.length, RIVER_TERRACE_PACK.residents.length, "all authored villagers have a daily decision");
     const state = sim.worldView();
     const residents = people(state).residents;
-    assert.equal(residents.length, 16);
+    assert.equal(residents.length, RIVER_TERRACE_PACK.residents.length);
     for (const resident of residents) {
       const id = String(resident.id);
       assert.equal(state.getComponent(id, SettlementComponents.resident)?.lastRoutineAt, sim.tick,
@@ -72,7 +72,7 @@ function run30(seed: number, resumeAt = -1) {
   return { fingerprint: sim.fingerprint(), observed, sim };
 }
 
-test("30 days: all 16 residents act, scarcity creates distinct outcomes, and replay is identical", () => {
+test("30 days: all residents act, scarcity creates distinct outcomes, and replay is identical", () => {
   const control = run30(9901);
   const restored = run30(9901, 15);
   assert.equal(control.fingerprint, restored.fingerprint);

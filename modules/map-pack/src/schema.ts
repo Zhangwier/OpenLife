@@ -33,6 +33,8 @@ export const MAP_PACK_OPTIONAL_FILES = {
 /** What kind of moment an event point offers; consumers switch on these. */
 export const EVENT_POINT_KINDS = ["landmark", "gathering", "encounter", "hazard", "omen", "festival"] as const;
 export const EVENT_POINT_SEASONS = ["any", "spring", "summer", "autumn", "winter"] as const;
+/** When in the day a point happens (optional; any by default). */
+export const EVENT_POINT_TIMES = ["any", "dawn", "day", "dusk", "night"] as const;
 
 export interface MapPackManifest {
   id: string;
@@ -92,6 +94,14 @@ export interface MapPackEventPoint {
   kind: (typeof EVENT_POINT_KINDS)[number];
   season: (typeof EVENT_POINT_SEASONS)[number];
   text: string;
+  /** Optional detail: when in the day it happens. */
+  time?: (typeof EVENT_POINT_TIMES)[number];
+  /** Optional detail: the animal or being met here, how it behaves, and what it can leave behind. */
+  creature?: string;
+  behavior?: string;
+  drops?: string[];
+  /** Optional detail: how dangerous it is, 0 (none) to 3 (deadly). */
+  danger?: number;
 }
 
 export interface MapPackContents {

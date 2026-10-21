@@ -420,7 +420,13 @@ function options(s: Situation, m: Mind, blocked: Set<string>, today: Set<string>
       const plan: Plan | null = s.present.has(id) ? { first: { kind: "give", targetId: id, itemId: item }, cost: 0, why: "道个喜" }
         : where && where !== s.placeId ? { first: { kind: "go", placeId: where }, cost: 1, why: "去找过生日的人" }
         : r.homeSpace && PLACE_OF_SPACE.get(r.homeSpace) !== s.placeId ? { first: { kind: "go", placeId: PLACE_OF_SPACE.get(r.homeSpace)! }, cost: 1, why: "去找过生日的人" } : null;
-      push("birthday", 47 + p.generosity * 0.25, plan, `${r.name}过生日`);
+      /*
+       * 生日是一年里唯一一次，要比日常活计优先——原先 base 30 会被「照顾病人」
+       * 这类急需挤掉，实测 12 个种子里一次礼物都送不出去。
+       * 基准提到 47；main 那边又加了「人就在跟前」再加 12，两个理由都成立，
+       * 合起来：人在边上最高，不在边上也仍高于日常。
+       */
+      push("birthday", 47 + p.generosity * 0.25 + (s.present.has(id) ? 12 : 0), plan, `${r.name}过生日`);
       break;
     }
   }
@@ -544,6 +550,13 @@ function options(s: Situation, m: Mind, blocked: Set<string>, today: Set<string>
   // 歇着：累了、或者本来就散漫。
   const tired = 1 - s.remaining / Math.max(1, s.capacity);
   out.push({ id: "rest", utility: 6 + tired * 30 + (100 - p.diligence) * 0.15, plan: { first: { kind: "rest" }, cost: 0, why: "回家歇着" }, motive: "累了" });
+
+  // 自己过生日：待在家里等亲近的人来道喜，不往新地方乱跑（地方一多，过生日的人常常不在家）。
+  if (isBirthday(s.actorId, s.tick)) {
+    out.push({ id: "birthday-home", utility: 48, motive: "今天过生日",
+      plan: s.placeId === s.homePlace ? { first: { kind: "rest" }, cost: 0, why: "过生日，在家等人来道喜" }
+        : { first: { kind: "go", placeId: s.homePlace }, cost: 1, why: "过生日，回家等人来道喜" } });
+  }
 
   // 确定性的小扰动：同一天同一个人每次想法一致，不同人、不同天会有差别。
   for (const o of out) o.utility += (hash(`${s.actorId}:${s.tick}:${o.id}`) % 9) - 4;
@@ -792,7 +805,10 @@ export class BrainRun {
     const gaveUp = [...new Set(missed.filter((id) => (before.get(id) ?? 0) === 1).map((id) => LABEL[goalOutput(id)] ?? "那样东西"))];
     if (gaveUp.length) told.push(`想弄${gaveUp.join("、")}，折腾了两天没成，先放一放`);
     const note = `${this.name}${words.length ? `（${words.join("、")}）` : ""}：${told.join("；") || "今天没出门，在家歇着"}${obstacle ? "。没办成的：" + obstacle : ""}`;
-    const marker = sim.dispatch({ type: SettlementCommands.npcMarkDay, actorId, source: "ai", payload: { actions: this.actions.slice(0, 12), summary: note, // the marker caps a record at 12 actions / 8 misses
+    // Keep the LAST 12 actions: a day's record should show how it ended, not
+    // how it started. main got this right; my earlier slice(0, 12) kept the
+    // morning and dropped the evening.
+    const marker = sim.dispatch({ type: SettlementCommands.npcMarkDay, actorId, source: "ai", payload: { actions: this.actions.slice(-12), summary: note,
       missed: missed.slice(0, 8), made: [...this.today].filter((t) => t.startsWith("made:")).map((t) => t.slice(5)) } });
     return { actorId, tick: sim.tick, skipped: false, actions: [...this.actions], note: marker.ok ? note : `${note}；未能记录日程` };
   }
