@@ -12,7 +12,9 @@ import { readFileSync } from "node:fs";
 import { hungerLevel, activityLevel, roofLevel, loadLevel, renderHud, hudSentence, hudTip } from "../../apps/web/public/hud.js";
 
 const pub = (f: string) => readFileSync(new URL(`../../apps/web/public/${f}`, import.meta.url), "utf8");
-const html = pub("index.html");
+// 仓库在 Windows 上检出为 CRLF，断言行尾前先统一，否则同一份文件在两台机器上判定不同。
+const crlf = (s: string) => s.replace(/\r\n/g, "\n");
+const html = crlf(pub("index.html"));
 /** 画出来的部分：去掉 title 属性（那是悬停说明，不是画面文字）。 */
 const visible = (out: string) => out.replace(/title="[^"]*"/g, "").replace(/<[^>]+>/g, "");
 

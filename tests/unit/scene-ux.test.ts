@@ -36,7 +36,8 @@ test("移动面板：村里免费的步行不再标成「屋内」", () => {
 });
 
 test("第二轮脚本在页面最后加载，并自己挂上样式表", () => {
-  const html = pub("index.html");
-  assert.ok(html.trimEnd().endsWith('<script type="module" src="/scene-ux.js"></script>\n</body></html>'));
+  // 仓库在 Windows 上检出为 CRLF；断言的是「脚本是最后一个元素」，不该被行尾差异判失败。
+  const html = pub("index.html").replace(/\r\n/g, "\n").trimEnd();
+  assert.ok(html.endsWith('<script type="module" src="/scene-ux.js"></script>\n</body></html>'), html.slice(-160));
   assert.match(pub("scene-ux.js"), /link\.href = "\/scene-ux\.css"/);
 });
