@@ -1,0 +1,37 @@
+/* UI 与交互第六轮（2026-10-21）：主菜单分组、图标、说明与「开启新人生」确认。 */
+.menu-ux { width: min(560px, 100%); }
+#menuModal .menu-links { display: grid; grid-template-columns: 1fr; gap: 16px; }
+#menuModal .menu-links[hidden] { display: none; }
+.menu-group h3 { margin: 0 0 8px; font: 600 var(--fs-xs, 12px)/1.4 var(--sans, inherit); letter-spacing: .08em; color: var(--accent-ink, var(--accent)); }
+.menu-group-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+#menuModal .menu-item {
+  display: grid; grid-template-columns: 36px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 10px; align-items: center;
+  min-height: 64px; padding: 10px 12px; text-align: left; border-radius: var(--r-md); position: relative;
+}
+.menu-item-icon { grid-row: 1 / 3; display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--r-sm); background: var(--surface-2); color: var(--primary); }
+.menu-item-icon svg { width: 20px; height: 20px; }
+.menu-item-text { display: grid; min-width: 0; }
+.menu-item-text b { font-weight: 600; font-size: var(--fs-md, 15px); color: var(--ink); }
+.menu-item-text small { font-size: var(--fs-xs, 12px); color: var(--muted); line-height: 1.45; }
+.menu-item-state { grid-column: 2; font-size: var(--fs-xs, 12px); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.menu-item-state:empty { display: none; }
+.menu-item-state.is-on { color: var(--primary); }
+.menu-item-state.is-here { color: var(--primary); font-weight: 600; }
+#menuModal .menu-item[aria-current="page"] { border-color: var(--primary); background: var(--primary-soft); }
+#menuModal .menu-item.is-danger .menu-item-icon { background: var(--danger-soft); color: var(--danger); }
+#menuModal .menu-item.is-danger:hover { border-color: var(--danger-line, var(--danger)); background: var(--danger-soft); }
+#menuModal .menu-item.is-danger .menu-item-text small { color: var(--danger); }
+#menuModal .menu-item:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.menu-confirm { padding: 16px; border: 1px solid var(--danger-line, var(--danger)); border-radius: var(--r-md); background: var(--danger-soft); }
+.menu-confirm[hidden] { display: none; }
+.menu-confirm p { margin: 0 0 14px; line-height: 1.7; color: var(--ink); }
+.menu-confirm p b { display: block; font-family: var(--serif, inherit); font-size: var(--fs-lg, 17px); color: var(--danger); margin-bottom: 4px; }
+.menu-confirm-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.menu-confirm-actions > button { min-height: 40px; width: auto; text-align: center; font-weight: 600; padding: 8px 16px; }
+
+@media (max-width: 600px) {
+  .menu-group-items { grid-template-columns: 1fr; }
+  #menuModal .menu-item { min-height: 56px; }
+  .menu-confirm-actions > button { flex: 1 1 100%; }
+}

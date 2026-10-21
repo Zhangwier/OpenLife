@@ -1,0 +1,47 @@
+/* UI 与交互第六轮（2026-10-21）：人生记忆弹窗。只用 theme.css / ui-polish.css 的令牌。 */
+#memoryModal .memory-slot-meta { display: none; } /* 由 .slot-info 取代，原元素仍保留给 app.js 写入 */
+#memoryModal .memory-slot { position: relative; flex-wrap: wrap; align-items: flex-start; }
+#memoryModal .memory-slot > div:first-child { flex: 1 1 220px; min-width: 0; }
+.slot-info { display: grid; gap: 2px; margin-top: 4px; font-size: var(--fs-sm, 13px); line-height: 1.5; }
+.slot-who { color: var(--ink); font-weight: 600; }
+.slot-who em { font-style: normal; font-weight: 400; color: var(--muted); margin-left: 8px; font-size: var(--fs-xs, 12px); }
+.slot-where { color: var(--ink-2); }
+.slot-ago { color: var(--muted); font-size: var(--fs-xs, 12px); font-variant-numeric: tabular-nums; cursor: help; }
+.slot-empty { color: var(--muted); font-size: var(--fs-xs, 12px); }
+.slot-warn { color: var(--danger); font-size: var(--fs-xs, 12px); }
+#memoryModal .memory-slot.is-empty:not(.auto-slot) { background: transparent; border-style: dashed; }
+#memoryModal .memory-slot.just-saved { border-color: var(--primary); box-shadow: inset 4px 0 0 var(--primary); }
+#memoryModal .memory-slot.just-saved .slot-ago { color: var(--primary); font-weight: 600; }
+#memoryModal .slot-actions { flex-wrap: wrap; justify-content: flex-end; align-self: center; }
+#memoryModal .slot-actions[hidden], #memoryModal .memory-slot > button[hidden] { display: none; }
+#memoryModal .slot-clear { color: var(--muted); border-color: transparent; background: transparent; }
+#memoryModal .slot-clear:hover { color: var(--danger); background: var(--danger-soft); }
+#memoryModal .slot-clear[hidden] { display: none; }
+#memoryModal .memory-slot.is-confirming { border-color: var(--accent-line, var(--accent)); background: var(--accent-soft); }
+
+.slot-confirm { flex: 1 1 100%; padding-top: 10px; border-top: 1px dashed var(--line-strong); }
+.slot-confirm[hidden] { display: none; }
+.slot-confirm p { margin: 0 0 10px; font-size: var(--fs-sm, 13px); line-height: 1.6; color: var(--ink); }
+.slot-confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.slot-confirm-actions .action-button { width: auto; min-height: 36px; padding: 6px 14px; text-align: center; font-weight: 600; font-size: var(--fs-sm, 13px); }
+.action-button.danger { background: var(--danger); color: var(--surface); border: 1px solid var(--danger); }
+.action-button.danger:hover { filter: brightness(1.08); }
+.action-button.danger:active { transform: translateY(1px); box-shadow: inset 0 1px 3px rgb(0 0 0 / .25); }
+
+.memory-status { margin: 14px 0 -6px; padding: 8px 12px; border-radius: var(--r-sm); background: var(--surface-2); font-size: var(--fs-sm, 13px); }
+.memory-status:empty, .memory-status[hidden] { display: none; }
+.memory-status[data-tone="ok"] { background: var(--primary-soft); color: var(--primary); }
+.memory-status[data-tone="bad"] { background: var(--danger-soft); color: var(--danger); }
+
+.memory-storage { display: grid; gap: 6px; margin: 0 0 14px; font-size: var(--fs-xs, 12px); color: var(--muted); }
+.memory-storage-bar { height: 6px; border-radius: var(--r-pill); background: var(--surface-3); overflow: hidden; }
+.memory-storage-bar i { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
+.memory-storage-bar i[data-level="warn"] { background: var(--warn, var(--accent)); }
+.memory-storage-bar i[data-level="bad"] { background: var(--danger); }
+
+@media (max-width: 600px) {
+  #memoryModal .slot-actions, #memoryModal .memory-slot > button { flex: 1 1 100%; width: 100%; justify-content: stretch; }
+  #memoryModal .memory-slot > div:first-child { flex: 1 1 100%; }
+  #memoryModal .slot-actions > button, #memoryModal .memory-slot > button { flex: 1; min-height: 40px; text-align: center; }
+  .slot-confirm-actions > button { flex: 1; min-height: 40px; }
+}
