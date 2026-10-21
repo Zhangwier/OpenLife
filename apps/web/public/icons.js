@@ -39,6 +39,7 @@ const P = {
   soundOff: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4Z"/><path d="m16 9.5 5 5M21 9.5l-5 5"/>',
   music: '<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>',
   rain: '<path d="M7 15a4.5 4.5 0 0 1 .5-9 5.5 5.5 0 0 1 10.3 1.5A3.8 3.8 0 0 1 17.5 15Z"/><path d="m8.5 18-1 2.5M12.5 18l-1 2.5M16.5 18l-1 2.5"/>',
+  gift: '<path d="M4 10h16v10.5H4Z"/><path d="M3 7h18v3H3Z"/><path d="M12 7v13.5"/><path d="M12 7c-1.5-3.5-5.5-3.5-5.5-1.2C6.5 7 9 7 12 7Zm0 0c1.5-3.5 5.5-3.5 5.5-1.2C17.5 7 15 7 12 7Z"/>',
   close: '<path d="M6 6l12 12M18 6 6 18"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
 };
@@ -54,7 +55,7 @@ const SPACE_WORDS = [[/寝|卧|床/, "bed"], [/粮|仓/, "granary"], [/架|晾/,
 
 const ACTION = [
   [/\.arrive$|move_within$/, "walk"],
-  [/\.talk$/, "talk"], [/hearth\.help$/, "hands"], [/\.barter\./, "swap"],
+  [/\.talk$/, "talk"], [/\.gift$/, "gift"], [/hearth\.help$/, "hands"], [/\.barter\./, "swap"],
   [/\.cook$/, "pot"], [/\.eat$/, "bowl"], [/\.drink$/, "cup"], [/\.draw$/, "bucket"],
   [/\.gather|\.take$|objects\.take/, "basket"], [/\.place$/, "hand"],
   [/\.sow$/, "seed"], [/\.harvest$/, "sickle"], [/\.rest$/, "moon"], [/end_day$/, "sunset"],

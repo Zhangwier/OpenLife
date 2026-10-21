@@ -156,7 +156,7 @@ function renderInSceneMenu(s, heading, candidates, onAction) {
       return '<button type="button" class="scene-go-tile" data-scene-quick="' + i + '"' +
         (why ? ' disabled aria-disabled="true" title="' + esc(why) + '"' : '') + ' aria-label="' + esc(action.label) + (why ? '（' + esc(why) + '）' : '') + '">' +
         '<span class="go-icon">' + icon(actionIconName(action)) + '</span><span class="go-name">' + esc(name) + '</span>' +
-        (cost ? '<small>' + cost + ' 格</small>' : '<small>屋内</small>') + '</button>';
+        (cost ? '<small>' + cost + ' 格</small>' : '<small>' + (action.id === "world-space.move_within" ? '屋内' : '不花时间') + '</small>') + '</button>';
     }
     /*
      * 选项木牌（ui-research/10 §6.3）：固定三行，不再把图标、标题、代价挤成一行。

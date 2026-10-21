@@ -1,0 +1,63 @@
+/* 界面交互第二轮（2026-10-20），由 scene-ux.js 注入。只用 theme.css 的令牌；第一轮的 --warn 不在时退回 --accent。 */
+
+/* 1. 操作菜单：滚过去时给顶栏留位置 */
+#sceneQuickActions, #lifeLog, #screen-stories > section { scroll-margin-top: calc(var(--top-h, 60px) + 12px); scroll-margin-bottom: calc(var(--nav-h, 64px) + 16px); }
+
+/* 2. 行动结果条 */
+.outcome-bar {
+  position: fixed; z-index: 120; left: 50%; bottom: 20px; transform: translateX(-50%);
+  width: min(560px, calc(100% - 24px)); display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center;
+  padding: 12px 12px 12px 16px; border-radius: var(--r-lg); background: var(--toast-bg); color: var(--toast-ink);
+  box-shadow: var(--shadow-lg); border-left: 4px solid var(--accent);
+}
+.outcome-copy { min-width: 0; }
+.outcome-copy small { display: block; font-size: 11px; opacity: .7; letter-spacing: .04em; }
+.outcome-copy p { margin: 2px 0 0; font: 15px/1.6 var(--serif); color: inherit; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.outcome-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.outcome-chips span { font-size: 12px; padding: 1px 8px; border-radius: var(--r-pill); border: 1px solid color-mix(in srgb, var(--toast-ink) 30%, transparent); }
+.outcome-chips span.up { color: #9fd3a3; border-color: #9fd3a366; }
+.outcome-chips span.down { color: #f0a58c; border-color: #f0a58c66; }
+:root[data-theme="dark"] .outcome-chips span.up { color: #2f6a3a; } :root[data-theme="dark"] .outcome-chips span.down { color: #a64b33; }
+.outcome-bar button { min-height: 40px; padding: 0 14px; border-radius: var(--r-pill); border: 1px solid color-mix(in srgb, var(--toast-ink) 35%, transparent);
+  background: transparent; color: inherit; font-size: 13px; white-space: nowrap; cursor: pointer; }
+.outcome-bar button:hover { background: color-mix(in srgb, var(--toast-ink) 12%, transparent); }
+.outcome-bar .outcome-close { width: 40px; padding: 0; border: 0; font-size: 20px; opacity: .7; }
+.life-log-list li.just-now { opacity: 1; box-shadow: -3px 0 0 var(--accent); padding-left: 8px; border-radius: 2px; }
+
+/* 3. 状态条变化 */
+.hud-delta { font-style: normal; margin-left: 6px; font-size: 11px; font-weight: 700; padding: 0 5px; border-radius: var(--r-pill); }
+.hud-good .hud-delta { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.hud-bad .hud-delta { color: var(--danger); background: var(--danger-soft); }
+.hud-neutral .hud-delta { color: var(--muted); background: var(--surface-3); }
+.hud-item.hud-changed { border-radius: var(--r-sm); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
+.hud-item.hud-good { box-shadow: 0 0 0 2px color-mix(in srgb, var(--ok) 35%, transparent); }
+.hud-item.hud-bad { box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 35%, transparent); }
+
+/* 4. 故事页 */
+.story-overview { position: sticky; top: calc(var(--top-h, 60px) + 8px); z-index: 20; display: flex; gap: 8px; overflow-x: auto; padding: 8px;
+  background: var(--glass); backdrop-filter: blur(8px); border: 1px solid var(--line); border-radius: var(--r-pill); scrollbar-width: none; }
+.story-overview::-webkit-scrollbar { display: none; }
+.story-overview button { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: var(--r-pill);
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font-size: 13px; cursor: pointer; }
+.story-overview button:hover { border-color: var(--primary); color: var(--primary); }
+.story-overview b { font-weight: 600; font-size: 12px; color: var(--accent-ink); }
+.story-button { min-height: 40px; border-radius: var(--r-pill); }
+.story-button.is-primary { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); font-weight: 600; }
+.story-button.is-primary:hover:not(:disabled) { background: var(--primary-hover); color: var(--primary-ink); border-color: var(--primary-hover); }
+.story-later { margin: 6px 0 10px; border: 1px dashed var(--line-strong); border-radius: var(--r-md); padding: 0 12px; }
+.story-later > summary { min-height: 44px; display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ink-2); }
+.story-later > summary small { color: var(--muted); font-size: 12px; }
+.story-later[open] { padding-bottom: 10px; }
+.story-later .story-card { opacity: .8; }
+.story-none { color: var(--muted); font-size: 14px; margin: 0 0 10px; }
+
+/* 5. 行囊空位 */
+.bag-slot-free { display: grid; place-items: center; min-height: 150px; border: 2px dashed var(--line-strong); border-radius: var(--r-md);
+  color: var(--muted); font-size: 13px; letter-spacing: .1em; background: transparent; }
+
+@media (max-width: 600px) {
+  .outcome-bar { bottom: calc(var(--nav-h, 64px) + 12px + env(safe-area-inset-bottom)); grid-template-columns: minmax(0, 1fr) auto; }
+  .outcome-bar .outcome-close { display: none; }
+  .story-overview { top: calc(var(--top-h, 56px) + 4px); border-radius: var(--r-md); }
+  .bag-slot-free { min-height: 120px; }
+}
