@@ -13,7 +13,8 @@ import {
   BONDS_PACK, canKeepRoutine, edgesOf, encounterLine, entrySpaceOf, isFeud, pairId, quarrelOn, remarkFor, routinePlace, routineSpace, placeOfRoutineSpot, slotOf,
   tierIndex, tierOfHearts, npcLabel, type ServiceSpec,
 } from "./bonds.ts";
-import { Outcome, consume, incidentOn, ownedInHand, resourceLabel, type Journal } from "./journal.ts";
+import { Outcome, consume, incidentGate, incidentOn, ownedInHand, resourceLabel, type Journal } from "./journal.ts";
+import { warmthOf } from "./warmth.ts";
 
 /** What the settlement's own events mean for a bond, in the words the log shows. */
 export const BOND_LABELS: Record<string, string> = {
@@ -127,6 +128,8 @@ export function settleQuarrel(out: Outcome, side: QuarrelSide): void {
     out.count("sided");
   }
   out.j = { ...out.j, bonds: { ...out.j.bonds, quarrels: { ...out.j.bonds.quarrels, [String(out.tick)]: `${pairId(q)}:${side}` } } };
+  // How you took it is remembered by the story: quests and talk can turn on it.
+  out.flag(`quarrel:${pairId(q)}:${side}`, ...(side === "mediate" ? [] : [`quarrel:${pairId(q)}:sided`]));
   out.say("village-stories.quarrel_settled", side === "mediate" ? quarrel.mediate : side === "a" ? quarrel.sideA : quarrel.sideB, { pair: pairId(q), side });
 }
 
@@ -162,7 +165,7 @@ export function useService(out: Outcome, s: ServiceSpec, targetKey: string): voi
     line = line.replace("{target}", npcLabel(targetKey));
   } else if (s.kind === "divine") {
     const tomorrow = out.tick + 1;
-    const incident = incidentOn(tomorrow);
+    const incident = incidentOn(tomorrow, incidentGate(out.world, out.me, out.j));
     const ill = illnessOn(tomorrow);
     line += `“明天${skyOn(tomorrow)}${isWet(tomorrow) ? "，出门带蓑衣" : ""}。${incident ? `村里要出事：${incident.title}。` : "村里太平。"}${ill ? `${npcLabel(ill.key)}要着凉，记得去看看。` : ""}”`;
     out.flag("foresight");
@@ -201,6 +204,7 @@ export function peopleView(world: WorldView, me: string, j: Journal) {
         routine: BONDS_PACK.routines[r.key] ? { ...Object.fromEntries((["晨", "午", "暮", "雨"] as const).map((k) => [k, placeOfRoutineSpot(BONDS_PACK.routines[r.key]![k] ?? "") || null])) as Record<"晨" | "午" | "暮" | "雨", string | null>,
           now: routinePlace(r.key, slot, world.tick) || null } : null,
         special: BONDS_PACK.services.find((s) => s.npc === r.key)?.title ?? null,
+        warmth: warmthOf(world, me, j, r.key),
       };
     }),
     log: [...j.bonds.log].reverse().slice(0, 12).map((e) => ({ ...e, name: npcLabel(e.npc) })),

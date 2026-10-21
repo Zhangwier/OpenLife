@@ -616,6 +616,41 @@
           "longhouse-room-promised"
         ]
       }
+    },
+    {
+      "npc": "water-carrier",
+      "tier": "close",
+      "text": "阿汲把小汲的手放到你手里：“要是哪天我在河边出了事，这孩子你帮着照看。”",
+      "reward": {
+        "flags": [
+          "water-carrier-trusts"
+        ]
+      }
+    },
+    {
+      "npc": "cook",
+      "tier": "close",
+      "text": "阿灶把他师傅传下来的那把骨勺给你看：“灶上的火候，都在这把勺子上。往后公灶忙不过来，你来掌勺。”",
+      "reward": {
+        "flags": [
+          "cook-ladle"
+        ]
+      }
+    },
+    {
+      "npc": "lan-mother",
+      "tier": "close",
+      "text": "岚母拉着你的手：“阿岚整天往南岸跑，我拦不住。你替我看着她点，好不好？”"
+    },
+    {
+      "npc": "reed-worker",
+      "tier": "close",
+      "text": "阿苇带你去看他爹种下的第一丛苇子：“我死了，这丛苇子就交给你。”"
+    },
+    {
+      "npc": "stonesmith",
+      "tier": "close",
+      "text": "阿砺把一块他舍不得用的黑曜石放到你手心：“等你真需要一把好刀的时候，拿它来找我。”"
     }
   ],
   "services": [
@@ -703,6 +738,135 @@
         "trust": 0.3
       },
       "line": "阿砺从柴里挑了根最直的，绑上磨尖的石头：“下地用这个，省一半力气。”"
+    },
+    {
+      "id": "weaver-band",
+      "npc": "weaver",
+      "title": "织工",
+      "label": "请阿缫织一段布带",
+      "kind": "plain",
+      "minTier": "friend",
+      "cooldownDays": 5,
+      "cost": [
+        "resource:thread"
+      ],
+      "grant": {
+        "prototype": "prototype:hemp-cloth",
+        "name": "阿缫织的布带"
+      },
+      "bond": {
+        "familiarity": 0.3
+      },
+      "line": "阿缫接过线，一句话没说就坐上了织机。傍晚她把一段布带递给你，上面织着一道细细的水波纹。"
+    },
+    {
+      "id": "hunter-share",
+      "npc": "hunter",
+      "title": "猎人",
+      "label": "向阿犴讨一份猎物",
+      "kind": "plain",
+      "minTier": "friend",
+      "cooldownDays": 5,
+      "grant": {
+        "prototype": "prototype:game",
+        "name": "阿犴分的野味"
+      },
+      "bond": {
+        "trust": 0.2
+      },
+      "line": "阿犴从挂架上摘下一只野兔丢给你：“朋友就该分肉。”"
+    },
+    {
+      "id": "hunter-teach",
+      "npc": "hunter",
+      "title": "猎人",
+      "label": "请阿犴帮你做一副套子",
+      "kind": "plain",
+      "minTier": "close",
+      "cooldownDays": 7,
+      "cost": [
+        "resource:rope"
+      ],
+      "grant": {
+        "prototype": "prototype:snare",
+        "name": "阿犴做的套子"
+      },
+      "bond": {
+        "trust": 0.3
+      },
+      "line": "阿犴三两下就把绳子挽成一个活扣：“下在兔子道上，离地一拳高。这是我阿姊教我的。”"
+    },
+    {
+      "id": "market-salt",
+      "npc": "market-keeper",
+      "title": "掌秤人",
+      "label": "请阿贾匀你一块盐",
+      "kind": "plain",
+      "minTier": "acquaint",
+      "cooldownDays": 7,
+      "cost": [
+        "resource:chestnut",
+        "resource:fish"
+      ],
+      "grant": {
+        "prototype": "prototype:salt-cake",
+        "name": "阿贾匀的盐"
+      },
+      "bond": {
+        "familiarity": 0.3
+      },
+      "line": "阿贾把东西往秤上一放，看都不看就切了一块盐给你：“熟人，不论斤两。”"
+    },
+    {
+      "id": "matron-soup",
+      "npc": "longhouse-matron",
+      "title": "长屋主母",
+      "label": "在长屋讨一碗热汤",
+      "kind": "plain",
+      "minTier": "friend",
+      "cooldownDays": 2,
+      "grant": {
+        "prototype": "prototype:cooked-food",
+        "name": "阿蘩的热汤"
+      },
+      "bond": {
+        "familiarity": 0.3
+      },
+      "line": "阿蘩从锅里给你舀了满满一碗：“喝完再走，外头冷。”"
+    },
+    {
+      "id": "keeper-bless",
+      "npc": "shrine-keeper",
+      "title": "守祠人",
+      "label": "请老祝为你祈福",
+      "kind": "plain",
+      "minTier": "close",
+      "cooldownDays": 10,
+      "grant": {
+        "prototype": "prototype:straw-sandal",
+        "name": "老祝念过的草鞋"
+      },
+      "bond": {
+        "trust": 0.5
+      },
+      "line": "老祝把一双新草鞋在祭台上放了一夜，第二天交给你：“穿着它走路，河神认得你的脚印。”"
+    },
+    {
+      "id": "water-carry",
+      "npc": "water-carrier",
+      "title": "挑水人",
+      "label": "请阿汲帮你挑一罐水",
+      "kind": "plain",
+      "minTier": "friend",
+      "cooldownDays": 3,
+      "grant": {
+        "prototype": "prototype:water",
+        "name": "阿汲挑的水"
+      },
+      "bond": {
+        "familiarity": 0.2
+      },
+      "line": "阿汲挑着担子走在前面：“顺路的事。”"
     }
   ],
   "quarrelChance": 0.2

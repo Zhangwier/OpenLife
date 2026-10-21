@@ -71,7 +71,8 @@ test("the people data is sound: tiers rise, the web names real villagers, specia
   assert.equal(tierOfHearts(3).id, "friend");
   assert.equal(tierOfHearts(10).id, "bosom");
   for (const t of ["kin", "friend", "rival"]) assert.ok(BONDS_PACK.network.some((e) => e.type === t), `has ${t} ties`);
-  assert.deepEqual(new Set(BONDS_PACK.services.map((s) => s.title)), new Set(["长老", "巫医", "石匠"]));
+  // The three special villagers, plus favours friends do for each other (round 5).
+  for (const t of ["长老", "巫医", "石匠"]) assert.ok(BONDS_PACK.services.some((s) => s.title === t), `${t} serves`);
 });
 
 test("a gift is logged with its real numbers, and the warmth ripples to kin and friends", () => {

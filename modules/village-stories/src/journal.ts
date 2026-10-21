@@ -7,7 +7,7 @@
 import type { ComponentData, Effect, JsonValue, WorldView } from "@openlife/contracts";
 import { DAYS_PER_MONTH } from "@openlife/life-contracts";
 import {
-  SettlementComponents, bondOf, heartsOf, residentId, socialOf, toJson, withBond, calendarDate, seasonOf, RIVER_TERRACE_PACK,
+  SettlementComponents, bondOf, heartsOf, residentId, socialOf, toJson, withBond, calendarDate, seasonOf, isWet, RIVER_TERRACE_PACK,
 } from "@openlife/module-settlement-locations";
 import { ObjectComponents, ObjectKinds, ObjectRelations, holderOf, ownerOf, prototypeOf } from "@openlife/module-world-objects";
 import {
@@ -15,7 +15,7 @@ import {
 } from "./bonds.ts";
 import type { Bond } from "@openlife/module-settlement-locations";
 import {
-  STORY_PACK, type AchievementCondition, type BondChange, type ItemGrant, type Objective, type QuestSpec, type Requirements, type Reward,
+  STORY_PACK, type AchievementCondition, type BondChange, type IncidentSpec, type ItemGrant, type Objective, type QuestSpec, type Requirements, type Reward,
 } from "./spec.ts";
 import { allIncidents } from "./pack-incidents.ts";
 
@@ -23,7 +23,7 @@ export const STORY_OWNER = "village-stories";
 export const StoryComponents = { journal: "village-stories.journal" } as const;
 export const DAYS_PER_YEAR = DAYS_PER_MONTH * 12;
 
-export interface QuestState { status: "active" | "done"; step: number; base: number; startedAt: number; doneAt?: number }
+export interface QuestState { status: "active" | "done" | "failed"; step: number; base: number; startedAt: number; doneAt?: number; failedAt?: number }
 export interface Journal {
   counters: Record<string, number>;
   talked: string[];
@@ -36,6 +36,16 @@ export interface Journal {
   dialogue: Record<string, string>;
   itemSeq: number;
   bonds: BondsState;
+  /** Delayed consequences: tick -> the incident that comes that day. */
+  scheduled: Record<string, string>;
+  /** Years each feast was kept (for streaks). */
+  riteYears: Record<string, number[]>;
+  /** Timed-event uses: `<event>@<year>` and `<event>@<year>:<offer>` -> times. */
+  eventUses: Record<string, number>;
+  /** Achievements whose reward was claimed. */
+  claimed: string[];
+  /** The title the player goes by ("" = none). */
+  title: string;
 }
 
 /** Reads a villager's bond with the player; an Outcome answers with its pending changes applied. */
@@ -54,8 +64,9 @@ export function readJournal(world: WorldView, me: string): Journal {
     flags: Array.isArray(raw.flags) ? raw.flags.map(String) : [],
     quests: Object.fromEntries(Object.entries(obj(raw.quests)).map(([id, q]) => {
       const s = obj(q);
-      return [id, { status: s.status === "done" ? "done" : "active", step: Number(s.step ?? 0), base: Number(s.base ?? 0),
-        startedAt: Number(s.startedAt ?? 0), ...(s.doneAt !== undefined ? { doneAt: Number(s.doneAt) } : {}) } as QuestState];
+      return [id, { status: s.status === "done" || s.status === "failed" ? s.status : "active", step: Number(s.step ?? 0), base: Number(s.base ?? 0),
+        startedAt: Number(s.startedAt ?? 0), ...(s.doneAt !== undefined ? { doneAt: Number(s.doneAt) } : {}),
+        ...(s.failedAt !== undefined ? { failedAt: Number(s.failedAt) } : {}) } as QuestState];
     })),
     achievements: nums(raw.achievements),
     rites: nums(raw.rites),
@@ -64,6 +75,11 @@ export function readJournal(world: WorldView, me: string): Journal {
     dialogue: strs(raw.dialogue),
     itemSeq: Number(raw.itemSeq ?? 0),
     bonds: readBonds(raw.bonds),
+    scheduled: strs(raw.scheduled),
+    riteYears: Object.fromEntries(Object.entries(obj(raw.riteYears)).map(([k, v]) => [k, Array.isArray(v) ? v.map(Number) : []])),
+    eventUses: nums(raw.eventUses),
+    claimed: Array.isArray(raw.claimed) ? raw.claimed.map(String) : [],
+    title: typeof raw.title === "string" ? raw.title : "",
   };
 }
 
@@ -129,7 +145,11 @@ export function meets(world: WorldView, me: string, j: Journal, r: Requirements 
     const spec = STORY_PACK.quests.find((s) => s.id === q);
     if (state?.status !== "active" || spec?.steps[state.step]?.id !== step) return "时候未到";
   }
+  if (r.season && !r.season.includes(seasonOf(world.tick))) return `要到${r.season.join("、")}天`;
+  if (r.weather && isWet(world.tick) !== (r.weather === "wet")) return r.weather === "wet" ? "要等下雨下雪的日子" : "要等天晴";
   if (r.resource && ownedInHand(world, me, r.resource).length === 0) return `手里要有${resourceLabel(r.resource)}`;
+  if (r.title !== undefined && j.title !== r.title) return `要以「${r.title}」的名号来`;
+  for (const q of r.questsFailed ?? []) if (j.quests[q]?.status !== "failed") return "时候未到";
   return "";
 }
 
@@ -149,6 +169,8 @@ function objectiveValue(world: WorldView, me: string, j: Journal, o: Objective, 
     case "flag": return j.flags.includes(o.flag) ? 1 : 0;
     case "hearts": return heartsOf(bond(o.npc));
     case "deliver": return ownedInHand(world, me, o.resource).length;
+    case "questDone": return j.quests[o.quest]?.status === "done" ? 1 : 0;
+    case "decide": return 0;
   }
 }
 
@@ -162,10 +184,10 @@ export function progressOf(world: WorldView, me: string, j: Journal, q: QuestSpe
   const step = state?.status === "active" ? q.steps[state.step] : undefined;
   if (!step) return undefined;
   const o = step.objective;
-  const target = o.type === "flag" ? 1 : o.type === "hearts" ? o.atLeast : o.count;
+  const target = o.type === "flag" || o.type === "questDone" || o.type === "decide" ? 1 : o.type === "hearts" ? o.atLeast : o.count;
   const raw = objectiveValue(world, me, j, o, bond);
   const done = o.type === "counter" || o.type === "talk" || o.type === "distinctTalks" ? raw - state!.base : raw;
-  return { done: Math.max(0, Math.min(target, done)), target, auto: o.type !== "deliver" };
+  return { done: Math.max(0, Math.min(target, done)), target, auto: o.type !== "deliver" && o.type !== "decide" };
 }
 
 // ---------------------------------------------------------------------------
@@ -271,8 +293,9 @@ export class Outcome {
 
   /** Ripple through the village web, advance quests, fire tier scenes, unlock achievements; then emit. */
   finish(reason: string): Effect[] {
+    this.expireQuests();
     this.#ripple();
-    for (let guard = 0; guard < 20 && (this.#settleQuests() || this.#tierScenes()); guard += 1) { /* repeat until stable */ }
+    for (let guard = 0; guard < 20 && (this.#autoStart() || this.#settleQuests() || this.#tierScenes()); guard += 1) { /* repeat until stable */ }
     this.#unlockAchievements();
     const out: Effect[] = [...this.effects];
     const seen = { ...this.j.bonds.seen };
@@ -327,18 +350,47 @@ export class Outcome {
   advance(q: QuestSpec): void {
     const state = this.j.quests[q.id]!;
     const next = state.step + 1;
+    const was = q.steps[state.step];
+    if (was?.doneLine && was.objective.type !== "deliver") this.say("village-stories.quest_step_done", was.doneLine, { questId: q.id, step: was.id });
     if (next >= q.steps.length) {
       this.j = { ...this.j, quests: { ...this.j.quests, [q.id]: { ...state, status: "done", step: next, doneAt: this.tick } } };
       const got = this.reward(q.reward, `「${q.title}」办成了`);
       this.count("quest");
       this.count(`quest:${q.kind}`);
+      if (q.deadlineDays) this.count("quest-on-time");
       this.say("village-stories.quest_completed", `${q.completeLine}${got.length ? `（得到：${got.join("、")}）` : ""}`, { questId: q.id, kind: q.kind });
       return;
     }
     const step = q.steps[next]!;
     const base = baseFor(this.world, this.me, this.j, step.objective);
     this.j = { ...this.j, quests: { ...this.j.quests, [q.id]: { ...state, step: next, base } } };
-    this.say("village-stories.quest_step", `「${q.title}」下一步：${step.text}。`, { questId: q.id, step: step.id });
+    this.say("village-stories.quest_step", `${step.intro ? `${step.intro}` : ""}「${q.title}」下一步：${step.text}。`, { questId: q.id, step: step.id });
+  }
+
+  /** Timed quests past their deadline fail now: told once, and their failReward opens what failing leads to. */
+  expireQuests(): void {
+    for (const q of STORY_PACK.quests) {
+      const state = this.j.quests[q.id];
+      if (!q.deadlineDays || state?.status !== "active" || !questExpired(q, state, this.tick)) continue;
+      this.j = { ...this.j, quests: { ...this.j.quests, [q.id]: { ...state, status: "failed", failedAt: this.tick } } };
+      this.reward(q.failReward, `「${q.title}」误了期限`);
+      this.count("quest-failed");
+      this.say("village-stories.quest_failed", `${q.failLine ?? `「${q.title}」误了期限。`}（「${q.title}」没有办成）`, { questId: q.id, kind: q.kind });
+    }
+  }
+
+  /** Quests that begin by themselves once their requirements hold (the deadline runs from then). */
+  #autoStart(): boolean {
+    let started = false;
+    for (const q of STORY_PACK.quests) {
+      if (!q.autoStart || this.j.quests[q.id] || meets(this.world, this.me, this.j, q.requires, undefined, this.bondNow)) continue;
+      const first = q.steps[0]!;
+      this.j = { ...this.j, quests: { ...this.j.quests, [q.id]: { status: "active", step: 0, base: baseFor(this.world, this.me, this.j, first.objective), startedAt: this.tick } } };
+      this.say("village-stories.quest_accepted", `${q.acceptLine}${first.intro ?? ""}（「${q.title}」：${first.text}${q.deadlineDays ? `，${q.deadlineDays} 天内` : ""}）`,
+        { questId: q.id, kind: q.kind, auto: true }, q.giver ? residentId(q.giver) : undefined);
+      started = true;
+    }
+    return started;
   }
 
   #settleQuests(): boolean {
@@ -359,6 +411,20 @@ export class Outcome {
   }
 }
 const r2 = (n: number) => Math.round(n * 100) / 100;
+
+/** A timed quest is late once more than `deadlineDays` days have passed since it was accepted. */
+export const questExpired = (q: QuestSpec, state: QuestState, tick: number) => Boolean(q.deadlineDays) && state.status === "active" && tick - state.startedAt > q.deadlineDays!;
+/** Days left on a timed quest (0 = today is the last day), or null for an untimed one. */
+export const questDaysLeft = (q: QuestSpec, state: QuestState | undefined, tick: number) =>
+  q.deadlineDays && state?.status === "active" ? Math.max(0, state.startedAt + q.deadlineDays - tick) : null;
+
+/** How many years running, ending this year, a feast has been kept. */
+export function riteStreak(years: number[], year: number): number {
+  const kept = new Set(years);
+  let n = 0;
+  while (kept.has(year - n)) n += 1;
+  return n;
+}
 
 export function achieved(world: WorldView, me: string, j: Journal, c: AchievementCondition, bond: BondFn = worldBonds(world, me)): boolean {
   if ("tierCount" in c) return friendsAtTier(bond, c.tierCount.tier) >= c.tierCount.atLeast;
@@ -391,13 +457,42 @@ function mix(a: number, b: number): number {
   return (h ^ (h >>> 15)) >>> 0;
 }
 
-/** The incident that happens on this day, if any: same day, same incident (no RNG draw). */
-export function incidentOn(tick: number) {
+/** Whether an incident's trigger holds for this player now (story requirements, and `once`). */
+export type IncidentGate = ((incident: IncidentSpec) => boolean) & { scheduled?: (tick: number) => IncidentSpec | undefined };
+export function incidentGate(world: WorldView, me: string, j: Journal): IncidentGate {
+  const seen = new Set(Object.values(j.incidents).map((v) => v.split(":")[0]!));
+  const gate: IncidentGate = (i) => !(i.once && seen.has(i.id)) && !meets(world, me, j, i.requires);
+  // A follow-up an earlier choice set in motion comes on its day, whatever the season or the draw.
+  gate.scheduled = (tick) => {
+    const id = j.scheduled[String(tick)];
+    const i = id ? STORY_PACK.incidents.list.find((x) => x.id === id) : undefined;
+    return i && gate(i) ? i : undefined;
+  };
+  return gate;
+}
+/** Incidents nobody's story can trigger: only season and weather gate them (used for a forecast with no player). */
+const untriggered: IncidentGate = (i) => !i.requires && !i.once;
+
+/**
+ * The incident that happens on this day, if any: same day, same draw (no RNG
+ * state). The pool is every incident whose season, weather and trigger hold;
+ * heavier ones come up more often.
+ */
+export function incidentOn(tick: number, gate: IncidentGate = untriggered): IncidentSpec | undefined {
   const spec = STORY_PACK.incidents;
+  const due = gate.scheduled?.(tick);
+  if (due) return due;
   if (mix(tick, 1) % 1000 >= Math.round(spec.chance * 1000)) return undefined;
   const season = seasonOf(tick);
-  // Content packs (format v2) contribute their own incidents; a world without
-  // packs gets exactly the base list and the same pick as before.
-  const pool = allIncidents(spec.list).filter((i) => !i.seasons || i.seasons.includes(season));
-  return pool.length ? pool[mix(tick, 2) % pool.length] : undefined;
+  // Content packs (format v2) contribute their own incidents, so the pool is
+  // the base list plus whatever the loaded packs add. Packs carry no weight,
+  // which is why the weighted pick below defaults each one to 1 -- adding a
+  // pack must not change how often the base incidents come up.
+  const wet = isWet(tick);
+  const pool = allIncidents(spec.list).filter((i) => !i.followUpOnly && (!i.seasons || i.seasons.includes(season)) && (!i.weather || (i.weather === "wet") === wet) && gate(i));
+  const total = pool.reduce((n, i) => n + (i.weight ?? 1), 0);
+  if (!total) return undefined;
+  let roll = mix(tick, 2) % total;
+  for (const i of pool) { roll -= i.weight ?? 1; if (roll < 0) return i; }
+  return undefined;
 }
