@@ -27,7 +27,7 @@
 .history-item { grid-template-columns: 108px minmax(0, 1fr); gap: 0; padding: 0; max-width: 860px; }
 .history-item::before, .history-item:not(:last-child)::before { content: none !important; }
 .history-year { text-align: right; padding: 2px 18px 0 0; line-height: 1.35; }
-.history-copy { position: relative; padding: 0 0 22px 22px; border-left: 1px solid var(--line-strong); font-size: 15px; line-height: 1.6; color: var(--ink); }
+.history-copy { position: relative; padding: 0 0 22px 22px; border-left: 1px solid var(--line-strong); font-size: var(--fs-body); line-height: 1.6; color: var(--ink); }
 .history-copy::before { content: ""; position: absolute; left: -5px; top: 7px; width: 9px; height: 9px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); }
 .history-item:last-child .history-copy { border-left-color: transparent; }
 .history-item.same-year .history-year { visibility: hidden; }
@@ -38,7 +38,7 @@
 /* 4. 模块管理 */
 .module-search { display: flex; align-items: center; gap: 12px; margin: 20px 0 4px; }
 .module-search label { flex: 1; max-width: 520px; }
-.module-search input { width: 100%; min-height: 44px; padding: 0 16px; border-radius: var(--r-pill); border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); font: inherit; font-size: 15px; }
+.module-search input { width: 100%; min-height: 44px; padding: 0 16px; border-radius: var(--r-pill); border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-body); }
 .module-search input:focus-visible { outline: 3px solid var(--focus, var(--accent)); outline-offset: 2px; }
 .module-search small { color: var(--muted); font-size: 13px; white-space: nowrap; }
 .module-status.is-redundant { display: none; }
@@ -90,7 +90,7 @@ body:not(.has-wide-rail) .wide-rail { display: none; }
 @media (max-width: 600px) {
   .notice-bar { bottom: calc(var(--nav-h, 64px) + 12px + env(safe-area-inset-bottom)); }
   .history-item { grid-template-columns: 84px minmax(0, 1fr); }
-  .history-year { padding-right: 14px; font-size: 11px; }
+  .history-year { padding-right: 14px; font-size: var(--fs-note); }
   .history-copy { padding-left: 18px; }
   .module-search { flex-direction: column; align-items: stretch; }
   .module-search label { max-width: none; }

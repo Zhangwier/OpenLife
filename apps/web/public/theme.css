@@ -24,6 +24,11 @@
   --danger: #a64b33;
   --danger-soft: #f6e3dc;
   --ok: #4f7a55;
+  /* 状态色的第四档：不致命但要注意（HUD 分级、天气、欠人情）。
+     和 ok / danger 同一层，所以和它们住在一起，而不是散在 ui-polish.css 里。 */
+  --warn: #b0702f;
+  --warn-soft: #f7ead6;
+  --warn-line: #e4c79f;
 
   --serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", serif;
   --sans: "PingFang SC", "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -52,6 +57,16 @@
   --portrait-bg: linear-gradient(#e9e1cd, #c5ceb6);
   --toast-bg: #232f2a;
   --toast-ink: #f7f1e3;
+  /* 结果条上的涨/落两色：条底始终是深色，所以浅色主题用亮绿/亮赭，
+     深色主题反过来用深的——不然两个字在浅底上看不清。 */
+  --toast-up: #9fd3a3;
+  --toast-down: #f0a58c;
+  /* 主菜单插画缺图时兜底的一片暮色河岸（ui-polish.css 引用这一条） */
+  --art-landscape:
+    radial-gradient(120% 60% at 20% 100%, #2f4a41 0 55%, transparent 56%),
+    radial-gradient(110% 55% at 85% 100%, #3d5c50 0 52%, transparent 53%),
+    radial-gradient(140% 70% at 50% 108%, #557566 0 60%, transparent 61%),
+    linear-gradient(180deg, #c9b896 0%, #9fae96 45%, #6d8a7b 100%);
   --tile-hover: #fffdf8;
   color-scheme: light;
 
@@ -106,6 +121,7 @@
     --primary: #7fb39a; --primary-hover: #94c4ad; --primary-ink: #0f1a15; --primary-soft: #23382f;
     --accent: #dba56a; --accent-soft: #33281b; --accent-ink: #f0cf9f; --accent-line: #5a4428;
     --danger: #e98b6f; --danger-soft: #3a221b; --danger-line: #6b3a2c; --ok: #8cc08f;
+    --warn: #e0b06e; --warn-soft: #362a19; --warn-line: #6a5130;
     --primary-ink-2: #2d4a3d;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 14px rgba(0, 0, 0, .18);
     --shadow-md: 0 2px 4px rgba(0, 0, 0, .3), 0 14px 36px rgba(0, 0, 0, .35);
@@ -116,6 +132,7 @@
     --bg-fade-55: rgba(18, 26, 23, .55); --bg-fade-0: rgba(18, 26, 23, 0);
     --scrim: rgba(0, 0, 0, .6); --portrait-bg: linear-gradient(#2a3832, #1e2a25);
     --toast-bg: #ece6d6; --toast-ink: #17201c; --tile-hover: #26332d;
+    --toast-up: #2f6a3a; --toast-down: #a64b33;
     color-scheme: dark;
   }
 }
@@ -127,6 +144,7 @@
   --primary: #7fb39a; --primary-hover: #94c4ad; --primary-ink: #0f1a15; --primary-soft: #23382f;
   --accent: #dba56a; --accent-soft: #33281b; --accent-ink: #f0cf9f; --accent-line: #5a4428;
   --danger: #e98b6f; --danger-soft: #3a221b; --danger-line: #6b3a2c; --ok: #8cc08f;
+  --warn: #e0b06e; --warn-soft: #362a19; --warn-line: #6a5130;
   --primary-ink-2: #2d4a3d;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 14px rgba(0, 0, 0, .18);
   --shadow-md: 0 2px 4px rgba(0, 0, 0, .3), 0 14px 36px rgba(0, 0, 0, .35);
@@ -137,6 +155,7 @@
   --bg-fade-55: rgba(18, 26, 23, .55); --bg-fade-0: rgba(18, 26, 23, 0);
   --scrim: rgba(0, 0, 0, .6); --portrait-bg: linear-gradient(#2a3832, #1e2a25);
   --toast-bg: #ece6d6; --toast-ink: #17201c; --tile-hover: #26332d;
+  --toast-up: #2f6a3a; --toast-down: #a64b33;
   color-scheme: dark;
 }
 

@@ -7,15 +7,19 @@
  *   7. 今日指引与新手引导卡             8. 主菜单插画缺图时的兜底
  * 纯文字模式（默认）关闭所有动画和过渡，所以这里的反馈全部是“静态可见”的：
  * 颜色、下沉、边框，不依赖动画；图像模式下才会有过渡。
+ *
+ * 字号一律引用 theme.css 的 10 档阶梯；状态色（--warn / --warn-soft /
+ * --warn-line）与兜底插画的色阶也都住在 theme.css 里，这一层不许再写死
+ * 十六进制色——`npm run design:check` 就是照这条查的。
  */
 :root {
-  --fs-xs: 12px; --fs-sm: 13px; --fs-md: 15px; --fs-lg: 17px; --fs-xl: 22px;
-  --warn: #b0702f; --warn-soft: #f7ead6; --warn-line: #e4c79f;
+  --fs-xs: var(--fs-note); --fs-sm: var(--fs-fine);
   --press: inset 0 2px 0 rgba(0, 0, 0, .08);
 }
-:root[data-theme="dark"] { --warn: #e0b06e; --warn-soft: #362a19; --warn-line: #6a5130; --press: inset 0 2px 0 rgba(0, 0, 0, .35); }
+/* 深色下同一条按压阴影要更重才看得见（只有这一条，色值走 rgba 不走十六进制）。 */
+:root[data-theme="dark"] { --press: inset 0 2px 0 rgba(0, 0, 0, .35); }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --warn: #e0b06e; --warn-soft: #362a19; --warn-line: #6a5130; --press: inset 0 2px 0 rgba(0, 0, 0, .35); }
+  :root:not([data-theme="light"]) { --press: inset 0 2px 0 rgba(0, 0, 0, .35); }
 }
 
 /* ---------- 2. 按钮：按压、键盘焦点、忙碌 ---------- */
@@ -66,7 +70,7 @@ body.is-busy .busy-chip { display: inline-flex; align-items: center; gap: 6px; m
 /* ---------- 4. HUD 状态条 ---------- */
 .hud-item { cursor: help; }
 .hud-label { white-space: nowrap; }
-.hud-word { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: var(--r-pill); font-size: 11px; line-height: 18px;
+.hud-word { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: var(--r-pill); font-size: var(--fs-note); line-height: 18px;
   color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); vertical-align: 1px; }
 .hud-item.warn .hud-word { color: var(--warn); background: var(--warn-soft); }
 .hud-item.warn .hud-track i { background: var(--warn); }
@@ -83,12 +87,12 @@ body.is-busy .busy-chip { display: inline-flex; align-items: center; gap: 6px; m
 /* ---------- 5. 场景人物 / 物件卡 ---------- */
 /* 原规则 .scene-person-head span 把名字外层和头像也染成了 12px 灰字：名字看着像“已禁用”。 */
 .scene-person-head > span:not(.scene-avatar) { display: block; min-width: 0; color: var(--ink); font-size: 14px; }
-.scene-person-head strong { color: var(--ink); font-size: 15px; }
+.scene-person-head strong { color: var(--ink); font-size: var(--fs-body); }
 .scene-person-head small { color: var(--muted); }
 .scene-person-head .scene-avatar { display: grid; width: 34px; height: 36px; font-size: 16px; color: var(--primary); }
 .scene-person, .scene-object { background: var(--surface); }
 .scene-person:hover .scene-avatar { background: var(--primary); color: var(--primary-ink); }
-.scene-person-heart .hearts-empty { color: color-mix(in srgb, #c8574a 45%, transparent); }
+.scene-person-heart .hearts-empty { color: color-mix(in srgb, var(--danger) 45%, transparent); }
 
 /* ---------- 6. 对话框 ---------- */
 .modal { position: relative; scroll-padding-bottom: 96px; }
@@ -122,7 +126,7 @@ body.is-busy .busy-chip { display: inline-flex; align-items: center; gap: 6px; m
 .daily-guide { padding: 20px 22px; }
 .daily-guide header small { color: var(--muted); font-size: var(--fs-xs); }
 .guide-item { padding: 12px 14px; background: var(--surface); }
-.guide-item strong { font-size: 15px; }
+.guide-item strong { font-size: var(--fs-body); }
 .coach-card { position: relative; margin-bottom: 12px; padding: 18px 22px; border-left: 3px solid var(--primary); }
 .coach-card h3 { font: 600 17px/1.4 var(--serif); margin: 2px 0 10px; }
 .coach-steps { list-style: none; margin: 0 0 14px; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; counter-reset: coach; }
@@ -135,16 +139,14 @@ body.is-busy .busy-chip { display: inline-flex; align-items: center; gap: 6px; m
 .coach-target { outline: 2px dashed var(--accent) !important; outline-offset: 4px; border-radius: var(--r-lg); }
 
 /* ---------- 8. 主菜单插画缺图兜底：画一片暮色河岸，而不是一整块绿色 ---------- */
+/* 色阶本身住在 theme.css 的 --art-landscape：这一层只负责叠图和尺寸。 */
 .home-landscape {
   background-image:
     url("/art/scene-yard.webp"),
     radial-gradient(circle at 70% 34%, rgba(246, 214, 160, .85) 0 46px, rgba(246, 214, 160, 0) 47px),
-    radial-gradient(120% 60% at 20% 100%, #2f4a41 0 55%, transparent 56%),
-    radial-gradient(110% 55% at 85% 100%, #3d5c50 0 52%, transparent 53%),
-    radial-gradient(140% 70% at 50% 108%, #557566 0 60%, transparent 61%),
-    linear-gradient(180deg, #c9b896 0%, #9fae96 45%, #6d8a7b 100%);
-  background-size: cover, auto, auto, auto, auto, auto;
-  background-position: center 62%, 0 0, 0 0, 0 0, 0 0, 0 0;
+    var(--art-landscape);
+  background-size: cover, auto, auto;
+  background-position: center 62%, 0 0, 0 0;
   background-repeat: no-repeat;
 }
 
@@ -152,7 +154,7 @@ body.is-busy .busy-chip { display: inline-flex; align-items: center; gap: 6px; m
 @media (max-width: 600px) {
   /* 底栏五个入口一排，不再把“人物”挤到第二行压住内容。 */
   #appNavigation.app-navigation { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; padding-left: 4px; padding-right: 4px; }
-  #appNavigation.app-navigation > button { font-size: 11.5px; min-height: 54px; }
+  #appNavigation.app-navigation > button { font-size: var(--fs-note); min-height: 54px; }
   #appNavigation.app-navigation > button.selected::after { left: 30%; right: 30%; top: auto; bottom: 3px; width: auto; height: 3px; }
 
   .daily-guide { margin: 12px 12px 12px; padding: 16px; border-radius: var(--r-lg); }
@@ -166,7 +168,7 @@ body.is-busy .busy-chip { display: inline-flex; align-items: center; gap: 6px; m
   .hud-item .hud-label { grid-column: 1; }
   .hud-item b { grid-column: 2; grid-row: 1; text-align: right; font-size: 12px; }
   .hud-item .hud-track, .hud-item .hud-pips { grid-column: 1 / -1; grid-row: 2; }
-  .hud-word { margin-left: 4px; padding: 0 5px; font-size: 10.5px; line-height: 16px; }
+  .hud-word { margin-left: 4px; padding: 0 5px; font-size: var(--fs-note); line-height: 16px; }
 
   /* 对话框变成底部抽屉：大拇指够得到，操作区固定在屏幕最下方。 */
   .modal-backdrop { place-items: end stretch; padding: 0; }
