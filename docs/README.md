@@ -45,6 +45,7 @@
 ## 当前实施规划
 
 - [长期游戏设计与完善计划（2026-10-22）](plans/long-term-game-design-2026-10-22.md) · 当前玩法完善顺序：季节、一年、一生与传承、地区文化；含 GD-01–GD-17 任务与试玩放行条件。阶段指标是目标，不是完成声明。
+- [WEWE 旧作设计回收与 OpenLife 融合计划（2026-10-22）](plans/wewe-openlife-design-reuse-2026-10-22.md) · 历史 Python 游戏的设计差异审计、候选需求与 A0–A3 执行边界；**第一阶段只做只读审计，不启动开发**。
 - [产品定位](POSITIONING.md) 与 [河岸的第一个季节](plans/FIRST_SEASON.md) · 产品取舍与代表经历。
 - [手机优先路线与任务表（2026-10-16）](plans/mobile-life-roadmap-2026-10-16.md)
 - [分支整合与验证记录（2026-10-16）](reviews/integration-2026-10-16.md)
