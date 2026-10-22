@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   ACTIVE_CONTENT_PACKS, BASE_RIVER_TERRACE_PACK, contentPackStamps, loadSettlementPack,
   missingContentPacks, RIVER_TERRACE_PACK, validateSettlementPack,
@@ -16,7 +17,12 @@ import {
 } from "@openlife/module-settlement-locations";
 
 const BASE = new URL("../../modules/settlement-locations/data/river-terrace.json", import.meta.url);
-const EXAMPLES = new URL("../../docs/examples/content-packs/", import.meta.url).pathname.replace(/^\//, "");
+// `new URL(...).pathname` is a POSIX-ish path that still needs decoding and, on Windows,
+// an absolute drive prefix. It works by accident here ("/D:/MG/..." minus the slash is a
+// real path) but on the Linux runner it is "/home/runner/..." and the leading slash that
+// `replace` ate was the only thing making it absolute - the test then found zero packs and
+// failed on CI while passing locally. fileURLToPath is the only correct way to get a path.
+const EXAMPLES = fileURLToPath(new URL("../../docs/examples/content-packs/", import.meta.url));
 
 /** Write a throwaway pack and return its directory. */
 function pack(files: Record<string, unknown>, id = "probe") {
