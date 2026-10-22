@@ -1,5 +1,7 @@
 # OpenLife 拓展规划书
 
+> 2026-10-22：当前执行顺序见 [长期游戏设计与完善计划](long-term-game-design-2026-10-22.md)。本文保留原设计来源；叙事者、目标、秘密、愿望、人生阶段等已有实现，旧阶段表不能再直接作为从零开发清单。
+
 日期：2026-10-17
 依据：《OpenLife 与国内外模拟游戏对比调查》（2026-10-17）+ 对 `codex/knowledge-and-hazard-merge` 分支代码的实地检查 + 《插件 / Mod 规范 v1》（`docs/PLUGINS.md`）
 适用分支：`fix/hazard-ratchet`（cf7a708 修复 + 54e2064 插件规范）

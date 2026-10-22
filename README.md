@@ -6,6 +6,8 @@ OpenLife 是一个具有持续世界历史、人物认知、家族传承、可�
 
 完整设计见 [`需求书.txt`](./需求书.txt)。
 
+当前完善顺序见 [长期游戏设计与完善计划（2026-10-22）](docs/plans/long-term-game-design-2026-10-22.md)：从一个季节、一年、一生与下一代，逐步完善人物、生活与地区文化；含下一轮任务和试玩放行条件。
+
 AI 协作者拉取后先读 [`AGENTS.md`](./AGENTS.md) 与 [AI 分工与协作指南](docs/AI_COLLABORATION.md)，确认模型默认职责、首轮任务、修改边界和交接要求。
 
 ## 快速开始
@@ -50,7 +52,7 @@ packages/            引擎核心（不含任何具体世界观）
   autonomy-runtime/  AutoSim 与决策提供者
   simulation/        把以上组装成可运行的模拟
   life-contracts/    人生类模块共享的契约（教育、经济、现代世界）
-modules/             World / System / Content Pack（36 个，完整清单见 docs/MODULES.md）
+modules/             World / System / Content Pack（60 个，完整清单见 docs/MODULES.md）
   modern-world/ magic-test-world/ robot-test-world/ world-clock/   World Pack
   world-*/ education/ career/ family/ economy/ ...                  System Pack
   settlement-locations/ settlement-life/ craft-pottery/ ...         Content Pack
@@ -92,7 +94,7 @@ tests/unit/          单元测试（node --test），含 workspace-structure 分
 
 ## 当前规划与服务端保存
 
-手机优先路线与任务验收见 [2026-10-16 开发规划](docs/plans/mobile-life-roadmap-2026-10-16.md)。
+当前玩法优先级与阶段验收见 [2026-10-22 长期计划](docs/plans/long-term-game-design-2026-10-22.md)；手机交互和工程约束仍参考 [2026-10-16 开发规划](docs/plans/mobile-life-roadmap-2026-10-16.md)。
 当前默认文字模式；运行 `node apps/web/dev-browser-smoke.mjs` 可在安装了 Edge 的 Windows 上检查实际触控与布局。
 
 `npm run web` 默认从 `apps/web/data/openlife-save.json` 恢复共享世界，每 5 分钟落盘。成功读档或重开后立即尝试落盘；写入串行执行，损坏/不兼容存档先保留为 `.rejected-时间戳`。无法读取或保留原档时禁用覆盖并记录错误。
