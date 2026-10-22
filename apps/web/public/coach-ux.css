@@ -1,0 +1,69 @@
+/* 每日 UI 优化 2026-10-22 早场 · 题目二：新手引导（配合 coach-ux.js）
+ * 令牌全来自 theme.css / ui-polish.css，深色模式自动跟随；不依赖动画（纯文字模式下动画全关）。 */
+
+/* 压暗色：亮暗两套主题共用一档深色遮罩（--ink 在深色模式里是浅色，不能拿来压暗） */
+:root { --coach-dim: rgba(12, 18, 16, .5); }
+
+/* 聚光框：目标外整页压暗，目标本身留亮；不拦点击 */
+.coach-spot {
+  position: fixed; z-index: 70; pointer-events: none;
+  border-radius: var(--r-lg, 14px);
+  outline: 2px solid var(--accent); outline-offset: 0;
+  box-shadow: 0 0 0 9999px var(--coach-dim);
+}
+/* 导览时旧的虚线框让位给聚光框 */
+html.coach-touring .coach-target { outline: 0 !important; }
+
+/* 说明气泡 */
+.coach-tip {
+  position: fixed; z-index: 71; box-sizing: border-box;
+  padding: 14px 16px 12px; border-radius: var(--r-lg, 14px);
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--line-strong); border-top: 3px solid var(--primary);
+  box-shadow: var(--shadow-lg, 0 12px 32px rgba(0,0,0,.18));
+}
+.coach-tip header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.coach-tip-count { font-size: var(--fs-xs, 12px); font-weight: 600; letter-spacing: .06em; color: var(--accent); font-variant-numeric: tabular-nums; }
+.coach-dots { display: inline-flex; gap: 6px; }
+.coach-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); }
+.coach-dots i.done { background: color-mix(in srgb, var(--primary) 45%, var(--surface)); }
+.coach-dots i.on { background: var(--primary); width: 18px; border-radius: 4px; }
+.coach-tip h3 { margin: 6px 0 4px; font: 600 var(--fs-lg, 17px)/1.4 var(--serif); }
+.coach-tip p { margin: 0 0 12px; font-size: var(--fs-sm, 13px); line-height: 1.7; color: var(--ink-2); }
+.coach-tip-actions { display: flex; align-items: center; gap: 8px; }
+.coach-tip-actions > span { flex: 1; }
+.coach-tip-actions button {
+  min-height: 40px; padding: 0 14px; border-radius: var(--r-pill, 999px); cursor: pointer;
+  font: inherit; font-size: var(--fs-sm, 13px); font-weight: 600;
+  border: 1px solid var(--line-strong); background: transparent; color: var(--ink);
+}
+.coach-tip-actions .coach-tip-next { background: var(--primary); border-color: var(--primary); color: var(--primary-ink, #fff); }
+.coach-tip-actions .coach-tip-next:hover { background: var(--primary-hover, var(--primary)); }
+.coach-tip-actions .coach-tip-end { border-color: transparent; color: var(--muted); padding-inline: 6px; font-weight: 500; }
+.coach-tip-actions button:active { transform: translateY(1px); box-shadow: inset 0 2px 4px rgba(0,0,0,.12); }
+.coach-tip-actions button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+/* 小三角：气泡在目标下方时朝上指，在上方时朝下指 */
+.coach-tip[data-side="below"]::before, .coach-tip[data-side="above"]::before {
+  content: ""; position: absolute; left: 28px; width: 12px; height: 12px; background: var(--surface);
+  border: 1px solid var(--line-strong); transform: rotate(45deg);
+}
+.coach-tip[data-side="below"]::before { top: -8px; border-right: 0; border-bottom: 0; background: var(--primary); border-color: var(--primary); }
+.coach-tip[data-side="above"]::before { bottom: -7px; border-left: 0; border-top: 0; }
+
+/* 引导卡：一句说明怎么用 */
+.coach-card .coach-lede { margin: -4px 0 12px; font-size: var(--fs-sm, 13px); color: var(--muted); }
+
+/* 手机：三步只留标题，三个标题一行排开；说明在气泡里看 */
+@media (max-width: 600px) {
+  :where(html:not([data-layout="desktop"])) .coach-card .coach-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 12px; }
+  :where(html:not([data-layout="desktop"])) .coach-card .coach-steps li { padding: 32px 6px 8px; text-align: center; font-size: 0; line-height: 0; }
+  :where(html:not([data-layout="desktop"])) .coach-card .coach-steps li::before { left: 50%; top: 8px; margin-left: -10px; }
+  :where(html:not([data-layout="desktop"])) .coach-card .coach-steps b { font-size: 13px; line-height: 1.4; }
+  :where(html:not([data-layout="desktop"])) .coach-card .coach-actions button { flex: 1 1 0; }
+  :where(html:not([data-layout="desktop"])) .coach-tip-actions button { min-height: 44px; }
+}
+:where(html.is-phone) .coach-card .coach-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 12px; }
+:where(html.is-phone) .coach-card .coach-steps li { padding: 32px 6px 8px; text-align: center; font-size: 0; line-height: 0; }
+:where(html.is-phone) .coach-card .coach-steps li::before { left: 50%; top: 8px; margin-left: -10px; }
+:where(html.is-phone) .coach-card .coach-steps b { font-size: 13px; line-height: 1.4; }
+:where(html.is-phone) .coach-card .coach-actions button { flex: 1 1 0; }

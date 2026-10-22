@@ -9,6 +9,9 @@
  *  6. 大屏（≥1600px）：生活页右侧加一条粘性栏，人生纪事和心里记着的事放进去，主列不用再上下翻找。
  * 样式在 pages-ux.css（本文件自己挂上）。
  */
+// 2026-10-22 午场：手机资料页切换条、地图与地点页（各自挂样式，不改 index.html）。
+import "./refnav-ux.js";
+import "./atlas-ux.js";
 const $ = (id) => document.getElementById(id);
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 

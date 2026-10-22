@@ -1,0 +1,50 @@
+/* 每日 UI 优化 2026-10-22 合并场（pm）题目一：HUD · 行囊栏。只用令牌，不加新阴影。 */
+
+/* 1. 余量：随身一排格子，负重一条细条。词仍在左边，格子跟在后面。 */
+.bag-ux .bag-meter { flex-wrap: wrap; align-items: center; row-gap: 6px; }
+.bag-ux .bag-gauge { display: flex; flex: 1 1 100%; gap: 4px; min-height: 8px; }
+.bag-ux .bag-gauge--slots i { flex: 0 0 auto; width: 22px; height: 8px; border-radius: var(--r-pill); border: 1px dashed var(--line-strong); background: transparent; }
+.bag-ux .bag-gauge--slots i.on { border: 1px solid var(--primary); background: var(--primary); }
+.bag-ux .bag-gauge--bar { position: relative; max-width: 220px; height: 8px; border-radius: var(--r-pill); background: var(--surface-3); overflow: hidden; }
+.bag-ux .bag-gauge--bar i { display: block; height: 100%; min-width: 4px; border-radius: inherit; background: var(--ok); }
+.bag-ux .bag-meter.watch .bag-gauge--slots i.on, .bag-ux .bag-meter.watch .bag-gauge--bar i { background: var(--warn); border-color: var(--warn); }
+.bag-ux .bag-meter.warn .bag-gauge--slots i.on, .bag-ux .bag-meter.warn .bag-gauge--bar i { background: var(--danger); border-color: var(--danger); }
+
+/* 2. 一摞：后面露出两层纸边，卡角写「两份」。 */
+.bag-ux .portable-items { isolation: isolate; }
+.bag-ux .portable-item { position: relative; }
+.bag-ux .portable-item[hidden] { display: none; }
+.bag-ux .portable-item.is-stacked::before, .bag-ux .portable-item.is-stacked::after {
+  content: ""; position: absolute; z-index: -1; inset: 0; border: 1px solid var(--line); border-radius: inherit; background: var(--surface-2);
+}
+.bag-ux .portable-item.is-stacked::before { transform: translate(5px, 5px); }
+.bag-ux .portable-item.is-stacked::after { transform: translate(10px, 10px); opacity: .7; }
+.bag-ux .portable-item.is-stacked { margin: 0 10px 10px 0; }
+.bag-ux .bag-stack {
+  position: absolute; top: 8px; right: 8px; padding: 2px 8px; border-radius: var(--r-pill);
+  background: var(--accent-soft); border: 1px solid var(--accent-line); color: var(--accent-ink); font-size: var(--fs-note); font-weight: 600;
+}
+.bag-ux .portable-item[aria-pressed="true"] .bag-stack { background: var(--surface); }
+
+/* 3/4. 空位格高度跟卡片一致（第二轮的样式沿用，这里只校正高度）。 */
+.bag-ux .bag-slot-free.bag-ux-free { min-height: 120px; align-self: stretch; }
+
+/* 5. 物品详情 */
+.bag-ux .bag-detail .scene-quick-head strong { font: 600 var(--fs-subhead) var(--serif); }
+.bag-ux .bag-detail > p { font-size: var(--fs-fine); color: var(--ink-2); }
+@media (min-width: 900px) {
+  .bag-ux .bag-detail .scene-quick-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .bag-ux .bag-detail .scene-quick-list > p { grid-column: 1 / -1; }
+}
+
+/* 6. 作品折叠：空着就直说 */
+.bag-fold-tag { margin-left: 10px; padding: 2px 10px; border-radius: var(--r-pill); background: var(--surface-2); border: 1px solid var(--line);
+  font-size: var(--fs-note); font-weight: 400; color: var(--muted); vertical-align: middle; }
+
+@media (max-width: 600px) {
+  .bag-ux .portable-meter { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .bag-ux .bag-gauge--bar { max-width: none; }
+  .bag-ux .portable-item.is-stacked { margin: 0 8px 8px 0; }
+  .bag-ux .portable-item.is-stacked::before { transform: translate(4px, 4px); }
+  .bag-ux .portable-item.is-stacked::after { transform: translate(8px, 8px); }
+}

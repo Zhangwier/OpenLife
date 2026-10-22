@@ -9,6 +9,8 @@ import { renderFigure } from "/character-appearance.js";
 import { playActionFx } from "/action-fx.js";
 import { isTextMode } from "/view-mode.js";
 import "/time-ux.js";
+import "/bag-ux.js";
+import "/world-ux.js";
 import { renderLifeLog, renderHopes, logAction, diffSettlement, chipText } from "/life-log.js";
 const $ = (id) => document.getElementById(id);
 let state;

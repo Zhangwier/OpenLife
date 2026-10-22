@@ -1,0 +1,34 @@
+/* 每日 UI 优化 2026-10-22 合并场（pm）题目二：「时代与世界」页。只用令牌，不加新阴影。 */
+
+/* 1. 三个数字铺满整行；标签不拆词 */
+.world-ux .world-metrics { max-width: none; }
+.world-ux .world-metrics span { display: block; margin-top: 4px; font-size: var(--fs-note); line-height: var(--lh-ui); word-break: keep-all; text-wrap: balance; }
+
+/* 4. 小节三层：眉标 / 正文 / 说明 */
+.world-ux .world-sections > div > span:first-child { margin-bottom: 8px; }
+.world-ux .world-sections strong { font-family: var(--serif); }
+.world-ux .world-sections small { font-size: var(--fs-fine); }
+.world-ux .historical-people, .world-ux .tradition-list, .world-ux .memory-traces, .world-ux .notable-people { display: grid; gap: 8px; }
+
+/* 2. 还没出现的小节：默认收起，页尾一块列名字 */
+.world-ux:not(.show-quiet) [data-world-empty] { display: none; }
+.world-ux.show-quiet [data-world-empty] { opacity: .78; }
+.world-ux [data-world-empty] .subtle { display: block; font-size: var(--fs-ui); color: var(--ink-2); }
+.world-quiet { display: grid; gap: 8px; justify-items: start; margin-top: 18px; padding: 16px 18px; border: 1px dashed var(--line-strong); border-radius: var(--r-md); background: var(--surface-2); }
+.world-quiet[hidden] { display: none; }
+.world-quiet-names { margin: 0; font-size: var(--fs-ui); line-height: var(--lh-ui); color: var(--ink-2); }
+.world-quiet-toggle { min-height: 40px; padding: 8px 16px; font-size: var(--fs-fine); }
+.world-ux.show-quiet .world-quiet { order: 2; }
+
+/* 3. 桌面两列 */
+@media (min-width: 1000px) {
+  .world-ux .world-sections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; align-items: start; }
+  .world-ux .world-sections > .world-mood { grid-column: 1 / -1; }
+}
+
+@media (max-width: 600px) {
+  .world-ux .world-metrics { gap: 8px; }
+  .world-ux .world-metrics div { padding: 12px 4px; }
+  .world-quiet { padding: 14px; }
+  .world-quiet-toggle { width: 100%; justify-content: center; min-height: 44px; }
+}

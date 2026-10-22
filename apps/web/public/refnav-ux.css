@@ -1,0 +1,30 @@
+/* 每日 UI 优化 2026-10-22 午场 · 手机「资料页」切换条（refnav-ux.js 挂上）。只用令牌。 */
+.ref-nav[hidden] { display: none !important; }
+.ref-nav {
+  position: sticky; top: var(--ref-nav-top, 56px); z-index: 40;
+  margin: -6px -12px 14px; padding: 6px 0;
+  background: var(--glass); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.ref-nav-track {
+  display: flex; gap: 6px; overflow-x: auto; overscroll-behavior-x: contain;
+  padding: 2px 12px; scrollbar-width: none; scroll-padding: 0 12px;
+}
+.ref-nav-track::-webkit-scrollbar { display: none; }
+.ref-chip {
+  flex: 0 0 auto; min-height: 40px; padding: 0 14px;
+  border: 1px solid var(--line); border-radius: var(--r-pill);
+  background: var(--surface); color: var(--ink-2);
+  font: inherit; font-size: 14px; white-space: nowrap; cursor: pointer;
+}
+.ref-chip:active { transform: translateY(1px); }
+.ref-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.ref-chip.is-current {
+  background: var(--primary); border-color: var(--primary); color: var(--primary-ink); font-weight: 600;
+}
+.ref-chip.ref-back {
+  background: transparent; border-color: transparent; color: var(--primary); padding: 0 10px 0 4px; font-weight: 600;
+}
+.ref-chip.ref-back + .ref-chip { margin-left: 2px; }
+/* 资料页标题与切换条之间收紧一点 */
+body.has-ref-nav .page-heading { margin-bottom: 10px; }

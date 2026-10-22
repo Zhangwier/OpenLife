@@ -1,0 +1,90 @@
+/* 每日 UI 优化 2026-10-22 早场 · 题目一：「此刻」页主界面布局
+ *
+ * 只动「此刻」(#screen-activities) 一页，只加样式，不改 settlement.js 的结构：
+ *  1. 新手引导卡、今日指引、场景三者同一宽度、同一左边缘（之前引导卡 1000 宽，下面 760 居中）。
+ *  2. 1100–1599px：下半屏分两栏——左栏「人生纪事」，右栏「身边的事」「心里记着的事」，
+ *     不再一列 760 居中、右边空出 240px。≥1600 仍由 pages-ux.js 的大屏右栏接管。
+ *  3. 三个大按钮（移动 · 劳动 · 时间）放到「现在可以做什么」下面第一行；和它们重复的
+ *     「劳动与休息」「移动地点」小签收起，只留「过一季」「收起」；提示语不再贴着按钮。
+ *  4. 小节标题统一：眉标在上、衬线标题在下、左对齐（「身边的事」之前眉标在左、标题被挤到右边）。
+ *  5. 手机：纪事、身边的事、心里记着的事和上面的卡片一样留 16px 边距，「心里记着的事」不再居中缩成一条。
+ * 颜色全部用 theme.css 的令牌，深色模式自动跟随。
+ */
+
+/* ---------- 1. 同一条起跑线 ---------- */
+@media (min-width: 900px) {
+  #screen-activities { --now-col: 1000px; }
+  #screen-activities > .daily-guide,
+  #screen-activities > .coach-card,
+  #screen-activities .life-stage { width: 100%; max-width: var(--now-col); margin-inline: auto; box-sizing: border-box; }
+  #screen-activities > .coach-card { margin-bottom: 14px; }
+}
+
+/* ---------- 3. 做事区：大按钮在前，提示在后 ---------- */
+#screen-activities #interactionDock { display: flex; flex-direction: column; gap: 10px; }
+#screen-activities #interactionDock::before {
+  content: "现在可以做什么"; order: -3;
+  font-size: var(--fs-note, 12px); font-weight: 600; letter-spacing: .08em; color: var(--accent);
+}
+#screen-activities #interactionDock > .scene-action-area > .eyebrow { display: none; }
+#screen-activities #interactionDock > #dockTools { order: -2; }
+#screen-activities #interactionDock > .scene-action-area { order: -1; margin: 0; }
+/* 和三个大按钮重复的两枚小签（劳动与休息 = 劳动，移动地点 = 移动）只在大按钮在场时收起 */
+#screen-activities #interactionDock:has(#dockTools #sceneWorkButton) .scene-focus-row [data-focus="work"],
+#screen-activities #interactionDock:has(#dockTools #sceneMapButton) .scene-focus-row [data-focus="walk"] { display: none; }
+#screen-activities .scene-focus-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+#screen-activities #sceneActions > .scene-empty {
+  margin: 8px 0 0; padding: 8px 12px; border-radius: var(--r-md, 10px);
+  background: var(--surface-2); color: var(--ink-2); line-height: 1.6;
+}
+#screen-activities .scene-action-group { margin-top: 10px; }
+
+/* ---------- 4. 小节标题统一 ---------- */
+#screen-activities .hearth-story-heading { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+#screen-activities .life-log-head { align-items: baseline; }
+#screen-activities #lifeLog,
+#screen-activities #communityFeed,
+#screen-activities #hopes { width: 100%; max-width: none; box-sizing: border-box; align-self: stretch; margin-inline: 0; }
+#screen-activities #communityFeed { margin-top: 0; }
+#screen-activities #hopes .life-log-head span { white-space: nowrap; }
+
+/* ---------- 2. 1100–1599：下半屏两栏 ---------- */
+@media (min-width: 1100px) and (max-width: 1599px) {
+  :where(html:not(.is-phone)) #screen-activities #settlementScene {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 34%);
+    column-gap: 28px; row-gap: 0; align-items: start; /* 文字模式下画面那一行是空的，用 row-gap 会多出一道空隙，间距改由各块的 margin 给 */
+    grid-template-areas:
+      "head head" "sum sum" "theater theater" "dock dock"
+      "log feed" "log hopes" "ledger ledger";
+  }
+  :where(html:not(.is-phone)) #screen-activities #settlementScene > * { grid-column: 1 / -1; }
+  :where(html:not(.is-phone)) #screen-activities #settlementScene > .scene-header { grid-area: head; }
+  :where(html:not(.is-phone)) #screen-activities #settlementScene > .scene-summary { grid-area: sum; }
+  :where(html:not(.is-phone)) #screen-activities #settlementScene > .scene-theater { grid-area: theater; }
+  :where(html:not(.is-phone)) #screen-activities #settlementScene > #interactionDock { grid-area: dock; }
+  :where(html:not(.is-phone)) #screen-activities #settlementScene > #lifeLog { grid-area: log; }
+  :where(html:not(.is-phone)) #screen-activities #settlementScene > #communityFeed { grid-area: feed; }
+  :where(html:not(.is-phone)) #screen-activities #settlementScene > #hopes { grid-area: hopes; }
+  :where(html:not(.is-phone)) #screen-activities #settlementScene > .scene-ledger { grid-area: ledger; margin-top: 24px; }
+  :where(html:not(.is-phone)) #screen-activities #settlementScene > #lifeLog,
+  :where(html:not(.is-phone)) #screen-activities #settlementScene > #communityFeed { margin-top: 16px; }
+  :where(html:not(.is-phone)) #screen-activities #settlementScene > #hopes { margin-top: 14px; }
+  /* 右栏是一条窄栏：给它一道浅底，读起来是「旁边的事」，不和左栏正文抢 */
+  :where(html:not(.is-phone)) #screen-activities #communityFeed,
+  :where(html:not(.is-phone)) #screen-activities #hopes {
+    padding: 14px 16px; border-radius: var(--r-lg, 14px); background: var(--surface-2);
+  }
+  :where(html:not(.is-phone)) #screen-activities #lifeLog { padding-top: 6px; }
+}
+
+/* ---------- 5. 手机 ---------- */
+@media (max-width: 600px) {
+  :where(html:not([data-layout="desktop"])) #screen-activities #lifeLog,
+  :where(html:not([data-layout="desktop"])) #screen-activities #communityFeed,
+  :where(html:not([data-layout="desktop"])) #screen-activities #hopes { padding-inline: 16px; }
+  :where(html:not([data-layout="desktop"])) #screen-activities #interactionDock { padding-inline: 12px; }
+}
+:where(html.is-phone) #screen-activities #lifeLog,
+:where(html.is-phone) #screen-activities #communityFeed,
+:where(html.is-phone) #screen-activities #hopes { padding-inline: 16px; }
+:where(html.is-phone) #screen-activities #interactionDock { padding-inline: 12px; }

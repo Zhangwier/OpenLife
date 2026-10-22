@@ -1,0 +1,46 @@
+/* 每日 UI 优化 2026-10-22 午场 · 「地图与地点」页（atlas-ux.js 挂上）。只用令牌。 */
+#screen-map.atlas { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-content: start; }
+#screen-map.atlas > .panel { margin: 0; }
+
+/* 页首总览 */
+#screen-map.atlas .atlas-summary { display: flex; flex-wrap: wrap; gap: 6px 0; margin-top: 12px; font-size: 14px; color: var(--ink); font-variant-numeric: tabular-nums; }
+#screen-map.atlas .atlas-summary span + span::before { content: "·"; margin: 0 10px; color: var(--muted); }
+#screen-map.atlas .atlas-note {
+  margin: 12px 0 0; padding: 10px 12px; border-radius: var(--r-md);
+  background: var(--surface-2); border: 1px solid var(--line);
+  font-size: 13px; line-height: 1.7; color: var(--muted);
+}
+
+/* 地图卡 */
+#screen-map.atlas .map-pack { padding: 20px; display: flex; flex-direction: column; }
+#screen-map.atlas .map-pack h2 { font-size: 20px; margin: 4px 0 0; }
+#screen-map.atlas .module-status.atlas-status-ok { display: none; }
+#screen-map.atlas .module-status.atlas-status-bad { background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn-line); font-weight: 600; }
+#screen-map.atlas .map-counts.atlas-counts { display: flex; flex-wrap: wrap; gap: 4px 0; margin-top: 10px; }
+#screen-map.atlas .map-counts.atlas-counts span {
+  padding: 0; background: none; border: 0; border-radius: 0;
+  font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+#screen-map.atlas .map-counts.atlas-counts span + span::before { content: "·"; margin: 0 8px; }
+#screen-map.atlas .map-counts.atlas-counts b { font-size: 16px; color: var(--ink); font-weight: 700; }
+#screen-map.atlas .map-limit { margin-top: 8px; }
+#screen-map.atlas .map-limit[hidden] { display: none; }
+
+/* 两个折叠钮并排；展开的那个占满整行 */
+#screen-map.atlas .atlas-folds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: auto; padding-top: 14px; }
+#screen-map.atlas .atlas-folds[data-count="1"] { grid-template-columns: minmax(0, 1fr); }
+#screen-map.atlas .atlas-folds > .region-fold { margin: 0; min-width: 0; }
+#screen-map.atlas .atlas-folds > .region-fold[open] { grid-column: 1 / -1; order: 2; }
+#screen-map.atlas .atlas-folds > .region-fold > summary { min-height: 40px; display: flex; align-items: center; gap: 4px; font-size: 14px; }
+
+@media (min-width: 900px) {
+  :where(html:not(.is-phone)) #screen-map.atlas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  :where(html:not(.is-phone)) #screen-map.atlas > .catalog-intro { grid-column: 1 / -1; }
+  :where(html:not(.is-phone)) #screen-map.atlas > .map-pack:has(details[open]) { grid-column: 1 / -1; }
+}
+@media (max-width: 600px) {
+  #screen-map.atlas .map-pack { padding: 16px; }
+  #screen-map.atlas .map-pack h2 { font-size: 17px; }
+}
+:where(html.is-phone) #screen-map.atlas .map-pack { padding: 16px; }
+:where(html.is-phone) #screen-map.atlas .map-pack h2 { font-size: 17px; }
