@@ -51,6 +51,22 @@ export const StockCommands = {
   adjust: "settlement-locations.stock.adjust",
 } as const;
 
+/**
+ * How another module asks for stock to move without owning the component.
+ *
+ * INV-007 says a module writes only its own components, so a story event that
+ * costs the village a sack of grain cannot set `settlement-locations.yield`
+ * itself -- the kernel rolls the whole transaction back. It says what it wants
+ * instead, and this module settles the request in the same transaction, through
+ * the same clamp as a direct adjustment. Payload:
+ *
+ *   { stock: [{ resourceId, delta, reason }] }
+ *
+ * Published here rather than in the caller: the owner of the data declares the
+ * shape the rest of the platform may use.
+ */
+export const StockRequestEvent = "settlement-locations.stock.requested";
+
 export interface StockRequest {
   resourceId: string;
   delta: number;
@@ -99,6 +115,33 @@ export function movableStock(world: WorldView, resourceId: string): number {
  */
 export function registerStock(ctx: Registration): void {
   ctx.registerCommand({ type: StockCommands.adjust, description: "Move a resource in or out of the village's shared stock." });
+  // Someone else's event, our data: settle it here rather than let the caller
+  // write a component it does not own.
+  ctx.registerReactionRule({
+    id: "settlement-locations.stock.requested.settled",
+    eventType: StockRequestEvent,
+    react: (c): Effect[] => {
+      const asked = Array.isArray((c.event.data as { stock?: unknown } | undefined)?.stock)
+        ? ((c.event.data as { stock: Array<{ resourceId?: unknown; delta?: unknown; reason?: unknown }> }).stock)
+        : [];
+      const effects: Effect[] = [];
+      for (const item of asked) {
+        const resourceId = String(item?.resourceId ?? "");
+        const delta = Number(item?.delta ?? 0);
+        if (!resourceId || !Number.isFinite(delta) || delta === 0) continue;
+        effects.push(...stockEffects(c.world, { resourceId, delta, reason: String(item?.reason ?? "requested") }));
+      }
+      if (!effects.length) return [];
+      effects.push({
+        kind: "emitEvent",
+        eventType: "settlement-locations.stock_adjusted",
+        actorId: c.event.actorId,
+        data: { requested: asked.length, moved: effects.length } as Record<string, JsonValue>,
+        historicalSignificance: 0,
+      });
+      return effects;
+    },
+  });
   ctx.registerConstraintRule({
     id: `${StockCommands.adjust}.allowed`,
     commandType: StockCommands.adjust,

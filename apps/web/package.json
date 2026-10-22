@@ -50,6 +50,7 @@
     "@openlife/module-world-deposits": "*",
     "@openlife/module-culture": "*",
     "@openlife/module-economy": "*",
-    "@openlife/module-travel": "*"
+    "@openlife/module-travel": "*",
+    "@openlife/module-world-geography": "*"
   }
 }

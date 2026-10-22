@@ -55,6 +55,40 @@ function player(world: WorldView): string {
   return String(world.getComponent("modern:world", "modern.world_state")?.activeCharacterId ?? "");
 }
 
+/**
+ * 世界地图上的边，读成 `findRoute` 要的形状。
+ *
+ * 地理模块把距离与难度存在 `world-geography.adjacent_to` 关系的
+ * `world-geography.connection` 组件上（`distanceKm` / `terrainCost`），不另存一份
+ * 边表——这里就地读，远行模块不自己记地图。
+ */
+function geographyEdges(world: WorldView): Array<{ from: string; to: string; distance?: number; terrainCost?: number }> {
+  return world.listRelations({ type: "world-geography.adjacent_to" }).map((relation) => {
+    const connection = (relation.components?.["world-geography.connection"] ?? {}) as Record<string, unknown>;
+    return {
+      from: relation.from,
+      to: relation.to,
+      distance: Number(connection.distanceKm ?? 0),
+      terrainCost: Number(connection.terrainCost ?? 1),
+    };
+  });
+}
+
+/**
+ * 村子在世界图上站在哪里。
+ *
+ * 地图装上以后，聚落实体被 `world-geography.place_entity` 钉在一个地图地点上，
+ * 这里就读那条 `located_at` 关系；地图没装（旧世界、单模块测试）时退回聚落自己
+ * 的 `placeId`——那时目的地本来就是空的，退回哪个值都不影响结果。
+ */
+function standingAt(world: WorldView): string {
+  for (const relation of world.listRelations({ type: "world-geography.located_at" })) {
+    if (world.getComponent(relation.from, "settlement-locations.settlement")) return relation.to;
+  }
+  return String(world.getComponent("settlement-locations:settlement", "settlement-locations.settlement")?.placeId ?? "");
+}
+
+
 export const travelModule: OpenLifeModule = {
   manifest: {
     id: TRAVEL_OWNER,
@@ -96,6 +130,11 @@ export const travelModule: OpenLifeModule = {
         if (readJourney(c.world)) return refuse(TravelRejection.AlreadyTravelling, "已经在路上了。");
         const to = String(c.command.payload.to ?? "");
         if (!to) return refuse(TravelRejection.NoRoute, "要说出去哪里。");
+        // 有地图的时候，路必须真的存在：不然「出发」等于瞬移。
+        const edges = geographyEdges(c.world);
+        if (edges.length && !findRoute(edges, standingAt(c.world), to)) {
+          return refuse(TravelRejection.NoRoute, "从这里走不到那儿。");
+        }
         return { ok: true };
       },
     });
@@ -104,12 +143,11 @@ export const travelModule: OpenLifeModule = {
       resolve: (c): Effect[] => {
         const me = player(c.world);
         const to = String(c.command.payload.to);
-        const from = String(c.command.payload.from ?? "settlement");
-        // A real map would give edges and distances; for now a route is one
-        // step of road, so a journey always takes at least a day.
-        const route: Route = {
-          from, to, days: Number(c.command.payload.days ?? 1),
-          terrain: "road", encounters: [],
+        const from = String(c.command.payload.from ?? standingAt(c.world));
+        // 走地图上那条边：距离与难度都从 geography 读，天数由 routeDays 算。
+        // 地图没装（旧世界、单模块测试）才退回「一天一段路」的兜底。
+        const route: Route = findRoute(geographyEdges(c.world), from, to) ?? {
+          from, to, days: Number(c.command.payload.days ?? 1), terrain: "road", encounters: [],
         };
         const journey: Journey = {
           id: `journey:${me}:${to}:${c.world.tick}`,
@@ -211,14 +249,20 @@ export const travelModule: OpenLifeModule = {
       id: `${TravelCommands.return}.resolve`, commandType: TravelCommands.return,
       resolve: (c): Effect[] => {
         const journey = readJourney(c.world)!;
-        const back: Journey = {
+        // 回程也要算路：原地折返不该花和来时不同的天数，但绕回另一条路时天数
+        // 就该不同。找不到边才借用去程的天数。
+        const back = findRoute(geographyEdges(c.world), journey.to, journey.from);
+        const route: Route = back ?? { ...journey.route, from: journey.to, to: journey.from };
+        const journeyBack: Journey = {
           ...journey,
+          id: `${journey.id}:back`,
           from: journey.to, to: journey.from,
-          daysLeft: journey.route.days,
+          daysLeft: route.days,
+          route,
           encounters: [],
         };
         return [
-          save(c.world, back, "turned back"),
+          save(c.world, journeyBack, "turned back"),
           {
             kind: "emitEvent", eventType: "travel.turned_back", actorId: journey.who,
             data: { from: journey.to, to: journey.from },
@@ -235,12 +279,16 @@ export const travelModule: OpenLifeModule = {
       build: ({ world }: { world: WorldView }): Record<string, JsonValue> => {
         const journey = readJourney(world);
         if (!journey) return { travelling: false, line: "没有正在走的路。" };
+        // 路上说的是地名，不是实体 id：`xia_west_marsh_v0_1:location:W0104` 这种
+        // 东西写进「往……去，还有一天」里，读的人只能看见一串编号。
+        const name = String(world.getComponent(journey.to, "world-geography.location")?.name ?? journey.to);
         return {
           travelling: true,
           to: journey.to,
+          toName: name,
           daysLeft: journey.daysLeft,
           arrived: journeyArrived(journey),
-          line: describeJourney(journey),
+          line: describeJourney(journey, name),
         };
       },
     });
@@ -251,23 +299,35 @@ export const travelModule: OpenLifeModule = {
       build: ({ world }: { world: WorldView }): Record<string, JsonValue> => {
         const journey = readJourney(world);
         // The real map: locations registered by map packs, and the adjacency
-        // between them. A destination is any location you can reach from here.
+        // between them. A destination is any location one edge away.
         const locations = world.listEntities({ kind: "world-geography.location" })
           .filter((e) => e.archivedAt === undefined);
         const adjacency = world.listRelations({ type: "world-geography.adjacent_to" });
-        const here = String(world.getComponent("settlement-locations:settlement", "settlement-locations.settlement")?.placeId ?? "");
-        const reachable = adjacency
+        // 站的地方要能是地图地点（出门在外）也能是聚落自己的 place（在村里）。
+        const here = journey ? journey.to : standingAt(world);
+        const edges = geographyEdges(world);
+        const reachable = [...new Set(adjacency
           .filter((r) => r.from === here || r.to === here)
-          .map((r) => (r.from === here ? r.to : r.from));
-        const destinations = locations
-          .filter((e) => reachable.includes(e.id))
-          .map((e) => ({
-            id: e.id,
-            name: String(e.components["world-geography.location"]?.name ?? e.id),
-            type: String(e.components["world-geography.location"]?.type ?? ""),
-          }));
+          .map((r) => (r.from === here ? r.to : r.from)))];
+        const byId = new Map(locations.map((e) => [e.id, e]));
+        const destinations = reachable
+          .map((id) => byId.get(id))
+          .filter((e): e is NonNullable<typeof e> => Boolean(e))
+          .map((e) => {
+            const spec = e.components["world-geography.location"] ?? {};
+            const route = findRoute(edges, here, e.id);
+            return {
+              id: e.id,
+              name: String(spec.name ?? e.id),
+              type: String(spec.type ?? ""),
+              // 走几天要能提前说清楚，否则「出发」是闭眼跳。
+              days: route?.days ?? 1,
+              terrain: route?.terrain ?? "road",
+            };
+          });
         return {
           travelling: Boolean(journey),
+          here,
           destinations: destinations as unknown as JsonValue,
           line: journey ? "正在路上。" : destinations.length ? `可以说走就走，去${destinations[0]?.name ?? "别处"}。` : "附近没有可去的地方。",
         };

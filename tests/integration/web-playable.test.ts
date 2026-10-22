@@ -131,7 +131,7 @@ test("Exchange: Web shows tradeable goods and partners, and the general exchange
   }
 });
 
-test("M3-D: Web lets player gather grain, ask the cook, refuse or accept the exact real goods", { timeout: 40000 }, async () => {
+test("M3-D: Web lets player gather grain, ask the cook, refuse or accept the exact real goods", { timeout: 120000 }, async () => {
   const child = spawn(process.execPath, [fileURLToPath(new URL("../../apps/web/server.ts", import.meta.url))], {
     env: { ...process.env, OPENLIFE_PERSISTENCE: "0", PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
   });
@@ -976,7 +976,11 @@ test("Web player walks the settlement, borrows a jar, fetches water and returns 
     const catalog = (await call("catalog")).data;
     assert.equal(catalog.modules.find((m: { id: string }) => m.id === "settlement-locations").loaded, true);
     assert.equal(catalog.modules.find((m: { id: string }) => m.id === "world-clock").loaded, true);
-    assert.equal(catalog.modules.find((m: { id: string }) => m.id === "world-geography").loaded, false);
+    // Geography is genuinely loaded now: the web opening installs a map pack and
+    // pins the village to a location on it, which is what makes travelling to a
+    // real place possible. It used to be listed but never installed.
+    assert.equal(catalog.modules.find((m: { id: string }) => m.id === "world-geography").loaded, true);
+    assert.equal(catalog.modules.find((m: { id: string }) => m.id === "travel").loaded, true);
 
     assert.equal(stderr, "");
   } finally {

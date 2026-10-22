@@ -51,3 +51,21 @@ export function isSettlementAction(action: string): boolean {
     || action === "world-objects.place"
     || action === "world-objects.return";
 }
+
+/**
+ * 远行：离开村子去地图上的另一个地点，路上按天走，走到才落脚。
+ *
+ * 与聚落动作分开列，因为它们的代价不是「花掉几格今天的活动时间」——出发当天就
+ * 算一天路上的日子，之后每过一天推进一步。放进 `SETTLEMENT_ACTIONS` 会让
+ * `runSettlementAction` 找不到命令处理器而把玩家的选择拒成「不属于聚落生活」。
+ */
+export const TRAVEL_ACTIONS: Record<string, number> = {
+  "travel.depart": 1,
+  "travel.day": 1,
+  "travel.arrive": 0,
+  "travel.return": 0,
+};
+
+export function isTravelAction(action: string): boolean {
+  return action in TRAVEL_ACTIONS;
+}

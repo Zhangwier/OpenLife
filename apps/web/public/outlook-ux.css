@@ -1,0 +1,34 @@
+/*
+ * 阶段二/三的画面：今天、心事与去处。
+ * 只用 theme.css 的令牌，字号一律走 --fs-*，深色模式随令牌自动翻转。
+ * （`scripts/design-check.ts` 与 tests/unit/design-tokens.test.ts 守着这两条。）
+ */
+.outlook { display: grid; gap: 10px; margin-bottom: 16px; }
+.outlook .panel-title-row h2 { margin: 0; }
+.outlook-lead { margin: 0; font-size: var(--fs-ui); line-height: 1.7; color: var(--ink-2); }
+.outlook-note { margin: 0; font-size: var(--fs-ui); line-height: 1.7; color: var(--ink-2); }
+.outlook-fear { margin: 0; padding: 10px 12px; border-radius: var(--r-sm); background: var(--warn-soft); border: 1px solid var(--warn-line); font-size: var(--fs-ui); line-height: 1.7; color: var(--ink-2); }
+.outlook-fear b { display: block; color: var(--ink); margin-bottom: 2px; }
+.outlook-list { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: var(--fs-ui); line-height: 1.7; color: var(--ink-2); }
+.outlook-list li::marker { color: var(--accent); }
+.outlook-tag { margin-left: 8px; padding: 1px 8px; border-radius: var(--r-pill); background: var(--surface-3); color: var(--muted); font-size: var(--fs-note); font-weight: 600; white-space: nowrap; }
+.outlook-secrets { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.outlook-secret { padding: 10px 12px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--surface); }
+.outlook-secret b { font-size: var(--fs-ui); color: var(--ink); }
+.outlook-secret p { margin: 4px 0 0; font-size: var(--fs-fine); line-height: 1.7; color: var(--ink-2); }
+.outlook-secret.is-heard { background: var(--surface-2); border-style: dashed; }
+.outlook-secret.is-heard p { color: var(--muted); }
+.outlook-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.outlook-gos { list-style: none; padding-left: 0; }
+.outlook-gos li { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+/* 点击区至少 44×44（docs/design/DESIGN.md 的无障碍要求），所以用 min-height 而不是
+   靠内边距凑。动词在前 2–4 字：出门 / 再走一天 / 往回走 / 落脚。 */
+.outlook-go { min-height: 44px; padding: 0 14px; border-radius: var(--r-pill); border: 1px solid var(--accent-line); background: var(--accent-soft); color: var(--accent-ink); font-size: var(--fs-ui); font-weight: 600; cursor: pointer; }
+.outlook-go:hover { background: var(--surface-3); }
+.outlook-go:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.outlook-go.is-quiet { border-color: var(--line); background: var(--surface); color: var(--ink-2); }
+@media (max-width: 600px) {
+  .outlook-list { padding-left: 16px; }
+  .outlook-secret { padding: 9px 10px; }
+  .outlook-actions { gap: 6px; }
+}

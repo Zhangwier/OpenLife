@@ -44,6 +44,15 @@ export function calendarDate(tick: number): { month: number; day: number } {
   return { month: (Math.floor(tick / DAYS_PER_MONTH) % 12) + 1, day: (tick % DAYS_PER_MONTH) + 1 };
 }
 
+/**
+ * Every feast of the pack, in calendar order.
+ *
+ * `feastOn` answers "is one today", which is the wrong question for anything
+ * that looks ahead — a calendar cannot ask day by day for two months and stop
+ * at the first hit. This is the same list `feastOn` searches, handed out once.
+ */
+export function feastsOf(): readonly FeastSpec[] { return SPEC.feasts; }
+
 /** The feast held on this day, if any. */
 export function feastOn(tick: number): FeastSpec | undefined {
   const d = calendarDate(tick);

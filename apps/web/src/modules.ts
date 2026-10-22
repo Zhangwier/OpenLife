@@ -37,6 +37,10 @@ import { worldDepositsModule } from "@openlife/module-world-deposits";
 import { cultureModule } from "@openlife/module-culture";
 import { economyModule } from "@openlife/module-economy";
 import { travelModule } from "@openlife/module-travel";
+// 地理与地图：没有这两个，网页世界一份 `world-geography.location` 都不存在，
+// 远行的目的地投影永远空着——地图包只在图鉴里被读成清单，从没进过世界。
+import { worldGeographyModule } from "@openlife/module-world-geography";
+import { mapPackModule } from "@openlife/module-map-pack";
 // 秘密需要认知层（cognition.epistemic-state）：epistemic-state 因此在 web 里也装上了。
 // 它不是 core：关掉它，village-secrets 会按 docs/PLUGINS.md §2 的规则跟着关掉。
 import { epistemicStateModule } from "@openlife/module-epistemic-state";
@@ -74,6 +78,8 @@ export const WEB_MODULE_ENTRIES: ModuleEntry[] = [
   { module: worldDepositsModule },
   { module: cultureModule },
   { module: economyModule },
+  { module: worldGeographyModule, core: true },
+  { module: mapPackModule },
   { module: travelModule },
   // 认知层与心事：秘密要靠它记「谁知道了什么」。不是 core。
   { module: epistemicStateModule },

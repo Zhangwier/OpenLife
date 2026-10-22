@@ -817,5 +817,13 @@ installShell({
   },
 });
 installModalAccess();
+// 其它画面层（`outlook-ux.js` 的「出门/再走一天/往回走」之类）不必自己拿到
+// 这份闭包里的 performSettlementAction：它们发一个事件，这里统一走同一条下行
+// 通道，于是「校验时间、刷新状态、写记录、放动画」在一个地方发生。
+window.addEventListener("openlife:action", (event) => {
+  const detail = event.detail || {};
+  if (!detail.action) return;
+  void performSettlementAction(detail.action, detail.payload ?? {});
+});
 renderMemorySlots();
 loadState().catch(error => { showToast(error.message); $("homeStatus").textContent = "世界暂时无法读取，请检查本地服务后刷新。"; });

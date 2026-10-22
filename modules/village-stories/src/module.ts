@@ -18,7 +18,7 @@ import type { CommandIntent, ConstraintOutcome, Effect, OpenLifeModule, WorldVie
 import { occupiedPlaceId } from "@openlife/module-world-space";
 import {
   SettlementComponents, SettlementId, feastOn, isIll, residentId, PACK_INCIDENTS,
-  yieldPoints, RESOURCE_LABELS,
+  yieldPoints, RESOURCE_LABELS, StockRequestEvent as STOCK_REQUEST,
   type StoryEventSpec, type StoryChoiceSpec,
 } from "@openlife/module-settlement-locations";
 import { installPackIncidents, packChoice, packIncidentSource } from "./pack-incidents.ts";
@@ -209,22 +209,23 @@ function applyPackChoice(
   choice: StoryChoiceSpec,
 ): string {
   const notes: string[] = [];
+  // The villages's shared stock is not ours to write (INV-007): a yield point
+  // belongs to settlement-locations. Costs and yields are therefore announced as
+  // one event and settled by the module that owns them, in the same transaction.
+  // Writing the component here looked right and silently rolled back every
+  // choice that had a cost attached -- the whole incident failed to resolve.
+  const stock: { resourceId: string; delta: number; reason: string }[] = [];
 
-  // 1. Cost: taken from the village's shared stock, floored at zero so an
-  //    under-supplied village loses what it has rather than going negative.
+  // 1. Cost: taken from the village's shared stock, floored at zero by the
+  //    owner, so an under-supplied village loses what it has rather than going
+  //    negative.
   for (const [resourceId, amount] of Object.entries(choice.cost ?? {})) {
     if (!(amount > 0)) continue;
     const point = yieldPoints(c.world).find((y) => y.resourceId === resourceId);
     if (!point) continue;
     const taken = Math.min(point.stock, amount);
     if (taken <= 0) continue;
-    out.effects.push({
-      kind: "setComponent",
-      entityId: `yield:${point.placeId}:${point.resourceId}`,
-      component: SettlementComponents.yieldPoint,
-      value: { ...point, stock: point.stock - taken } as never,
-      reason: `incident ${spec.id}: paid ${taken}`,
-    });
+    stock.push({ resourceId, delta: -taken, reason: `incident ${spec.id}: paid ${taken}` });
     notes.push(`用掉 ${taken} 份${RESOURCE_LABELS[resourceId] ?? "东西"}`);
   }
 
@@ -252,18 +253,25 @@ function applyPackChoice(
   }
 
   // 4. Yields: scale real gathering points, same semantics as a story's yields.
+  //    A factor becomes a delta against what the point holds now; the owner
+  //    clamps it to the point's capacity.
   for (const [where, factor] of Object.entries(choice.yields ?? {})) {
     if (!(factor > 0)) continue;
     const [, placeId, resourceId] = where.match(/^(place:[^:]+):(.+)$/) ?? [];
     if (!placeId || !resourceId) continue;
     const point = yieldPoints(c.world).find((y) => y.placeId === placeId && y.resourceId === resourceId);
     if (!point) continue;
+    const moved = Math.round(point.stock * factor) - point.stock;
+    if (moved === 0) continue;
+    stock.push({ resourceId, delta: moved, reason: `incident ${spec.id}: yields x${factor}` });
+  }
+  if (stock.length) {
     out.effects.push({
-      kind: "setComponent",
-      entityId: `yield:${placeId}:${resourceId}`,
-      component: SettlementComponents.yieldPoint,
-      value: { ...point, stock: Math.min(point.capacity, Math.round(point.stock * factor)), lastRenewedAt: out.tick } as never,
-      reason: `incident ${spec.id}: yields x${factor}`,
+      kind: "emitEvent",
+      eventType: STOCK_REQUEST,
+      actorId: out.me,
+      data: { stock } as never,
+      historicalSignificance: 0,
     });
   }
 

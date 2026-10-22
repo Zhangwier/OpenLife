@@ -15,7 +15,7 @@ import {
 import { Life } from "@openlife/module-settlement-life";
 import { SettlementCommands } from "@openlife/module-settlement-locations";
 import { StoryCommands, StoryProjections } from "@openlife/module-village-stories";
-import { isSettlementAction } from "./src/actions.ts";
+import { isSettlementAction, isTravelAction } from "./src/actions.ts";
 import { residentId, rollOrigin, originCatalog } from "@openlife/module-settlement-locations";
 import {
   playerView,
@@ -31,8 +31,15 @@ import { codex } from "./src/codex.ts";
 import { humanizeEvent } from "./src/humanize.ts";
 import { ensureNature, runNatureAction, withNature } from "./src/nature.ts";
 import { startHistory, historyDay, historySeason, officeViews } from "./src/history-bridge.ts"; import { markModuleOff, markModuleOn } from "./src/module-switch.ts";import { webModules } from "./src/modules.ts";
+import { outlookOf } from "./src/outlook.ts";
+import { installGeography } from "./src/geography.ts";
+import { recordLife } from "./src/replay.ts";
+import { exportLife, importLife, isReplayFile } from "./src/life-file.ts";
+import { contentPackStamps } from "@openlife/module-settlement-locations";
 const PORT = Number(process.env.PORT ?? 4173);
 const PUBLIC_DIR = fileURLToPath(new URL("./public/", import.meta.url));
+/** 仓库里的地图包目录：`apps/web/` 往上两层。 */
+const PACKS_DIR = process.env.OPENLIFE_PACKS ?? fileURLToPath(new URL("../../packs/", import.meta.url));
 /** Which opening a brand-new life uses: the M1 settlement, or the older slice. */
 /** 饿肚子会少活动格（新开的人生默认打开；OPENLIFE_HUNGER_TOLL=0 关掉，供只测走动/器物的验收用）。 */
 const HUNGER_TOLL = process.env.OPENLIFE_HUNGER_TOLL !== "0";
@@ -42,6 +49,11 @@ const modules = modulePlan.modules;
 if (modulePlan.disabled.length + modulePlan.cascaded.length > 0) {
   console.log(`modules off: ${[...modulePlan.disabled, ...modulePlan.cascaded].join(", ")}`);
 }
+/**
+ * 这一局的开局选项，用来导出「我这一生」。它在 `createGame` 里被写上，所以必须先
+ * 于那句初始化声明：从存档恢复的世界没有它（那是上一局的事），导出会标 partial。
+ */
+let lifeOpening: Record<string, unknown> | null = null;
 let simulation = createGame();
 
 // Server-side persistence: autosaved to disk and restored on startup.
@@ -134,6 +146,12 @@ async function restoreFromDisk(): Promise<boolean> {
     // A world restored from a good snapshot already has one safe copy on disk.
     saveHealth = { state: "ok", reason: "restore", playerReason: "", at: String(parsed.savedAt ?? ""), path: SAVE_PATH };
     ensureNature(simulation);
+    // The first half of this life happened in an earlier process, so its inputs
+    // were never recorded; start recording from here, and forget the opening
+    // options of the world we just replaced -- they belong to a life nobody is
+    // playing now, and keeping them made this life's export claim to be whole.
+    recordLife(simulation);
+    lifeOpening = null;
     console.log(
       `[openlife] restored world from ${SAVE_PATH} (saved at ${parsed.savedAt ?? "unknown"})`,
     );
@@ -193,6 +211,8 @@ interface NewLifeOptions {
 
 export function createGame(options: NewLifeOptions = {}): Simulation {
   const seed = Number.isFinite(options.seed) ? Number(options.seed) >>> 0 : 104;
+  // 「我这一生」要带走的一份开局：种子只决定世界，这四项决定「你是谁」。
+  lifeOpening = { seed, givenName: options.givenName, familyName: options.familyName, cityId: options.cityId, originId: options.originId, talents: options.talents };
   const givenName = cleanName(options.givenName, "启");
   const familyName = cleanName(options.familyName, "禾");
   const cityId = options.cityId === "modern:city:south"
@@ -222,10 +242,16 @@ export function createGame(options: NewLifeOptions = {}): Simulation {
   // the earlier pottery slice stays available so its saves keep working.
   if (START_MODE === "pottery") {
     requireOk(runPlayerAction(sim, actorId, "life-enter"));
+    recordLife(sim);
     return sim;
   }
   requireOk(sim.dispatch({ type: "settlement-locations.found", payload: { hungerToll: HUNGER_TOLL }, source: "system" }));
   ensureNature(sim); startHistory(sim);
+  // 地图：网页世界此前从来没装过地图包，于是远行的目的地投影永远空着（它在读
+  // `world-geography.adjacent_to`，而世界上一份 geography 实体都没有）。这一步
+  // 装包、给村子开地点、把村子钉上去，失败只记日志——没地图村子照常过日子。
+  const geography = installGeography(sim, PACKS_DIR);
+  if (!geography.ok) console.warn(`[openlife] 地图没装上：${geography.issues.join(" | ")}`);
   requireOk(sim.dispatch({
     type: "settlement-locations.arrive",
     actorId,
@@ -238,11 +264,14 @@ export function createGame(options: NewLifeOptions = {}): Simulation {
     const chosen = sim.dispatch({ type: SettlementCommands.chooseOrigin, actorId, source: "player", payload: choice });
     if (!chosen.ok) throw new HttpError(400, chosen.errors[0]?.message ?? "出身选择无效");
   }
+  // 建局这一段（设世界、造角色、建村、装地图、接历史实验室）全靠 `lifeOpening`
+  // 在重放时重走一遍，不记进 steps——记了会执行两遍，世界里多出一个村子。
+  // 从这里开始记玩家与界面下发的输入。
+  recordLife(sim);
   return sim;
 }
 
-function cleanName(value: string | undefined, fallback: string): string {
-  if (typeof value !== "string") return fallback;
+function cleanName(value: string | undefined, fallback: string): string {  if (typeof value !== "string") return fallback;
   const cleaned = value.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 24);
   return cleaned || fallback;
 }
@@ -509,6 +538,7 @@ function gameState() {
     settlement: withNature(simulation, settlementView(simulation, characterId), characterId),
     stories: storiesView(characterId), guide: guideView(characterId),
     office: officeViews(simulation).panel, officeRegistry: officeViews(simulation).registry,
+    outlook: outlookOf(simulation, characterId),
     originCatalog: originCatalog(),
     clock: clockReading(world),
     /** SAVE-01: whether this world's last disk write actually succeeded. */
@@ -618,6 +648,18 @@ function runAction(action: string, payload: Record<string, unknown> = {}) {
   const id = activeCharacterId();
   // Bare object/space verbs from the browser pass isSettlementAction (src/actions.ts); player.ts maps them.
   if (STORY_ACTIONS.has(action)) return simulation.dispatch({ type: action, actorId: id, source: "player", payload: payload as never });
+  // 远行：出发/走一天/落脚/折返。它们不走聚落动作表——那几个命令的代价不是
+  // 「花掉今天一格活动时间」，而是真的在路上一天天过去。
+  if (isTravelAction(action)) {
+    const dispatched = simulation.dispatch({ type: action, actorId: id, source: "player", payload: payload as never });
+    // 在路上走一天也是过一天：把时钟推一格，历史实验室照常记账。
+    if (dispatched.ok && action === "travel.day") {
+      simulation.advanceBy(1);
+      simulation.syncHistory();
+      historyDay(simulation);
+    }
+    return dispatched;
+  }
   // Nature/hazard actions (feeding an animal, taming it, raising earthworks)
   // come from the nature view rather than the settlement one, so they are
   // dispatched before the settlement registry is consulted.
@@ -1096,6 +1138,7 @@ const MAX_BODY_BYTES = Number(process.env.OPENLIFE_MAX_BODY_BYTES ?? 32 * 1024 *
 const API_ROUTES: Record<string, string> = {
   "/api/catalog": "GET", "/api/codex": "GET", "/api/state": "GET", "/api/action": "POST", "/api/autosim": "POST",
   "/api/save": "POST", "/api/load": "POST", "/api/reset": "POST",
+  "/api/life": "GET", "/api/replay": "POST",
 };
 
 const server = createServer(async (req, res) => {
@@ -1216,8 +1259,31 @@ const server = createServer(async (req, res) => {
         }
         simulation = loaded.simulation;
         ensureNature(simulation);
+        // 这半生在别的进程里过完了，输入没记下来。装上记录器从此刻开始记，导出
+        // 的文件会标 partial：生平能读，重放只能从存档那一点往后。那个世界的开局
+        // 选项也跟着丢掉——那是别人的人生，留着会让这一局误报成完整记录。
+        recordLife(simulation);
+        lifeOpening = null;
         await persistNow("load");
         res.end(JSON.stringify({ result: loaded.result, state: gameState() }));
+        return;
+      }
+      if (req.method === "GET" && url.pathname === "/api/life") {
+        // 「我这一生」：几 KB 的文本，别人导入后能逐字重放。
+        res.end(JSON.stringify(exportLife(simulation, { opening: lifeOpening, modules, packs: contentPackStamps() })));
+        return;
+      }
+      if (req.method === "POST" && url.pathname === "/api/replay") {
+        const body = await readJson(req);
+        const file = body.replay;
+        if (!isReplayFile(file)) throw new HttpError(400, "这不是 OpenLife 的人生记录");
+        // 拿同一个种子从头造一局，再把记下的输入逐条送回去。指纹对不上不算失败，
+        // 界面上照实说「这不是同一条人生」比拒绝有用。
+        const replayed = importLife(file, (opening) => createGame(opening as NewLifeOptions));
+        simulation = replayed.sim;
+        ensureNature(simulation);
+        await persistNow("replay");
+        res.end(JSON.stringify({ result: replayed.result, state: gameState() }));
         return;
       }
       if (req.method === "POST" && url.pathname === "/api/reset") {
