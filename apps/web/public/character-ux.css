@@ -1,0 +1,30 @@
+/*
+ * 「人生」页「这一生」人物卡（2026-10-23 合并场）。只用 theme.css 令牌与 --fs-* 阶梯，深色随令牌翻转，不加阴影。
+ */
+#screen-character .life-rail { gap: 14px 20px; }
+#screen-character .life-rail .identity h1 { line-height: 1.2; }
+#screen-character .life-rail .identity p { font-size: var(--fs-ui); }
+
+/* 出身卡：小标 + 念想标签 */
+#screen-character .origin-card { display: grid; gap: 8px; }
+#screen-character .origin-head span { opacity: 1; color: var(--accent-ink); font-weight: 600; letter-spacing: .08em; }
+#screen-character .origin-wish { display: flex; gap: 8px; align-items: baseline; opacity: 1; color: var(--ink); }
+#screen-character .cx-tag { flex: none; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--accent-ink); font-size: var(--fs-note); font-weight: 600; letter-spacing: .08em; }
+#screen-character .cx-sub { margin-top: 4px; font-size: var(--fs-note); font-weight: 600; letter-spacing: .08em; color: var(--muted); }
+#screen-character .origin-talents { margin-top: -2px; }
+
+/* 人生线：端点标签更清楚 */
+#screen-character .life-line-labels { font-size: var(--fs-note); }
+#screen-character .life-line-labels span:last-child { color: var(--muted); }
+
+/* 状态词：还空着的写成淡色，前面一个短横 */
+#screen-character .soft-stats strong { display: block; line-height: 1.45; overflow-wrap: anywhere; }
+#screen-character .soft-stats strong.cx-empty { color: var(--muted); font-weight: 400; }
+#screen-character .soft-stats strong.cx-empty::before { content: "— "; color: var(--line-strong, var(--muted)); }
+#screen-character .soft-stats > div:has(strong.cx-empty) > span { opacity: .85; }
+
+@media (max-width: 640px) {
+  #screen-character .life-rail { padding: 18px 16px; }
+  #screen-character .origin-wish { flex-direction: column; gap: 4px; align-items: flex-start; }
+  #screen-character .soft-stats strong { font-size: var(--fs-ui); }
+}

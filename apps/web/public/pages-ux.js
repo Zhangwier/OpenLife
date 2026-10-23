@@ -9,6 +9,7 @@
  *  6. 大屏（≥1600px）：生活页右侧加一条粘性栏，人生纪事和心里记着的事放进去，主列不用再上下翻找。
  * 样式在 pages-ux.css（本文件自己挂上）。
  */
+import "./newlife-ux.js";
 const $ = (id) => document.getElementById(id);
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
