@@ -1,0 +1,14 @@
+/* 2026-10-23 午场：新人生弹窗 */
+.new-life-form.nl-ux { gap: 14px; }
+.nl-advanced { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); }
+.nl-advanced > summary { min-height: 44px; display: flex; align-items: center; padding: 0 14px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.nl-advanced > summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.nl-advanced[open] > summary { color: var(--ink); }
+.nl-advanced > label { padding: 0 14px 14px; }
+.nl-summary { margin: 0; padding: 10px 14px; border-radius: var(--r-md); background: var(--primary-soft); color: var(--ink); font-size: 14px; line-height: 1.6; }
+.nl-error { color: var(--danger); font-size: 13px; }
+.new-life-form input[aria-invalid="true"] { border-color: var(--danger); }
+.new-life-form button[type=submit]:disabled { opacity: .5; cursor: not-allowed; }
+@media (min-width: 601px) {
+  .new-life-form.nl-ux .form-actions { grid-template-columns: 2fr 1fr; }
+}

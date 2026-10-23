@@ -1,0 +1,90 @@
+/* 「今天」卡（此刻页）与「心事与去处」卡（人生页）· 每日 UI 优化 2026-10-23 早场
+ * 配合 outlook-card-ux.js。只用 theme.css 的令牌，字号走 --fs-*，深色模式随令牌翻转。
+ */
+.ox-card { display: grid; gap: 16px; padding: 18px 22px; margin-bottom: 16px; box-sizing: border-box; }
+.ox-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.ox-card .ox-head h2 { margin: 2px 0 0; }
+.ox-eyebrow { margin: 0; font-size: var(--fs-note); font-weight: 600; letter-spacing: .08em; color: var(--accent); }
+.ox-mood-tag { flex: none; margin-top: 4px; padding: 3px 12px; border-radius: var(--r-pill); background: var(--surface-3); border: 1px solid var(--line); color: var(--ink-2); font-size: var(--fs-note); font-weight: 600; white-space: nowrap; }
+.ox-mood { margin: 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: var(--fs-ui); line-height: 1.7; color: var(--ink-2); }
+
+/* 小节小标：眉标样式，和其它卡片的「你所在的地方」「身边的事」一致 */
+.ox-card .ox-sub { margin: 0 0 6px; font: 600 var(--fs-note)/1.4 var(--sans); letter-spacing: .08em; color: var(--accent); }
+.ox-empty, .ox-lead { margin: 0; font-size: var(--fs-ui); line-height: 1.7; color: var(--ink-2); }
+.ox-lead { margin-top: 8px; }
+
+/* 村子阶梯 / 人生阶段轨：走过的、眼下的、往后的 */
+.ox-ladder-wrap { display: grid; gap: 6px; }
+.ox-ladder-cap { margin: 0; font-size: var(--fs-note); color: var(--muted); }
+.ox-ladder, .ox-stages { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.ox-ladder li, .ox-stages li { padding: 4px 12px; border-radius: var(--r-pill); border: 1px solid var(--line); font-size: var(--fs-ui); line-height: 1.5; color: var(--muted); background: var(--surface); }
+.ox-ladder li.is-past, .ox-stages li.is-past { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-ink); }
+.ox-ladder li.is-past::before, .ox-stages li.is-past::before { content: "✓ "; font-size: var(--fs-note); }
+.ox-ladder li.is-now, .ox-stages li.is-now { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); font-weight: 700; }
+.ox-ladder li.is-next, .ox-stages li.is-next { border-style: dashed; }
+
+/* 两栏：日历 | 眼下要紧的 */
+.ox-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+@media (min-width: 760px) {
+  .ox-cols { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 0; }
+  .ox-cols > .ox-col + .ox-col { padding-left: 22px; margin-left: 22px; border-left: 1px solid var(--line); }
+}
+.ox-cal, .ox-todo, .ox-season { list-style: none; margin: 0; padding: 0; display: grid; }
+.ox-cal li { display: grid; grid-template-columns: minmax(72px, 9em) minmax(0, 1fr); gap: 12px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.ox-cal li:last-child { border-bottom: 0; }
+.ox-when { display: grid; gap: 1px; }
+.ox-when b { font-size: var(--fs-ui); color: var(--ink); }
+.ox-when small { font-size: var(--fs-note); color: var(--muted); }
+.ox-what { font-size: var(--fs-ui); line-height: 1.6; color: var(--ink-2); }
+.ox-todo li { padding: 8px 0 8px 12px; border-left: 3px solid var(--warn-line); font-size: var(--fs-ui); line-height: 1.6; color: var(--ink); background: var(--warn-soft); border-radius: 0 var(--r-sm) var(--r-sm) 0; margin-bottom: 6px; padding-right: 10px; }
+.ox-season-head { margin: 8px 0 4px; font-size: var(--fs-ui); font-weight: 600; color: var(--ink); }
+.ox-season li { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; font-size: var(--fs-ui); line-height: 1.6; color: var(--ink-2); }
+.ox-mark { flex: none; width: 20px; height: 20px; margin-top: 2px; box-sizing: border-box; display: inline-grid; place-items: center; border-radius: var(--r-pill); border: 1.5px solid var(--line-strong); font-size: var(--fs-note); line-height: 1; color: var(--primary-ink); }
+.ox-season li.is-done .ox-mark { background: var(--ok); border-color: var(--ok); }
+.ox-season li.is-done { color: var(--muted); }
+.ox-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* 人生页：几块之间用分隔线，不再各自一行飘着 */
+.ox-blocks { display: grid; gap: 0; }
+.ox-block { padding: 14px 0; border-top: 1px solid var(--line); }
+.ox-block:first-child { padding-top: 0; border-top: 0; }
+.ox-block:last-child { padding-bottom: 0; }
+.ox-block .outlook-fear { margin: 0; }
+.ox-block .outlook-secrets { margin: 0; }
+.ox-block .outlook-lead { margin-top: 8px; font-size: var(--fs-note); color: var(--muted); }
+.ox-block > .outlook-lead:first-child { margin-top: 0; font-size: var(--fs-ui); color: var(--ink-2); }
+
+/* 去处：一行一处，写清路上几天；按钮 44px 点击区、按下就有反应 */
+.ox-gos { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ox-gos li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 8px 8px 14px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); }
+.ox-go-text { display: grid; gap: 1px; min-width: 0; }
+.ox-go-text b { font-size: var(--fs-ui); color: var(--ink); }
+.ox-go-meta { font-size: var(--fs-note); color: var(--muted); }
+.ox-go { flex: none; min-width: 72px; }
+.ox-card .outlook-go:disabled { cursor: progress; opacity: .7; }
+.ox-card .outlook-go.is-busy { background: var(--surface-3); border-color: var(--line-strong); color: var(--ink-2); }
+.ox-card .outlook-go.is-busy::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 8px; vertical-align: -1px; border-radius: var(--r-pill); border: 2px solid var(--line-strong); border-top-color: var(--accent); }
+.ox-block > .outlook-lead + .outlook-actions, .ox-block .outlook-actions { margin-top: 10px; }
+
+/* 此刻页：和引导卡同一列宽（now-ux 合进来时共用 --now-col） */
+@media (min-width: 900px) {
+  #screen-activities > .ox-card { width: 100%; max-width: var(--now-col, 1000px); margin-inline: auto; }
+}
+
+/* 手机：此刻页的卡原来贴着屏幕边，补 12px 外边距；内边距收一点 */
+@media (max-width: 600px) {
+  :where(html:not([data-layout="desktop"])) #screen-activities > .ox-card { margin: 12px 12px 14px; }
+  :where(html:not([data-layout="desktop"])) .ox-card { padding: 16px; gap: 14px; }
+  :where(html:not([data-layout="desktop"])) .ox-cal li { grid-template-columns: minmax(64px, 7em) minmax(0, 1fr); gap: 10px; }
+  :where(html:not([data-layout="desktop"])) .ox-ladder li, :where(html:not([data-layout="desktop"])) .ox-stages li { padding: 4px 8px; }
+  :where(html:not([data-layout="desktop"])) .ox-ladder, :where(html:not([data-layout="desktop"])) .ox-stages { gap: 4px; }
+}
+:where(html.is-phone) #screen-activities > .ox-card { margin: 12px 12px 14px; }
+:where(html.is-phone) .ox-card { padding: 16px; gap: 14px; }
+:where(html.is-phone) .ox-cal li { grid-template-columns: minmax(64px, 7em) minmax(0, 1fr); gap: 10px; }
+:where(html.is-phone) .ox-ladder li, :where(html.is-phone) .ox-stages li { padding: 4px 8px; }
+:where(html.is-phone) .ox-ladder, :where(html.is-phone) .ox-stages { gap: 4px; }
+@media (prefers-reduced-motion: no-preference) {
+  .ox-card .outlook-go.is-busy::before { animation: ox-spin .9s linear infinite; }
+  @keyframes ox-spin { to { transform: rotate(360deg); } }
+}
