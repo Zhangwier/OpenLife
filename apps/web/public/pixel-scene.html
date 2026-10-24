@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenLife · 河岸台地（像素视图）</title>
+<link rel="stylesheet" href="pixel-scene.css">
+</head>
+<body>
+<div class="app">
+  <div class="stage">
+    <canvas id="view" width="640" height="360"></canvas>
+    <div class="hud hud-place">
+      <div class="place" id="hudPlace">河岸台地</div>
+      <div class="meta" id="hudMeta">—</div>
+    </div>
+    <div class="hud hud-people" id="hudPeople"></div>
+    <div class="hud hud-exits" id="hudExits"></div>
+    <div class="banner" id="banner" hidden></div>
+  </div>
+  <div class="bar">
+    <button id="btnRefresh">刷新状态</button>
+    <span class="hint">数据来自 <code>/api/state</code>；场景布局由 <code>placeId</code> 决定。</span>
+  </div>
+</div>
+<script src="pixel-scene.js"></script>
+</body>
+</html>
