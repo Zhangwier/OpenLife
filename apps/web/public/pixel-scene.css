@@ -1,33 +1,91 @@
-/* 像素视图外壳：只负责摆放 HUD，不参与画面绘制。 */
-:root{
-  --ink:#e8e4d8; --dim:#a09a88; --faint:#6f6a5c;
-  --panel:rgba(12,12,10,.62); --edge:rgba(232,228,216,.14);
+/*
+ * 像素视图外壳：只负责摆放 HUD，不参与画面绘制。
+ *
+ * 为什么这里不用 theme.css 的纸色令牌：画面本身是暗色的像素场景，
+ * 纸色面板压上去会像贴了张便签。所以这里自带一套暗色 HUD 变量，
+ * 但仍然遵守设计令牌的两条硬规矩——字号只取 --fs-* 阶梯，颜色不写死十六进制。
+ */
+:root {
+  --ps-ink: rgba(232, 228, 216, .95);
+  --ps-dim: rgba(160, 154, 136, .95);
+  --ps-faint: rgba(138, 132, 118, .88);
+  --ps-panel: rgba(12, 12, 10, .62);
+  --ps-edge: rgba(232, 228, 216, .14);
+  --ps-stage: rgba(10, 11, 12, 1);
+  --ps-page: rgba(13, 14, 16, 1);
+  --ps-btn: rgba(27, 29, 33, 1);
+  --ps-btn-line: rgba(43, 46, 52, 1);
+  --ps-btn-hover: rgba(61, 65, 74, 1);
+  --ps-code: rgba(139, 154, 110, 1);
+  --ps-warn-bg: rgba(120, 70, 30, .85);
+  --ps-warn-line: rgba(255, 190, 120, .35);
+  --ps-warn-ink: rgba(255, 224, 176, 1);
 }
-*{box-sizing:border-box}
-html,body{margin:0;background:#0d0e10;color:var(--ink);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
-.app{max-width:1100px;margin:0 auto;padding:18px 16px 40px}
-.stage{position:relative;border:1px solid var(--edge);border-radius:8px;overflow:hidden;background:#0a0b0c;line-height:0}
-canvas{display:block;width:100%;height:auto;image-rendering:pixelated;image-rendering:crisp-edges}
-.hud{position:absolute;background:var(--panel);border:1px solid var(--edge);border-radius:6px;
-  padding:7px 11px;line-height:1.5;backdrop-filter:blur(3px)}
-.hud-place{left:12px;top:12px;min-width:150px}
-.place{font-size:13.5px;font-weight:500;letter-spacing:.04em}
-.meta{font-size:11.5px;color:var(--dim);margin-top:2px}
-.hud-people{right:12px;top:12px;min-width:132px;font-size:11.5px;color:var(--dim)}
-.hud-people b{color:var(--ink);font-weight:500}
-.hud-people .row{display:flex;justify-content:space-between;gap:10px}
-.hud-people .tag{color:var(--faint);font-size:10.5px}
-.hud-exits{left:12px;bottom:12px;max-width:34%;font-size:11.5px;color:var(--dim)}
-.hud-exits .row{display:flex;gap:6px;align-items:baseline}
-.hud-exits .n{color:var(--ink)}
-.hud-exits .c{color:var(--faint);font-size:10.5px}
-.banner{position:absolute;left:50%;transform:translateX(-50%);top:10px;
-  background:rgba(120,70,30,.85);border:1px solid rgba(255,190,120,.35);color:#ffe0b0;
-  font-size:11.5px;padding:4px 10px;border-radius:5px}
-.bar{display:flex;gap:14px;align-items:center;margin-top:12px}
-button{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:6px;cursor:pointer;
-  background:#1b1d21;color:#a09a88;border:1px solid #2b2e34}
-button:hover{color:#e8e4d8;border-color:#3d414a}
-.hint{font-size:11.5px;color:var(--faint)}
-.hint code{font-size:11px;color:#8b9a6e}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  background: var(--ps-page);
+  color: var(--ps-ink);
+  font-family: var(--sans);
+}
+.app { max-width: 1100px; margin: 0 auto; padding: 18px 16px 40px; }
+.stage {
+  position: relative;
+  border: 1px solid var(--ps-edge);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  background: var(--ps-stage);
+  line-height: 0;
+}
+canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; }
+
+.hud {
+  position: absolute;
+  background: var(--ps-panel);
+  border: 1px solid var(--ps-edge);
+  border-radius: var(--r-sm);
+  padding: 7px 11px;
+  line-height: 1.5;
+  backdrop-filter: blur(3px);
+}
+.hud-place { left: 12px; top: 12px; min-width: 150px; }
+.place { font-size: var(--fs-ui); font-weight: 600; letter-spacing: .04em; }
+.meta { font-size: var(--fs-note); color: var(--ps-dim); margin-top: 2px; }
+
+.hud-people { right: 12px; top: 12px; min-width: 132px; font-size: var(--fs-note); color: var(--ps-dim); }
+.hud-people b { color: var(--ps-ink); font-weight: 600; }
+.hud-people .row { display: flex; justify-content: space-between; gap: 10px; }
+.hud-people .tag { color: var(--ps-faint); font-size: var(--fs-note); }
+
+.hud-exits { left: 12px; bottom: 12px; max-width: 34%; font-size: var(--fs-note); color: var(--ps-dim); }
+.hud-exits .row { display: flex; gap: 6px; align-items: baseline; }
+.hud-exits .n { color: var(--ps-ink); }
+.hud-exits .c { color: var(--ps-faint); font-size: var(--fs-note); }
+
+.banner {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 10px;
+  background: var(--ps-warn-bg);
+  border: 1px solid var(--ps-warn-line);
+  color: var(--ps-warn-ink);
+  font-size: var(--fs-note);
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+}
+
+.bar { display: flex; gap: 14px; align-items: center; margin-top: 12px; }
+button {
+  font: inherit;
+  font-size: var(--fs-fine);
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  background: var(--ps-btn);
+  color: var(--ps-dim);
+  border: 1px solid var(--ps-btn-line);
+}
+button:hover { color: var(--ps-ink); border-color: var(--ps-btn-hover); }
+.hint { font-size: var(--fs-note); color: var(--ps-faint); }
+.hint code { font-size: var(--fs-note); color: var(--ps-code); }
