@@ -107,6 +107,8 @@ try {
   const dsf = Number(arg.dsf ?? 2);
   const tag = arg.tag ? String(arg.tag) + "-" : "";
   const base = await startServer();
+  // Navigate per-cell with the ?art=place,season,sky override baked into the URL, so the pixel
+  // view locks a deterministic scene instead of the live world (no fetch-stub race).
   await openBrowser(base + "/pixel-scene.html");
   await cdp("Emulation.setDeviceMetricsOverride", { width: 700, height: 460, deviceScaleFactor: dsf, mobile: false });
   await until(async () => evaluate('Boolean(document.getElementById("view"))'), "pixel view missing");
@@ -116,18 +118,16 @@ try {
     : [{ place: arg.place, season: arg.season ?? "秋", sky: arg.sky ?? "晴" }];
 
   for (const cell of cells) {
-    await evaluate(overrideScene(cell));
-    // Force a rebuild with the override: stub fetchState for one pass.
-    await evaluate(`(() => {
-      const demo = window.__artOverride;
-      // rebuild is internal; trigger via the refresh button after monkey-patching fetch once
-      const of = window.fetch;
-      window.fetch = () => Promise.resolve({ ok: true, json: () => Promise.resolve(demo) });
-      document.getElementById("btnRefresh").click();
-      window.fetch = of;
-      return true;
-    })()`);
-    await sleep(700); // let terrain/detail/trees rebuild + a few frames
+    // Reload with the override baked into the URL (?art=place,season,sky) — the page locks that
+    // scene and never touches the live world, so comparisons are like-for-like.
+    const url = `${base}/pixel-scene.html?art=${encodeURIComponent(`${cell.place ?? "place:yard"},${cell.season},${cell.sky}`)}`;
+    await evaluate(`location.href = ${JSON.stringify(url)}; true`);
+    await until(async () => evaluate('Boolean(document.getElementById("view"))'), "pixel view missing", 20000);
+    await until(async () => {
+      const meta = await evaluate('document.getElementById("hudMeta").textContent || ""');
+      return meta.includes(cell.season) && meta.includes(cell.sky);
+    }, `scene did not lock to ${cell.season}/${cell.sky}`, 20000);
+    await sleep(650); // let terrain/detail/trees rebuild + a few frames
     const rect = await evaluate(`(() => { const r = document.getElementById("view").getBoundingClientRect();
       return { x: r.x, y: r.y, width: r.width, height: r.height }; })()`);
     const name = `${tag}art-${cell.place ?? "place:yard"}-${cell.season}-${cell.sky}.png`.replaceAll(":", "");

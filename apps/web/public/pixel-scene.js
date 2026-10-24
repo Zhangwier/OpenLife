@@ -108,25 +108,26 @@
      4–7 是草面受光。lip 是路缘新草的高光（比草地亮、偏黄，A6 用）。
      hue 落在 76°–110°，把"发闷的灰"换成有呼吸的橄榄绿；冬天刻意留低饱和（S≈15）压成灰绿。 */
   const SEASONS = {
+    // 亮部刻意压向泥褐/灰黄，不走向荧光鲜绿；hue 落在 60°–95°，S≈12–28%
     春: {
-      grass: ['#242f1d', '#313f27', '#3d4f30', '#495f3a', '#556f44', '#617e4e', '#6d8e57', '#799e61'],
-      lip: '#a9c070', stem: '#4c6132', haze: '#a9b184',
-      flower: 1.0, snow: 0, leaf: '#5c6b3e', accent: '#d8c04a',
+      grass: ['#232b1c', '#2e3823', '#3a452b', '#455232', '#515f3b', '#5c6b45', '#68774f', '#738359'],
+      lip: '#9aa765', stem: '#46542c', haze: '#a3a87f',
+      flower: 1.0, snow: 0, leaf: '#566238', accent: '#d8c04a',
     },
     夏: {
-      grass: ['#1c2a18', '#263a22', '#314a2b', '#3c5b34', '#476b3d', '#517b47', '#5c8b50', '#679b59'],
-      lip: '#9dbb63', stem: '#3f5527', haze: '#9cae7a',
-      flower: 0.5, snow: 0, leaf: '#51603a', accent: '#d8c04a',
+      grass: ['#1d2718', '#27351f', '#324327', '#3c5030', '#475e38', '#516a40', '#5c7749', '#668351'],
+      lip: '#8f9c5c', stem: '#3c4a26', haze: '#97a074',
+      flower: 0.5, snow: 0, leaf: '#4d5936', accent: '#d8c04a',
     },
     秋: {
-      grass: ['#2a2f1d', '#383f27', '#474e31', '#555e3b', '#636e45', '#717d4f', '#7f8d58', '#8d9d62'],
-      lip: '#b0b873', stem: '#514c2a', haze: '#b6ab8a',
-      flower: 0.3, snow: 0, leaf: '#6e6640', accent: '#c8862e',
+      grass: ['#282a1b', '#333623', '#3f422c', '#4a4e34', '#565a3d', '#616545', '#6d704e', '#787c57'],
+      lip: '#a09f60', stem: '#4c462a', haze: '#ada37f',
+      flower: 0.3, snow: 0, leaf: '#66603c', accent: '#c8862e',
     },
     冬: {
-      grass: ['#242c21', '#2e3829', '#384332', '#414f3b', '#4b5b43', '#55674c', '#5e7255', '#687e5d'],
-      lip: '#869d6c', stem: '#3a4133', haze: '#bcc1bb',
-      flower: 0.05, snow: 1, leaf: '#4d5640', accent: '#d8c04a',
+      grass: ['#232a20', '#2d3527', '#37402f', '#414b37', '#4a5540', '#546048', '#5d6a50', '#677458'],
+      lip: '#7f8f63', stem: '#383e30', haze: '#b5baae',
+      flower: 0.05, snow: 1, leaf: '#4a523e', accent: '#d8c04a',
     },
   };
 
@@ -381,12 +382,13 @@
     }
 
     /* 草叶：每根都相对"脚下那一格的草地明度"取色（下方压 1 阶、受光尖端抬 1–2 阶），
-       所以亮地上不会冒出黑毛，暗地上也不会浮白点。 */
-    for (let i = 0; i < 11000; i++) {
+       所以亮地上不会冒出黑毛，暗地上也不会浮白点。
+       A9：草叶成片成簇（噪声门槛偏高），不是均匀撒满——草地主体是平整色块，草叶只是点缀。 */
+    for (let i = 0; i < 6000; i++) {
       const x = Math.floor(h2(i, 1, 401) * W), y = Math.floor(h2(i, 2, 401) * H);
       if (mask[y * W + x] !== 0) continue;
-      const dens = vnoise(x, y, 62, 411) * 0.55 + vnoise(x, y, 18, 412) * 0.45;
-      if (h2(i, 3, 401) > dens * dens * 1.45) continue;
+      const dens = vnoise(x, y, 62, 411) * 0.62 + vnoise(x, y, 18, 412) * 0.38;
+      if (h2(i, 3, 401) > dens * dens * dens * 1.7) continue;
       const r = h2(i, 4, 401);
       const hh = 2 + Math.floor(h2(i, 5, 401) * 4);
       const lean = r > 0.68 ? 1 : 0;
@@ -1014,14 +1016,21 @@
     const lobes = treeCanopyLobes();
     const shades = treeCanopyShades(hex(season.leaf));
 
+    /* A9 像素粒度：场可以连续，但着色按 PIX×PIX 网格量化。
+       每一格在格中心采样一次场与光照，量化成色档后整格填同一个色——
+       同一色档内部是大片相同的像素格，靠色块拼体积，不是逐像素渐变。 */
+    const PIX = 2;
+
     // 只扫树冠并集的包围盒：全场一次算完，重叠处自然是一个整体
     let bx0 = W, by0 = H, bx1 = 0, by1 = 0;
     for (const L of lobes) {
       bx0 = Math.min(bx0, L.x - L.r); by0 = Math.min(by0, L.y - L.r);
       bx1 = Math.max(bx1, L.x + L.r); by1 = Math.max(by1, L.y + L.r);
     }
-    bx0 = Math.max(0, Math.floor(bx0) - 1); by0 = Math.max(0, Math.floor(by0) - 1);
-    bx1 = Math.min(W - 1, Math.ceil(bx1) + 1); by1 = Math.min(H - 1, Math.ceil(by1) + 1);
+    bx0 = Math.max(0, Math.floor(bx0) - PIX); by0 = Math.max(0, Math.floor(by0) - PIX);
+    bx1 = Math.min(W - 1, Math.ceil(bx1) + PIX); by1 = Math.min(H - 1, Math.ceil(by1) + PIX);
+    // 对齐到网格，整格覆盖，边缘不留半格
+    bx0 -= bx0 % PIX; by0 -= by0 % PIX;
 
     const bw = bx1 - bx0 + 1, bh = by1 - by0 + 1;
     const img = c.createImageData(bw, bh), d = img.data;
@@ -1029,7 +1038,13 @@
     const ground = TER.g.getImageData(bx0, by0, bw, bh).data;
     const shadeL = shades.map((s) => 0.299 * s[0] + 0.587 * s[1] + 0.114 * s[2]);
 
-    for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) {
+    // 先按网格算每格的颜色（或留空），再统一整格填色
+    const gw = Math.ceil(bw / PIX), gh = Math.ceil(bh / PIX);
+    const cell = new Int16Array(gw * gh).fill(-2); // -2 空，-1 抖动留空，>=0 色档
+    const CELL_HILITE = 100, CELL_ACCENT = 101;
+
+    for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
+      const x = bx0 + gx * PIX + (PIX >> 1), y = by0 + gy * PIX + (PIX >> 1); // 格中心
       let field = 0, host = null, hostW = 0;
       for (let li = 0; li < lobes.length; li++) {
         const L = lobes[li];
@@ -1043,20 +1058,26 @@
       }
       if (!host) continue;
 
-      // A4 边缘：等值线内外一条 4–7px 的 Bayer 4×4 抖动带，收边不硬切
+      // A4 边缘：等值线内外一条抖动带，以"格"为单位抖动，收边呈像素颗粒
       const solid = field / TREE_ISO;
       if (solid < TREE_FADE) continue;
       const band = clamp((solid - TREE_FADE) / (1 - TREE_FADE), 0, 1);
-      const bayer = (TREE_BAYER4[(y & 3) * 4 + (x & 3)] + 0.5) / 16;
+      const bayer = (TREE_BAYER4[(gy & 3) * 4 + (gx & 3)] + 0.5) / 16;
       if (band < 1 && bayer > band) continue;
 
       const dx = x - host.x, dy = y - host.cy;
       const clump = vnoise(x, y, 7, 17);
       const fine = vnoise(x, y, 3.4, 29);
-      const lit = clamp(0.46 + (-dx * 0.44 - dy * 0.80) / (host.r * 1.15)
+      // A9 色阶断层：连续 lit 先量化成 5 档，档边界用 Bayer 抖动过渡
+      const litRaw = clamp(0.46 + (-dx * 0.44 - dy * 0.80) / (host.r * 1.15)
         + (clump - 0.5) * 0.52 + (fine - 0.5) * 0.20, 0, 1);
+      const quant = litRaw * 5;
+      let idx = Math.floor(quant);
+      // 档间抖动：小数部分与 Bayer 阈值比，过了就进上一档 → 颗粒状过渡
+      if (quant - idx > bayer && idx < 4) idx++;
+      idx = clamp(idx, 0, 4);
 
-      let col;
+      let out = idx;
       if (band < 0.985) {
         // A1 最外圈：取"叶色 + 脚下地面"之间最近的一档，明度差不比内部层次大，
         // 于是没有一圈比背景暗/亮出一个量级的勾边，收形交给抖动带。
@@ -1066,19 +1087,36 @@
         let pick = 1;
         if (Math.abs(shadeL[2] - target) < Math.abs(shadeL[pick] - target)) pick = 2;
         if (Math.abs(shadeL[3] - target) < Math.abs(shadeL[pick] - target)) pick = 3;
-        col = (lit > 0.82 && h2(x, y, 5301) < 0.30) ? shades[3] : shades[pick];
+        out = (litRaw > 0.82 && h2(gx, gy, 5301) < 0.30) ? 3 : pick;
       } else {
-        const idx = lit < 0.16 ? 0 : lit < 0.33 ? 1 : lit < 0.55 ? 2 : lit < 0.76 ? 3 : 4;
-        col = shades[idx];
-        // A5 单像素透光点：朝光面密、背光面稀（每棵树几十粒）
-        const hk = h2(x, y, 5201);
-        const dens = 0.0025 + lit * 0.0105;
-        if (hk < dens) col = TREE_HILITE;
-        else if (hk < dens + 0.0015) col = TREE_ACCENT;
+        // A5 透光点：以"格"为单位撒，朝光面密、背光面几乎不撒。
+        // litRaw 走平方让亮点集中到最亮的一小片，密度压到稀疏（参考图每棵树只有几粒透光）。
+        const hk = h2(gx, gy, 5201);
+        const dens = 0.0015 + litRaw * litRaw * 0.012;
+        if (hk < dens) out = CELL_HILITE;
+        else if (hk < dens + 0.0012 && litRaw > 0.55) out = CELL_ACCENT;
       }
+      cell[gy * gw + gx] = out;
+    }
 
-      const i = ((y - by0) * bw + (x - bx0)) * 4;
-      d[i] = col[0] | 0; d[i + 1] = col[1] | 0; d[i + 2] = col[2] | 0; d[i + 3] = 255;
+    // 把每格填成纯色（2×2 同色像素），透光点收敛成单像素更通透
+    for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
+      const v = cell[gy * gw + gx];
+      if (v < 0) continue;
+      const x0 = gx * PIX, y0 = gy * PIX;
+      if (v === CELL_HILITE || v === CELL_ACCENT) {
+        const col = v === CELL_HILITE ? TREE_HILITE : TREE_ACCENT;
+        const i = (y0 * bw + x0) * 4;
+        d[i] = col[0]; d[i + 1] = col[1]; d[i + 2] = col[2]; d[i + 3] = 255;
+        continue;
+      }
+      const col = shades[v];
+      for (let py = 0; py < PIX; py++) for (let px = 0; px < PIX; px++) {
+        const xx = x0 + px, yy = y0 + py;
+        if (xx >= bw || yy >= bh) continue;
+        const i = (yy * bw + xx) * 4;
+        d[i] = col[0] | 0; d[i + 1] = col[1] | 0; d[i + 2] = col[2] | 0; d[i + 3] = 255;
+      }
     }
     c.putImageData(img, bx0, by0);
   }
@@ -1601,7 +1639,44 @@
     }
   }
 
+  /* 美术调试钩子：`pixel-scene.html?art=place:yard,秋,晴` 锁定一个确定性场景，
+     不再读 /api/state，便于出可对照的改前/改后渲染基线（dev-art-shot.mjs 用）。
+     仅在带这个参数时生效，正常打开页面不受影响。 */
+  function artOverrideFromQuery() {
+    const raw = new URLSearchParams(location.search).get('art');
+    if (!raw) return null;
+    const [place = 'place:yard', seasonName = '秋', skyName = '晴'] = raw.split(',');
+    return toSceneVM({
+      settlement: {
+        placeId: place, placeName: '河岸台地', season: seasonName, weather: { sky: skyName },
+        neighbours: [
+          { id: 'a', name: '陶婶', acquaintance: 'known', atWork: true, contact: '相识' },
+          { id: 'b', name: '猎户', acquaintance: 'stranger', atWork: false, contact: '陌生' },
+          { id: 'c', name: '磨坊主', acquaintance: 'known', atWork: false, contact: '相识' },
+        ],
+        objects: [
+          { id: 'o1', name: '陶罐', prototypeId: 'prototype:jar', visible: true, quantity: 1 },
+          { id: 'o2', name: '谷物篮', prototypeId: 'prototype:grain-basket', visible: true, quantity: 1 },
+        ],
+        exits: [
+          { placeId: 'place:river', name: '河边', costDays: 1 },
+          { placeId: 'place:field', name: '田里', costDays: 1 },
+        ],
+        dailyActivity: { used: 3, capacity: 8 },
+      },
+      clock: { day: 100, dayOfMonth: 8, monthOfYear: 4, season: seasonName, eraYear: -2053 },
+      character: { id: 'modern:e1', name: '启禾', age: 16 },
+    });
+  }
+
+  const artLock = artOverrideFromQuery();
   document.getElementById('btnRefresh').addEventListener('click', refresh);
-  refresh();
+  if (artLock) {
+    rebuild(artLock);
+    paintHud();
+    document.getElementById('banner').hidden = true;
+  } else {
+    refresh();
+  }
   requestAnimationFrame(frame);
 })();
