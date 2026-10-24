@@ -189,17 +189,31 @@
   let season = SEASONS.春;
   let sky = 'clear';
 
+  /* 树站位分三团：左上、右上、前景。同团的树互相挨着，树冠会咬合成一条树线，
+     而不是一圈彼此分开的圆球。r 是单个树冠半径（直径 110–140px @640×360）。 */
+  const TREE_SLOTS = [
+    { x: 18, y: 168, h: 152, r: 64 },   // 左上团，由外向内递减
+    { x: 88, y: 152, h: 126, r: 54 },
+    { x: 154, y: 134, h: 104, r: 44 },
+    { x: 470, y: 160, h: 136, r: 60 },  // 右上团
+    { x: 542, y: 182, h: 110, r: 48 },
+    { x: 610, y: 200, h: 120, r: 52 },
+    { x: 34, y: 370, h: 134, r: 60 },   // 前景：压住左下角
+    { x: 408, y: 360, h: 108, r: 48 },  // 前景：压下沿中右，避开人物站位
+  ];
+  /* 取树顺序左右交替：布局只要 4 棵时两边也各有一团，不会只剩半边。 */
+  const TREE_PICK = [0, 3, 1, 4, 6, 7, 5, 2];
+
   function planTrees(n) {
-    const fixed = [
-      { x: 26, y: 172, h: 132 }, { x: 196, y: 124, h: 102 }, { x: 438, y: 152, h: 114 },
-      { x: 610, y: 202, h: 128 }, { x: 88, y: 344, h: 112 }, { x: 382, y: 352, h: 98 },
-      { x: 602, y: 346, h: 106 },
-    ];
-    return fixed.slice(0, clamp(n, 0, fixed.length)).map((t) => ({
-      x: t.x, y: t.y, h: t.h,
-      r: Math.round(t.h * 0.42),
-      cy: t.y - Math.round(t.h * 0.62),
-    }));
+    const count = clamp(n | 0, 0, TREE_PICK.length);
+    return TREE_PICK.slice(0, count).map((slot) => {
+      const t = TREE_SLOTS[slot];
+      return {
+        x: t.x, y: t.y, h: t.h, r: t.r,
+        cy: t.y - Math.round(t.h * 0.62),
+        seed: 8100 + slot * 97,
+      };
+    });
   }
 
   /* ================= 5. 地形 ================= */
@@ -628,11 +642,59 @@
 
   /* ================= 9. 树 ================= */
 
-  const LOBES = [
-    { x: -0.30, y: -0.06, s: 0.64 }, { x: 0.30, y: -0.14, s: 0.56 }, { x: 0.04, y: 0.30, s: 0.52 },
-    { x: -0.12, y: -0.44, s: 0.46 }, { x: 0.18, y: 0.46, s: 0.40 }, { x: -0.44, y: 0.26, s: 0.38 },
-    { x: 0.42, y: 0.28, s: 0.34 },
-  ];
+  /* 树冠 = 一团一团互相咬合的"叶团体积"，不是一棵棵圆球。
+     每棵树 = 中心大团 + 7 个环绕团，叠成一个 metaball 场；同团相邻树之间再补一个
+     过渡叶团，让两棵树的轮廓咬合成一条起伏的树线。明暗靠块面分层：
+     最外圈永远是中间调，用 Bayer 4×4 抖动把边缘抖进背景，不再有一圈深色描边。 */
+
+  const TREE_BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+  const TREE_ISO = 0.36;   // metaball 等值线：场强超过它的位置是实心叶团
+  const TREE_FADE = 0.52;  // 场强低于 ISO×FADE 就完全让位给背景（抖动带的外沿）
+  const TREE_HILITE = hex('#e8d98a');  // A2 透光 / 落叶亮点
+  const TREE_ACCENT = hex('#c8862e');  // A2 点缀橙
+
+  /** 叶团场：整片树冠共用一套叶团，重叠处自然连成一块。 */
+  function treeCanopyLobes() {
+    const lobes = [];
+    for (const t of TREES) {
+      const s = t.seed;
+      lobes.push({ x: t.x, y: t.cy, r: t.r * 0.78, host: t });
+      for (let i = 0; i < 7; i++) {
+        const a = i * 2.39996 + (h2(s, i, 701) - 0.5) * 0.95;
+        const d = t.r * (0.26 + 0.30 * h2(s, i, 703));
+        const r = t.r * (0.34 + 0.19 * h2(s, i, 707));
+        lobes.push({
+          x: t.x + Math.cos(a) * d,
+          y: t.cy + Math.sin(a) * d * 0.86,
+          r,
+          host: t,
+        });
+      }
+    }
+    // 相邻树之间补过渡团：两团叶子的边缘不会各留一道弧线，而是直接咬合
+    for (let i = 0; i < TREES.length; i++) for (let j = i + 1; j < TREES.length; j++) {
+      const a = TREES[i], b = TREES[j];
+      const dist = Math.hypot(b.x - a.x, b.cy - a.cy);
+      if (dist > (a.r + b.r) * 0.98) continue;
+      const u = 0.5 + (h2(a.seed, b.seed, 709) - 0.5) * 0.18;
+      const r = Math.min(a.r, b.r) * 0.44;
+      lobes.push({
+        x: lerp(a.x, b.x, u),
+        y: lerp(a.cy, b.cy, u) + (h2(a.seed, b.seed, 711) - 0.5) * r * 0.6,
+        r,
+        host: a.r >= b.r ? a : b,
+      });
+    }
+    return lobes;
+  }
+
+  /** 叶团色阶：从 season.leaf 派生，最深只压到 38% 黑——不再有描边级死黑。 */
+  function treeCanopyShades(leaf) {
+    return [
+      mixc(leaf, [0, 0, 0], 0.38), mixc(leaf, [0, 0, 0], 0.21), leaf,
+      mixc(leaf, [255, 255, 255], 0.13), mixc(leaf, [255, 255, 255], 0.26),
+    ];
+  }
 
   function buildTrees() {
     const g = PRP.g;
@@ -667,33 +729,78 @@
 
     const c = CAN.g;
     c.clearRect(0, 0, W, H);
-    const leaf = hex(season.leaf);
-    const shades = [
-      mixc(leaf, [0, 0, 0], 0.86), mixc(leaf, [0, 0, 0], 0.72), mixc(leaf, [0, 0, 0], 0.56),
-      mixc(leaf, [0, 0, 0], 0.38), mixc(leaf, [0, 0, 0], 0.18), mixc(leaf, [255, 255, 255], 0.12),
-    ];
-    for (const t of TREES) {
-      const r = t.r, cx = t.x, cy = t.cy;
-      for (let dy = -r - 2; dy <= r + 2; dy++) for (let dx = -r - 2; dx <= r + 2; dx++) {
-        let depth = 0;
-        for (const L of LOBES) {
-          const rr = L.s * r, dd = Math.hypot(dx - L.x * r, dy - L.y * r);
-          if (dd < rr) depth = Math.max(depth, 1 - dd / rr);
-        }
-        if (depth <= 0) continue;
-        const nz = vnoise(cx + dx * 2.0, cy + dy * 2.0, 9, 9);
-        if (depth < 0.12 && nz < 0.50) continue;
-        const clump = vnoise(cx + dx * 0.9, cy + dy * 0.9, 7, 17);
-        const fine = vnoise(cx + dx * 3.2, cy + dy * 3.2, 4, 29);
-        if (fine < 0.17 && depth < 0.72) continue;
-        let lit = 0.38 + (dx * -0.42 + dy * -0.95) / r * 0.80 + (clump - 0.5) * 0.42 + (fine - 0.5) * 0.30 + depth * 0.14;
-        lit = clamp((lit - 0.5) * 1.45 + 0.5, 0, 1);
-        let idx = Math.min(5, Math.floor(lit * 6));
-        if (depth < 0.13) idx = 0;
-        c.fillStyle = cs(shades[idx]);
-        c.fillRect(cx + dx, cy + dy, 1, 1);
-      }
+    if (!TREES.length) return;
+
+    const lobes = treeCanopyLobes();
+    const shades = treeCanopyShades(hex(season.leaf));
+
+    // 只扫树冠并集的包围盒：全场一次算完，重叠处自然是一个整体
+    let bx0 = W, by0 = H, bx1 = 0, by1 = 0;
+    for (const L of lobes) {
+      bx0 = Math.min(bx0, L.x - L.r); by0 = Math.min(by0, L.y - L.r);
+      bx1 = Math.max(bx1, L.x + L.r); by1 = Math.max(by1, L.y + L.r);
     }
+    bx0 = Math.max(0, Math.floor(bx0) - 1); by0 = Math.max(0, Math.floor(by0) - 1);
+    bx1 = Math.min(W - 1, Math.ceil(bx1) + 1); by1 = Math.min(H - 1, Math.ceil(by1) + 1);
+
+    const bw = bx1 - bx0 + 1, bh = by1 - by0 + 1;
+    const img = c.createImageData(bw, bh), d = img.data;
+    // 叶团外圈要跟"它盖住的那块地"对得上，读一次地形就够了
+    const ground = TER.g.getImageData(bx0, by0, bw, bh).data;
+    const shadeL = shades.map((s) => 0.299 * s[0] + 0.587 * s[1] + 0.114 * s[2]);
+
+    for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) {
+      let field = 0, host = null, hostW = 0;
+      for (let li = 0; li < lobes.length; li++) {
+        const L = lobes[li];
+        const dx = x - L.x, dy = y - L.y;
+        if (dx > L.r || dx < -L.r || dy > L.r || dy < -L.r) continue;
+        const q = 1 - (dx * dx + dy * dy) / (L.r * L.r);
+        if (q <= 0) continue;
+        const w = q * q;
+        field += w;
+        if (w > hostW) { hostW = w; host = L.host; }
+      }
+      if (!host) continue;
+
+      // A4 边缘：等值线内外一条 4–7px 的 Bayer 4×4 抖动带，收边不硬切
+      const solid = field / TREE_ISO;
+      if (solid < TREE_FADE) continue;
+      const band = clamp((solid - TREE_FADE) / (1 - TREE_FADE), 0, 1);
+      const bayer = (TREE_BAYER4[(y & 3) * 4 + (x & 3)] + 0.5) / 16;
+      if (band < 1 && bayer > band) continue;
+
+      const dx = x - host.x, dy = y - host.cy;
+      const clump = vnoise(x, y, 7, 17);
+      const fine = vnoise(x, y, 3.4, 29);
+      const lit = clamp(0.46 + (-dx * 0.44 - dy * 0.80) / (host.r * 1.15)
+        + (clump - 0.5) * 0.52 + (fine - 0.5) * 0.20, 0, 1);
+
+      let col;
+      if (band < 0.985) {
+        // A1 最外圈：取"叶色 + 脚下地面"之间最近的一档，明度差不比内部层次大，
+        // 于是没有一圈比背景暗/亮出一个量级的勾边，收形交给抖动带。
+        const gi = ((y - by0) * bw + (x - bx0)) * 4;
+        const gl = 0.299 * ground[gi] + 0.587 * ground[gi + 1] + 0.114 * ground[gi + 2];
+        const target = gl * 0.45 + shadeL[2] * 0.55;
+        let pick = 1;
+        if (Math.abs(shadeL[2] - target) < Math.abs(shadeL[pick] - target)) pick = 2;
+        if (Math.abs(shadeL[3] - target) < Math.abs(shadeL[pick] - target)) pick = 3;
+        col = (lit > 0.82 && h2(x, y, 5301) < 0.30) ? shades[3] : shades[pick];
+      } else {
+        const idx = lit < 0.16 ? 0 : lit < 0.33 ? 1 : lit < 0.55 ? 2 : lit < 0.76 ? 3 : 4;
+        col = shades[idx];
+        // A5 单像素透光点：朝光面密、背光面稀（每棵树几十粒）
+        const hk = h2(x, y, 5201);
+        const dens = 0.0025 + lit * 0.0105;
+        if (hk < dens) col = TREE_HILITE;
+        else if (hk < dens + 0.0015) col = TREE_ACCENT;
+      }
+
+      const i = ((y - by0) * bw + (x - bx0)) * 4;
+      d[i] = col[0] | 0; d[i + 1] = col[1] | 0; d[i + 2] = col[2] | 0; d[i + 3] = 255;
+    }
+    c.putImageData(img, bx0, by0);
   }
 
   /* ================= 10. 角色 ================= */
