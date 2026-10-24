@@ -103,11 +103,31 @@
 
   /* ================= 2. 季节 / 天气 → 参数 ================= */
 
+  /* 色板（A2）：底色一律低饱和橄榄绿 / 苔绿 / 泥褐 / 灰黄，HSL 饱和度 13%–34%，
+     高饱和只留给秋叶、小花、窗光这些点缀。每个季节 8 阶：0–1 是土里的暗部（块面，不是描边），
+     4–7 是草面受光。lip 是路缘新草的高光（比草地亮、偏黄，A6 用）。
+     hue 落在 76°–110°，把"发闷的灰"换成有呼吸的橄榄绿；冬天刻意留低饱和（S≈15）压成灰绿。 */
   const SEASONS = {
-    春: { grass: ['#1d2a14', '#27361b', '#334622', '#3f5429', '#4d6331', '#5f7640'], flower: 1.0, snow: 0, leaf: '#5f7640' },
-    夏: { grass: ['#17240f', '#203018', '#2b3d1e', '#364a26', '#43582d', '#536b38'], flower: 0.5, snow: 0, leaf: '#536b38' },
-    秋: { grass: ['#2a2412', '#38301a', '#463c22', '#54482b', '#635434', '#75643f'], flower: 0.3, snow: 0, leaf: '#75643f' },
-    冬: { grass: ['#20241c', '#2a2f24', '#353b2c', '#404734', '#4c543d', '#5b6448'], flower: 0.05, snow: 1, leaf: '#4c543d' },
+    春: {
+      grass: ['#242f1d', '#313f27', '#3d4f30', '#495f3a', '#556f44', '#617e4e', '#6d8e57', '#799e61'],
+      lip: '#a9c070', stem: '#4c6132', haze: '#a9b184',
+      flower: 1.0, snow: 0, leaf: '#5c6b3e', accent: '#d8c04a',
+    },
+    夏: {
+      grass: ['#1c2a18', '#263a22', '#314a2b', '#3c5b34', '#476b3d', '#517b47', '#5c8b50', '#679b59'],
+      lip: '#9dbb63', stem: '#3f5527', haze: '#9cae7a',
+      flower: 0.5, snow: 0, leaf: '#51603a', accent: '#d8c04a',
+    },
+    秋: {
+      grass: ['#2a2f1d', '#383f27', '#474e31', '#555e3b', '#636e45', '#717d4f', '#7f8d58', '#8d9d62'],
+      lip: '#b0b873', stem: '#514c2a', haze: '#b6ab8a',
+      flower: 0.3, snow: 0, leaf: '#6e6640', accent: '#c8862e',
+    },
+    冬: {
+      grass: ['#242c21', '#2e3829', '#384332', '#414f3b', '#4b5b43', '#55674c', '#5e7255', '#687e5d'],
+      lip: '#869d6c', stem: '#3a4133', haze: '#bcc1bb',
+      flower: 0.05, snow: 1, leaf: '#4d5640', accent: '#d8c04a',
+    },
   };
 
   function skyOf(weather) {
@@ -204,56 +224,120 @@
 
   /* ================= 5. 地形 ================= */
 
+  /* A7 三段纵深：远景（画面上部）带雾、明度抬高、饱和度压低；中景（中部）最亮，是视线焦点；
+     前景（下缘与左右边缘）压暗，让画面被"压住"。地形层先算好这张明暗场，
+     建筑与树随后按同一套数值走，避免各画各的。 */
+  function depthField(x, y) {
+    const ny = y / H, nx = x / W;
+    const far = clamp((0.42 - ny) / 0.42, 0, 1);                 // 远景权重 0 底部 → 1 顶部
+    const fore = clamp((ny - 0.64) / 0.36, 0, 1);                // 前景权重
+    const edge = clamp((Math.abs(nx - 0.5) - 0.36) / 0.14, 0, 1); // 左右边缘
+    const mid = Math.max(0, 1 - far * 0.95 - fore * 1.15) * (1 - edge * 0.5);
+    return { far: far, fore: fore, edge: edge, mid: mid };
+  }
+
+  /* A6 路缘不规则的"啃豁口"场：多层噪声叠加，再叠一块块小凹陷，
+     让土路边不是一圈平滑弧线，而是被草啃过的碎片边缘。 */
+  function pathRadius(x, y) {
+    const wob = (vnoise(x, y, 27, 131) - 0.5) * 7.0 + (vnoise(x, y, 9, 132) - 0.5) * 4.2
+      + (vnoise(x, y, 4, 133) - 0.5) * 2.0;
+    const bite = vnoise(x, y, 13, 134);
+    const chew = bite > 0.63 ? (bite - 0.63) * 26 : 0;
+    return 15 + wob - chew;
+  }
+
+  const P_DIRT = [hex('#503e2b'), hex('#604b34'), hex('#71583d'), hex('#816546'), hex('#957550')];
+  const P_SOIL = [hex('#33281a'), hex('#3f3223'), hex('#4b3d2b')];
+  const P_WATER = [hex('#2b403e'), hex('#374e4a'), hex('#435a55'), hex('#506660')];
+  const P_WATER_GLINT = hex('#8fa29a');
+  const P_SAND = hex('#6a5942');
+
+  /* 草地底色值：地形与草叶共用一套，草叶才不会在亮地上撒"黑毛"。
+     中景最亮、远景抬明度、前景压暗都在这里一次算完（A7）。 */
+  function grassT(x, y, df) {
+    const low = vnoise(x, y, 150, 5) * 0.42 + vnoise(x, y, 52, 11) * 0.33
+      + vnoise(x, y, 16, 23) * 0.18 + vnoise(x, y, 5, 29) * 0.07;
+    const d = df ?? depthField(x, y);
+    return clamp(low * 0.86 + 0.10 + d.mid * 0.16 - d.far * 0.10 - d.fore * 0.12, 0, 1);
+  }
+
   function buildTerrain() {
     const img = TER.g.createImageData(W, H), d = img.data;
     mask = new Uint8Array(W * H);
     const G = season.grass.map(hex);
-    const DIRT = [hex('#6a5540'), hex('#7a6549'), hex('#8a7457'), hex('#9a8365'), hex('#a89372')];
-    const SOIL = [hex('#33281a'), hex('#3f3223'), hex('#4b3d2b')];
-    const WATER = [hex('#2b403e'), hex('#374e4a'), hex('#435a55'), hex('#506660')];
-    const SAND = hex('#6a5942');
+    const LIP = hex(season.lip);
+    const HAZE = hex(season.haze);
+    const snow = season.snow;
 
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const i = (y * W + x) * 4;
-      let t = clamp(0.5 + (vnoise(x, y, 150, 5) - 0.5) * 1.2 + (vnoise(x, y, 52, 11) - 0.5) * 0.85
-        + (vnoise(x, y, 16, 23) - 0.5) * 0.55 + (vnoise(x, y, 5, 29) - 0.5) * 0.22, 0, 1);
+      const df = depthField(x, y);
+      const t = grassT(x, y, df);
       let col = ramp(G, t);
       let mk = 0;
 
       if (layout.garden && x >= GARDEN.x && x < GARDEN.x + GARDEN.w && y >= GARDEN.y && y < GARDEN.y + GARDEN.h) {
         const ft = ((y - GARDEN.y) % 9) / 9;
-        col = ft < 0.5 ? SOIL[0] : SOIL[1];
-        col = mixc(col, SOIL[2], (vnoise(x, y, 5, 71) - 0.5) * 0.5 + 0.25);
+        col = ft < 0.5 ? P_SOIL[0] : P_SOIL[1];
+        col = mixc(col, P_SOIL[2], (vnoise(x, y, 5, 71) - 0.5) * 0.5 + 0.25);
         mk = 3;
       }
 
-      const dp = Math.min(distToPoly(x, y, PATH), distToPoly(x, y, SPUR)) + (vnoise(x, y, 24, 31) - 0.5) * 9;
-      const pw = 1 - clamp((dp - 15) / 8, 0, 1);
+      const dp = Math.min(distToPoly(x, y, PATH), distToPoly(x, y, SPUR));
+      const rad = pathRadius(x, y);
+      const pw = 1 - clamp((dp - rad) / 3.2, 0, 1);   // 2–3px 硬边收口，不是一团糊
       if (pw > 0.002) {
         const dt = vnoise(x, y, 9, 41) * 0.55 + vnoise(x, y, 26, 42) * 0.45;
-        let dc = ramp(DIRT, dt * 1.15 - 0.05);
-        if (pw < 0.55) dc = mixc(dc, DIRT[0], (0.55 - pw) * 1.35);
+        let dc = ramp(P_DIRT, dt * 1.15 - 0.05);
+        // 路肩压深成宽 ≥3px 的暗块（A1：靠块面区分，不勾线）
+        if (pw < 0.80) dc = mixc(dc, P_DIRT[0], (0.80 - pw) * 0.75);
         col = mixc(col, dc, pw * 0.97);
         if (pw > 0.55) mk = 1;
       }
+      // A6：紧贴路缘 2–3px 浅黄绿草边高光——比草地亮、偏黄，用噪声切成断续草芽，
+      // 外侧再散几个单像素芽点，读成"草被踩秃后又冒出的新草"。
+      if (dp > rad - 1.2 && dp < rad + 3.6) {
+        const band = clamp((dp - (rad - 1.2)) / 4.8, 0, 1);
+        const lit = (1 - band * 0.75) * (0.55 + vnoise(x, y, 6, 136) * 0.8);
+        const dash = vnoise(x, y, 3, 137);
+        if (dash > 0.26) col = mixc(col, LIP, clamp(lit * (snow ? 0.30 : 0.90), 0, 0.94));
+        mk = pw > 0.55 ? 1 : 0;
+      }
 
       if (layout.water) {
-        const pd = Math.hypot(x - POND.x, (y - POND.y) * 1.06) + (vnoise(x, y, 28, 53) - 0.5) * 24;
-        const shore = 1 - clamp((pd - POND.r) / 17, 0, 1);
+        // 水岸：先铺一圈土黄湿沙，再压水下暗块；水面色阶整体偏青灰绿（低饱和），
+        // 靠"岸上亮沙 vs 水下暗面"的明暗差读深度，不勾线。
+        const pd = Math.hypot(x - POND.x, (y - POND.y) * 1.06)
+          + (vnoise(x, y, 28, 53) - 0.5) * 26 + (vnoise(x, y, 9, 54) - 0.5) * 12;
+        const shore = 1 - clamp((pd - POND.r) / 15, 0, 1);
         if (shore > 0.002) {
-          col = mixc(col, SAND, shore * 0.6);
+          col = mixc(col, P_SAND, shore * 0.58);
           const wf = 1 - clamp((pd - (POND.r - 10)) / 9, 0, 1);
           if (wf > 0.002) {
-            col = mixc(col, ramp(WATER, vnoise(x, y, 11, 61)), wf);
+            const wt = vnoise(x, y, 11, 61) * 0.7 + vnoise(x, y, 4, 62) * 0.3;
+            col = mixc(col, ramp(P_WATER, wt), wf);
+            // 水面细波纹：2px 横向亮条，稀疏，读成反光而不是噪点
+            if (wf > 0.55 && vnoise(x, y, 9, 63) > 0.70 && (y & 3) === 0) {
+              col = mixc(col, P_WATER_GLINT, 0.45 * wf);
+            }
             if (wf > 0.5) mk = 2;
           }
         }
+        // 岸线草边：一圈浅黄绿，把水与草地分开（同 A6 的路缘语言）
+        if (pd > POND.r - 1 && pd < POND.r + 4) {
+          const band = clamp((pd - (POND.r - 1)) / 5, 0, 1);
+          const lit = (1 - band) * (0.5 + vnoise(x, y, 6, 138) * 0.8);
+          if (vnoise(x, y, 3, 139) > 0.28) col = mixc(col, LIP, clamp(lit * 0.70, 0, 0.8));
+        }
       }
 
+      // 远景去饱和、提亮（雾）；前景压暗并偏冷；左右边缘轻微压暗
+      if (df.far > 0.01) col = mixc(col, HAZE, df.far * 0.30);
+      const lum = 1 + df.mid * 0.10 - df.fore * 0.20 - df.edge * 0.12;
       const gr = (h2(x, y, 3) - 0.5) * 0.10;
-      d[i] = clamp(col[0] * (1 + gr), 0, 255);
-      d[i + 1] = clamp(col[1] * (1 + gr), 0, 255);
-      d[i + 2] = clamp(col[2] * (1 + gr), 0, 255);
+      d[i] = clamp(col[0] * lum * (1 + gr), 0, 255);
+      d[i + 1] = clamp(col[1] * lum * (1 + gr), 0, 255);
+      d[i + 2] = clamp(col[2] * lum * (1 + gr), 0, 255);
       d[i + 3] = 255;
       mask[y * W + x] = mk;
     }
@@ -266,33 +350,55 @@
     const g = DET.g;
     g.clearRect(0, 0, W, H);
     const G = season.grass.map(hex);
+    const LIP = hex(season.lip);
+    const STEM = hex(season.stem);
     const snow = season.snow;
+    const near = (x, y, v) => Math.round(clamp(grassT(x, y) * (G.length - 1) + v, 0, G.length - 1));
 
+    /* 草面块面：宽 ≥ 2px 的低对比色块，负责"草地不是均匀噪点" */
     for (let i = 0; i < 1100; i++) {
       const x = Math.floor(h2(i, 1, 301) * W), y = Math.floor(h2(i, 2, 301) * H);
       if (mask[y * W + x] !== 0) continue;
       const r = h2(i, 3, 301);
       const w = 3 + Math.floor(h2(i, 4, 301) * 5), hh = 2 + Math.floor(h2(i, 5, 301) * 3);
-      g.fillStyle = ca(r < 0.5 ? G[0] : G[1], 0.26);
+      g.fillStyle = ca(G[near(x, y, r < 0.5 ? -1.2 : -0.4)], 0.30);
       g.fillRect(x, y, w, hh);
       g.fillRect(x + 1, y - 1, Math.max(1, w - 2), hh + 1);
     }
 
-    for (let i = 0; i < 15000; i++) {
+    /* 草叶：每根都相对"脚下那一格的草地明度"取色（下方压 1 阶、受光尖端抬 1–2 阶），
+       所以亮地上不会冒出黑毛，暗地上也不会浮白点。 */
+    for (let i = 0; i < 11000; i++) {
       const x = Math.floor(h2(i, 1, 401) * W), y = Math.floor(h2(i, 2, 401) * H);
       if (mask[y * W + x] !== 0) continue;
       const dens = vnoise(x, y, 62, 411) * 0.55 + vnoise(x, y, 18, 412) * 0.45;
-      if (h2(i, 3, 401) > dens * dens * 1.75) continue;
+      if (h2(i, 3, 401) > dens * dens * 1.45) continue;
       const r = h2(i, 4, 401);
       const hh = 2 + Math.floor(h2(i, 5, 401) * 4);
       const lean = r > 0.68 ? 1 : 0;
-      g.fillStyle = cs(G[0]);
+      const base = grassT(x, y) * (G.length - 1);          // 脚下草地所在阶
+      const dark = Math.round(clamp(base - 1.1, 0, G.length - 1));
+      const midc2 = Math.round(clamp(base - 0.2, 0, G.length - 1));
+      const tip = Math.round(clamp(base + (r > 0.80 ? 1.8 : 1.1), 0, G.length - 1));
+      g.fillStyle = cs(G[dark]);
       g.fillRect(x, y - 1, 1, 2);
-      g.fillStyle = cs(r < 0.34 ? G[0] : r < 0.72 ? G[1] : G[2]);
+      g.fillStyle = cs(G[midc2]);
       g.fillRect(x, y - hh, 1, hh - 1);
-      g.fillStyle = cs(r < 0.40 ? G[2] : r < 0.82 ? G[4] : G[5]);
+      g.fillStyle = cs(G[tip]);
       g.fillRect(x + lean, y - hh, 1, 2);
-      if (r > 0.86) { g.fillStyle = cs(G[5]); g.fillRect(x + lean, y - hh, 1, 1); }
+    }
+
+    /* A6：路缘草芽。沿噪声在路肩撒断续的浅黄绿短草，把"草啃土路"的边做实 */
+    for (let i = 0; i < 9000; i++) {
+      const x = Math.floor(h2(i, 1, 611) * W), y = Math.floor(h2(i, 2, 611) * H);
+      const dp = Math.min(distToPoly(x, y, PATH), distToPoly(x, y, SPUR));
+      const rad = pathRadius(x, y);
+      if (dp < rad || dp > rad + 6) continue;
+      if (h2(i, 3, 611) > 0.55) continue;
+      const hh = 1 + Math.floor(h2(i, 4, 611) * 3);
+      g.fillStyle = cs(LIP);
+      g.fillRect(x, y - hh, 1, hh);
+      if (h2(i, 5, 611) > 0.62) g.fillStyle = cs(mixc(LIP, G[7], 0.45)), g.fillRect(x + 1, y - hh + 1, 1, hh - 1);
     }
 
     const flowerN = Math.round(620 * season.flower);
@@ -301,19 +407,23 @@
       if (mask[y * W + x] !== 0) continue;
       if (vnoise(x, y, 74, 331) < 0.62) continue;
       const r = h2(i, 3, 321);
-      g.fillStyle = cs(r < 0.72 ? [216, 216, 200] : [196, 198, 174]);
+      // 绝大多数是灰白小花，少数是 A2 里的黄点缀（单屏 <1.5%）
+      g.fillStyle = cs(r < 0.90 ? [216, 216, 200] : hex(season.accent));
       g.fillRect(x, y, 1, 1);
       if (r < 0.55) { g.fillRect(x + 1, y, 1, 1); g.fillRect(x, y - 1, 1, 1); }
       if (r < 0.24) { g.fillRect(x + 1, y - 1, 1, 1); g.fillRect(x + 2, y, 1, 1); }
-      g.fillStyle = cs(G[0]); g.fillRect(x, y + 1, 1, 1);
+      g.fillStyle = cs(STEM); g.fillRect(x, y + 1, 1, 1);
     }
 
-    for (let i = 0; i < 1800; i++) {
+    /* 土路颗粒：暗点 + 亮点成对，形成"车辙碎石"而不是脏点 */
+    const PEB_D = hex('#453828'), PEB_L = hex('#b6a584'), PEB_M = hex('#7a6a50');
+    for (let i = 0; i < 2400; i++) {
       const x = Math.floor(h2(i, 5, 221) * W), y = Math.floor(h2(i, 6, 221) * H);
       if (mask[y * W + x] !== 1) continue;
       const r = h2(i, 7, 221);
-      g.fillStyle = cs(r < 0.45 ? hex('#3f3527') : r < 0.8 ? hex('#b3a180') : hex('#6a5a44'));
-      g.fillRect(x, y, 1, 1);
+      if (r < 0.42) { g.fillStyle = cs(PEB_D); g.fillRect(x, y, 1, 1); if (r < 0.12) g.fillRect(x + 1, y, 2, 1); }
+      else if (r < 0.72) { g.fillStyle = cs(PEB_M); g.fillRect(x, y, 2, 1); }
+      else { g.fillStyle = ca(PEB_L, 0.55); g.fillRect(x, y, 1, 1); }
     }
 
     for (let i = 0; i < 520; i++) {
@@ -322,19 +432,19 @@
       if (mask[y * W + x] !== 2 && mask[y * W + x] !== 0) continue;
       const pd = Math.hypot(x - POND.x, (y - POND.y) * 1.06);
       if (pd > POND.r + 18 || pd < POND.r - 16) continue;
-      g.fillStyle = cs(mixc(G[0], [0, 0, 0], 0.18));
+      g.fillStyle = cs(mixc(G[1], [0, 0, 0], 0.22));
       const hh = 4 + Math.floor(h2(i, 10, 231) * 6);
       g.fillRect(x, y - hh, 1, hh);
-      g.fillStyle = cs(G[4]); g.fillRect(x, y - hh, 1, 1);
+      g.fillStyle = cs(LIP); g.fillRect(x, y - hh, 1, 1);
     }
 
     if (layout.garden) {
       for (let gy = GARDEN.y + 5; gy < GARDEN.y + GARDEN.h - 3; gy += 9) {
         for (let gx = GARDEN.x + 6; gx < GARDEN.x + GARDEN.w - 4; gx += 8) {
           const r = h2(gx, gy, 241);
-          g.fillStyle = cs(mixc(hex('#5a6b32'), hex('#7d8f4c'), r));
+          g.fillStyle = cs(mixc(hex('#54632c'), hex('#78894a'), r));
           g.fillRect(gx, gy - 2, 1, 3); g.fillRect(gx + 1, gy - 3, 1, 2);
-          g.fillStyle = cs(hex('#8a9c56')); g.fillRect(gx, gy - 3, 1, 1);
+          g.fillStyle = cs(hex('#8b9c58')); g.fillRect(gx, gy - 3, 1, 1);
         }
       }
     }
@@ -345,7 +455,7 @@
         if (mask[y * W + x] !== 0) continue;
         const n = vnoise(x, y, 30, 502);
         if (n < 0.64) continue;
-        g.fillStyle = ca([224, 228, 228], 0.28 + n * 0.3);
+        g.fillStyle = ca([226, 230, 228], 0.24 + n * 0.26);
         g.fillRect(x, y, 1, 1);
         if (n > 0.82) g.fillRect(x + 1, y, 1, 1);
       }
@@ -354,219 +464,386 @@
 
   /* ================= 7. 建筑 ================= */
 
+  /* A1：建筑不用深色 1px 收边。收形全靠三块面——
+     ① 朝光的墙（亮）② 背光的墙/柱（暗，宽 ≥3px 且带噪）③ 屋檐投下的影（宽 3px 的块）。
+     深色只在"块面里最暗的一块"出现，并且宽度够，视觉上读成体积而不是描边。 */
+  const WALL_LIT = hex('#8d8265');
+  const WALL_MID = hex('#7a7054');
+  const WALL_DARK = hex('#5c5340');
+  const BEAM_C = hex('#4c4231');
+  const BEAM_DARK = hex('#3b3326');
+  const ROOF_HI = hex('#5c332a');
+  const ROOF_MID = hex('#4a2822');
+  const ROOF_LOW = hex('#3a1f1a');
+  const WINDOW_LIT = hex('#d9ae63');
+
+  /* 带噪的暗块：给暗部一点颗粒，避免读成一条直线 */
+  function blockNoise(g, x, y, w, h, base, amp, seed) {
+    g.fillStyle = cs(base);
+    g.fillRect(x, y, w, h);
+    for (let yy = y; yy < y + h; yy++) {
+      for (let xx = x; xx < x + w; xx += 2) {
+        const n = h2(xx, yy, seed) - 0.5;
+        if (Math.abs(n) < amp) continue;
+        g.fillStyle = cs(mixc(base, n > 0 ? [255, 255, 255] : [0, 0, 0], Math.abs(n) * 0.5));
+        g.fillRect(xx, yy, 2, 1);
+      }
+    }
+  }
+
   /* 建筑按 w/h 的比例算内部尺寸：改 HOUSE 的宽高，门窗梁柱会跟着缩放，
      不用再逐行改数字。人物 24px 高时，门高 29、房高 82，约 4.2 个身高。 */
   function drawHouse(g) {
     const { x, y, w, h } = HOUSE;
     const roofH = Math.round(h * 0.32);
-    const beam = Math.max(3, Math.round(w * 0.036));
+    const beam = Math.max(3, Math.round(w * 0.038));
     const baseH = Math.round(h * 0.12);
     const wallTop = y + Math.round(h * 0.10);
     const midY = Math.round(y + h * 0.52);
 
-    g.fillStyle = 'rgba(0,0,0,0.20)';
-    g.fillRect(x + Math.round(w * 0.07), y + Math.round(h * 0.16), w + 3, h - 8);
+    // 投影：靠"地面上的一团暗块"把房子压在地上，不用勾边。
+    // 影子按像素噪声啃边（不是硬矩形），落在右下方向，读出朝向。
+    for (let yy = y + Math.round(h * 0.55); yy < y + h + 8; yy++) {
+      const k = clamp((yy - (y + h * 0.55)) / (h * 0.55), 0, 1);
+      const wNow = w * (0.92 + k * 0.16);
+      const x0 = Math.round(x + Math.round(w * 0.10) + w * 0.02 + k * w * 0.05);
+      for (let xx = x0; xx < x0 + wNow; xx += 2) {
+        const n = vnoise(xx, yy, 7, 1251);
+        if (n < 0.30 + k * 0.16) continue;
+        g.fillStyle = `rgba(0,0,0,${(0.20 * (1 - k * 0.55)).toFixed(3)})`;
+        g.fillRect(xx, yy, 2, 1);
+      }
+    }
+    // 贴脚的一圈接触影：宽 4px 的暗块，是"最暗的一块"，不是描边
     g.fillStyle = 'rgba(0,0,0,0.26)';
-    g.fillRect(x - 5, y + h - 2, w + 10, 5);
-    g.fillStyle = 'rgba(0,0,0,0.14)';
-    g.fillRect(x - 8, y + h + 3, w + 16, 4);
-    g.fillStyle = 'rgba(0,0,0,0.09)';
-    g.fillRect(x + Math.round(w * 0.12), y + Math.round(h * 0.24), w + 10, h - 4);
+    g.fillRect(x - 5, y + h - 2, w + 10, 4);
 
-    g.fillStyle = cs(hex('#3e352e'));
-    g.fillRect(x - 2, wallTop, w + 4, h - (wallTop - y));
-    g.fillStyle = cs(hex('#6f6650'));
-    g.fillRect(x, wallTop + 3, w, h - (wallTop - y) - 3);
+    // 墙体：左 2/3 朝光（亮），右侧一条 ≥6px 的背光块（暗）——体积从这里读出来
+    const shadeW = Math.max(6, Math.round(w * 0.16));
+    g.fillStyle = cs(WALL_LIT);
+    g.fillRect(x, wallTop, w, h - (wallTop - y));
+    g.fillStyle = cs(WALL_MID);
+    g.fillRect(x, wallTop, Math.round(w * 0.34), h - (wallTop - y));
+    blockNoise(g, x + w - shadeW, wallTop, shadeW, h - (wallTop - y), WALL_DARK, 0.20, 1201);
 
-    g.fillStyle = 'rgba(58,50,38,0.16)';
-    for (let yy = wallTop + 10; yy < y + h - baseH; yy += 7) {
+    // 木板横纹：4px 的暗带（块面，不是线），带噪
+    g.fillStyle = 'rgba(58,50,38,0.20)';
+    for (let yy = wallTop + 9; yy < y + h - baseH; yy += 8) {
       for (let xx = x + 4; xx < x + w - 4; xx += 9) {
-        g.fillRect(xx + (((yy / 7) | 0) % 2 ? 4 : 0), yy, 5, 3);
+        g.fillRect(xx + (((yy / 8) | 0) % 2 ? 4 : 0), yy, 5, 4);
       }
     }
 
-    g.fillStyle = cs(hex('#463c2f'));
-    g.fillRect(x, wallTop, w, beam);
+    // 梁柱：4px 宽的木色块，右侧再压 2px 暗面（不是 1px 描边）
     const cols = Math.max(3, Math.round(w / 34));
     for (let i = 0; i <= cols; i++) {
       const bx = x + Math.round((i * (w - beam)) / cols);
+      g.fillStyle = cs(BEAM_C);
       g.fillRect(bx, wallTop, beam, h - (wallTop - y));
+      g.fillStyle = cs(BEAM_DARK);
+      g.fillRect(bx + beam - 2, wallTop, 2, h - (wallTop - y));
     }
-    g.fillRect(x + 2, midY, w - 4, 2);
-    g.fillRect(x + 2, y + h - baseH - 2, w - 4, 2);
+    g.fillStyle = cs(BEAM_C);
+    g.fillRect(x, wallTop, w, beam);
+    g.fillRect(x + 2, midY, w - 4, 3);
+    g.fillRect(x + 2, y + h - baseH - 3, w - 4, 3);
     for (let i = 0; i < cols - 1; i++) {
       const bx = x + Math.round((i * (w - beam)) / cols) + beam;
       g.beginPath();
-      g.moveTo(bx, y + h - baseH - 2);
+      g.moveTo(bx, y + h - baseH - 3);
       g.lineTo(bx + Math.round((w - beam) / cols) - beam, midY);
-      g.lineWidth = 2; g.strokeStyle = cs(hex('#463c2f')); g.stroke();
+      g.lineWidth = 3; g.strokeStyle = cs(BEAM_C); g.stroke();
     }
 
+    // 石基：两阶明暗，靠块面区分
     for (let yy = y + h - baseH; yy < y + h; yy += 4) {
       for (let xx = x; xx < x + w; xx += 9) {
-        g.fillStyle = cs(hex('#4c4539'));
-        g.fillRect(xx + (((yy / 4) | 0) % 2 ? 4 : 0), yy, 8, 3);
+        g.fillStyle = cs(((yy / 4) | 0) % 2 ? hex('#5a5245') : hex('#4f483b'));
+        g.fillRect(xx + (((yy / 4) | 0) % 2 ? 4 : 0), yy, 8, 4);
       }
     }
+    g.fillStyle = 'rgba(0,0,0,0.18)';
+    g.fillRect(x, y + h - baseH, w, 3);
 
+    // 屋顶：三阶红棕块 + 横向瓦垄（4px 间距的暗块）
     const rx0 = x - Math.round(w * 0.08), rx1 = x + w + Math.round(w * 0.08);
     const ry0 = y - roofH, ry1 = y + Math.round(h * 0.14);
     for (let yy = ry0; yy < ry1; yy++) {
       const k = (yy - ry0) / (ry1 - ry0);
       const half = lerp((rx1 - rx0) * 0.30, (rx1 - rx0) * 0.5, k * k * 0.85 + k * 0.15);
-      g.fillStyle = cs(mixc(hex('#331b16'), hex('#43261f'), k));
-      g.fillRect((rx0 + rx1) / 2 - half, yy, half * 2, 1);
+      g.fillStyle = cs(mixc(ROOF_MID, ROOF_LOW, k * 0.85));
+      g.fillRect(Math.round((rx0 + rx1) / 2 - half), yy, Math.round(half * 2), 1);
     }
-    for (let yy = ry0 + 3; yy < ry1; yy += 5) {
+    g.fillStyle = cs(ROOF_HI);
+    for (let yy = ry0; yy < ry0 + Math.round(roofH * 0.34); yy++) {
       const k = (yy - ry0) / (ry1 - ry0);
       const half = lerp((rx1 - rx0) * 0.30, (rx1 - rx0) * 0.5, k * k * 0.85 + k * 0.15);
-      g.fillStyle = 'rgba(28,16,12,0.45)';
-      g.fillRect((rx0 + rx1) / 2 - half, yy, half * 2, 1);
+      g.fillRect(Math.round((rx0 + rx1) / 2 - half), yy, Math.round(half * 2), 1);
     }
+    for (let yv = ry0 + 4; yv < ry1; yv += 5) {
+      const k = (yv - ry0) / (ry1 - ry0);
+      const half = lerp((rx1 - rx0) * 0.30, (rx1 - rx0) * 0.5, k * k * 0.85 + k * 0.15);
+      g.fillStyle = 'rgba(30,17,13,0.40)';
+      g.fillRect(Math.round((rx0 + rx1) / 2 - half), yv, Math.round(half * 2), 2);
+    }
+    // 檐下投影：3px 暗块压在墙上，屋顶和墙的分界靠它，不靠描边
+    g.fillStyle = 'rgba(28,20,14,0.30)';
+    g.fillRect(x - 1, ry1 - 1, w + 2, 4);
+    // 屋脊高光
+    g.fillStyle = cs(mixc(ROOF_HI, [255, 240, 220], 0.22));
+    g.fillRect(Math.round((rx0 + rx1) / 2 - (rx1 - rx0) * 0.30), ry0, Math.round((rx1 - rx0) * 0.60), 2);
 
+    // 烟囱：亮面 + 3px 暗面
     const chW = Math.round(w * 0.09);
-    g.fillStyle = cs(hex('#3a2c22'));
-    g.fillRect(x + w - Math.round(w * 0.22), ry0 - 10, chW, 18);
-    g.fillStyle = 'rgba(0,0,0,0.35)';
-    g.fillRect(x + w - Math.round(w * 0.22), ry0 - 10, chW, 3);
+    const chX = x + w - Math.round(w * 0.22);
+    g.fillStyle = cs(hex('#6b5344'));
+    g.fillRect(chX, ry0 - 10, chW, 18);
+    g.fillStyle = cs(hex('#4a382e'));
+    g.fillRect(chX + chW - 3, ry0 - 10, 3, 18);
+    g.fillStyle = cs(hex('#7d6354'));
+    g.fillRect(chX, ry0 - 10, chW, 2);
 
+    // 窗：暖黄窗光（A2 点缀）+ 上沿 3px 暗块当窗楣，右侧 2px 暗面当窗框
     const winW = Math.round(w * 0.19), winH = Math.round(h * 0.28);
     const winY = y + Math.round(h * 0.30);
     for (const wx of [x + Math.round(w * 0.10), x + w - Math.round(w * 0.10) - winW]) {
-      g.fillStyle = cs(hex('#3e352e'));
-      g.fillRect(wx - 2, winY - 2, winW + 4, winH + 4);
-      g.fillStyle = cs(hex('#c9a468'));
+      g.fillStyle = cs(WALL_DARK);
+      g.fillRect(wx - 2, winY - 3, winW + 4, 4);
+      g.fillRect(wx - 2, winY, 2, winH);
+      g.fillRect(wx + winW, winY, 2, winH);
+      g.fillStyle = cs(WINDOW_LIT);
       g.fillRect(wx, winY, winW, winH);
-      g.fillStyle = 'rgba(70,50,30,0.40)';
-      g.fillRect(wx, winY, winW, Math.max(2, Math.round(winH * 0.18)));
-      g.fillStyle = cs(hex('#3e352e'));
-      g.fillRect(wx + (winW >> 1), winY, 2, winH);
-      g.fillRect(wx, winY + (winH >> 1), winW, 2);
+      g.fillStyle = cs(mixc(WINDOW_LIT, [255, 246, 220], 0.45));
+      g.fillRect(wx + 1, winY + 1, winW - 2, Math.max(2, Math.round(winH * 0.22)));
+      g.fillStyle = cs(mixc(WINDOW_LIT, [120, 86, 44], 0.42));
+      g.fillRect(wx, winY + winH - 3, winW, 3);
+      // 窗棂：3px 木色，不是 2px 深线
+      g.fillStyle = cs(hex('#6a5334'));
+      g.fillRect(wx + (winW >> 1) - 1, winY, 3, winH);
+      g.fillRect(wx, winY + (winH >> 1) - 1, winW, 3);
+      // 窗光外溢：下方 3px 暖色晕
+      g.fillStyle = 'rgba(217,174,99,0.18)';
+      g.fillRect(wx - 4, winY + winH + 2, winW + 8, 3);
     }
 
+    // 门：门洞用宽 3px 的暗块收边，门扇两阶木色
     const doorW = Math.round(w * 0.13), doorH = Math.round(h * 0.40);
     const dx = x + Math.round((w - doorW) / 2), dy = y + h - doorH;
-    g.fillStyle = cs(hex('#3e352e'));
-    g.fillRect(dx - 2, dy - 2, doorW + 4, doorH + 2);
-    g.fillStyle = cs(hex('#5f4029'));
+    g.fillStyle = cs(WALL_DARK);
+    g.fillRect(dx - 3, dy - 3, doorW + 6, 3);
+    g.fillRect(dx - 3, dy, 3, doorH);
+    g.fillRect(dx + doorW, dy, 3, doorH);
+    g.fillStyle = cs(hex('#6b4a30'));
     g.fillRect(dx, dy, doorW, doorH);
-    g.fillStyle = 'rgba(40,26,16,0.5)';
-    for (let xx = dx + 4; xx < dx + doorW - 2; xx += 5) g.fillRect(xx, dy, 1, doorH);
-    g.fillStyle = cs(hex('#c9a468'));
-    g.fillRect(dx + doorW - 4, dy + (doorH >> 1), 2, 2);
+    g.fillStyle = cs(hex('#543823'));
+    g.fillRect(dx + doorW - 3, dy, 3, doorH);
+    g.fillStyle = 'rgba(40,26,16,0.45)';
+    for (let xx = dx + 5; xx < dx + doorW - 4; xx += 5) g.fillRect(xx, dy + 1, 1, doorH - 2);
+    g.fillStyle = cs(WINDOW_LIT);
+    g.fillRect(dx + doorW - 5, dy + (doorH >> 1), 2, 2);
   }
 
   function drawHut(g) {
     const x = 268, y = 138, w = 104, h = 58;
     const roofH = Math.round(h * 0.34);
-    g.fillStyle = 'rgba(0,0,0,0.18)';
-    g.fillRect(x + 8, y + 14, w + 2, h - 6);
-    g.fillStyle = cs(hex('#5e5646'));
+    g.fillStyle = 'rgba(0,0,0,0.19)';
+    g.fillRect(x + 8, y + 20, w + 2, h - 8);
+    g.fillStyle = 'rgba(0,0,0,0.26)';
+    g.fillRect(x + 2, y + h - 3, w + 6, 5);
+
+    // 墙体：亮面 + 右侧 ≥8px 背光块
+    g.fillStyle = cs(hex('#7d7358'));
     g.fillRect(x, y + 8, w, h - 8);
-    g.fillStyle = cs(hex('#463c2f'));
-    for (let xx = x; xx < x + w; xx += 26) g.fillRect(xx, y + 8, 4, h - 8);
-    g.fillRect(x, y + 8, w, 4);
-    for (let yy = y - roofH; yy < y + 10; yy++) {
-      const k = (yy - (y - roofH)) / (roofH + 10);
-      const half = lerp(w * 0.30, w * 0.56, k);
-      g.fillStyle = cs(mixc(hex('#331b16'), hex('#43261f'), k));
-      g.fillRect(x + w / 2 - half, yy, half * 2, 1);
+    g.fillStyle = cs(hex('#6a6149'));
+    g.fillRect(x, y + 8, Math.round(w * 0.36), h - 8);
+    blockNoise(g, x + w - 10, y + 8, 10, h - 8, hex('#544b3a'), 0.18, 1301);
+
+    // 立柱：4px 木块 + 2px 暗侧
+    for (let xx = x; xx < x + w - 4; xx += 26) {
+      g.fillStyle = cs(BEAM_C);
+      g.fillRect(xx, y + 8, 4, h - 8);
+      g.fillStyle = cs(BEAM_DARK);
+      g.fillRect(xx + 2, y + 8, 2, h - 8);
     }
+    g.fillStyle = cs(BEAM_C);
+    g.fillRect(x, y + 8, w, 4);
+
+    // 屋檐：4 阶茅草色块，底部 3px 檐影
+    for (let yy = y - roofH; yy < y + 12; yy++) {
+      const k = (yy - (y - roofH)) / (roofH + 12);
+      const half = lerp(w * 0.30, w * 0.56, k);
+      g.fillStyle = cs(mixc(hex('#4d3a24'), hex('#372719'), k * 0.9));
+      g.fillRect(Math.round(x + w / 2 - half), yy, Math.round(half * 2), 1);
+    }
+    for (let yy = y - roofH + 3; yy < y + 8; yy += 5) {
+      const k = (yy - (y - roofH)) / (roofH + 12);
+      const half = lerp(w * 0.30, w * 0.56, k);
+      g.fillStyle = 'rgba(30,20,12,0.34)';
+      g.fillRect(Math.round(x + w / 2 - half), yy, Math.round(half * 2), 2);
+    }
+    g.fillStyle = 'rgba(28,20,14,0.28)';
+    g.fillRect(x, y + 8, w, 3);
+
     const doorW = 18, doorH = 28;
-    g.fillStyle = cs(hex('#3e352e'));
-    g.fillRect(x + w / 2 - doorW / 2 - 2, y + h - doorH - 2, doorW + 4, doorH + 2);
-    g.fillStyle = cs(hex('#5f4029'));
-    g.fillRect(x + w / 2 - doorW / 2, y + h - doorH, doorW, doorH);
-    g.fillStyle = cs(hex('#c9a468'));
-    g.fillRect(x + 14, y + 22, 16, 13);
-    g.fillStyle = cs(hex('#3e352e'));
-    g.fillRect(x + 14, y + 22, 16, 2);
+    const dhx = Math.round(x + w / 2 - doorW / 2);
+    g.fillStyle = cs(WALL_DARK);
+    g.fillRect(dhx - 3, y + h - doorH - 3, doorW + 6, 3);
+    g.fillRect(dhx - 3, y + h - doorH, 3, doorH);
+    g.fillRect(dhx + doorW, y + h - doorH, 3, doorH);
+    g.fillStyle = cs(hex('#6b4a30'));
+    g.fillRect(dhx, y + h - doorH, doorW, doorH);
+    g.fillStyle = cs(hex('#543823'));
+    g.fillRect(dhx + doorW - 3, y + h - doorH, 3, doorH);
+
+    // 小窗：暖黄窗光 + 3px 窗楣
+    g.fillStyle = cs(WALL_DARK);
+    g.fillRect(x + 13, y + 21, 18, 4);
+    g.fillStyle = cs(WINDOW_LIT);
+    g.fillRect(x + 14, y + 24, 16, 11);
+    g.fillStyle = cs(mixc(WINDOW_LIT, [255, 246, 220], 0.4));
+    g.fillRect(x + 15, y + 25, 14, 4);
+    g.fillStyle = cs(hex('#6a5334'));
+    g.fillRect(x + 21, y + 24, 2, 11);
   }
 
   function drawWell(g) {
     const { x, y } = WELL, r = 16;
-    g.fillStyle = 'rgba(0,0,0,0.18)';
-    for (let i = 0; i < 6; i++) { const w = (r * 2 + 8) * (1 - i / 7); g.fillRect(x - w / 2 + 6, y + r * 0.42 + i * 2, w, 2); }
-    for (let yy = -10; yy <= 10; yy++) {
-      for (let xx = -r; xx <= r; xx++) {
+    g.fillStyle = 'rgba(0,0,0,0.17)';
+    for (let i = 0; i < 6; i++) { const w = (r * 2 + 8) * (1 - i / 7); g.fillRect(x - w / 2 + 6, y + r * 0.44 + i * 2, w, 2); }
+
+    // 井圈：石块靠明暗分块区分，外缘不再勾深线
+    for (let yy = -11; yy <= 11; yy++) {
+      for (let xx = -r - 1; xx <= r + 1; xx++) {
         const d = Math.hypot(xx, yy * 1.55);
-        if (d > r || d < r - 7) continue;
-        const sh = 0.3 + 0.7 * (xx + r) / (2 * r);
-        let c = mixc(hex('#4c4539'), hex('#7a7466'), sh);
-        if ((Math.floor((xx + r) / 5) + Math.floor((yy + 10) / 5)) % 2) c = mixc(c, hex('#33302a'), 0.25);
-        g.fillStyle = cs(c); g.fillRect(x + xx, y + yy, 1, 1);
+        if (d > r + 1) continue;
+        if (d > r - 7 && d <= r + 1) {
+          const sh = 0.28 + 0.72 * (xx + r) / (2 * r);
+          let c = mixc(hex('#4d4639'), hex('#8b8474'), sh);
+          const nz = vnoise(x + xx, y + yy, 3, 1401);
+          if ((Math.floor((xx + r) / 5) + Math.floor((yy + 12) / 5)) % 2) c = mixc(c, hex('#3a352c'), 0.22 + nz * 0.10);
+          g.fillStyle = cs(c); g.fillRect(x + xx, y + yy, 1, 1);
+        } else {
+          g.fillStyle = cs(mixc(hex('#232c2a'), hex('#2e3936'), (xx + r) / (2 * r)));
+          g.fillRect(x + xx, y + yy, 1, 1);
+        }
       }
     }
-    for (let yy = -6; yy <= 6; yy++) {
-      const hw = Math.round((r - 8) * Math.sqrt(Math.max(0, 1 - (yy * yy) / 40)));
-      g.fillStyle = cs(hex('#26302e')); g.fillRect(x - hw, y + yy, hw * 2, 1);
+    // 井口内侧的 2px 暗环：宽度够，读成深度而不是描边
+    for (let yy = -7; yy <= 7; yy++) {
+      const hw = Math.round((r - 7) * Math.sqrt(Math.max(0, 1 - (yy * yy) / 60)));
+      g.fillStyle = cs(hex('#2b3634')); g.fillRect(x - hw, y + yy, hw * 2, 1);
     }
+
     const top = y - 18;
-    g.fillStyle = cs(hex('#4a3826'));
-    g.fillRect(x - r + 4, top + 6, 3, 14); g.fillRect(x + r - 7, top + 6, 3, 14);
-    for (let i = 0; i < 6; i++) {
-      const w = (r * 2 + 2) * (1 - Math.abs(i - 2.5) / 4);
-      g.fillStyle = cs(i % 2 ? hex('#331b16') : hex('#43261f'));
-      g.fillRect(Math.round(x - w / 2), top + i, w, 1);
+    g.fillStyle = cs(hex('#5e4a32'));
+    g.fillRect(x - r + 3, top + 6, 4, 15); g.fillRect(x + r - 8, top + 6, 4, 15);
+    g.fillStyle = cs(hex('#43321f'));
+    g.fillRect(x - r + 5, top + 6, 2, 15); g.fillRect(x + r - 6, top + 6, 2, 15);
+    for (let i = 0; i < 7; i++) {
+      const w = (r * 2 + 4) * (1 - Math.abs(i - 3) / 4.6);
+      g.fillStyle = cs(mixc(hex('#4a2822'), hex('#6b3a2c'), i / 7));
+      g.fillRect(Math.round(x - w / 2), top + i, Math.round(w), 1);
     }
-    g.fillStyle = cs(hex('#2f2418')); g.fillRect(x - 1, top + 8, 2, 6);
-    g.fillStyle = cs(hex('#6b4f30')); g.fillRect(x - 4, top + 13, 8, 5);
+    g.fillStyle = 'rgba(24,14,10,0.35)';
+    g.fillRect(Math.round(x - (r - 2)), top + 5, Math.round((r - 2) * 2), 2);
+    g.fillStyle = cs(hex('#3a2a1c')); g.fillRect(x - 1, top + 9, 2, 6);
+    g.fillStyle = cs(hex('#7a5a38')); g.fillRect(x - 4, top + 13, 8, 5);
+    g.fillStyle = cs(hex('#8d6a42')); g.fillRect(x - 4, top + 13, 8, 2);
   }
 
   function drawLonghouse(g) {
     const x = 206, y = 122, w = 228, h = 68;
     const roofH = Math.round(h * 0.40);
     g.fillStyle = 'rgba(0,0,0,0.20)';
-    g.fillRect(x + 10, y + 16, w + 2, h - 8);
-    g.fillStyle = cs(hex('#6b5e48'));
+    g.fillRect(x + 12, y + 22, w + 2, h - 8);
+    g.fillStyle = 'rgba(0,0,0,0.26)';
+    g.fillRect(x + 4, y + h - 3, w + 8, 5);
+
+    g.fillStyle = cs(hex('#837755'));
     g.fillRect(x, y + 10, w, h - 10);
-    g.fillStyle = cs(hex('#463c2f'));
-    for (let xx = x; xx < x + w; xx += 24) g.fillRect(xx, y + 10, 5, h - 10);
+    g.fillStyle = cs(hex('#6f6448'));
+    g.fillRect(x, y + 10, Math.round(w * 0.28), h - 10);
+    blockNoise(g, x + w - 14, y + 10, 14, h - 10, hex('#564c39'), 0.18, 1501);
+
+    for (let xx = x; xx < x + w - 5; xx += 24) {
+      g.fillStyle = cs(BEAM_C);
+      g.fillRect(xx, y + 10, 5, h - 10);
+      g.fillStyle = cs(BEAM_DARK);
+      g.fillRect(xx + 3, y + 10, 2, h - 10);
+    }
+    g.fillStyle = cs(BEAM_C);
     g.fillRect(x, y + 10, w, 5);
+
     for (let yy = y - roofH; yy < y + 12; yy++) {
       const k = (yy - (y - roofH)) / (roofH + 12);
       const half = lerp(w * 0.34, w * 0.55, k);
-      g.fillStyle = cs(mixc(hex('#38201a'), hex('#4a2c22'), k));
-      g.fillRect(x + w / 2 - half, yy, half * 2, 1);
+      g.fillStyle = cs(mixc(hex('#4a2822'), hex('#33191a'), k * 0.9));
+      g.fillRect(Math.round(x + w / 2 - half), yy, Math.round(half * 2), 1);
     }
-    g.fillStyle = cs(hex('#3e352e'));
-    for (const dx of [x + w / 2 - 56, x + w / 2 + 34]) g.fillRect(dx, y + h - 30, 22, 30);
-    g.fillStyle = cs(hex('#c9a468'));
-    g.fillRect(x + w / 2 - 13, y + 34, 26, 16);
+    for (let yv = y - roofH + 4; yv < y + 10; yv += 5) {
+      const k = (yv - (y - roofH)) / (roofH + 12);
+      const half = lerp(w * 0.34, w * 0.55, k);
+      g.fillStyle = 'rgba(28,15,14,0.42)';
+      g.fillRect(Math.round(x + w / 2 - half), yv, Math.round(half * 2), 2);
+    }
+    g.fillStyle = 'rgba(26,17,14,0.30)';
+    g.fillRect(x, y + 10, w, 3);
+
+    for (const dx of [x + w / 2 - 56, x + w / 2 + 34]) {
+      g.fillStyle = cs(hex('#453423'));
+      g.fillRect(dx, y + h - 30, 22, 30);
+      g.fillStyle = cs(hex('#33261a'));
+      g.fillRect(dx + 19, y + h - 30, 3, 30);
+      g.fillStyle = 'rgba(24,16,10,0.28)';
+      g.fillRect(dx, y + h - 30, 22, 3);
+    }
+    g.fillStyle = cs(WINDOW_LIT);
+    g.fillRect(x + w / 2 - 14, y + 33, 28, 18);
+    g.fillStyle = cs(mixc(WINDOW_LIT, [255, 246, 220], 0.42));
+    g.fillRect(x + w / 2 - 13, y + 34, 26, 5);
+    g.fillStyle = cs(hex('#6a5334'));
+    g.fillRect(x + w / 2 - 1, y + 33, 3, 18);
   }
 
 
+  /* A1：器物同样去掉 1px 黑描边。每个物件都是"亮面 + 暗面 ≥2px"两块，
+     投影用地面上的一小团暗块表示落地，不用外圈勾线。 */
   const PROP_SPRITES = {
     jar: (g, x, y) => {
       g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(x - 4, y + 1, 11, 2);
-      g.fillStyle = cs(hex('#7a5a40')); g.fillRect(x - 3, y - 8, 8, 9);
-      g.fillStyle = cs(hex('#9a7250')); g.fillRect(x - 3, y - 8, 3, 9);
-      g.fillStyle = cs(hex('#5a4028')); g.fillRect(x - 2, y - 10, 6, 2);
+      g.fillStyle = cs(hex('#8a6a4a')); g.fillRect(x - 3, y - 8, 8, 9);
+      g.fillStyle = cs(hex('#a5825c')); g.fillRect(x - 3, y - 8, 3, 9);
+      g.fillStyle = cs(hex('#6b4d32')); g.fillRect(x + 1, y - 8, 4, 9);
+      g.fillStyle = cs(hex('#7d5a3a')); g.fillRect(x - 2, y - 11, 6, 3);
     },
     basket: (g, x, y) => {
       g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(x - 5, y + 1, 13, 2);
-      g.fillStyle = cs(hex('#8a6f44')); g.fillRect(x - 5, y - 7, 12, 8);
-      g.fillStyle = cs(hex('#a98a58')); g.fillRect(x - 5, y - 7, 12, 2);
-      g.fillStyle = cs(hex('#5f4a2c'));
-      for (let i = -4; i < 7; i += 3) g.fillRect(x + i, y - 6, 1, 6);
+      g.fillStyle = cs(hex('#96794c')); g.fillRect(x - 5, y - 8, 12, 9);
+      g.fillStyle = cs(hex('#b0905e')); g.fillRect(x - 5, y - 8, 12, 3);
+      g.fillStyle = cs(hex('#6c5432')); g.fillRect(x + 3, y - 8, 4, 9);
+      g.fillStyle = 'rgba(70,54,32,0.45)';
+      for (let i = -4; i < 6; i += 3) g.fillRect(x + i, y - 5, 1, 6);
     },
     bag: (g, x, y) => {
       g.fillStyle = 'rgba(0,0,0,0.16)'; g.fillRect(x - 4, y + 1, 10, 2);
-      g.fillStyle = cs(hex('#7d7050')); g.fillRect(x - 4, y - 8, 9, 9);
-      g.fillStyle = cs(hex('#968a66')); g.fillRect(x - 4, y - 8, 3, 9);
-      g.fillStyle = cs(hex('#4e4430')); g.fillRect(x - 1, y - 11, 3, 3);
+      g.fillStyle = cs(hex('#8a7d5c')); g.fillRect(x - 4, y - 8, 9, 9);
+      g.fillStyle = cs(hex('#a2956f')); g.fillRect(x - 4, y - 8, 3, 9);
+      g.fillStyle = cs(hex('#655a42')); g.fillRect(x + 2, y - 8, 3, 9);
+      g.fillStyle = cs(hex('#5a5040')); g.fillRect(x - 1, y - 11, 3, 3);
     },
     bundle: (g, x, y) => {
       g.fillStyle = 'rgba(0,0,0,0.16)'; g.fillRect(x - 4, y + 1, 9, 2);
-      g.fillStyle = cs(hex('#8a7a4a')); g.fillRect(x - 4, y - 6, 8, 7);
-      g.fillStyle = cs(hex('#a89a62')); g.fillRect(x - 4, y - 6, 8, 2);
-      g.fillStyle = cs(hex('#5f5230')); g.fillRect(x - 1, y - 6, 1, 7);
+      g.fillStyle = cs(hex('#97874f')); g.fillRect(x - 4, y - 7, 8, 8);
+      g.fillStyle = cs(hex('#b3a467')); g.fillRect(x - 4, y - 7, 8, 3);
+      g.fillStyle = cs(hex('#6f6236')); g.fillRect(x + 2, y - 7, 2, 8);
+      g.fillStyle = cs(hex('#6a5c34')); g.fillRect(x - 1, y - 7, 1, 8);
     },
     crate: (g, x, y) => {
       g.fillStyle = 'rgba(0,0,0,0.16)'; g.fillRect(x - 5, y + 1, 11, 2);
-      g.fillStyle = cs(hex('#6a5236')); g.fillRect(x - 5, y - 8, 11, 9);
-      g.fillStyle = cs(hex('#856a48')); g.fillRect(x - 5, y - 8, 11, 2);
-      g.fillStyle = cs(hex('#4a3824')); g.fillRect(x - 5, y - 4, 11, 1);
+      g.fillStyle = cs(hex('#7b6040')); g.fillRect(x - 5, y - 9, 11, 10);
+      g.fillStyle = cs(hex('#95774f')); g.fillRect(x - 5, y - 9, 11, 3);
+      g.fillStyle = cs(hex('#5c4529')); g.fillRect(x + 3, y - 9, 3, 10);
+      g.fillStyle = 'rgba(60,45,28,0.40)'; g.fillRect(x - 5, y - 4, 11, 2);
     },
   };
   const PROP_BY_PROTO = {
@@ -588,23 +865,26 @@
     });
   }
 
+  /* 篱笆与路牌：木色两阶（亮/暗各 ≥2px），靠块面分开，不勾深线。 */
   function drawGardenFence(g) {
     const { x, y, w, h } = GARDEN;
     const rail = (x1, y1, x2, y2) => {
       const len = Math.max(1, Math.hypot(x2 - x1, y2 - y1));
-      for (const off of [3, 8]) {
-        g.fillStyle = cs(hex('#4a3826'));
+      for (const off of [3, 9]) {
         for (let d = 0; d <= len; d++) {
           const t = d / len;
-          g.fillRect(Math.round(lerp(x1, x2, t)), Math.round(lerp(y1, y2, t)) + off, 1, 2);
+          const px = Math.round(lerp(x1, x2, t)), py = Math.round(lerp(y1, y2, t)) + off;
+          g.fillStyle = cs(hex('#7a5f3c')); g.fillRect(px, py, 1, 2);
+          g.fillStyle = cs(hex('#5a4429')); g.fillRect(px, py + 2, 1, 1);
         }
       }
       const n = Math.max(1, Math.round(len / 15));
       for (let i = 0; i <= n; i++) {
         const t = i / n;
         const px = Math.round(lerp(x1, x2, t)), py = Math.round(lerp(y1, y2, t));
-        g.fillStyle = cs(hex('#43321f')); g.fillRect(px - 1, py - 2, 3, 13);
-        g.fillStyle = cs(hex('#5a4530')); g.fillRect(px - 1, py - 2, 1, 13);
+        g.fillStyle = cs(hex('#6b5334')); g.fillRect(px - 1, py - 2, 3, 14);
+        g.fillStyle = cs(hex('#8a6c46')); g.fillRect(px - 1, py - 2, 2, 14);
+        g.fillStyle = cs(hex('#4e3b24')); g.fillRect(px + 1, py - 2, 2, 14);
       }
     };
     rail(x - 7, y - 6, x - 7, y + h + 6);
@@ -617,12 +897,12 @@
     const n = Math.min(exits.length, 4);
     for (let i = 0; i < n; i++) {
       const x = 388 + i * 62, y = 338;
-      g.fillStyle = 'rgba(0,0,0,0.20)'; g.fillRect(x - 1, y - 1, 4, 2);
-      g.fillStyle = cs(hex('#4a3826')); g.fillRect(x, y - 20, 3, 20);
-      g.fillStyle = cs(hex('#6a5238')); g.fillRect(x - 8, y - 24, 19, 8);
-      g.fillStyle = cs(hex('#3e2c1a')); g.fillRect(x - 8, y - 24, 19, 1);
-      g.fillStyle = 'rgba(40,30,20,0.55)';
-      g.fillRect(x - 5, y - 21, 11, 1);
+      g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(x - 2, y - 1, 5, 2);
+      g.fillStyle = cs(hex('#6b5334')); g.fillRect(x, y - 21, 3, 21);
+      g.fillStyle = cs(hex('#4e3b24')); g.fillRect(x + 1, y - 21, 2, 21);
+      g.fillStyle = cs(hex('#7d6242')); g.fillRect(x - 9, y - 25, 20, 9);
+      g.fillStyle = cs(hex('#96794f')); g.fillRect(x - 9, y - 25, 20, 3);
+      g.fillStyle = cs(hex('#584226')); g.fillRect(x - 9, y - 18, 20, 2);
     }
   }
 
@@ -836,6 +1116,16 @@
 
   /* ================= 11. 大气 ================= */
 
+  /* 场景种子：只由 (placeId, season, sky) 决定，保证同组合逐像素一致。
+     所有"随机"分布都走 h2(x, y, seed)，不再有 Math.random()。 */
+  let sceneSeed = 7;
+  function sceneSeedOf(placeId, seasonName, skyName) {
+    let n = 2166136261;
+    const key = `${placeId}|${seasonName}|${skyName}`;
+    for (let i = 0; i < key.length; i++) n = Math.imul(n ^ key.charCodeAt(i), 16777619);
+    return (n >>> 0) % 100000;
+  }
+
   const FOG = document.createElement('canvas');
   FOG.width = 320; FOG.height = 180;
   (() => {
@@ -851,25 +1141,199 @@
     g.putImageData(im, 0, 0);
   })();
 
+  /* 颗粒噪声：确定性（h2）——同一 seed 每帧一致，不再用 Math.random()。 */
   const GRAIN = document.createElement('canvas');
   GRAIN.width = 160; GRAIN.height = 90;
   (() => {
     const g = GRAIN.getContext('2d');
     const im = g.createImageData(160, 90);
-    for (let i = 0; i < im.data.length; i += 4) {
-      const v = Math.random() * 255;
+    for (let y = 0; y < 90; y++) for (let x = 0; x < 160; x++) {
+      const i = (y * 160 + x) * 4;
+      const v = Math.round((h2(x, y, 771) * 0.6 + h2(x, y, 773) * 0.4) * 255);
       im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255;
     }
     g.putImageData(im, 0, 0);
   })();
 
+  /* 雨滴/雪花：空间分布用 h2 定死（同 seed 下每帧位置一致，只有 y 随时间推进）。 */
   const drops = [];
   for (let i = 0; i < 170; i++) {
-    drops.push({ x: Math.random() * W, y: Math.random() * H, s: 150 + Math.random() * 170, l: 7 + Math.random() * 9 });
+    drops.push({
+      x: h2(i, 1, 811) * W,
+      y: h2(i, 2, 812) * H,
+      s: 150 + h2(i, 3, 813) * 170,
+      l: 7 + h2(i, 4, 814) * 9,
+    });
   }
   const flakes = [];
   for (let i = 0; i < 130; i++) {
-    flakes.push({ x: Math.random() * W, y: Math.random() * H, s: 8 + Math.random() * 20, a: 1 + Math.random() * 3, p: Math.random() * 6.28 });
+    flakes.push({
+      x: h2(i, 1, 821) * W,
+      y: h2(i, 2, 822) * H,
+      s: 8 + h2(i, 3, 823) * 20,
+      a: 1 + h2(i, 4, 824) * 3,
+      p: h2(i, 5, 825) * 6.28,
+    });
+  }
+
+  /* ================= 11b. 氛围粒子（A8） =================
+     三件东西：小圆环（半透明描边，缓慢漂移 + 缩放）、光点/孢子（1–2px 呼吸明暗）、
+     晴天尘光（细亮尘粒在受光斜带里上浮）。空间分布全部来自 sceneSeed，
+     动画相位用 t，所以同 (placeId, season, sky) 下画面逐像素一致。 */
+
+  const RING_PTS = new Map();
+  function pixelRing(r) {
+    const key = r | 0;
+    const hit = RING_PTS.get(key);
+    if (hit) return hit;
+    const pts = [];
+    const steps = Math.max(10, Math.round(key * 8));
+    for (let s = 0; s < steps; s++) {
+      const a = (s / steps) * Math.PI * 2;
+      const px = Math.round(Math.cos(a) * key), py = Math.round(Math.sin(a) * key * 0.86);
+      let dup = false;
+      for (const p of pts) if (p[0] === px && p[1] === py) { dup = true; break; }
+      if (!dup) pts.push([px, py]);
+    }
+    RING_PTS.set(key, pts);
+    return pts;
+  }
+
+  const particles = [];
+  function buildParticles() {
+    particles.length = 0;
+    const sd = sceneSeed;
+    const wet = sky === 'rain';
+    const snowy = sky === 'snow';
+    // A8：同屏 12–40 粒；雨雪天只留极少量，晴天最多（含尘光）
+    const ringN = wet || snowy ? 0 : 3 + Math.floor(h2(sd, 1, 901) * 4);      // 3–6
+    const sporeN = wet ? 0 : snowy ? 4 : 8 + Math.floor(h2(sd, 2, 901) * 8);   // 4 / 8–15
+    const dustN = sky === 'clear' ? 9 + Math.floor(h2(sd, 3, 901) * 7) : 0;   // 9–15
+    const fogN = sky === 'fog' ? 3 : 0;
+    for (let i = 0; i < ringN; i++) {
+      particles.push({
+        kind: 0,
+        x: 40 + h2(i, 11, sd) * (W - 80),
+        y: 24 + h2(i, 12, sd) * (H * 0.62),
+        r: 5 + Math.floor(h2(i, 13, sd) * 6),
+        ph: h2(i, 14, sd) * 6.283,
+        sp: 0.12 + h2(i, 15, sd) * 0.10,
+        amp: 3 + h2(i, 16, sd) * 5,
+        a: 0.48 + h2(i, 17, sd) * 0.22,
+      });
+    }
+    for (let i = 0; i < sporeN; i++) {
+      particles.push({
+        kind: 1,
+        x: 20 + h2(i, 21, sd) * (W - 40),
+        y: 18 + h2(i, 22, sd) * (H * 0.74),
+        ph: h2(i, 23, sd) * 6.283,
+        sp: 0.5 + h2(i, 24, sd) * 0.9,
+        amp: 4 + h2(i, 25, sd) * 7,
+        big: h2(i, 26, sd) > 0.82,
+        warm: h2(i, 27, sd) > 0.55,
+      });
+    }
+    for (let i = 0; i < dustN; i++) {
+      particles.push({
+        kind: 2,
+        x: 60 + h2(i, 31, sd) * 380,
+        y: 40 + h2(i, 32, sd) * 250,
+        ph: h2(i, 33, sd) * 6.283,
+        sp: 0.20 + h2(i, 34, sd) * 0.35,
+        amp: 2 + h2(i, 35, sd) * 4,
+      });
+    }
+    for (let i = 0; i < fogN; i++) {
+      particles.push({
+        kind: 0,
+        x: 60 + h2(i, 41, sd) * (W - 120),
+        y: 40 + h2(i, 42, sd) * (H * 0.5),
+        r: 5 + Math.floor(h2(i, 43, sd) * 4),
+        ph: h2(i, 44, sd) * 6.283,
+        sp: 0.07,
+        amp: 8,
+        a: 0.07,
+      });
+    }
+  }
+
+  function drawParticles(t) {
+    if (!particles.length) return;
+    const warmAir = sky === 'clear' || sky === 'fog';
+    for (const p of particles) {
+      if (p.kind === 0) {
+        // 小圆环：缓慢横向漂移 + 尺寸呼吸，半透明描边
+        const x = Math.round(p.x + Math.sin(t * p.sp + p.ph) * p.amp);
+        const y = Math.round(p.y + Math.cos(t * p.sp * 0.7 + p.ph) * p.amp * 0.4);
+        const grow = 0.75 + 0.35 * (0.5 + 0.5 * Math.sin(t * p.sp * 1.7 + p.ph));
+        const r = Math.max(2, Math.round(p.r * grow));
+        const a = p.a * (0.55 + 0.45 * (0.5 + 0.5 * Math.sin(t * p.sp + p.ph * 1.3)));
+        vctx.fillStyle = warmAir ? `rgba(232,217,138,${a.toFixed(3)})` : `rgba(214,222,224,${a.toFixed(3)})`;
+        for (const pt of pixelRing(r)) vctx.fillRect(x + pt[0], y + pt[1], 1, 1);
+      } else if (p.kind === 1) {
+        // 光点/孢子：位置缓慢漂移，明暗呼吸
+        const x = Math.round(p.x + Math.sin(t * p.sp * 0.5 + p.ph) * p.amp);
+        const y = Math.round(p.y + Math.sin(t * p.sp * 0.33 + p.ph * 1.7) * p.amp * 0.8 - (t * 1.6) % (H * 0.5)) ;
+        const yy = ((y % H) + H) % H;
+        const breathe = 0.30 + 0.70 * (0.5 + 0.5 * Math.sin(t * (0.7 + p.sp) + p.ph));
+        const a = (0.34 + breathe * 0.46) * (yy < H * 0.86 ? 1 : 0.4);
+        vctx.fillStyle = p.warm
+          ? `rgba(232,217,138,${a.toFixed(3)})`
+          : `rgba(226,230,214,${a.toFixed(3)})`;
+        if (p.big) { vctx.fillRect(x, yy, 2, 2); vctx.fillRect(x - 1, yy + 1, 1, 1); vctx.fillRect(x + 2, yy + 1, 1, 1); }
+        else vctx.fillRect(x, yy, 1, 1);
+      } else {
+        // 晴天尘光：极细亮尘在受光斜带里缓慢上浮
+        const x = Math.round(p.x + Math.sin(t * p.sp * 0.4 + p.ph) * p.amp);
+        const y = Math.round(((p.y - (t * 4 + p.ph * 3) % 220) % H + H) % H);
+        const a = 0.10 + 0.16 * (0.5 + 0.5 * Math.sin(t * 0.6 + p.ph));
+        vctx.fillStyle = `rgba(255,238,190,${a.toFixed(3)})`;
+        vctx.fillRect(x, y, 1, 1);
+      }
+    }
+  }
+
+  /* 晴天受光斜带：粒子有"光可落"的地方，尘光才读得出来（很淡） */
+  function drawSunShaft() {
+    if (sky !== 'clear') return;
+    vctx.globalCompositeOperation = 'lighter';
+    const g = vctx.createLinearGradient(120, -40, 470, 340);
+    g.addColorStop(0, 'rgba(255,226,168,0.075)');
+    g.addColorStop(0.55, 'rgba(255,222,160,0.035)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    vctx.fillStyle = g;
+    vctx.beginPath();
+    vctx.moveTo(96, 0); vctx.lineTo(250, 0); vctx.lineTo(470, H); vctx.lineTo(300, H);
+    vctx.closePath(); vctx.fill();
+    vctx.globalCompositeOperation = 'source-over';
+  }
+
+  /* A7 前景压暗：底部与左右边缘压暗，让前景元素"压住画面"。
+     这里是软边渐变（是层次，不是描边），并且只作为三段的最后一段。 */
+  function foregroundShade() {
+    const bot = vctx.createLinearGradient(0, H * 0.66, 0, H);
+    bot.addColorStop(0, 'rgba(18,22,14,0)');
+    bot.addColorStop(1, 'rgba(18,22,14,0.26)');
+    vctx.fillStyle = bot; vctx.fillRect(0, H * 0.66, W, H * 0.34);
+    const left = vctx.createLinearGradient(0, 0, W * 0.17, 0);
+    left.addColorStop(0, 'rgba(18,22,14,0.20)');
+    left.addColorStop(1, 'rgba(18,22,14,0)');
+    vctx.fillStyle = left; vctx.fillRect(0, 0, W * 0.17, H);
+    const right = vctx.createLinearGradient(W, 0, W * 0.83, 0);
+    right.addColorStop(0, 'rgba(18,22,14,0.20)');
+    right.addColorStop(1, 'rgba(18,22,14,0)');
+    vctx.fillStyle = right; vctx.fillRect(W * 0.83, 0, W * 0.17, H);
+  }
+
+  /* 中景提亮：视线焦点抬一档明度（很淡，地形层已经做了大部分） */
+  function midLift() {
+    vctx.globalCompositeOperation = 'lighter';
+    const g = vctx.createRadialGradient(W * 0.5, H * 0.56, 60, W * 0.5, H * 0.56, 300);
+    g.addColorStop(0, 'rgba(255,240,200,0.05)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    vctx.fillStyle = g; vctx.fillRect(0, 0, W, H);
+    vctx.globalCompositeOperation = 'source-over';
   }
 
   function atmosphere(t) {
@@ -919,27 +1383,37 @@
       }
     }
 
+    // A7 三段：中景提亮 → 前景/边缘压暗 → 暗角只作辅助
+    midLift();
+    drawSunShaft();
+    drawParticles(t);
+    foregroundShade();
+
     vctx.globalAlpha = 0.045;
     vctx.globalCompositeOperation = 'overlay';
     vctx.drawImage(GRAIN, 0, 0, W, H);
     vctx.globalAlpha = 1;
     vctx.globalCompositeOperation = 'source-over';
 
-    const vg = vctx.createRadialGradient(W / 2, H * 0.44, 150, W / 2, H * 0.44, 470);
+    const vg = vctx.createRadialGradient(W / 2, H * 0.44, 170, W / 2, H * 0.44, 470);
     vg.addColorStop(0, 'rgba(0,0,0,0)');
-    vg.addColorStop(1, 'rgba(0,0,0,0.38)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.24)');
     vctx.fillStyle = vg; vctx.fillRect(0, 0, W, H);
   }
 
   /* ================= 12. 组装 ================= */
 
   function rebuild(vmNext) {
-    const prevPlace = vm?.place?.id, prevSeason = vm?.clock?.season;
+    const prevPlace = vm?.place?.id, prevSeason = vm?.clock?.season, prevSky = vm?.weather?.sky;
     vm = vmNext;
     layout = layoutFor(vm.place.id);
     season = SEASONS[vm.clock.season] ?? SEASONS.春;
     sky = skyOf(vm.weather);
     TREES = planTrees(layout.trees);
+    sceneSeed = sceneSeedOf(vm.place.id, vm.clock.season, sky);
+    // 大气粒子只依赖 (place, season, sky)，这三样没变就不用重建
+    const sameAir = prevPlace === vm.place.id && prevSeason === vm.clock.season && prevSky === vm.weather.sky;
+    if (!sameAir || !particles.length) buildParticles();
     const sameScene = prevPlace === vm.place.id && prevSeason === vm.clock.season;
     if (sameScene) return false;
     buildTerrain();
