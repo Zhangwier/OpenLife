@@ -268,12 +268,14 @@
   const P_SAND = hex('#6a5942');
 
   /* 草地底色值：地形与草叶共用一套，草叶才不会在亮地上撒"黑毛"。
-     中景最亮、远景抬明度、前景压暗都在这里一次算完（A7）。 */
+     中景最亮、远景抬明度、前景压暗都在这里一次算完（A7）。
+     加一层低频大噪声（scale 220）做明暗块面——草地不是均匀一片，而是一块亮一块暗的大色块。 */
   function grassT(x, y, df) {
     const low = vnoise(x, y, 150, 5) * 0.42 + vnoise(x, y, 52, 11) * 0.33
       + vnoise(x, y, 16, 23) * 0.18 + vnoise(x, y, 5, 29) * 0.07;
+    const patch = vnoise(x, y, 220, 141) * 0.65 + vnoise(x, y, 90, 142) * 0.35;
     const d = df ?? depthField(x, y);
-    return clamp(low * 0.86 + 0.10 + d.mid * 0.16 - d.far * 0.10 - d.fore * 0.12, 0, 1);
+    return clamp(low * 0.78 + patch * 0.24 + 0.10 + d.mid * 0.16 - d.far * 0.10 - d.fore * 0.12, 0, 1);
   }
 
   function buildTerrain() {
@@ -1049,8 +1051,12 @@
       for (let li = 0; li < lobes.length; li++) {
         const L = lobes[li];
         const dx = x - L.x, dy = y - L.y;
-        if (dx > L.r || dx < -L.r || dy > L.r || dy < -L.r) continue;
-        const q = 1 - (dx * dx + dy * dy) / (L.r * L.r);
+        // 叶团不再是纯圆：按方向角对半径做噪声扰动，团块边缘凹凸、有棱角，不像气球
+        const ang = Math.atan2(dy, dx);
+        const wob = 1 + (vnoise(L.x * 3 + Math.cos(ang) * 40, L.y * 3 + Math.sin(ang) * 40, 18, li * 7 + 3) - 0.5) * 0.55;
+        const rr = L.r * wob;
+        if (dx > rr || dx < -rr || dy > rr || dy < -rr) continue;
+        const q = 1 - (dx * dx + dy * dy) / (rr * rr);
         if (q <= 0) continue;
         const w = q * q;
         field += w;
