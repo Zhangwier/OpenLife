@@ -1,0 +1,18 @@
+/* 熟人页（people-ux）：颜色只用令牌 */
+.pux-ord { flex: none; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-weight: 600; white-space: nowrap; }
+.stranger-list li { align-items: center; }
+.stranger-list .ghost-button.is-going { opacity: .7; pointer-events: none; }
+.pux-steps { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0 0; padding: 0; list-style: none; }
+.pux-steps li { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.pux-steps li.is-first { border-color: var(--primary); background: var(--primary-soft); }
+.pux-steps b { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: var(--surface); font-size: 13px; }
+.pux-steps span { display: grid; gap: 2px; min-width: 0; }
+.pux-steps strong { font-size: 14px; color: var(--ink); }
+.pux-steps small { font-size: 12px; color: var(--muted); line-height: 1.5; }
+@media (max-width: 600px) { :where(html:not([data-layout="desktop"])) .pux-steps { grid-template-columns: 1fr; gap: 8px; }
+  :where(html:not([data-layout="desktop"])) .stranger-list li { flex-wrap: wrap; row-gap: 6px; }
+  :where(html:not([data-layout="desktop"])) .stranger-list .stranger-note { flex-basis: 100%; order: 3; } }
+:where(html.is-phone) .pux-steps { grid-template-columns: 1fr; gap: 8px; }
+:where(html.is-phone) .stranger-list li { flex-wrap: wrap; row-gap: 6px; }
+:where(html.is-phone) .stranger-list .stranger-note { flex-basis: 100%; order: 3; }
+.stranger-list .ghost-button[data-person-route] { margin-left: auto; }

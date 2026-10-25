@@ -1,0 +1,7 @@
+/* 故事页体验（2026-10-24 午场）。只用 theme.css 令牌。 */
+.su-count { color: var(--muted); font-weight: 400; }
+.story-button[aria-busy="true"] { opacity: .6; cursor: progress; }
+@media (min-width: 1000px) {
+  .story-achievements .story-badges { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .story-roster { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+}

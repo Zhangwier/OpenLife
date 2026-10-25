@@ -1,0 +1,12 @@
+/* 家族谱页增强（合并场）。只用阶梯字号与主题令牌，不加 box-shadow。 */
+.fux-summary { margin: 4px 0 0; font-size: var(--fs-fine); color: var(--muted); }
+.family-tree { scroll-snap-type: x proximity; scroll-padding-inline: 8px; }
+.family-node { scroll-snap-align: center; }
+.family-node .fux-you { display: inline-block; margin-right: 6px; padding: 0 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-style: normal; font-size: var(--fs-note); font-weight: 600; vertical-align: 1px; }
+.family-node.fux-gone { background: transparent; border-style: dashed; }
+.family-node.fux-gone strong { color: var(--muted); font-weight: 500; }
+.family-handoff.fux-empty { display: none; }
+@media (max-width: 600px) {
+  .family-node { min-width: 132px; }
+  .fux-summary { font-size: var(--fs-note); }
+}
