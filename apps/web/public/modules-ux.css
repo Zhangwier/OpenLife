@@ -1,0 +1,12 @@
+/* 模块管理页增强（2026-10-25 合并场）。只用主题令牌与阶梯字号，无阴影。 */
+.mux-bar { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 6px; }
+.mux-chip { min-height: 44px; padding: 0 16px; border-radius: var(--r-pill); border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-body); cursor: pointer; }
+.mux-chip[aria-pressed="true"] { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+.mux-chip:focus-visible, .module-switch:focus-visible { outline: 3px solid var(--focus, var(--accent)); outline-offset: 2px; }
+.mux-core { margin: 14px 0 6px; }
+.mux-core-names { margin: 8px 0 12px; color: var(--muted); font-size: var(--fs-body); line-height: 1.7; }
+.mux-core > .module-list { margin-top: 8px; }
+.module-switch { min-width: 44px; min-height: 44px; }
+.module-switch.mux-busy { opacity: .6; cursor: progress; }
+[hidden][data-mux-group] { display: none !important; }
+@media (max-width: 600px) { .mux-bar { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; } .mux-chip { flex: 0 0 auto; } }
