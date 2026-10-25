@@ -315,13 +315,15 @@
         col = mixc(col, dc, pw * 0.97);
         if (pw > 0.55) mk = 1;
       }
-      // A6：紧贴路缘 2–3px 浅黄绿草边高光——比草地亮、偏黄，用噪声切成断续草芽，
-      // 外侧再散几个单像素芽点，读成"草被踩秃后又冒出的新草"。
+      // A6：紧贴路缘 2–3px 浅黄绿草边高光——比草地亮、偏黄。
+      // §4 修订：不套完整等宽荧光线。用低频噪声决定"这段有没有草边"（有破口、有裸土），
+      // 再用高频噪声把留下的段落切成断续草芽；亮度随光向与地被起伏，不是均匀一圈。
       if (dp > rad - 1.2 && dp < rad + 3.6) {
         const band = clamp((dp - (rad - 1.2)) / 4.8, 0, 1);
         const lit = (1 - band * 0.75) * (0.55 + vnoise(x, y, 6, 136) * 0.8);
-        const dash = vnoise(x, y, 3, 137);
-        if (dash > 0.26) col = mixc(col, LIP, clamp(lit * (snow ? 0.30 : 0.90), 0, 0.94));
+        const worn = vnoise(x, y, 34, 138);            // 低频：整段被踩秃/保留
+        const dash = vnoise(x, y, 3, 137);             // 高频：草芽断续
+        if (worn > 0.34 && dash > 0.30) col = mixc(col, LIP, clamp(lit * (snow ? 0.30 : 0.90), 0, 0.94));
         mk = pw > 0.55 ? 1 : 0;
       }
 
@@ -1113,6 +1115,7 @@
     const gw = Math.ceil(bw / PIX), gh = Math.ceil(bh / PIX);
     const cell = new Int16Array(gw * gh).fill(-2); // -2 空，-1 抖动留空，>=0 色档
     const cellAutumn = new Uint8Array(gw * gh);    // 该格属于橙叶树则 1（填色时选橙色阶）
+    const cellSolid = new Float32Array(gw * gh);   // 该格场强（1=核心, →0=边缘），镂空按它定
     const CELL_HILITE = 100, CELL_ACCENT = 101;
 
     for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
@@ -1177,6 +1180,7 @@
       }
       cell[gy * gw + gx] = out;
       if (host.autumn) cellAutumn[gy * gw + gx] = 1;
+      cellSolid[gy * gw + gx] = solid; // 场强：核心高、边缘低
     }
 
     /* A10a 碎叶点簇：每格不再四像素同色，而是逐 1px 用细噪声决定"长叶还是镂空"。
@@ -1202,10 +1206,13 @@
         const xx = x0 + px, yy = y0 + py;
         if (xx >= bw || yy >= bh) continue;
         const ax = bx0 + xx, ay = by0 + yy; // 绝对坐标，噪声跨格连续
-        // 镂空阈值：色档越深镂空越多（暗部叶缝多），亮部趋实心；最外圈（rim）镂空最多
+        /* 镂空集中在边缘与枝间，核心体积保留连贯（避免"筛网感"）：
+           场强低（边缘）镂空多，场强高（核心）几乎实心；色档只做轻微修正。 */
+        const solid = cellSolid[gy * gw + gx];
         const hollow = vnoise(ax * 2.1, ay * 2.1, 2.6, 6100) * 0.62
           + vnoise(ax * 2.1, ay * 2.1, 1.3, 6101) * 0.38;
-        const holeAmt = 0.55 - v * 0.09; // 档0≈0.55 镂空, 档4≈0.19
+        const edgeFactor = 1 - clamp((solid - TREE_FADE) / (1.6 - TREE_FADE), 0, 1); // 核心→0, 边缘→1
+        const holeAmt = 0.62 * edgeFactor * edgeFactor + (0.10 - v * 0.015); // 核心≈0, 边缘≈0.62
         const i = (yy * bw + xx) * 4;
         if (hollow < holeAmt) {
           d[i] = SHADOW_DEEP[0] | 0; d[i + 1] = SHADOW_DEEP[1] | 0; d[i + 2] = SHADOW_DEEP[2] | 0; d[i + 3] = 255;
