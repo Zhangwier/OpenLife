@@ -227,12 +227,16 @@
 
   function planTrees(n) {
     const count = clamp(n | 0, 0, TREE_PICK.length);
-    return TREE_PICK.slice(0, count).map((slot) => {
+    const isAutumn = vm?.clock?.season === '秋';
+    return TREE_PICK.slice(0, count).map((slot, idx) => {
       const t = TREE_SLOTS[slot];
       return {
         x: t.x, y: t.y, h: t.h, r: t.r,
         cy: t.y - Math.round(t.h * 0.62),
         seed: 8100 + slot * 97,
+        // A10b 橙色秋叶树：秋季里第一棵（左上团）用橙色，作画面唯一的强点缀。
+        // 春季也放一点（花季），夏冬保持绿/枯。
+        autumn: isAutumn ? idx === 0 : false,
       };
     });
   }
@@ -1034,6 +1038,14 @@
       mixc(leaf, [255, 255, 255], 0.13), mixc(leaf, [255, 255, 255], 0.26),
     ];
   }
+  /* 橙色秋叶树色阶（A10b）：从点缀橙派生，亮部偏金黄、暗部偏褐，是画面唯一的强点缀。 */
+  const TREE_AUTUMN = hex('#c8862e');
+  function treeAutumnShades() {
+    return [
+      mixc(TREE_AUTUMN, [0, 0, 0], 0.46), mixc(TREE_AUTUMN, [0, 0, 0], 0.24), TREE_AUTUMN,
+      mixc(TREE_AUTUMN, [255, 230, 150], 0.28), mixc(TREE_AUTUMN, [255, 240, 190], 0.5),
+    ];
+  }
 
   function buildTrees() {
     const g = PRP.g;
@@ -1071,7 +1083,10 @@
     if (!TREES.length) return;
 
     const lobes = treeCanopyLobes();
-    const shades = treeCanopyShades(hex(season.leaf));
+    const greenShades = treeCanopyShades(hex(season.leaf));
+    const autumnShades = treeAutumnShades();
+    // 每棵树一套色阶：橙叶树用橙，其余用季叶色
+    const shadesOf = (host) => (host && host.autumn ? autumnShades : greenShades);
 
     /* A9 像素粒度：场可以连续，但着色按 PIX×PIX 网格量化。
        每一格在格中心采样一次场与光照，量化成色档后整格填同一个色——
@@ -1093,11 +1108,11 @@
     const img = c.createImageData(bw, bh), d = img.data;
     // 叶团外圈要跟"它盖住的那块地"对得上，读一次地形就够了
     const ground = TER.g.getImageData(bx0, by0, bw, bh).data;
-    const shadeL = shades.map((s) => 0.299 * s[0] + 0.587 * s[1] + 0.114 * s[2]);
 
     // 先按网格算每格的颜色（或留空），再统一整格填色
     const gw = Math.ceil(bw / PIX), gh = Math.ceil(bh / PIX);
     const cell = new Int16Array(gw * gh).fill(-2); // -2 空，-1 抖动留空，>=0 色档
+    const cellAutumn = new Uint8Array(gw * gh);    // 该格属于橙叶树则 1（填色时选橙色阶）
     const CELL_HILITE = 100, CELL_ACCENT = 101;
 
     for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
@@ -1125,6 +1140,9 @@
       const band = clamp((solid - TREE_FADE) / (1 - TREE_FADE), 0, 1);
       const bayer = (TREE_BAYER4[(gy & 3) * 4 + (gx & 3)] + 0.5) / 16;
       if (band < 1 && bayer > band) continue;
+
+      const shades = shadesOf(host);                 // 橙叶树 vs 季叶色
+      const shadeL = host.__shadeL ?? (host.__shadeL = shades.map((s) => 0.299 * s[0] + 0.587 * s[1] + 0.114 * s[2]));
 
       const dx = x - host.x, dy = y - host.cy;
       const clump = vnoise(x, y, 7, 17);
@@ -1158,9 +1176,15 @@
         else if (hk < dens + 0.0012 && litRaw > 0.55) out = CELL_ACCENT;
       }
       cell[gy * gw + gx] = out;
+      if (host.autumn) cellAutumn[gy * gw + gx] = 1;
     }
 
-    // 把每格填成纯色（2×2 同色像素），透光点收敛成单像素更通透
+    /* A10a 碎叶点簇：每格不再四像素同色，而是逐 1px 用细噪声决定"长叶还是镂空"。
+       镂空处填叶间阴影色（最深一档，mix 一点地面色，模拟叶缝透出的树冠深处，不是破洞）。
+       镂空比例随 lit 与档位变化：亮部实心些、暗部/低档镂空多，整团树冠就碎成叶点簇。
+       透光点保持单像素更通透。 */
+    const SHADOW_GREEN = mixc(greenShades[0], [0, 0, 0], 0.30);  // 绿叶缝深处的暗
+    const SHADOW_AUT = mixc(autumnShades[0], [0, 0, 0], 0.30);   // 橙叶缝深处的暗
     for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
       const v = cell[gy * gw + gx];
       if (v < 0) continue;
@@ -1171,12 +1195,23 @@
         d[i] = col[0]; d[i + 1] = col[1]; d[i + 2] = col[2]; d[i + 3] = 255;
         continue;
       }
-      const col = shades[v];
+      const isAut = cellAutumn[gy * gw + gx] === 1;
+      const col = (isAut ? autumnShades : greenShades)[v];
+      const SHADOW_DEEP = isAut ? SHADOW_AUT : SHADOW_GREEN;
       for (let py = 0; py < PIX; py++) for (let px = 0; px < PIX; px++) {
         const xx = x0 + px, yy = y0 + py;
         if (xx >= bw || yy >= bh) continue;
+        const ax = bx0 + xx, ay = by0 + yy; // 绝对坐标，噪声跨格连续
+        // 镂空阈值：色档越深镂空越多（暗部叶缝多），亮部趋实心；最外圈（rim）镂空最多
+        const hollow = vnoise(ax * 2.1, ay * 2.1, 2.6, 6100) * 0.62
+          + vnoise(ax * 2.1, ay * 2.1, 1.3, 6101) * 0.38;
+        const holeAmt = 0.55 - v * 0.09; // 档0≈0.55 镂空, 档4≈0.19
         const i = (yy * bw + xx) * 4;
-        d[i] = col[0] | 0; d[i + 1] = col[1] | 0; d[i + 2] = col[2] | 0; d[i + 3] = 255;
+        if (hollow < holeAmt) {
+          d[i] = SHADOW_DEEP[0] | 0; d[i + 1] = SHADOW_DEEP[1] | 0; d[i + 2] = SHADOW_DEEP[2] | 0; d[i + 3] = 255;
+        } else {
+          d[i] = col[0] | 0; d[i + 1] = col[1] | 0; d[i + 2] = col[2] | 0; d[i + 3] = 255;
+        }
       }
     }
     c.putImageData(img, bx0, by0);
