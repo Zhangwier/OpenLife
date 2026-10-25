@@ -1,0 +1,22 @@
+/* 地图与地点页（map-ux）：颜色只用令牌 */
+.mux-summary { display: grid; gap: 10px; padding: 14px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); }
+.mux-summary p { margin: 0; font-size: 14px; color: var(--ink-2); }
+.mux-summary strong { color: var(--primary); font-size: 16px; }
+.mux-jump { display: flex; flex-wrap: wrap; gap: 8px; }
+.mux-jump button { font: inherit; font-size: 13px; padding: 6px 12px; min-height: 36px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); cursor: pointer; }
+.mux-jump button:hover, .mux-jump button:focus-visible { border-color: var(--primary); color: var(--primary); }
+.map-pack.is-flash { outline: 2px solid var(--primary); outline-offset: 2px; transition: outline-color .3s; }
+.map-pack { scroll-margin-top: 72px; }
+.mux-folds { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 10px; }
+.mux-folds > details { margin: 0; }
+.map-pack .map-limit:empty { display: none; }
+@media (min-width: 900px) {
+  .mux-folds { grid-template-columns: 1fr 1fr; align-items: start; }
+  #screen-map { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+  #screen-map > .catalog-intro, #screen-map > .mux-summary { grid-column: 1 / -1; }
+}
+@media (max-width: 600px) { :where(html:not([data-layout="desktop"])) .mux-jump { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+  :where(html:not([data-layout="desktop"])) .mux-jump button { white-space: nowrap; flex: none; }
+  :where(html:not([data-layout="desktop"])) .map-pack { scroll-margin-top: 64px; } }
+:where(html.is-phone) .mux-jump { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+:where(html.is-phone) .mux-jump button { white-space: nowrap; flex: none; }

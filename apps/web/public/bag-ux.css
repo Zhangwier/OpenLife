@@ -1,0 +1,13 @@
+/* 行囊页（2026-10-25 午场）：只用 theme.css 令牌。 */
+.bagx-summary { display: block; margin-top: 4px; font-size: 13px; color: var(--muted); }
+.portable-item { position: relative; }
+.portable-item[hidden], .portable-item small[hidden] { display: none; }
+.bagx-count {
+  position: absolute; top: 8px; right: 8px; padding: 2px 8px;
+  border-radius: var(--r-pill); background: var(--primary-soft); color: var(--primary);
+  border: 1px solid var(--primary); font-size: 12px; font-weight: 600;
+}
+.portable-item:active { transform: scale(.98); }
+@media (min-width: 900px) {
+  html:not(.is-phone) #screen-works .portable-items { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+}
