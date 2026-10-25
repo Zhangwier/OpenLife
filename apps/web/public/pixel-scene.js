@@ -383,27 +383,23 @@
       g.fillRect(x + 1, y - 1, Math.max(1, w - 2), hh + 1);
     }
 
-    /* 草叶：每根都相对"脚下那一格的草地明度"取色（下方压 1 阶、受光尖端抬 1–2 阶），
-       所以亮地上不会冒出黑毛，暗地上也不会浮白点。
-       A9：草叶成片成簇（噪声门槛偏高），不是均匀撒满——草地主体是平整色块，草叶只是点缀。 */
-    for (let i = 0; i < 6000; i++) {
+    /* 草点（A10e）：草地主体是平整色块，上面撒极细的 1px 草点，不是大丛竖线。
+       每点相对"脚下那一格的草地明度"取色（抬 1 阶或压 1 阶），成簇出现（噪声门槛），
+       高 1–2px 偶尔带一个贴地暗点当根。 */
+    for (let i = 0; i < 5200; i++) {
       const x = Math.floor(h2(i, 1, 401) * W), y = Math.floor(h2(i, 2, 401) * H);
       if (mask[y * W + x] !== 0) continue;
       const dens = vnoise(x, y, 62, 411) * 0.62 + vnoise(x, y, 18, 412) * 0.38;
-      if (h2(i, 3, 401) > dens * dens * dens * 1.7) continue;
+      if (h2(i, 3, 401) > dens * dens * dens * 1.55) continue;
       const r = h2(i, 4, 401);
-      const hh = 2 + Math.floor(h2(i, 5, 401) * 4);
-      const lean = r > 0.68 ? 1 : 0;
-      const base = grassT(x, y) * (G.length - 1);          // 脚下草地所在阶
-      const dark = Math.round(clamp(base - 1.1, 0, G.length - 1));
-      const midc2 = Math.round(clamp(base - 0.2, 0, G.length - 1));
-      const tip = Math.round(clamp(base + (r > 0.80 ? 1.8 : 1.1), 0, G.length - 1));
-      g.fillStyle = cs(G[dark]);
-      g.fillRect(x, y - 1, 1, 2);
-      g.fillStyle = cs(G[midc2]);
-      g.fillRect(x, y - hh, 1, hh - 1);
-      g.fillStyle = cs(G[tip]);
-      g.fillRect(x + lean, y - hh, 1, 2);
+      const base = grassT(x, y) * (G.length - 1);
+      const up = Math.round(clamp(base + (r > 0.78 ? 1.7 : 1.0), 0, G.length - 1));
+      const down = Math.round(clamp(base - 1.1, 0, G.length - 1));
+      // 主点：1px 抬色草尖；三成带一个 1px 高一点的芯；少数带贴地暗点
+      g.fillStyle = cs(G[up]);
+      g.fillRect(x, y - 1, 1, 1);
+      if (r > 0.55) { g.fillStyle = cs(G[Math.round(clamp(base + 0.3, 0, G.length - 1))]); g.fillRect(x, y, 1, 1); }
+      if (r > 0.86) { g.fillStyle = cs(G[down]); g.fillRect(x, y + 1, 1, 1); }
     }
 
     /* A6：路缘草芽。沿噪声在路肩撒断续的浅黄绿短草，把"草啃土路"的边做实 */
@@ -419,18 +415,26 @@
       if (h2(i, 5, 611) > 0.62) g.fillStyle = cs(mixc(LIP, G[7], 0.45)), g.fillRect(x + 1, y - hh + 1, 1, hh - 1);
     }
 
-    const flowerN = Math.round(620 * season.flower);
+    /* 白色/淡黄小野花（A10d）：成簇撒 1–2px 花点。中心白瓣 + 偶有淡黄芯，
+       少量是 A2 的橙点缀。成簇（噪声成团），不是均匀撒。单屏点缀 <1.5%。 */
+    const flowerN = Math.round(900 * season.flower);
     for (let i = 0; i < flowerN; i++) {
       const x = Math.floor(h2(i, 1, 321) * W), y = Math.floor(h2(i, 2, 321) * H);
       if (mask[y * W + x] !== 0) continue;
-      if (vnoise(x, y, 74, 331) < 0.62) continue;
+      // 成簇：低频噪声成团，团内才长花
+      if (vnoise(x, y, 40, 331) < 0.60) continue;
+      if (vnoise(x, y, 12, 332) < 0.42) continue;
       const r = h2(i, 3, 321);
-      // 绝大多数是灰白小花，少数是 A2 里的黄点缀（单屏 <1.5%）
-      g.fillStyle = cs(r < 0.90 ? [216, 216, 200] : hex(season.accent));
+      const petal = r < 0.86 ? [222, 220, 205] : hex(season.accent); // 大多灰白，少数橙/黄点缀
+      g.fillStyle = cs(petal);
       g.fillRect(x, y, 1, 1);
-      if (r < 0.55) { g.fillRect(x + 1, y, 1, 1); g.fillRect(x, y - 1, 1, 1); }
-      if (r < 0.24) { g.fillRect(x + 1, y - 1, 1, 1); g.fillRect(x + 2, y, 1, 1); }
-      g.fillStyle = cs(STEM); g.fillRect(x, y + 1, 1, 1);
+      // 四成开成 4 瓣小十字（更 reads as 花）
+      if (r < 0.40) {
+        g.fillRect(x + 1, y, 1, 1); g.fillRect(x - 1, y, 1, 1);
+        g.fillRect(x, y - 1, 1, 1); g.fillRect(x, y + 1, 1, 1);
+        if (r < 0.13) { g.fillStyle = cs(hex('#d8c04a')); g.fillRect(x, y, 1, 1); } // 淡黄芯
+      }
+      if (r > 0.5) { g.fillStyle = cs(STEM); g.fillRect(x, y + 2, 1, 1); }
     }
 
     /* 土路颗粒：暗点 + 亮点成对，形成"车辙碎石"而不是脏点 */
@@ -476,6 +480,57 @@
         g.fillStyle = ca([226, 230, 228], 0.24 + n * 0.26);
         g.fillRect(x, y, 1, 1);
         if (n > 0.82) g.fillRect(x + 1, y, 1, 1);
+      }
+    }
+
+    drawShrubs(g, G);
+  }
+
+  /* 低矮灌木丛（A10c）：树下、路边、屋角的碎叶点簇，含 1–2 丛青蓝点缀。
+     与树冠同一套语言：小叶点密集堆叠 + 镂空（透出草地），边缘叶点渐稀，无描边。
+     比树矮得多（半径 8–16px），压在草地上当"地被层"。确定性：全部走 h2/vnoise。 */
+  const SHRUB_BLUE = [hex('#2e4238'), hex('#3e5a52'), hex('#4f6a60')]; // 青蓝灌木三阶
+  function drawShrubs(g, G) {
+    // 灌木站位：树附近、路旁、屋角。用固定 + 噪声挑，避免压住人物站位与门。
+    const spots = [];
+    const cand = [
+      { x: 40, y: 250 }, { x: 118, y: 262 }, { x: 176, y: 300 },   // 左上树团下
+      { x: 474, y: 268 }, { x: 560, y: 250 }, { x: 620, y: 268 },   // 右上树团下
+      { x: 70, y: 330 }, { x: 560, y: 330 },                        // 前景左右
+      { x: 250, y: 208 }, { x: 420, y: 210 },                       // 屋侧
+    ];
+    for (let k = 0; k < cand.length; k++) {
+      const p = cand[k];
+      if (h2(k, 1, 2101) < 0.18) continue;                 // 稀疏些，别每个点都长
+      const blue = k === 5 || (k === 8 && h2(k, 2, 2101) > 0.4); // 1–2 丛青蓝
+      spots.push({ x: p.x, y: p.y, r: 9 + Math.floor(h2(k, 3, 2101) * 7), blue, seed: 2100 + k * 13 });
+    }
+    for (const s of spots) {
+      // 贴地暗块（落地，不是描边）
+      g.fillStyle = 'rgba(0,0,0,0.16)';
+      g.fillRect(s.x - s.r + 2, s.y, s.r * 2 - 4, 2);
+      // 碎叶点簇：在半径内按"格 + 噪声 + 镂空"撒 1px 叶点
+      const shades = s.blue ? SHRUB_BLUE
+        : [mixc(G[1], [0, 0, 0], 0.18), G[3], G[5]]; // 绿灌木：暗/中/受光三阶，取自草地色板同族
+      for (let dy = -s.r; dy <= 2; dy++) for (let dx = -s.r; dx <= s.r; dx++) {
+        const dd = Math.hypot(dx, dy * 1.25);
+        if (dd > s.r) continue;
+        const x = s.x + dx, y = s.y + dy;
+        if (x < 0 || x >= W || y < 0 || y >= H) continue;
+        const lit = clamp(0.5 + (-dx * 0.4 - dy * 0.9) / s.r * 0.5, 0, 1);
+        // 镂空：噪声低于门槛就留空（透出草地），密度随 lit 与离心衰减
+        const hollow = vnoise(x, y, 3.0, s.seed);
+        if (hollow < 0.42 - lit * 0.10) continue;
+        // 顶部受光抬一档、底部压一档；中间用中档
+        const sh = lit > 0.62 ? 2 : lit > 0.34 ? 1 : 0;
+        g.fillStyle = cs(shades[sh]);
+        g.fillRect(x, y, 1, 1);
+      }
+      // 顶部几粒透光亮点
+      if (h2(s.seed, 9, 2103) > 0.4) {
+        g.fillStyle = cs(s.blue ? hex('#6a8a7e') : hex(season.lip));
+        g.fillRect(s.x - 2, s.y - s.r + 2, 1, 1);
+        if (h2(s.seed, 10, 2103) > 0.6) g.fillRect(s.x + 3, s.y - s.r + 4, 1, 1);
       }
     }
   }
