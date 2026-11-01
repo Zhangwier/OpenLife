@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="Cache-Control" content="no-store" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>开放人生 · 卡牌世界样稿 v18</title>
+<link rel="stylesheet" href="style.css?v=10" />
+</head>
+<body>
+<main class="table" id="table" aria-label="世界：拖动空白处看地图，拖「你」走过去">
+  <div class="world" id="world">
+    <canvas class="ground" id="ground"></canvas>
+    <canvas class="tide" id="tide"></canvas>
+    <div class="layer" id="cards"></div>
+    <canvas class="fog" id="fog"></canvas>
+    <svg class="aim" id="aim"><circle id="aimRange" r="0" /><line id="aimLine" x1="0" y1="0" x2="0" y2="0" /></svg>
+  </div>
+  <div class="room" id="room" hidden><div class="room-world" id="roomWorld"></div></div>
+  <canvas class="dark" id="dark"></canvas>
+  <div class="weather" id="weatherLayer"></div>
+</main>
+
+<header class="hud-l">
+  <div class="clock"><i id="sun"></i><b id="season">冬</b><span class="wx" id="weather">晴</span><span id="day">第 1 天</span><em id="time">06:00</em></div>
+  <div class="speed" id="speed">
+    <button data-speed="0" title="暂停（空格）">❚❚</button>
+    <button data-speed="1" class="on" title="正常">▶</button>
+    <button data-speed="2" title="快">▶▶</button>
+    <button data-speed="4" title="很快">▶▶▶</button>
+  </div>
+</header>
+<nav class="hud-r">
+  <button id="zoomOut" title="缩小">－</button>
+  <button id="zoomIn" title="放大">＋</button>
+  <button id="findMe" title="回到自己身边">◎</button>
+  <button id="craftBook" title="你会的手艺">✎</button>
+  <button id="help" title="怎么玩">?</button>
+</nav>
+<section class="me" id="me" aria-label="你">
+  <button class="me-face" id="meFace" title="点一下：接着做刚才那件事"></button>
+  <div class="me-gauges"><span class="g" id="barFood"><b></b></span><span class="g" id="barRest"><b></b></span></div>
+  <div class="me-carry" id="meCarry"></div>
+  <div class="me-recent" id="meRecent"></div>
+  <button class="party-toggle" id="partyToggle" title="听你安排的人和狗：点一下展开" hidden></button>
+</section>
+<div class="party" id="party" hidden></div>
+<button class="auto-me on" id="autoMe" title="闲着会自己找事做（点一下关掉）">⟳</button>
+<div class="detail" id="detail" hidden></div>
+<div class="crafts-book" id="crafts" hidden></div>
+<div class="namer" id="namer" hidden><b>给它起个名字</b><input id="nameInput" maxlength="12" /><button class="act" id="nameOk">就叫这个</button></div>
+<div class="banner" id="banner" hidden></div>
+<div class="toast" id="toast"></div>
+<div class="helpbox" id="helpbox" hidden>
+  <b>怎么玩</b>
+  <p>直接拖<em>「你」</em>走过去，一次最远走到亮圈的边上；放到一张牌上就和它一起做事。走路要花时间。</p>
+  <p>迷雾里没去过的地方，走过去才看得见。拖动空白处挪地图，滚轮缩放。</p>
+  <p>东西叠到你身上就带着走；离你近的东西才拿得到。</p>
+  <p>全村只有陶家主屋，从门出来；晚上大家都睡在这儿，背回家的东西也堆在屋里。</p>
+  <p>「饱」一顿能顶好几天，饿了走不远、干活慢；「力」干活会耗，晚上回屋睡一觉就满。点你身上带的吃的可以直接吃。</p>
+  <p>树给的是木头，不是柴：把木头带回火塘，带石斧劈成柴。柴能填火塘、公灶，也能烧窑、凿船。</p>
+  <p>石块和燧石都在右上角的乱石堆；回屋到火塘边打石斧、燧石刀、石锄、搓麻绳。工具会用坏，坏了再做。带石锄到旱地锄一遍，长势 +1。陶窑用两份黏土加一捆柴烧陶罐，空罐去公灶能装三份熟食带着走。</p>
+  <p>把「你」放到树、草丛、湖边这些地方，会一直干到取空或你走开。</p>
+  <p>手艺要会才做得快：右上角 ✎ 看你会的手艺和记得多牢（条越短越快忘）。不用的手艺一周左右就忘。不会的可以点开村民按「请教」（每人每天教一样），也可以带齐东西到火塘、陶窑自己琢磨——慢一倍，还不一定成。</p>
+  <p>好用的东西：火把（柴＋葛麻）夜里照亮一圈，走路不受黑影响；烤鱼、烤兔肉（加一捆柴）比生吃顶饱；背篓（三捆芦苇＋麻绳）能带 10 样，不背只能带 4 样；草鞋（两捆芦苇＋葛麻）一次多走四分之一；渔网（两份葛麻＋麻绳）在湖边一网两条鱼。都在火塘边做。</p>
+  <p>野兔：靠近它点「打它」，带石斧或燧石刀能打到兔肉和兔皮；空手它会跑。</p>
+  <p>右下角 ⟳ 亮着时，你一整天没动手就会自己找事做：饿了去吃，天黑或累了回家，平时接着干最近干的活。点一下关掉。</p>
+  <p>跟村民每天说说话、给他们吃的，熟识到 3 他们就愿意听你安排。阿黄一开始就听你的。左下角你脸旁的小头像点开，能给每个人选：⟳ 自己安排、⚒ 派活（选一样活）、✋ 我来指挥（直接拖它去干活）。阿黄派活是搬运：你背的东西多了，它来接走送回家。</p>
+  <p>左下角你脸旁边记住你最近干过的两样活，点一下就会自己走过去接着干。</p>
+  <p>时间自己走：村民中午一起吃饭，傍晚收工回家，夜里进屋睡觉；离你太远的人只停在你最后见到他的地方，但他其实还在走。空格暂停。</p>
+  <p>地上会自己长东西：林地边的小树一季长一截，长到头就不再长；浆果丛冬天枯成枝子，开春再长；天气会晴、下雨、下雪。草地上多了只野兔，你一靠近它就跳开。</p>
+  <p>工具有实际效果：石锄锄田长两格、比手拔草快一倍多；渔网一网两条鱼；石斧砍树一次两根；背篓能背 10 样；拿东西的距离是一次能走的 1.5 倍。田熟了站上去就能收粟。</p>
+  <p>陶罐放进公仓，公仓多存 5 份粟（本身只能存 10 份，存不下的就糟蹋了）。村民也会自己做工具用：陶婶织网、阿予做锄头、阿埴烧陶罐送公仓、阿灶傍晚点火把。</p>
+  <p>盖房子：✎ 里选「选地方打地基」，再点一块空地。把材料带上去或拖上去，齐了站上去一段段地盖；盖好起个名字。大房子能进屋，仓库能放东西、点开能取。带着石锤走上去能拆，拿回一半材料。</p>
+  <p>开荒：✎ 里点「选块草地开荒」，再点一块草地；带着石锄站上去开 6 小时，就成了一块新田。新田和收割过的田都要带 1 份粟来播种，再锄、再收。阿予会照看所有的田，也会自己去公仓拿粟播种。</p>
+  <p>动物：林子边有鹿（要石矛，能投远些）；东坡密林有野猪，空手靠近会被它撞，拿火把它躲开，带石矛能打；湖上有野鸭，芦苇边的鸭窝春夏有蛋可捡。打掉的动物过几天会再来。</p>
+  <p>左上角是丛林：树最密，能采蘑菇，可那是老虎的地盘。老虎饿了会扑鹿吃；你没拿火把靠近它会扑你（力 -45）。火把能逼退它，石矛有一半把握打到它。村民知道丛林危险，绕着走；老虎靠近他们会喊着跑回家。</p>
+  <p>工具可以放在干活的地方：石斧放栗子树、燧石刀放芦苇荡或葛麻丛、渔网放湖边、石锄放旱地。放着以后谁来这儿干活都算有工具，不用再带；想拿走就从那儿拖下来。</p>
+  <p>右上角乱石堆南边是东坡果园：桃树夏天结桃，枣树秋天结枣。鹿和野猪都住在左上角丛林一带。</p>
+  <button id="helpClose">知道了</button>
+</div>
+<p class="mock-note">样稿 v18 · 数据示意，不连游戏</p>
+<script type="module" src="app.js?v=18"></script>
+</body>
+</html>
