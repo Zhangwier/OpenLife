@@ -3,7 +3,7 @@ import { iconFor } from "./icons.js";
 import { loadArt, deco as DECO } from "./art.js";
 import { generateWorld, walkable, reachAlong, findPath, woodDepth, G } from "./mapgen.js";
 import { paintTerrain, paintTide } from "./terrain.js";
-import { LAND, SITES, LAYOUT, PEOPLE, START } from "./valley.js";
+import { LAND, SITES, LAYOUT, PEOPLE, START, WOOD_LAYOUT } from "./valley.js";
 
 const $ = (id) => document.getElementById(id);
 const CARD_W = 112, CARD_H = 148, PEEK = 30;
@@ -251,7 +251,7 @@ function seedEco() {
       break;
     }
   };
-  put("tree", MAP.sites.wood, 6, 560, 440, 0.4, 0.62);
+  // the old chestnut grove on the east side is gone; the west wood keeps its own trees, no extra seedlings
   put("berry", MAP.sites.berries, 3, 300, 220, 0.55, 0.72);
   put("reeds", MAP.sites.reeds, 4, 320, 220, 0.65, 0.85);
 }
@@ -276,7 +276,7 @@ function rollWeather() {
 function paintSeason() {
   growEco();
   table.dataset.season = season();
-  const R = { home: 520, field: 560, kiln: 300, lakeside: 250, reeds: 240, clay: 240, scree: 130, wood: 190, orchard: 140, jungle: 150 };
+  const R = { home: 520, field: 560, kiln: 300, lakeside: 250, reeds: 240, clay: 240, scree: 130, orchard: 140, jungle: 150 };
   const clearings = Object.values(MAP.sites).map((s) => ({ x: s.x, y: s.y, r: R[s.key] ?? 220 }));
   paintTerrain($("ground"), MAP, { DECO, keepClear: [...boards.world.map(center), ...clearings], season: season(), eco });
   tide.level = null; updateTide();
@@ -338,6 +338,8 @@ function respawnNode(r) {
 }
 function build() {
   for (const [site, list] of Object.entries(LAYOUT)) for (const [k, dx, dy, stock] of list) placeCard(k, at([site, dx, dy]), stock);
+  const wd = MAP.tiles?.wood;
+  if (wd) for (const [k, fx, fy] of WOOD_LAYOUT) placeCard(k, { x: wd.x + wd.w * fx, y: wd.y + wd.h * fy });
   for (const [k, n] of Object.entries(PEOPLE)) {
     const order = Object.keys(PEOPLE).indexOf(k);
     const st = placeCard(k, at(n.at));
@@ -364,7 +366,7 @@ const ROOMS = { tao: [["door", 470, 520], ["bed", 180, 140], ["fire", 470, 250],
 const SPECIES = {
   rabbit: { n: 1, roam: 600, fear: 300, speed: 1.8, home: () => quietSpot() },
   deer: { n: 3, fear: 380, speed: 2.2, home: () => woodSpot(0.8) },
-  tiger: { n: 1, roam: 520, fear: 0, speed: 1.1, predator: true, home: () => jungleSpot(0.7) },
+  tiger: { n: 1, roam: 520, fear: 0, speed: 1.1, predator: true, home: () => jungleSpot(0.9) },
   boar: { n: 1, fear: 0, speed: 1.4, aggro: true, home: () => woodSpot(0.8) },
   duck: { n: 3, roam: 420, fear: 220, speed: 0.6, water: true, home: () => lakeSpot() },
 };
@@ -392,17 +394,17 @@ function woodSpot(min = 0.8) {
     const s = thick * 3 - near / 2200 + Math.random() * 0.4;
     if (s > bs) { bs = s; best = p; }
   }
-  return best ?? nearSite(["wood", "jungle"], 320);
+  return best ?? nearSite(["jungle"], 320);
 }
 /** The tiger's own ground: deep jungle, away from the mushroom card and from the way in from the valley. */
-function jungleSpot(min = 0.7) {
+function jungleSpot(min = 0.9) {
   let best = null, bs = -Infinity;
   for (let k = 0; k < 900; k++) {
     const i = Math.floor(Math.random() * MAP.cls.length);
     if (!MAP.jungle[i] || MAP.road[i]) continue;
     const p = { x: MAP.X(i), y: MAP.Y(i) }, thick = woodDepth(MAP, p.x, p.y);
     if (thick < min) continue;
-    if (dist(p, MAP.sites.jungle) < 420) continue;
+    if (dist(p, MAP.sites.jungle) < 160) continue;   // not on the mushroom card itself, but deep round it
     if (boards.world.some((st) => dist(p, center(st)) < 260)) continue;
     const s = thick * 3 - dist(p, MAP.sites.home) / 2600 + Math.random() * 0.4;
     if (s > bs) { bs = s; best = p; }

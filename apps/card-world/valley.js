@@ -25,10 +25,11 @@ export const SITES = [
   { key: "clay", room: 8, name: "河湾黏土", from: "home", dist: [780, 1100], dir: 2.55, ground: [G.SAND, G.MEADOW], water: ["river", 0, 140], gap: 340 },
   { key: "berries", name: "野果丛", from: "home", dist: [650, 950], dir: 2.2, ground: [G.MEADOW, G.FOREST], gap: 320 },
   { key: "hemp", name: "葛麻坡", from: "home", dist: [800, 1100], dir: 3.05, ground: [G.MEADOW, G.SLOPE], gap: 320 },
-  // Top right: a big rubble field under the mountain, with deep woods on both sides of it — the stones and the timber are where they look to be.
+  // Top right: a big rubble field under the mountain — the stones are where they look to be. The old
+  // chestnut grove beside it is gone; chestnuts now stand in the west wood.
   { key: "scree", name: "乱石堆", patch: "scree", from: "home", dist: [800, 1500], dir: -0.7, dirW: 2.5, ground: [G.SCREE, G.SLOPE, G.MEADOW, G.FOREST], mountain: [0, 520], gap: 320,
     rubble: 300, clear: 150, prefer: ({ x, y, W, H }) => (x / W - y / H) * 0.8 },
-  { key: "wood", name: "栗子林", from: "scree", dist: [480, 700], dir: Math.PI, dirW: 2.2, ground: [G.FOREST, G.MEADOW, G.SLOPE], gap: 340, grove: 460, clear: 190 },
+  // 东坡只留果园；原先右边的栗子林已删掉，木头改到西面老林里采。
   { key: "orchard", name: "东坡果园", from: "scree", dist: [480, 700], dir: Math.PI / 2, dirW: 2.2, ground: [G.FOREST, G.MEADOW, G.SLOPE], gap: 340, orchard: 420 },
   // Top left: the jungle. Thickest trees, mushrooms — and the tiger's ground. Placed last so it grows round the other places, not over them.
   { key: "jungle", name: "西北丛林", from: "home", dist: [750, 1500], dir: -2.4, dirW: 2.5, ground: [G.FOREST, G.MEADOW, G.SLOPE], gap: 380,
@@ -47,11 +48,14 @@ export const LAYOUT = {
   clay: [["pit", 0, 0]],
   berries: [["berries", 0, 0]],
   hemp: [["hemp", 0, 0]],
-  wood: [["chestnut", -100, -50], ["chestnut", 110, 70]],
+  // 西面老林里的栗子树：不挂地点，直接长在林子里（见 WOOD_LAYOUT）。
   orchard: [["peach", -110, -20, 0], ["peach", 110, 50, 0], ["jujube", 0, -190, 0]],
   scree: [["scree", -95, 0], ["flintVein", 105, 40]],
   jungle: [["jungleFood", 0, 0, 6]],
 };
+
+// Chestnuts in the west wood: fractions of the wood tile, placed by build() (no site of their own).
+export const WOOD_LAYOUT = [["chestnut", 0.34, 0.33], ["chestnut", 0.62, 0.6]];
 
 // One house is enough: everyone sleeps in 陶家主屋.
 export const PEOPLE = {
