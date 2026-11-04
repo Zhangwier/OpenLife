@@ -161,7 +161,7 @@ export function paintTerrain(canvas, m, { DECO = {}, keepClear = [], season = "æ
     else { g.moveTo(x - 34, y); g.quadraticCurveTo(x, y - 12, x + 34, y); }
     g.stroke();
   }
-  bridge(g, m, L);
+  if (m.river?.length) bridge(g, m, L);
 
   // growth: trees in woods, pines up the slopes, peaks on the mountains, stones on scree, reeds at the shore, tufts and flowers in the meadow
   const clearOf = (x, y, r) => !m.road[m.idx(x, y)] && keepClear.every((p) => Math.hypot(p.x - x, p.y - y) > Math.max(r, p.r ?? 0));
@@ -197,10 +197,10 @@ export function paintTerrain(canvas, m, { DECO = {}, keepClear = [], season = "æ
       for (let k = 0; k < 2 + (r2 < 0.4 ? 1 : 0); k++) { const p = j(); if (clearOf(p.x, p.y, 150) && plant(p, 118)) items.push({ ...p, kind: "jtree", s: 0.92 + R() * 0.4, v: R() }); }
       continue;
     }
-    if (c === G.FOREST && r1 < (m.elev[i] > 0.64 ? 0.4 : (m.cover?.[i] ?? 0.5) < 0.2 ? 0.2 : 0.55)) { const p = j(); if (clearOf(p.x, p.y, 170) && plant(p, m.elev[i] > 0.64 ? 150 : 215 - 105 * (m.cover?.[i] ?? 0.5) - 15 * (m.dense?.[i] ?? 0.5))) items.push({ ...p, kind: m.elev[i] > 0.64 ? "pine" : "tree", s: 0.7 + 0.35 * (m.cover?.[i] ?? 0.5) + 0.2 * (m.dense?.[i] ?? 0.5) + R() * 0.2, v: R() }); }
+    if (c === G.FOREST && (m.trees?.[i] ?? 1) !== 0 && r1 < (m.elev[i] > 0.64 ? 0.4 : (m.cover?.[i] ?? 0.5) < 0.2 ? 0.2 : 0.55)) { const p = j(); if (clearOf(p.x, p.y, 170) && plant(p, m.elev[i] > 0.64 ? 150 : 215 - 105 * (m.cover?.[i] ?? 0.5) - 15 * (m.dense?.[i] ?? 0.5))) items.push({ ...p, kind: m.elev[i] > 0.64 ? "pine" : "tree", s: 0.7 + 0.35 * (m.cover?.[i] ?? 0.5) + 0.2 * (m.dense?.[i] ?? 0.5) + R() * 0.2, v: R() }); }
     else if (c === G.FOREST && (m.cover?.[i] ?? 1) < 0.35 && r2 < 0.2) { const p = j(); if (clearOf(p.x, p.y, 130)) items.push({ ...p, kind: r2 < 0.11 ? "bush" : "flowers", s: 0.8 + R() * 0.3, v: R() }); }   // undergrowth at the wood's edge
     else if (c === G.SLOPE && r1 < 0.06) { const p = j(); if (clearOf(p.x, p.y, 170) && plant(p, 185)) items.push({ ...p, kind: "pine", s: 0.7 + R() * 0.4, v: R() }); }
-    else if (c === G.MEADOW && r1 < 0.007) { const p = j(); const lone = r2 < 0.6; if (clearOf(p.x, p.y, 220) && (!lone || plant(p, 215))) items.push({ ...p, kind: lone ? "tree" : "bush", s: 0.8 + R() * 0.4, v: R() }); }
+    else if (c === G.MEADOW && (m.trees?.[i] ?? 1) !== 0 && r1 < 0.007) { const p = j(); const lone = r2 < 0.6; if (clearOf(p.x, p.y, 220) && (!lone || plant(p, 215))) items.push({ ...p, kind: lone ? "tree" : "bush", s: 0.8 + R() * 0.4, v: R() }); }
     else if (c === G.MEADOW && r1 < 0.032) { const p = j(); if (clearOf(p.x, p.y, 120)) items.push({ ...p, kind: L.flowers && r2 < 0.45 ? "flowers" : "grass_tuft", s: 1, v: R() }); }
     else if ((c === G.SCREE && r1 < 0.28) || (c === G.ROCK && m.dm[i] === 0 && r1 < 0.05)) { const p = j(); if (clearOf(p.x, p.y, 120)) items.push({ ...p, kind: "rock", s: 0.7 + R() * 0.7, v: R() }); }
     else if (c === G.SAND && m.dw[i] <= 1 && r1 < 0.2) { const p = j(); if (clearOf(p.x, p.y, 120)) items.push({ ...p, kind: "reeds_small", s: 0.7 + R() * 0.4, v: R() }); }

@@ -1,67 +1,49 @@
-// Land 1 · 河谷 — the content pack the map generator places into a valley (see DESIGN.md).
-// Each place: what ground it wants, how far from another place, which water or mountain it must be near.
+// Land · 草原 — the content pack for the grassland tile, plus the lake tile below it.
+// Tiles are basic rectangles; in an overlap the higher-priority tile wins (see mapgen.generateWorld).
 import { G } from "./mapgen.js";
 
-// Two map tiles stitched at a corner: the valley, and an old wood to its north-west.
-// Their rectangles overlap by 680×600; the wood lies over the valley there, and that overlap is the way in.
-// Tile x/y/w/h are multiples of 40 (the map cell) so the two grids line up exactly.
-export const LAND = { key: "valley", name: "河谷", w: 3200, h: 2300, seed: 20261101,
+// Tile x/y/w/h are multiples of 40 (the map cell). Priorities: forest 3 > grass 2 > river 1.
+export const LAND = { key: "grass", name: "草原", w: 2400, h: 1700, seed: 20261101,
   tiles: [
-    { key: "westwood", kind: "wood", x: 0, y: 0, w: 2400, h: 1920 },
-    { key: "valley", kind: "valley", x: 1720, y: 1320, w: 3200, h: 2300 },
+    { key: "lake", kind: "lake", x: 1200, y: 2100, w: 2400, h: 1500, priority: 1 },
+    { key: "grass", kind: "valley", fill: "grass", x: 1200, y: 900, w: 2400, h: 1700, priority: 2 },
+    { key: "forest", kind: "wood", x: 0, y: 0, w: 1600, h: 1400, priority: 3 },
   ] };
 
-// Places are spread over the whole valley, not piled around the yard: a screen shows two or three of them,
-// and the everyday ones are still a drag or two away.
+// A grassland has no water and no woods: home, field, kiln, berries, hemp, stones.
 export const SITES = [
-  { key: "home", name: "陶家庭院", ground: [G.MEADOW], water: ["lake", 200, 480], mountain: [520, 1e9],
-    prefer: ({ x, y, W, H }) => 0.9 - Math.hypot(x - W / 2, y - H / 2) / 900 },
-  { key: "lakeside", room: 8, name: "湖边", from: "home", dist: [360, 560], dir: -0.95, ground: [G.SAND], water: ["lake", 0, 80], gap: 300 },
-  { key: "shallows", room: 6, name: "湖西浅滩", from: "home", dist: [300, 1400], ground: [G.SAND, G.MEADOW, G.FOREST], water: ["lake", 0, 160], gap: 280,
-    prefer: ({ x, W }) => -x / (W * 0.25) },          // the further west along the lake shore the better
-  { key: "field", name: "旱地", patch: "field", from: "home", dist: [520, 700], dir: 2.55, dirW: 2.8, ground: [G.MEADOW, G.FOREST], water: ["water", 330, 1e9], gap: 460 },
-  { key: "kiln", name: "共用陶窑", from: "home", dist: [680, 950], dir: 0.25, ground: [G.MEADOW], gap: 400 },
-  { key: "reeds", room: 8, name: "芦苇荡", from: "home", dist: [650, 950], dir: -1.35, ground: [G.SAND, G.MEADOW], water: ["lake", 0, 120], gap: 300 },
-  { key: "clay", room: 8, name: "河湾黏土", from: "home", dist: [780, 1100], dir: 2.55, ground: [G.SAND, G.MEADOW], water: ["river", 0, 140], gap: 340 },
-  { key: "berries", name: "野果丛", from: "home", dist: [650, 950], dir: 2.2, ground: [G.MEADOW, G.FOREST], gap: 320 },
-  { key: "hemp", name: "葛麻坡", from: "home", dist: [800, 1100], dir: 3.05, ground: [G.MEADOW, G.SLOPE], gap: 320 },
-  // Top right: a big rubble field under the mountain — the stones are where they look to be. The old
-  // chestnut grove beside it is gone; chestnuts now stand in the west wood.
-  { key: "scree", name: "乱石堆", patch: "scree", from: "home", dist: [800, 1500], dir: -0.7, dirW: 2.5, ground: [G.SCREE, G.SLOPE, G.MEADOW, G.FOREST], mountain: [0, 520], gap: 320,
-    rubble: 300, clear: 150, prefer: ({ x, y, W, H }) => (x / W - y / H) * 0.8 },
-  // 东坡只留果园；原先右边的栗子林已删掉，木头改到西面老林里采。
-  { key: "orchard", name: "东坡果园", from: "scree", dist: [480, 700], dir: Math.PI / 2, dirW: 2.2, ground: [G.FOREST, G.MEADOW, G.SLOPE], gap: 340, orchard: 420 },
-  // Top left: the jungle. Thickest trees, mushrooms — and the tiger's ground. Placed last so it grows round the other places, not over them.
-  { key: "jungle", name: "西北丛林", from: "home", dist: [750, 1500], dir: -2.4, dirW: 2.5, ground: [G.FOREST, G.MEADOW, G.SLOPE], gap: 380,
-    jungle: 640, clear: 150, prefer: ({ x, y, W, H }) => -(x / W + y / H) * 0.8 },
+  { key: "home", name: "陶家庭院", ground: [G.MEADOW], mountain: [420, 1e9],
+    prefer: ({ x, y, W, H }) => 0.9 - Math.hypot(x - W / 2, y - H / 2) / 700 },
+  { key: "field", name: "旱地", patch: "field", from: "home", dist: [380, 560], dir: 2.55, dirW: 2.8, ground: [G.MEADOW], gap: 420 },
+  { key: "kiln", name: "共用陶窑", from: "home", dist: [460, 700], dir: 0.25, ground: [G.MEADOW], gap: 360 },
+  { key: "berries", name: "野果丛", from: "home", dist: [420, 700], dir: 2.2, ground: [G.MEADOW], gap: 300 },
+  { key: "hemp", name: "葛麻坡", from: "home", dist: [520, 850], dir: 3.05, ground: [G.MEADOW, G.SLOPE], gap: 300 },
+  { key: "scree", name: "乱石堆", patch: "scree", from: "home", dist: [600, 1000], dir: -0.7, dirW: 2.5, ground: [G.SCREE, G.SLOPE, G.MEADOW], mountain: [0, 520], gap: 300,
+    rubble: 260, clear: 140, prefer: ({ x, y, W, H }) => (x / W - y / H) * 0.8 },
 ];
 
-/** Cards at each place: [key, dx, dy, stock?] — offsets from the place centre to the card centre.
- *  The field is big, so it has two plots to work at; the granary and the stove stand just above it, on the way home. */
+/** Cards at each grassland place: [key, dx, dy, stock?]. */
 export const LAYOUT = {
   home: [["taoHouse", 0, -10]],
-  lakeside: [["lake", 0, 0, 10]],
-  shallows: [["shallows", 0, 0, 6]],
   field: [["field", -150, -30, 1], ["field2", 150, -30, 0], ["granary", -110, -330, 10], ["stove", 110, -330, 4]],
   kiln: [["kiln", 0, 0, 0]],
-  reeds: [["reeds", 0, 0], ["nest", 150, 60]],
-  clay: [["pit", 0, 0]],
   berries: [["berries", 0, 0]],
   hemp: [["hemp", 0, 0]],
-  // 西面老林里的栗子树：不挂地点，直接长在林子里（见 WOOD_LAYOUT）。
-  orchard: [["peach", -110, -20, 0], ["peach", 110, 50, 0], ["jujube", 0, -190, 0]],
   scree: [["scree", -95, 0], ["flintVein", 105, 40]],
-  jungle: [["jungleFood", 0, 0, 6]],
 };
 
-// Chestnuts in the west wood: fractions of the wood tile, placed by build() (no site of their own).
-export const WOOD_LAYOUT = [["chestnut", 0.34, 0.33], ["chestnut", 0.62, 0.6]];
+// Cards standing in the forest tile: chestnuts and mushrooms (fractions of the tile).
+export const WOOD_LAYOUT = [["chestnut", 0.32, 0.32], ["chestnut", 0.62, 0.58], ["jungleFood", 0.48, 0.72]];
+
+// Cards round the lake's north shore (fractions; the top strip is under the grassland).
+// Fish in the middle, reeds and a duck nest in the west marsh, clams in the east shallows, clay on the bank.
+export const LAKE_LAYOUT = [["lake", 0.5, 0.35], ["reeds", 0.3, 0.38], ["nest", 0.33, 0.4], ["pit", 0.6, 0.36], ["shallows", 0.7, 0.38]];
 
 // One house is enough: everyone sleeps in 陶家主屋.
 export const PEOPLE = {
   aunt: { home: "taoHouse", job: "fish", at: ["home", -190, 230] },
   yu: { home: "taoHouse", job: "farm", at: ["field", 0, 190] },
   zao: { home: "taoHouse", job: "cook", at: ["field", 300, -330] },
-  zhi: { home: "taoHouse", job: "clay", at: ["clay", -160, 140] },
+  zhi: { home: "taoHouse", job: "clay", at: ["home", 120, 240] },
 };
 export const START = { you: ["home", -40, 210], dog: ["home", 130, 220] };

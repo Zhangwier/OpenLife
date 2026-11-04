@@ -303,43 +303,83 @@ export function makeWood(seed, W, H) {
   return { W, H, cols, rows, cls, elev, mo, dense, water: new Uint8Array(N), ford: new Uint8Array(N), road: new Uint8Array(N), jungle: new Uint8Array(N), orchard: new Uint8Array(N) };
 }
 
-/** Stitch the tiles into one world, laid out by the tiles' own rectangles. */
+/** A lake tile: a broad lake in the middle, sand and grass shores. Lower priority than the grassland. */
+export function makeLake(seed, W, H) {
+  const cols = Math.ceil(W / CELL), rows = Math.ceil(H / CELL), N = cols * rows;
+  const nA = fbm(seed), nB = fbm(seed + 1), nC = fbm(seed + 2);
+  const X = (i) => ((i % cols) + 0.5) * CELL, Y = (i) => (Math.floor(i / cols) + 0.5) * CELL;
+  const cls = new Uint8Array(N), elev = new Float32Array(N), mo = new Float32Array(N), water = new Uint8Array(N);
+  const cx = W * 0.5, cy = H * 0.63, rx = W * 0.34, ry = H * 0.24;
+  for (let i = 0; i < N; i++) {
+    const x = X(i), y = Y(i);
+    const wob = 1 + 0.18 * (nA(x / 420 + 5, y / 420 + 2) - 0.5);
+    const lr = Math.hypot((x - cx) / (rx * wob), (y - cy) / (ry * wob));
+    elev[i] = 0.36 + 0.05 * (nB(x / 800, y / 800) - 0.5);
+    mo[i] = 0.6 + 0.2 * (nC(x / 500, y / 500) - 0.5);
+    if (lr < 1) { water[i] = 1; cls[i] = G.DEEP; }
+    else if (lr < 1.1) cls[i] = G.SAND;
+    else cls[i] = nC(x / 600 + 9, y / 600 + 3) > 0.76 ? G.SCREE : G.MEADOW;
+  }
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {                 // rocky rim against the sea
+    if (r >= 2 && c >= 2 && r < rows - 2 && c < cols - 2) continue;
+    const i = r * cols + c;
+    cls[i] = G.ROCK; water[i] = 0;
+  }
+  return { W, H, cols, rows, cls, elev, mo, water, ford: new Uint8Array(N), road: new Uint8Array(N), jungle: new Uint8Array(N), orchard: new Uint8Array(N), dense: new Float32Array(N).fill(0.5) };
+}
+
+/** The grassland keeps the valley's rolling ground and its mountain rim, but loses every tree, lake, river and beach. */
+function grassify(m) {
+  for (let i = 0; i < m.cls.length; i++) {
+    const c = m.cls[i];
+    if (c === G.FOREST || c === G.SAND || c === G.DEEP || c === G.SHALLOW || c === G.FORD) m.cls[i] = G.MEADOW;
+    m.water[i] = 0; m.ford[i] = 0;
+  }
+  m.river = [];
+}
+
+/** Stitch the tiles into one world. Lower priority is laid first; where tiles overlap, the higher one wins. */
 export function generateWorld(seed, tiles, specs) {
-  const vd = tiles.find((t) => t.kind === "valley");
-  const wd = tiles.find((t) => t.kind === "wood");
-  const valley = generateValley(seed, vd.w, vd.h, specs);
-  const wood = wd ? makeWood(seed ^ 0x5eed, wd.w, wd.h) : null;
-  const m = composeWorld(seed, valley, vd, wood, wd, tiles);
-  m.seed = seed; m.tries = valley.tries;
+  const gd = tiles.find((t) => t.kind === "valley");
+  const fd = tiles.find((t) => t.kind === "wood");
+  const rd = tiles.find((t) => t.kind === "lake");
+  const grass = generateValley(seed, gd.w, gd.h, specs);
+  if (gd.fill === "grass") grassify(grass);
+  const forest = fd ? makeWood(seed ^ 0x5eed, fd.w, fd.h) : null;
+  const lake = rd ? makeLake(seed ^ 0x51ee, rd.w, rd.h) : null;
+  const maps = { [gd.key]: grass, [fd?.key]: forest, [rd?.key]: lake };
+  const m = composeWorld(seed, tiles, maps);
+  m.seed = seed; m.tries = grass.tries;
   return m;
 }
 
-function composeWorld(seed, valley, vd, wood, wd, tiles) {
+function composeWorld(seed, tiles, maps) {
+  const gd = tiles.find((t) => t.kind === "valley");
   const WW = Math.max(...tiles.map((t) => t.x + t.w));
   const WH = Math.max(...tiles.map((t) => t.y + t.h));
   const cols = Math.ceil(WW / CELL), rows = Math.ceil(WH / CELL), N = cols * rows;
   const X = (i) => ((i % cols) + 0.5) * CELL, Y = (i) => (Math.floor(i / cols) + 0.5) * CELL;
   const idx = (x, y) => Math.min(rows - 1, Math.max(0, Math.floor(y / CELL))) * cols + Math.min(cols - 1, Math.max(0, Math.floor(x / CELL)));
   const nE = fbm(seed ^ 0x9e37);
-  const cls = new Uint8Array(N).fill(G.VOID), elev = new Float32Array(N), mo = new Float32Array(N);
-  const water = new Uint8Array(N), ford = new Uint8Array(N), road = new Uint8Array(N);
+  const cls = new Uint8Array(N).fill(G.DEEP), elev = new Float32Array(N), mo = new Float32Array(N);
+  const water = new Uint8Array(N).fill(3), ford = new Uint8Array(N), road = new Uint8Array(N);
   const jungle = new Uint8Array(N), orchard = new Uint8Array(N), dense = new Float32Array(N).fill(0.5);
-  const land = new Uint8Array(N), fromWood = new Uint8Array(N), valleyRoad = new Uint8Array(N);
+  const land = new Uint8Array(N), fromWood = new Uint8Array(N), valleyRoad = new Uint8Array(N), trees = new Uint8Array(N);
 
-  const blit = (t, ox, oy, isWood) => {
+  const blit = (t, d) => {
     for (let r = 0; r < t.rows; r++) for (let c = 0; c < t.cols; c++) {
-      const i = r * t.cols + c, j = idx(ox + (c + 0.5) * CELL, oy + (r + 0.5) * CELL);
+      const i = r * t.cols + c, j = idx(d.x + (c + 0.5) * CELL, d.y + (r + 0.5) * CELL);
       cls[j] = t.cls[i]; elev[j] = t.elev[i]; mo[j] = t.mo[i]; water[j] = t.water[i]; ford[j] = t.ford[i];
       jungle[j] = t.jungle[i]; orchard[j] = t.orchard[i]; dense[j] = t.dense?.[i] ?? 0.5;
-      land[j] = 1; if (isWood) fromWood[j] = 1; else valleyRoad[j] = t.road[i];
+      land[j] = 1;
+      if (d.kind === "wood") { fromWood[j] = 1; trees[j] = 1; }
+      if (d.kind === "valley") valleyRoad[j] = t.road[i];
     }
   };
-  blit(valley, vd.x, vd.y, false);
-  if (wood) blit(wood, wd.x, wd.y, true);
-  road.set(valleyRoad);                                                     // the path to the jungle card survives the stitch
+  for (const d of [...tiles].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0))) { const t = maps[d.key]; if (t) blit(t, d); }
+  road.set(valleyRoad);
 
-  // A ragged apron of rock where a tile meets the mist, so the join does not read as a ruler line.
-  // It grows a cell or two out of the tile edge and is then part of the land.
+  // A ragged apron of rock where the land meets the mist, so the join does not read as a ruler line.
   {
     const grow = [];
     for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
@@ -353,8 +393,7 @@ function composeWorld(seed, valley, vd, wood, wd, tiles) {
     }
     for (const j of grow) { cls[j] = G.ROCK; land[j] = 1; }
   }
-  // Where the wood's straight tile edge runs into the valley's mountain, let a scree slope straggle into it
-  // so the join reads as a treeline, not as a cut.
+  // Where the wood's straight tile edge runs into the grassland, let a scree slope straggle in.
   {
     const fringe = [];
     for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
@@ -369,8 +408,7 @@ function composeWorld(seed, valley, vd, wood, wd, tiles) {
     }
     for (const j of fringe) cls[j] = G.SCREE;
   }
-
-  // The wood's own coast: a belt of rock along every edge facing the mist, so the wood is held in.
+  // The wood's own coast: a belt of rock along every edge facing the mist.
   const isLand = (r, c) => r >= 0 && c >= 0 && r < rows && c < cols && land[r * cols + c] === 1;
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
     const j = r * cols + c;
@@ -387,14 +425,13 @@ function composeWorld(seed, valley, vd, wood, wd, tiles) {
   const cover = new Float32Array(N);
   for (let i = 0; i < N; i++) cover[i] = Math.min(1, dEdge[i] / 6);
 
-  const off = ([x, y]) => [x + vd.x, y + vd.y];
-  const sites = Object.fromEntries(Object.entries(valley.sites).map(([k, s]) => [k, { ...s, x: s.x + vd.x, y: s.y + vd.y }]));
-  const roads = valley.roads.map((pts) => pts.map(off));
-  const river = valley.river.map(off);
-  const lake = { ...valley.lake, x: valley.lake.x + vd.x, y: valley.lake.y + vd.y };
-  const fordPt = off(valley.fordPt);
+  const off = ([x, y]) => [x + gd.x, y + gd.y];
+  const sites = Object.fromEntries(Object.entries(maps[gd.key].sites).map(([k, s]) => [k, { ...s, x: s.x + gd.x, y: s.y + gd.y }]));
+  const roads = maps[gd.key].roads.map((pts) => pts.map(off));
+  const lake = { ...maps[gd.key].lake, x: maps[gd.key].lake.x + gd.x, y: maps[gd.key].lake.y + gd.y };
+  const fordPt = off(maps[gd.key].fordPt);
 
-  return { W: WW, H: WH, cols, rows, elev, water, ford, cls, mo, cover, dense, wood: fromWood, road, river, riverW: valley.riverW, fordPt, fordDir: valley.fordDir, lake, sites, roads, seaY: valley.seaY, dm, dw, X, Y, idx, jungle, orchard, tiles: { valley: vd, wood: wd } };
+  return { W: WW, H: WH, cols, rows, elev, water, ford, cls, mo, cover, dense, trees, road, river: [], riverW: maps[gd.key].riverW, fordPt, fordDir: maps[gd.key].fordDir, lake, sites, roads, seaY: maps[gd.key].seaY, dm, dw, X, Y, idx, jungle, orchard, tiles: { valley: gd, wood: tiles.find((t) => t.kind === "wood"), lake: tiles.find((t) => t.kind === "lake") } };
 }
 
 // Queries used by the game: where you can stand, how far you get in a straight line, how villagers walk.

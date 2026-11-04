@@ -3,7 +3,7 @@ import { iconFor } from "./icons.js";
 import { loadArt, deco as DECO } from "./art.js";
 import { generateWorld, walkable, reachAlong, findPath, woodDepth, G } from "./mapgen.js";
 import { paintTerrain, paintTide } from "./terrain.js";
-import { LAND, SITES, LAYOUT, PEOPLE, START, WOOD_LAYOUT } from "./valley.js";
+import { LAND, SITES, LAYOUT, PEOPLE, START, WOOD_LAYOUT, LAKE_LAYOUT } from "./valley.js";
 
 const $ = (id) => document.getElementById(id);
 const CARD_W = 112, CARD_H = 148, PEEK = 30;
@@ -68,7 +68,7 @@ const DEFS = {
   peachFruit: { name: "桃", type: "food", icon: "peach", text: "一个熟桃。", food: 14 },
   jujubeFruit:{ name: "枣", type: "food", icon: "jujube", text: "一把红枣。", food: 10 },
   tiger:      { name: "老虎", type: "animal", icon: "tiger", text: "丛林里的老虎。饿了就去扑鹿；你没拿火把走近它，它会扑人。火把能把它逼退；石矛能打它，可只有一半把握。" },
-  jungleFood: { name: "丛林深处", type: "source", icon: "jungle", text: "树密得透不进光，地上长着蘑菇。这是老虎的地盘，村里人不往这儿来。", stock: 6 },
+  jungleFood: { name: "老林深处", type: "source", icon: "jungle", text: "老林深处，树密得透不进光，地上长着蘑菇。这是老虎的地盘，村里人不往这儿来。", stock: 6 },
   mushroom:   { name: "蘑菇", type: "food", icon: "mushroom", text: "丛林里采的蘑菇。", food: 16 },
   pelt:       { name: "虎皮", type: "material", icon: "pelt", text: "一张虎皮。打到老虎的人，村里会记很久。" },
   duck:       { name: "野鸭", type: "animal", icon: "duck", text: "在湖面上游来游去，在芦苇里做窝。" },
@@ -76,7 +76,7 @@ const DEFS = {
   egg:        { name: "鸭蛋", type: "food", icon: "egg", text: "一个鸭蛋。", food: 10 },
   spear:      { name: "石矛", type: "tool", icon: "spear", text: "打鹿、打野猪要用它，能投得远些；野猪见了它不敢冲。会用坏。", uses: 15 },
   farm:       { name: "开荒", type: "source", icon: "field", text: "开出一块新田。" },
-  shallows:   { name: "湖西浅滩", type: "source", icon: "clams", text: "水浅，底下有河蚌。退潮的时候一次能摸到两只；摸光了要等几天。", stock: 6 },
+  shallows:   { name: "湖东浅滩", type: "source", icon: "clams", text: "水浅，底下有河蚌。退潮的时候一次能摸到两只；摸光了要等几天。", stock: 6 },
   clam:       { name: "河蚌", type: "food", icon: "clam", text: "一只河蚌，生吃也行。", food: 14 },
   hammer:     { name: "石锤", type: "tool", icon: "hammer", text: "带着它走到自己盖的房子上，就把它拆了，拿回一半材料；拆还没盖好的地基，材料全拿回来。", uses: 20 },
   plot:       { name: "地基", type: "structure", icon: "plot", text: "盖房子的地方。把材料带上来或者拖上来，齐了以后站在上面一段段地盖。" },
@@ -253,7 +253,7 @@ function seedEco() {
   };
   // the old chestnut grove on the east side is gone; the west wood keeps its own trees, no extra seedlings
   put("berry", MAP.sites.berries, 3, 300, 220, 0.55, 0.72);
-  put("reeds", MAP.sites.reeds, 4, 320, 220, 0.65, 0.85);
+  // reeds now stand on the river bank as a card; no seedlings round a lake that is gone
 }
 function growEco() {
   const winter = season() === "冬";
@@ -276,7 +276,7 @@ function rollWeather() {
 function paintSeason() {
   growEco();
   table.dataset.season = season();
-  const R = { home: 520, field: 560, kiln: 300, lakeside: 250, reeds: 240, clay: 240, scree: 130, orchard: 140, jungle: 150 };
+  const R = { home: 520, field: 560, kiln: 300, berries: 300, hemp: 300, scree: 160 };
   const clearings = Object.values(MAP.sites).map((s) => ({ x: s.x, y: s.y, r: R[s.key] ?? 220 }));
   paintTerrain($("ground"), MAP, { DECO, keepClear: [...boards.world.map(center), ...clearings], season: season(), eco });
   tide.level = null; updateTide();
@@ -285,6 +285,7 @@ function paintSeason() {
 const tide = { level: null };
 const tideNow = () => Math.sin((clock.min / (12.4 * 60)) * Math.PI * 2);
 function updateTide() {
+  if (!MAP.water?.includes(1)) { $("tide").hidden = true; return; }   // no lake on this map: no tide
   const lv = tideNow();
   if (tide.level !== null && Math.abs(lv - tide.level) < 0.05) return;
   tide.level = lv; paintTide($("tide"), MAP, lv, season());
@@ -340,6 +341,8 @@ function build() {
   for (const [site, list] of Object.entries(LAYOUT)) for (const [k, dx, dy, stock] of list) placeCard(k, at([site, dx, dy]), stock);
   const wd = MAP.tiles?.wood;
   if (wd) for (const [k, fx, fy] of WOOD_LAYOUT) placeCard(k, { x: wd.x + wd.w * fx, y: wd.y + wd.h * fy });
+  const rv = MAP.tiles?.lake;
+  if (rv) for (const [k, fx, fy] of LAKE_LAYOUT) placeCard(k, { x: rv.x + rv.w * fx, y: rv.y + rv.h * fy });
   for (const [k, n] of Object.entries(PEOPLE)) {
     const order = Object.keys(PEOPLE).indexOf(k);
     const st = placeCard(k, at(n.at));
@@ -366,7 +369,7 @@ const ROOMS = { tao: [["door", 470, 520], ["bed", 180, 140], ["fire", 470, 250],
 const SPECIES = {
   rabbit: { n: 1, roam: 600, fear: 300, speed: 1.8, home: () => quietSpot() },
   deer: { n: 3, fear: 380, speed: 2.2, home: () => woodSpot(0.8) },
-  tiger: { n: 1, roam: 520, fear: 0, speed: 1.1, predator: true, home: () => jungleSpot(0.9) },
+  tiger: { n: 1, roam: 520, fear: 0, speed: 1.1, predator: true, home: () => woodSpot(0.9) },
   boar: { n: 1, fear: 0, speed: 1.4, aggro: true, home: () => woodSpot(0.8) },
   duck: { n: 3, roam: 420, fear: 220, speed: 0.6, water: true, home: () => lakeSpot() },
 };
@@ -388,33 +391,22 @@ function woodSpot(min = 0.8) {
     if (MAP.cls[i] !== G.FOREST || MAP.road[i]) continue;
     const p = { x: MAP.X(i), y: MAP.Y(i) }, thick = woodDepth(MAP, p.x, p.y);
     if (thick < min) continue;
-    if (dist(p, MAP.sites.jungle) < 520) continue;                 // not on the doorstep between valley and wood
+    // no jungle site any more: deep cover alone decides where they live
     if (boards.world.some((st) => dist(p, center(st)) < 260)) continue;
     const near = dist(p, MAP.sites.home);
     const s = thick * 3 - near / 2200 + Math.random() * 0.4;
     if (s > bs) { bs = s; best = p; }
   }
-  return best ?? nearSite(["jungle"], 320);
+  return best ?? { x: MAP.tiles.wood.x + MAP.tiles.wood.w / 2, y: MAP.tiles.wood.y + MAP.tiles.wood.h / 2 };
 }
-/** The tiger's own ground: deep jungle, away from the mushroom card and from the way in from the valley. */
-function jungleSpot(min = 0.9) {
-  let best = null, bs = -Infinity;
-  for (let k = 0; k < 900; k++) {
-    const i = Math.floor(Math.random() * MAP.cls.length);
-    if (!MAP.jungle[i] || MAP.road[i]) continue;
-    const p = { x: MAP.X(i), y: MAP.Y(i) }, thick = woodDepth(MAP, p.x, p.y);
-    if (thick < min) continue;
-    if (dist(p, MAP.sites.jungle) < 160) continue;   // not on the mushroom card itself, but deep round it
-    if (boards.world.some((st) => dist(p, center(st)) < 260)) continue;
-    const s = thick * 3 - dist(p, MAP.sites.home) / 2600 + Math.random() * 0.4;
-    if (s > bs) { bs = s; best = p; }
-  }
-  return best ?? nearSite(["jungle"], 320);
-}
+/** Ducks live on the lake tile: pick a water cell near its middle. */
 function lakeSpot() {
-  const r = MAP.sites.reeds; let best = null, bd = 1e9;
-  for (let i = 0; i < MAP.cls.length; i += 2) if (MAP.water[i] === 1) { const p = { x: MAP.X(i), y: MAP.Y(i) }, d = Math.abs(dist(p, r) - 260) + Math.random() * 200; if (d < bd) { bd = d; best = p; } }
-  return best ?? { x: MAP.lake.x, y: MAP.lake.y };
+  const lt = MAP.tiles.lake; let best = null, bd = 1e9;
+  for (let i = 0; i < MAP.cls.length; i += 2) if (MAP.water[i] === 1) {
+    const p = { x: MAP.X(i), y: MAP.Y(i) }, d = Math.abs(p.y - (lt.y + lt.h * 0.6)) + Math.random() * 180;
+    if (d < bd) { bd = d; best = p; }
+  }
+  return best ?? { x: lt.x + lt.w / 2, y: lt.y + lt.h * 0.63 };
 }
 function spawnAnimal(kind) {
   const sp = SPECIES[kind], p = sp.home(), c = newCard(kind);
