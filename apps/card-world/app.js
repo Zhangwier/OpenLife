@@ -32,7 +32,7 @@ const DEFS = {
   zhi:        { name: "阿埴", type: "person", icon: "digger", text: "挖土的。把黏土一份份背去共用陶窑。" },
   dog:        { name: "阿黄", type: "animal", icon: "dog", text: "院子里的狗，在家附近转悠。" },
   rabbit:     { name: "野兔", type: "animal", icon: "rabbit", text: "一只野兔。你靠近它就蹦开；走近了、带着石斧或燧石刀才打得着。" },
-  taoHouse:   { name: "陶家主屋", type: "house", icon: "house", text: "全村人晚上都睡在这儿。走进去就到屋里。", room: "tao" },
+  taoHouse:   { name: "陶家主屋", type: "house", icon: "house", text: "全村人晚上都睡在这儿。南边有道门，走进院子才看得见铺位和火塘。" },
   stove:      { name: "公用灶台", type: "structure", icon: "stove", text: "全村吃饭的地方。走过来就吃，吃到饱为止（一份熟食顶小半个饱）。", stockLabel: "熟食" },
   granary:    { name: "公仓", type: "structure", icon: "granary", text: "村里的存粮。本身只能存 10 份粟，每放进一只陶罐多存 5 份；存不下的粟就糟蹋了。阿予收了粟背来，阿灶从这里取。", stockLabel: "粟" },
   kiln:       { name: "共用陶窑", type: "structure", icon: "kiln", text: "阿埴背来的黏土堆在这儿。带一捆柴来，就用窑上的两份黏土烧一个陶罐（自己带两份黏土也行）。空罐拿到公灶能装三份熟食。", stockLabel: "黏土" },
@@ -278,7 +278,7 @@ function paintSeason() {
   table.dataset.season = season();
   const R = { home: 520, field: 560, kiln: 300, berries: 300, hemp: 300, scree: 160 };
   const clearings = Object.values(MAP.sites).map((s) => ({ x: s.x, y: s.y, r: R[s.key] ?? 220 }));
-  paintTerrain($("ground"), MAP, { DECO, keepClear: [...boards.world.map(center), ...clearings], season: season(), eco });
+  paintTerrain($("ground"), MAP, { DECO, keepClear: [...boards.world.map(center), ...clearings], season: season(), eco, house: MAP.house });
   tide.level = null; updateTide();
 }
 /** Two tides a day: the lake swells over its beach and drains back, showing wet sand. */
@@ -354,7 +354,7 @@ function build() {
   dog.ctl = { mode: "auto", job: "carry" };
   for (const [kind, sp] of Object.entries(SPECIES)) for (let i = 0; i < sp.n; i++) spawnAnimal(kind);
   placeCard("you", at(START.you));
-  for (const [k, x, y] of ROOMS.tao) newStack([newCard(k)], x, y, "tao");
+  setupMainHouse();
   const fire = find("fire")?.cards[0]; if (fire) fire.fuel = 2;
   const stoveCard = find("stove")?.cards[0]; if (stoveCard) stoveCard.fuel = 3;
   seedEco();
@@ -363,6 +363,33 @@ function build() {
   if (berry && season() !== "冬") { berry.stock = 4; refreshStock(berry); }
   explore(center(youStack()));
   paintSeason();
+}
+/** The main house is a walled yard on the map: outside you see the roof; through the south gate you see the layout. */
+function setupMainHouse() {
+  const house = find("taoHouse");
+  if (!house) return;
+  const hx = house.x, hy = house.y;
+  const c = { x: hx - 126, y: hy - 40, w: 420, h: 520, gate: { x: hx + 29, w: 110 } };
+  c.roof = { x: c.x + 8, y: c.y + 8, w: c.w - 16, h: c.h - 16 };
+  house.compound = c;
+  MAP.house = c;
+  const t = 14;
+  MAP.blocks = [
+    { x: c.x, y: c.y, w: c.w, h: t },
+    { x: c.x, y: c.y, w: t, h: c.h },
+    { x: c.x + c.w - t, y: c.y, w: t, h: c.h },
+    { x: c.x, y: c.y + c.h - t, w: c.gate.x - c.x, h: t },
+    { x: c.gate.x + c.gate.w, y: c.y + c.h - t, w: c.x + c.w - (c.gate.x + c.gate.w), h: t },
+  ];
+  newStack([newCard("bed")], hx - 110, hy + 240, "world");
+  newStack([newCard("fire")], hx + 10, hy + 240, "world");
+  newStack([newCard("grain"), newCard("grain")], hx + 130, hy + 240, "world");
+  const roof = document.createElement("div");
+  roof.className = "roof";
+  roof.style.left = `${c.roof.x}px`; roof.style.top = `${c.roof.y}px`;
+  roof.style.width = `${c.roof.w}px`; roof.style.height = `${c.roof.h}px`;
+  cardsLayer.append(roof);
+  c.roofEl = roof;
 }
 const ROOMS = { tao: [["door", 470, 520], ["bed", 180, 140], ["fire", 470, 250], ["grain", 760, 150], ["grain", 800, 175]] };
 
@@ -747,6 +774,7 @@ function arrive(st, target) {
   if (top.key === "barn" && loose(st).length) return storeIn(target, st);
   const room = top.room ?? def.room;
   if (room) return enterRoom(room, st);
+  if (top.key === "taoHouse") { float("从南边的门进屋", center(st), st.board); return; }
   if (top.key === "door") return leaveRoom(st);
   const kit = target.cards.slice(1).filter((c) => DEFS[c.key].type === "tool").map((c) => c.key);   // tools left here
   const carried = [...st.cards.slice(1).map((c) => c.key), ...kit];
@@ -1184,7 +1212,7 @@ function npcDone(st) {
   if (task === "fish") { if (t.stock > 0) { t.stock--; refreshStock(t); } const net = hasTool(st, target, "net"); carry(st, "fish", net ? 2 : 1, net ? 2 : 1); if (net) wearAny(st, target, "net"); }
   if (task === "chop" && t.stock > 0) { t.stock--; refreshStock(t); carry(st, "log", 1); if (hasTool(st, target, "axe")) wearAny(st, target, "axe"); }
   if (task === "gather" && t.stock > 0) { t.stock--; refreshStock(t); addCard(st, st.want === "wood" ? "log" : st.want); if (st.want === "log" && hasTool(st, target, "axe")) wearAny(st, target, "axe"); }
-  if (task === "fetchHome") { const pile = boards.tao.find((s) => s.store), c = pile?.cards.find((x) => x.key === st.want || (st.want === "wood" && x.key === "log")); if (c) { pile.cards = pile.cards.filter((x) => x !== c); if (!pile.cards.length) removeStack(pile); cardsLayer.append(c.el); st.cards.push(c); } }
+  if (task === "fetchHome") { const pile = allStacks().find((s) => s.store), c = pile?.cards.find((x) => x.key === st.want || (st.want === "wood" && x.key === "log")); if (c) { pile.cards = pile.cards.filter((x) => x !== c); if (!pile.cards.length) removeStack(pile); cardsLayer.append(c.el); st.cards.push(c); } }
   if (task === "craft") craftDone(st, target);
   if (task === "jarIn") { const i = st.cards.findIndex((c, j) => j > 0 && c.key === "jar"); if (i > 0) { st.cards[i].el.remove(); st.cards.splice(i, 1); t.jars = (t.jars ?? 0) + 1; refreshStock(t); float(`公仓多了只陶罐，能存 ${granaryCap(t)} 份`, center(target), "world"); } st.plans = []; }
   if (task === "build") { const c = target.cards[0]; if (c.key === "plot" && (!BUILDS[c.build].tool || holds(st, BUILDS[c.build].tool))) { c.work += 240; refreshPlot(c); if (c.work >= BUILDS[c.build].work) completeBuild(target); } }
@@ -1218,7 +1246,14 @@ function dropCarry(st, into = null) {
 /** Things carried home go on a pile inside the house, where you can pick them up. */
 function storeHome(cards) {
   if (!cards.length) return;
-  cards.forEach((c) => { c.el.classList.remove("gone", "pop"); roomWorld.append(c.el); });
+  const house = find("taoHouse"), c = house?.compound;
+  if (c) {
+    cards.forEach((card) => { card.el.classList.remove("gone", "pop"); cardsLayer.append(card.el); });
+    const pile0 = allStacks().find((s) => s.store);
+    if (pile0) pile0.cards.push(...cards); else newStack(cards, c.x + 16, c.y + 100, "world").store = true;
+    return;
+  }
+  cards.forEach((card) => { card.el.classList.remove("gone", "pop"); roomWorld.append(card.el); });
   const pile = boards.tao.find((s) => s.store);
   if (pile) pile.cards.push(...cards); else newStack(cards, 900, 330, "tao").store = true;
 }
@@ -1231,17 +1266,20 @@ function storeCarry(st) {
 function goInside(st) {
   cancelJob(st); st.walk = null; st.task = ""; st.goal = ""; intent(st, "");
   st.npc.inside = true; st.npc.outAt = 0;
-  find(st.npc.home, "world")?.cards[0].el.classList.add("occupied");
+  const home = find(st.npc.home, "world"), c = home?.compound; home?.cards[0].el.classList.add("occupied");
+  // the compound (if this house has one) is on the home stack
   const room = DEFS[st.npc.home].room;
   if (room) { removeStack(st); st.board = room; boards[room].push(st); st.x = 40 + st.npc.order * 125; st.y = 360; st.cards.forEach((c) => { roomWorld.append(c.el); c.el.classList.add("sleeping"); }); }
-  else { st.indoors = true; st.cards.forEach((c) => c.el.classList.add("sleeping")); }
+  else if (c) { st.indoors = true; st.x = c.x + 40 + st.npc.order * 12; st.y = c.y + 80; st.cards.forEach((card) => card.el.classList.add("sleeping")); }
+  else { st.indoors = true; st.cards.forEach((card) => card.el.classList.add("sleeping")); }
 }
 function comeOut(st) {
   st.npc.inside = false; st.indoors = false;
   find(st.npc.home, "world")?.cards[0].el.classList.remove("occupied");
-  const home = find(st.npc.home, "world");
+  const home = find(st.npc.home, "world"), c = home?.compound;
   if (st.board !== "world") { removeStack(st); st.board = "world"; boards.world.push(st); st.cards.forEach((c) => cardsLayer.append(c.el)); }
-  st.x = home.x + 10 + st.npc.order * 40; st.y = home.y + home.h + 16;
+  if (c) { st.x = c.gate.x + 10 + st.npc.order * 12; st.y = c.y + c.h + 10; }
+  else { st.x = home.x + 10 + st.npc.order * 40; st.y = home.y + home.h + 16; }
   // Step away from the door instead of standing in a stack, and fade in.
   st.walk = { x: st.x + (Math.random() - 0.5) * 90, y: st.y + 46 + Math.random() * 40 };
   st.task = "";
@@ -1463,6 +1501,12 @@ function render() {
       } else if (st.bar) { st.bar.remove(); st.bar = null; }
     }
   }
+  const hc = find("taoHouse")?.compound;
+  if (hc?.roofEl) {
+    const p = you ? center(you) : null;
+    const inside = Boolean(p && board === "world" && p.x > hc.x && p.x < hc.x + hc.w && p.y > hc.y && p.y < hc.y + hc.h);
+    hc.roofEl.classList.toggle("open", inside);
+  }
   const h = hour(), m = Math.floor(clock.min % 60);
   $("time").textContent = `${String(Math.floor(h)).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
   $("day").textContent = `第 ${day()} 天`;
@@ -1549,7 +1593,7 @@ function autoYou() {
     you.walk = { target: t, path, k: 0 }; cam.follow = true; float(label, center(you), "world");
     return true;
   };
-  if (tiredOrDark) return void go("taoHouse", "回家歇着");
+  if (tiredOrDark) return void go("bed", "回家歇着");
   if (me.food < 40 && find("stove")?.cards[0].stock > 0) return void go("stove", "去吃饭");
   if (loose(you).length >= capOf(you)) { you.unloading = true; return void go(unloadDest(you), "背满了，先去卸货"); }
   if (me.recent[0] && go(me.recent[0].key, `接着去${DEFS[me.recent[0].key].name}`)) return;

@@ -41,9 +41,9 @@ export const LAKE_LAYOUT = [["lake", 0.5, 0.35], ["reeds", 0.3, 0.38], ["nest", 
 
 // One house is enough: everyone sleeps in 陶家主屋.
 export const PEOPLE = {
-  aunt: { home: "taoHouse", job: "fish", at: ["home", -190, 230] },
+  aunt: { home: "taoHouse", job: "fish", at: ["home", -190, 400] },
   yu: { home: "taoHouse", job: "farm", at: ["field", 0, 190] },
   zao: { home: "taoHouse", job: "cook", at: ["field", 300, -330] },
-  zhi: { home: "taoHouse", job: "clay", at: ["home", 120, 240] },
+  zhi: { home: "taoHouse", job: "clay", at: ["home", 120, 410] },
 };
-export const START = { you: ["home", -40, 210], dog: ["home", 130, 220] };
+export const START = { you: ["home", -40, 400], dog: ["home", 120, 410] };

@@ -438,6 +438,7 @@ function composeWorld(seed, tiles, maps) {
 // ---------------------------------------------------------------------------
 /** Dry ground — or something built over the water that you can stand on (a pier, a ship's deck): m.decks = [{x, y, w, h}]. */
 export function walkable(m, x, y) {
+  if (m.blocks?.some((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h)) return false;   // house walls
   if (m.decks?.some((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h)) return true;
   return x >= 0 && y >= 0 && x < m.W && y < m.H && WALK[m.cls[m.idx(x, y)]];
 }
@@ -467,7 +468,11 @@ export function findPath(m, a, b, opts = {}) {
     return true;
   };
   if (clear(a, b) && Math.hypot(b.x - a.x, b.y - a.y) < 500) return [b];
-  const cost = (j) => (wary && m.jungle?.[j] ? Infinity : COST[m.cls[j]] * (m.road[j] ? 0.45 : 1));   // the wary never set foot in it
+  const cost = (j) => {
+    const x = m.X(j), y = m.Y(j);
+    if (m.blocks?.some((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h)) return Infinity;
+    return wary && m.jungle?.[j] ? Infinity : COST[m.cls[j]] * (m.road[j] ? 0.45 : 1);   // the wary never set foot in it
+  };
   const start = m.idx(a.x, a.y), goal = m.idx(b.x, b.y);
   const gc = goal % m.cols, gr = Math.floor(goal / m.cols);
   const p = search(m.cols, m.rows, start, goal, cost, (i) => Math.hypot((i % m.cols) - gc, Math.floor(i / m.cols) - gr) * 0.45);

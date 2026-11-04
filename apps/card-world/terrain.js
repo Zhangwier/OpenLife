@@ -102,7 +102,7 @@ function blob(g, x, y, r, R, squash = 0.72) {
 }
 
 /** Everything on the ground canvas. keepClear: points (card centres) where nothing should grow. */
-export function paintTerrain(canvas, m, { DECO = {}, keepClear = [], season = "春", eco = [] } = {}) {
+export function paintTerrain(canvas, m, { DECO = {}, keepClear = [], season = "春", eco = [], house = null } = {}) {
   const L = SEASON_LOOK[season];
   const K = 0.5;
   canvas.width = m.W * K; canvas.height = m.H * K; canvas.style.width = `${m.W}px`; canvas.style.height = `${m.H}px`;
@@ -217,6 +217,30 @@ export function paintTerrain(canvas, m, { DECO = {}, keepClear = [], season = "�
   const grows = (eco ?? []).map((e) => ({ x: e.x, y: e.y, s: e.size, v: e.v, kind: e.kind, bare: e.bare, dry: e.dry })).sort((a, b) => a.y - b.y);
   for (const it of grows) if (it.kind === "tree" || it.kind === "berry") shadow(g, it);
   for (const it of grows) drawDeco(g, it, DECO, L);
+  if (house) paintFence(g, house, L);
+}
+
+/** A wooden fence round a house's yard, with a gate gap on the south side. */
+function paintFence(g, house, L) {
+  const { x, y, w, h, gate } = house, t = 14;
+  g.save(); g.lineCap = "round";
+  const wood = L.winter ? "#8a7860" : "#6e5232", cap = L.winter ? "rgba(240,242,238,.7)" : null;
+  const rail = (x1, y1, x2, y2) => {
+    g.strokeStyle = "rgba(30,20,10,.22)"; g.lineWidth = t + 8; g.beginPath(); g.moveTo(x1, y1 + 3); g.lineTo(x2, y2 + 3); g.stroke();
+    g.strokeStyle = wood; g.lineWidth = t; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+    if (cap) { g.strokeStyle = cap; g.lineWidth = 4; g.beginPath(); g.moveTo(x1, y1 - 4); g.lineTo(x2, y2 - 4); g.stroke(); }
+  };
+  rail(x, y, x + w, y);
+  rail(x, y, x, y + h);
+  rail(x + w, y, x + w, y + h);
+  rail(x, y + h, gate.x, y + h);
+  rail(gate.x + gate.w, y + h, x + w, y + h);
+  g.fillStyle = L.winter ? "#6a5a46" : "#4a3420";
+  const post = (px, py) => { g.beginPath(); g.arc(px, py, 8, 0, 7); g.fill(); };
+  post(x, y); post(x + w, y); post(x, y + h); post(x + w, y + h); post(gate.x, y + h); post(gate.x + gate.w, y + h);
+  for (let px = x + 70; px < x + w - 20; px += 90) { post(px, y); if (px < gate.x || px > gate.x + gate.w) post(px, y + h); }
+  for (let py = y + 70; py < y + h - 20; py += 90) { post(x, py); post(x + w, py); }
+  g.restore();
 }
 
 /** A plank bridge across the river where the road crosses it. */
