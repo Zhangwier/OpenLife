@@ -2,8 +2,14 @@
 // Each place: what ground it wants, how far from another place, which water or mountain it must be near.
 import { G } from "./mapgen.js";
 
-// annexW: a rectangle of old-growth wood attached west of the valley (see DESIGN.md §20).
-export const LAND = { key: "valley", name: "河谷", w: 3200, h: 2300, seed: 20261101, annexW: 1800 };
+// Two map tiles stitched at a corner: the valley, and an old wood to its north-west.
+// Their rectangles overlap by 680×600; the wood lies over the valley there, and that overlap is the way in.
+// Tile x/y/w/h are multiples of 40 (the map cell) so the two grids line up exactly.
+export const LAND = { key: "valley", name: "河谷", w: 3200, h: 2300, seed: 20261101,
+  tiles: [
+    { key: "westwood", kind: "wood", x: 0, y: 0, w: 2400, h: 1920 },
+    { key: "valley", kind: "valley", x: 1720, y: 1320, w: 3200, h: 2300 },
+  ] };
 
 // Places are spread over the whole valley, not piled around the yard: a screen shows two or three of them,
 // and the everyday ones are still a drag or two away.

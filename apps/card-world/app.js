@@ -1,7 +1,7 @@
 // OpenLife · card world mockup v4: a generated valley under fog, flowing time, villagers who live their own days.
 import { iconFor } from "./icons.js";
 import { loadArt, deco as DECO } from "./art.js";
-import { generateValley, walkable, reachAlong, findPath, woodDepth, G } from "./mapgen.js";
+import { generateWorld, walkable, reachAlong, findPath, woodDepth, G } from "./mapgen.js";
 import { paintTerrain, paintTide } from "./terrain.js";
 import { LAND, SITES, LAYOUT, PEOPLE, START } from "./valley.js";
 
@@ -18,7 +18,7 @@ const MIN_PER_SEC = 15;                // at 1×, one game day ≈ 96 s; dusk an
 const SEASONS = ["春", "夏", "秋", "冬"], DAYS_PER_SEASON = 4;
 
 const seed = Number(new URLSearchParams(location.search).get("seed")) || LAND.seed;
-const MAP = generateValley(seed, LAND.w, LAND.h, SITES, { annex: LAND.annexW });
+const MAP = generateWorld(seed, LAND.tiles, SITES);
 const WW = MAP.W, WH = MAP.H;
 
 // ---------------------------------------------------------------------------
@@ -332,7 +332,7 @@ const SPECIES = {
   rabbit: { n: 1, roam: 600, fear: 300, speed: 1.8, home: () => quietSpot() },
   deer: { n: 3, fear: 380, speed: 2.2, home: () => woodSpot(0.6) },
   tiger: { n: 1, roam: 520, fear: 0, speed: 1.1, predator: true, home: () => nearSite(["jungle"], 220) },
-  boar: { n: 1, fear: 0, speed: 1.4, aggro: true, home: () => woodSpot(0.65, ["jungle"]) },
+  boar: { n: 1, fear: 0, speed: 1.4, aggro: true, home: () => woodSpot(0.65) },
   duck: { n: 3, roam: 420, fear: 220, speed: 0.6, water: true, home: () => lakeSpot() },
 };
 const HUNT_BY = { rabbit: ["axe", "knife", "spear"], deer: ["spear"], boar: ["spear"], tiger: ["spear"] };
@@ -346,7 +346,7 @@ function nearSite(keys, r) {
 }
 /** A spot in the thick of the woods: deer and boar live where the canopy closes over, several trees in
  *  from the edge, near the woods they belong to. No fence — it is the ground that decides how far in. */
-function woodSpot(min = 0.6, sites = ["wood", "jungle"]) {
+function woodSpot(min = 0.6) {
   let best = null, bs = -Infinity;
   for (let k = 0; k < 700; k++) {
     const i = Math.floor(Math.random() * MAP.cls.length);
@@ -354,11 +354,11 @@ function woodSpot(min = 0.6, sites = ["wood", "jungle"]) {
     const p = { x: MAP.X(i), y: MAP.Y(i) }, thick = woodDepth(MAP, p.x, p.y);
     if (thick < min) continue;
     if (boards.world.some((st) => dist(p, center(st)) < 260)) continue;
-    const near = Math.min(...sites.map((key) => dist(p, MAP.sites[key])));
-    const s = thick * 2 - near / 1000 + Math.random() * 0.4;
+    const near = dist(p, MAP.sites.home);
+    const s = thick * 2 - near / 1600 + Math.random() * 0.4;
     if (s > bs) { bs = s; best = p; }
   }
-  return best ?? nearSite(sites, 320);
+  return best ?? nearSite(["wood", "jungle"], 320);
 }
 function lakeSpot() {
   const r = MAP.sites.reeds; let best = null, bd = 1e9;
