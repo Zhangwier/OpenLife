@@ -176,7 +176,7 @@ const REGROW = { chestnut: [3, 5], lake: [1, 2], reeds: [2, 3], shallows: [2, 3]
 const respawns = [];
 const stacks = () => boards[board];
 const clock = { min: 6 * 60 + (firstDay - 1) * 1440, speed: 1, fast: 0 };
-const me = { food: 70, rest: 90, trust: { aunt: 0, yu: 0, zao: 0, zhi: 0 }, talkedDay: {}, giftDay: {}, recent: [], auto: true, lastInput: 6 * 60 };
+const me = { food: 70, rest: 90, trust: { aunt: 0, yu: 0, zao: 0, zhi: 0 }, talkedDay: {}, giftDay: {}, recent: [], auto: true, lastInput: clock.min };
 // Who you can direct besides yourself: anyone who trusts you enough (熟识 3), and your dog from the start.
 // Each has a mode — auto (lives their own day), work (you pick the job, they do it on their own), manual (you drag them like yourself).
 const TRUST_TO_JOIN = 3, IDLE_MIN = 1440;
