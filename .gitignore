@@ -1,22 +1,7 @@
 node_modules/
 *.log
-.DS_Store
-tmp/
-out/
-
-# Browser automation scratch (Edge/Chrome CDP profile, screenshots)
 .tmp/
+artifacts/
+.DS_Store
 .edge-test-profile/
 .chrome-test-profile/
-.edge-*-final/
-*.idsig
-
-# Ad-hoc diagnostic scratch files
-tmp-*.ts
-tmp-*.js
-
-# Verification/build output (screenshots, TAP reports, browser JSON results)
-artifacts/
-
-# Local server saves
-apps/web/data/
