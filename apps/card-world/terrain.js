@@ -100,6 +100,105 @@ function blob(g, x, y, r, R, squash = 0.72) {
   for (let i = 1; i <= 14; i++) g.quadraticCurveTo(...pts[i % 14], ...mid(i));
   g.closePath();
 }
+/** A soft round dab; ice mottling and snow drifts are built from these. */
+function dab(rgb) {
+  const cv = document.createElement("canvas"); cv.width = cv.height = 64;
+  const g = cv.getContext("2d"), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, `rgba(${rgb},.95)`); gr.addColorStop(.45, `rgba(${rgb},.6)`); gr.addColorStop(1, `rgba(${rgb},0)`);
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  return cv;
+}
+let DAB = null;
+/** The frozen lake, built once: pale ice, depth showing through, cracks, pressure ridges and snow at the shore. */
+function iceLayer(m) {
+  if (m._iceLayer !== undefined) return m._iceLayer;
+  DAB ??= { white: dab("250,253,253"), blue: dab("196,222,230"), dark: dab("72,108,122") };
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (let i = 0; i < m.cls.length; i++) if (m.water[i] === 1) {
+    x0 = Math.min(x0, m.X(i)); x1 = Math.max(x1, m.X(i)); y0 = Math.min(y0, m.Y(i)); y1 = Math.max(y1, m.Y(i));
+  }
+  if (x0 > x1) return (m._iceLayer = null);
+  const pad = 90, box = { x: Math.max(0, x0 - pad), y: Math.max(0, y0 - pad), x1: Math.min(m.W, x1 + pad), y1: Math.min(m.H, y1 + pad) };
+  const K = 0.5, w = Math.round((box.x1 - box.x) * K), h = Math.round((box.y1 - box.y) * K);
+  // the lake as a soft mask, read off the same blurred water field the ground is painted from
+  const field = blurField(m, Float32Array.from(m.water, (v) => (v === 1 ? 1 : 0)), 2);
+  const val = (px, py) => {                            // bilinear read of the field, in canvas px
+    const wx = box.x + px / K, wy = box.y + py / K;
+    const gx = Math.max(0, Math.min(m.cols - 1.001, wx / CELL - 0.5)), gy = Math.max(0, Math.min(m.rows - 1.001, wy / CELL - 0.5));
+    const c0 = Math.floor(gx), r0 = Math.floor(gy), fx = gx - c0, fy = gy - r0, i = r0 * m.cols + c0;
+    return lerp(lerp(field[i], field[i + 1], fx), lerp(field[i + m.cols], field[i + m.cols + 1], fx), fy);
+  };
+  const mask = document.createElement("canvas"); mask.width = w; mask.height = h;
+  const rim = document.createElement("canvas"); rim.width = w; rim.height = h;
+  const edge = document.createElement("canvas"); edge.width = w; edge.height = h;
+  const mg = mask.getContext("2d"), rg = rim.getContext("2d"), eg = edge.getContext("2d");
+  const mi = mg.createImageData(w, h), ri = rg.createImageData(w, h), ei = eg.createImageData(w, h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const f = val(x, y), o = (y * w + x) * 4;
+    const a = sm(0.455, 0.545, f);                                   // soft, antialiased shore
+    mi.data[o] = mi.data[o + 1] = mi.data[o + 2] = 255; mi.data[o + 3] = a * 255;
+    const n = 0.55 + 0.45 * Math.sin(x * 0.11 + Math.sin(y * 0.07) * 3) * Math.cos(y * 0.05);
+    const band = f > 0.5 ? Math.max(0, 1 - (f - 0.5) / 0.10) : 0;     // snow piled against the shore, in patches
+    ri.data[o] = ri.data[o + 1] = ri.data[o + 2] = 255; ri.data[o + 3] = band * n * 255;
+    const dark = f > 0.5 && f < 0.525 ? (1 - (f - 0.5) / 0.025) * 0.30 : 0;   // the waterline, just inside the snow
+    ei.data[o] = 58; ei.data[o + 1] = 92; ei.data[o + 2] = 106; ei.data[o + 3] = dark * 255;
+  }
+  mg.putImageData(mi, 0, 0); rg.putImageData(ri, 0, 0); eg.putImageData(ei, 0, 0);
+
+  const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+  const c = cv.getContext("2d");
+  const gr = c.createLinearGradient(0, 0, w, h);
+  gr.addColorStop(0, "#e4f0f2"); gr.addColorStop(.5, "#cbe1e7"); gr.addColorStop(1, "#b5d0dc");
+  c.fillStyle = gr; c.fillRect(0, 0, w, h);
+  const R = rng(m.seed ^ 0x1ce1), pick = () => {                      // a point well inside the ice
+    for (let k = 0; k < 40; k++) { const x = R() * w, y = R() * h; if (val(x, y) > 0.56) return [x, y]; }
+    return [w / 2, h / 2];
+  };
+  c.globalAlpha = .38; c.drawImage(DAB.dark, (m.lake.x - box.x) * K - w * 0.3, (m.lake.y - box.y) * K - h * 0.28, w * 0.6, h * 0.56); c.globalAlpha = 1;   // deep water beneath
+  for (let k = 0; k < 90; k++) {                                   // frozen-in cloudiness
+    const [x, y] = pick(), r = 30 + R() * 150;
+    c.globalAlpha = .03 + R() * 0.08; c.drawImage(R() < 0.6 ? DAB.white : DAB.blue, x - r / 2, y - r / 2, r, r);
+  }
+  c.globalAlpha = 1;
+  const crack = (x, y, ang, len, wide, depth) => {                 // a dark seam with a lit edge: ice, not a line
+    const pts = [[x, y]];
+    for (let d = 0; d < len; d += 12) { ang += (R() - 0.5) * 0.22; x += Math.cos(ang) * 12; y += Math.sin(ang) * 12; pts.push([x, y]); }
+    const line = (dx, dy, col, lw) => {
+      c.strokeStyle = col; c.lineWidth = lw; c.beginPath(); c.moveTo(pts[0][0] + dx, pts[0][1] + dy);
+      for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0] + dx, pts[i][1] + dy);
+      c.stroke();
+    };
+    c.lineCap = c.lineJoin = "round";
+    line(1.5, 2, "rgba(64,92,104,.22)", wide + 1.6);
+    line(0, 0, "rgba(255,255,255,.38)", wide * 0.55);
+    if (depth > 0) for (let b = 0; b < 1; b++) {
+      const p = pts[Math.floor(R() * pts.length)];
+      crack(p[0], p[1], ang + (R() < 0.5 ? -1 : 1) * (0.5 + R() * 0.7), len * (0.35 + R() * 0.3), wide * 0.65, depth - 1);
+    }
+  };
+  for (let k = 0; k < 18; k++) { const [x, y] = pick(); crack(x, y, R() * 6.28, 110 + R() * 220, 1.0 + R() * 1.4, 1); }
+  for (let k = 0; k < 4; k++) {                                     // pressure ridges: shoved-up white lines
+    const [x, y] = pick(), a = R() * 6.28, len = 40 + R() * 90;
+    c.strokeStyle = "rgba(255,255,255,.35)"; c.lineWidth = 2 + R() * 1.5; c.beginPath(); c.moveTo(x, y);
+    c.quadraticCurveTo(x + Math.cos(a) * len * 0.5, y + Math.sin(a) * len * 0.5 - 6, x + Math.cos(a) * len, y + Math.sin(a) * len); c.stroke();
+  }
+  for (let k = 0; k < 44; k++) {                                   // wind-blown snow on the ice
+    const [x, y] = pick(), r = 20 + R() * 90;
+    c.globalAlpha = .10 + R() * 0.22; c.drawImage(DAB.white, x - r / 2, y - r / 2, r, r);
+  }
+  c.globalAlpha = 1;
+  for (let k = 0; k < 320; k++) {                                  // sparkle
+    const [x, y] = pick();
+    c.fillStyle = `rgba(255,255,255,${0.25 + R() * 0.55})`; c.fillRect(x, y, 1.4, 1.4);
+  }
+  c.globalCompositeOperation = "destination-in"; c.drawImage(mask, 0, 0);     // cut to the lake
+  c.globalCompositeOperation = "source-over";
+  c.drawImage(edge, 0, 0);                                                   // the waterline under the snow
+  c.drawImage(rim, 0, 0);                                                    // snow at the shore
+  m._iceLayer = { cv, box };
+  return m._iceLayer;
+}
+
 
 /** Everything on the ground canvas. keepClear: points (card centres) where nothing should grow. */
 export function paintTerrain(canvas, m, { DECO = {}, keepClear = [], season = "æ˜¥", eco = [], house = null } = {}) {
@@ -151,16 +250,16 @@ export function paintTerrain(canvas, m, { DECO = {}, keepClear = [], season = "æ
     g.strokeStyle = "rgba(255, 248, 230, .07)"; g.lineWidth = 8; curve(g, pts); g.stroke();
   }
 
-  // water: ripples (or ice cracks), and the bridge
-  g.strokeStyle = L.winter ? "rgba(255,255,255,.5)" : "rgba(235,245,240,.35)"; g.lineWidth = L.winter ? 3 : 6;
+  // water: ripples on open water, or the lake frozen over, and the bridge
+  g.strokeStyle = "rgba(235,245,240,.35)"; g.lineWidth = 6;
   for (let i = 0; i < m.cls.length; i++) {
-    if (m.cls[i] !== G.DEEP || R() > (m.water[i] === 2 ? 0.25 : 0.05)) continue;
+    if (m.cls[i] !== G.DEEP || (L.winter && m.water[i] === 1) || R() > (m.water[i] === 2 ? 0.25 : 0.05)) continue;
     const x = m.X(i) + (R() - 0.5) * 30, y = m.Y(i);
     g.beginPath();
-    if (L.winter && m.water[i] === 1) { g.moveTo(x - 30, y - 6); g.lineTo(x - 6, y + 4); g.lineTo(x + 14, y - 8); g.lineTo(x + 34, y + 2); }
-    else { g.moveTo(x - 34, y); g.quadraticCurveTo(x, y - 12, x + 34, y); }
+    g.moveTo(x - 34, y); g.quadraticCurveTo(x, y - 12, x + 34, y);
     g.stroke();
   }
+  if (L.winter) { const ice = iceLayer(m); if (ice) g.drawImage(ice.cv, ice.box.x, ice.box.y, ice.box.x1 - ice.box.x, ice.box.y1 - ice.box.y); }
   if (m.river?.length) bridge(g, m, L);
 
   // growth: trees in woods, pines up the slopes, peaks on the mountains, stones on scree, reeds at the shore, tufts and flowers in the meadow
@@ -198,7 +297,7 @@ export function paintTerrain(canvas, m, { DECO = {}, keepClear = [], season = "æ
       continue;
     }
     if (c === G.FOREST && (m.trees?.[i] ?? 1) !== 0 && r1 < (m.elev[i] > 0.64 ? 0.4 : (m.cover?.[i] ?? 0.5) < 0.2 ? 0.2 : 0.55)) { const p = j(); if (clearOf(p.x, p.y, 170) && plant(p, m.elev[i] > 0.64 ? 150 : 215 - 105 * (m.cover?.[i] ?? 0.5) - 15 * (m.dense?.[i] ?? 0.5))) items.push({ ...p, kind: m.elev[i] > 0.64 ? "pine" : "tree", s: 0.7 + 0.35 * (m.cover?.[i] ?? 0.5) + 0.2 * (m.dense?.[i] ?? 0.5) + R() * 0.2, v: R() }); }
-    else if (c === G.FOREST && (m.cover?.[i] ?? 1) < 0.35 && r2 < 0.2) { const p = j(); if (clearOf(p.x, p.y, 130)) items.push({ ...p, kind: r2 < 0.11 ? "bush" : "flowers", s: 0.8 + R() * 0.3, v: R() }); }   // undergrowth at the wood's edge
+    else if (c === G.FOREST && (m.cover?.[i] ?? 1) < 0.35 && r2 < 0.2) { const p = j(); if (clearOf(p.x, p.y, 130)) items.push({ ...p, kind: !L.flowers || r2 < 0.11 ? "bush" : "flowers", s: 0.8 + R() * 0.3, v: R() }); }   // undergrowth at the wood's edge
     else if (c === G.SLOPE && r1 < 0.06) { const p = j(); if (clearOf(p.x, p.y, 170) && plant(p, 185)) items.push({ ...p, kind: "pine", s: 0.7 + R() * 0.4, v: R() }); }
     else if (c === G.MEADOW && (m.trees?.[i] ?? 1) !== 0 && r1 < 0.007) { const p = j(); const lone = r2 < 0.6; if (clearOf(p.x, p.y, 220) && (!lone || plant(p, 215))) items.push({ ...p, kind: lone ? "tree" : "bush", s: 0.8 + R() * 0.4, v: R() }); }
     else if (c === G.MEADOW && r1 < 0.032) { const p = j(); if (clearOf(p.x, p.y, 120)) items.push({ ...p, kind: L.flowers && r2 < 0.45 ? "flowers" : "grass_tuft", s: 1, v: R() }); }

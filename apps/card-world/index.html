@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta http-equiv="Cache-Control" content="no-store" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>开放人生 · 卡牌世界样稿 v25</title>
-<link rel="stylesheet" href="style.css?v=12" />
+<title>开放人生 · 卡牌世界样稿 v26</title>
+<link rel="stylesheet" href="style.css?v=13" />
 </head>
 <body>
 <main class="table" id="table" aria-label="世界：拖动空白处看地图，拖「你」走过去">
@@ -19,6 +19,7 @@
   <div class="room" id="room" hidden><div class="room-world" id="roomWorld"></div></div>
   <canvas class="dark" id="dark"></canvas>
   <div class="weather" id="weatherLayer"></div>
+  <canvas class="snowfall" id="snowfall" hidden></canvas>
 </main>
 
 <header class="hud-l">
@@ -69,7 +70,7 @@
   <p>跟村民每天说说话、给他们吃的，熟识到 3 他们就愿意听你安排。阿黄一开始就听你的。左下角你脸旁的小头像点开，能给每个人选：⟳ 自己安排、⚒ 派活（选一样活）、✋ 我来指挥（直接拖它去干活）。阿黄派活是搬运：你背的东西多了，它来接走送回家。</p>
   <p>左下角你脸旁边记住你最近干过的两样活，点一下就会自己走过去接着干。</p>
   <p>时间自己走：村民中午一起吃饭，傍晚收工回家，夜里进屋睡觉；离你太远的人只停在你最后见到他的地方，但他其实还在走。空格暂停。</p>
-  <p>地上会自己长东西：林地边的小树一季长一截，长到头就不再长；浆果丛冬天枯成枝子，开春再长；天气会晴、下雨、下雪。草地上多了只野兔，你一靠近它就跳开。</p>
+  <p>地上会自己长东西：林地边的小树一季长一截，长到头就不再长；浆果丛冬天枯成枝子，开春再长；天气会晴、下雨、下雪。冬天湖面会结冰，可以从冰上走过去；野鸭开春才回来。草地上多了只野兔，你一靠近它就跳开。</p>
   <p>工具有实际效果：石锄锄田长两格、比手拔草快一倍多；渔网一网两条鱼；石斧砍树一次两根；背篓能背 10 样；拿东西的距离是一次能走的 1.5 倍。田熟了站上去就能收粟。</p>
   <p>陶罐放进公仓，公仓多存 5 份粟（本身只能存 10 份，存不下的就糟蹋了）。村民也会自己做工具用：陶婶织网、阿予做锄头、阿埴烧陶罐送公仓、阿灶傍晚点火把。</p>
   <p>盖房子：✎ 里选「选地方打地基」，再点一块空地。把材料带上去或拖上去，齐了站上去一段段地盖；盖好起个名字。大房子能进屋，仓库能放东西、点开能取。带着石锤走上去能拆，拿回一半材料。</p>
@@ -80,7 +81,7 @@
   <p>右上角乱石堆南边是东坡果园：桃树夏天结桃，枣树秋天结枣。鹿和野猪都住在左上角丛林一带。</p>
   <button id="helpClose">知道了</button>
 </div>
-<p class="mock-note">样稿 v25 · 数据示意，不连游戏</p>
-<script type="module" src="app.js?v=19"></script>
+<p class="mock-note">样稿 v26 · 数据示意，不连游戏</p>
+<script type="module" src="app.js?v=20"></script>
 </body>
 </html>

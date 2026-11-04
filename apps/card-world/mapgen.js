@@ -440,7 +440,10 @@ function composeWorld(seed, tiles, maps) {
 export function walkable(m, x, y) {
   if (m.blocks?.some((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h)) return false;   // house walls
   if (m.decks?.some((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h)) return true;
-  return x >= 0 && y >= 0 && x < m.W && y < m.H && WALK[m.cls[m.idx(x, y)]];
+  if (!(x >= 0 && y >= 0 && x < m.W && y < m.H)) return false;
+  const i = m.idx(x, y);
+  if (m.frozen && m.water?.[i] === 1) return true;               // the lake is ice in winter: you can walk across
+  return WALK[m.cls[i]];
 }
 /** Walk from a towards b in a straight line; stop at the last step before water or cliff. */
 export function reachAlong(m, a, b) {
@@ -471,6 +474,7 @@ export function findPath(m, a, b, opts = {}) {
   const cost = (j) => {
     const x = m.X(j), y = m.Y(j);
     if (m.blocks?.some((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h)) return Infinity;
+    if (m.frozen && m.water?.[j] === 1) return 2.2;                                 // frozen lake: worth crossing, a little slow
     return wary && m.jungle?.[j] ? Infinity : COST[m.cls[j]] * (m.road[j] ? 0.45 : 1);   // the wary never set foot in it
   };
   const start = m.idx(a.x, a.y), goal = m.idx(b.x, b.y);

@@ -17,7 +17,9 @@ const PX_PER_MIN = 20;                 // walking speed: px per game minute
 const MIN_PER_SEC = 15;                // at 1×, one game day ≈ 96 s; dusk and dawn take a few seconds each
 const SEASONS = ["春", "夏", "秋", "冬"], DAYS_PER_SEASON = 4;
 
-const seed = Number(new URLSearchParams(location.search).get("seed")) || LAND.seed;
+const params = new URLSearchParams(location.search);
+const seed = Number(params.get("seed")) || LAND.seed;
+const firstDay = Math.max(1, Math.floor(Number(params.get("day")) || 1));   // preview a season: ?day=13 starts in winter
 const MAP = generateWorld(seed, LAND.tiles, SITES);
 const WW = MAP.W, WH = MAP.H;
 
@@ -173,7 +175,7 @@ let board = "world";
 const REGROW = { chestnut: [3, 5], lake: [1, 2], reeds: [2, 3], shallows: [2, 3] };
 const respawns = [];
 const stacks = () => boards[board];
-const clock = { min: 6 * 60, speed: 1, fast: 0 };
+const clock = { min: 6 * 60 + (firstDay - 1) * 1440, speed: 1, fast: 0 };
 const me = { food: 70, rest: 90, trust: { aunt: 0, yu: 0, zao: 0, zhi: 0 }, talkedDay: {}, giftDay: {}, recent: [], auto: true, lastInput: 6 * 60 };
 // Who you can direct besides yourself: anyone who trusts you enough (熟识 3), and your dog from the start.
 // Each has a mode — auto (lives their own day), work (you pick the job, they do it on their own), manual (you drag them like yourself).
@@ -265,17 +267,73 @@ function growEco() {
   const berry = find("berries")?.cards[0];
   if (berry) berry.el.querySelector(".card-art").innerHTML = iconFor(winter ? "barebush" : "berries");
 }
+// ---------------------------------------------------------------------------
+// Snow: flakes at three depths, drifting on a slow wind
+// ---------------------------------------------------------------------------
+const snow = { on: false, cv: null, ctx: null, w: 0, h: 0, t: 0, flakes: [], sprite: null };
+const SNOW_LAYERS = [
+  { n: 84, r: 0.9, vy: 22, sway: 6, alpha: .55, rate: .9 },
+  { n: 54, r: 1.7, vy: 40, sway: 12, alpha: .72, rate: .62 },
+  { n: 22, r: 3.3, vy: 74, sway: 22, alpha: .45, rate: .4 },
+];
+function snowFlake() {
+  const s = document.createElement("canvas"); s.width = s.height = 32;
+  const g = s.getContext("2d"), gr = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+  gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(.35, "rgba(255,255,255,.9)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = gr; g.fillRect(0, 0, 32, 32);
+  return s;
+}
+function snowSetup() {
+  snow.cv = $("snowfall"); snow.ctx = snow.cv.getContext("2d"); snow.sprite ??= snowFlake();
+  const w = innerWidth, h = innerHeight, dpr = Math.min(1.5, window.devicePixelRatio || 1);
+  snow.cv.width = Math.round(w * dpr); snow.cv.height = Math.round(h * dpr);
+  snow.cv.style.width = `${w}px`; snow.cv.style.height = `${h}px`;
+  snow.w = w; snow.h = h; snow.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  snow.flakes = [];
+  const area = Math.max(.55, (w * h) / (1280 * 800));   // fewer flakes on a small window
+  for (const L of SNOW_LAYERS) for (let k = 0; k < Math.round(L.n * area); k++) {
+    snow.flakes.push({ ...L, x: Math.random() * w, y: Math.random() * h, ph: Math.random() * 6.28, v: L.vy * (.8 + Math.random() * .4), r: L.r * (.7 + Math.random() * .6) });
+  }
+}
+function snowSet(on) {
+  if (on === snow.on) return;
+  snow.on = on;
+  $("snowfall").hidden = !on;
+  if (on) { snow.t = 0; snowSetup(); }
+  else if (snow.ctx) snow.ctx.clearRect(0, 0, snow.w, snow.h);
+}
+function snowDraw(dt) {
+  const ctx = snow.ctx; if (!ctx) return;
+  snow.t += dt;
+  ctx.clearRect(0, 0, snow.w, snow.h);
+  const wind = 13 + Math.sin(snow.t * 0.16) * 9;    // a slow gust, not a gale
+  const dim = 1 - darkness() * 0.6;                  // snow is lit by the sky, not by the dark
+  for (const f of snow.flakes) {
+    f.y += f.v * dt;
+    f.x += (wind + Math.sin(snow.t * f.rate + f.ph) * f.sway) * dt;
+    if (f.y > snow.h + 8) { f.y = -8; f.x = Math.random() * snow.w; }
+    if (f.x > snow.w + 10) f.x -= snow.w + 20; else if (f.x < -10) f.x += snow.w + 20;
+    const s = f.r * 7;
+    ctx.globalAlpha = f.alpha * dim;
+    ctx.drawImage(snow.sprite, f.x - s / 2, f.y - s / 2, s, s);
+  }
+  ctx.globalAlpha = 1;
+}
+
 function rollWeather() {
   const s = season(), r = Math.random();
   weather.now = s === "冬" ? (r < 0.45 ? "雪" : "晴") : r < (s === "春" ? 0.34 : s === "夏" ? 0.18 : 0.27) ? "雨" : "晴";
   $("weather").textContent = weather.now;
   table.dataset.weather = weather.now;
-  $("weatherLayer").className = `weather${weather.now === "雨" ? " rain" : weather.now === "雪" ? " snow" : ""}`;
+  $("weatherLayer").className = `weather${weather.now === "雨" ? " rain" : ""}`;
+  snowSet(weather.now === "雪");
 }
 /** Repaint the ground for the season: blossom, deep green, red and gold, then snow. */
 function paintSeason() {
   growEco();
   table.dataset.season = season();
+  MAP.frozen = season() === "冬";                      // the lake bears weight once the cold sets in
+  for (const st of allStacks()) if (st.critter?.water) st.cards.forEach((c) => c.el.classList.toggle("hidden", MAP.frozen));   // ducks leave with the open water
   const R = { home: 520, field: 560, kiln: 300, berries: 300, hemp: 300, scree: 160 };
   const clearings = Object.values(MAP.sites).map((s) => ({ x: s.x, y: s.y, r: R[s.key] ?? 220 }));
   paintTerrain($("ground"), MAP, { DECO, keepClear: [...boards.world.map(center), ...clearings], season: season(), eco, house: MAP.house });
@@ -285,10 +343,13 @@ function paintSeason() {
 const tide = { level: null };
 const tideNow = () => Math.sin((clock.min / (12.4 * 60)) * Math.PI * 2);
 function updateTide() {
-  if (!MAP.water?.includes(1)) { $("tide").hidden = true; return; }   // no lake on this map: no tide
+  const cv = $("tide");
+  if (season() === "冬") { cv.hidden = true; return; }                  // frozen over: the water no longer rises
+  if (!MAP.water?.includes(1)) { cv.hidden = true; return; }            // no lake on this map: no tide
+  cv.hidden = false;
   const lv = tideNow();
   if (tide.level !== null && Math.abs(lv - tide.level) < 0.05) return;
-  tide.level = lv; paintTide($("tide"), MAP, lv, season());
+  tide.level = lv; paintTide(cv, MAP, lv, season());
 }
 
 // ---------------------------------------------------------------------------
@@ -1299,12 +1360,13 @@ function intent(st, icon) {
 // ---------------------------------------------------------------------------
 // Time and the frame loop
 // ---------------------------------------------------------------------------
-let last = performance.now(), lastDay = 1, lastSeason = 0;
+let last = performance.now(), lastDay = firstDay, lastSeason = SEASONS.indexOf(season());
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   let minutes = dt * MIN_PER_SEC * clock.speed;
   if (clock.fast) { minutes = Math.max(minutes, 25); if (clock.min + minutes >= clock.fast) { minutes = clock.fast - clock.min; clock.fast = 0; } }
   try { if (minutes > 0) tick(minutes); render(); } catch (err) { console.error(err); }
+  if (snow.on) snowDraw(dt);
   requestAnimationFrame(frame);
 }
 function tick(minutes) {
@@ -2051,6 +2113,6 @@ $("meFace").innerHTML = iconFor("you");
 renderRecent(); renderParty(); renderAutoMe();
 { const r = table.getBoundingClientRect(); cam.z = Math.min(1.05, Math.max(0.7, r.height / 800)); const c = center(youStack()); cam.x = c.x; cam.y = c.y - 30; }
 applyCam(); fitRoom();
-window.addEventListener("resize", () => { applyCam(); fitRoom(); });
+window.addEventListener("resize", () => { applyCam(); fitRoom(); if (snow.on) snowSetup(); });
 requestAnimationFrame(frame);
 window.__mock = { inJungle, SPECIES, spawnAnimal, attackRabbit, BUILDS, startPlacing, placeFoundation, completeBuild, refreshPlot, newStack, WANT, planStep, holds, teach, renderCrafts, setMode, members, gainTrust, party, renderParty, tide, darkness, lights, litAt, boards, clock, cam, me, MAP, youStack, walkTo, find, center, discs, setSpeed, artFound, moveRange, arrive, walkable: (x, y) => walkable(MAP, x, y), explore, paintFog, paintSeason, newCard, eco, attackRabbit, showDetail, findPath: (a, b) => findPath(MAP, a, b) };
