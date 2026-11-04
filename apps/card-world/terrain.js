@@ -74,7 +74,7 @@ function paintBase(m, L) {
       col = mix(col, C.snow, sm(L.snowLine, L.snowLine + 0.08, ev));
       col = mix(col, C.sand, sm(0.35, 0.6, sav) * (1 - sm(0.62, 0.7, ev)));
       col = mix(col, C.wetSand, sm(0.36, 0.46, wv) * (1 - sm(0.48, 0.5, wv)) * (L.winter ? 0.3 : 1));
-      const isSea = wy > m.seaY(x / K) - 40;
+      const isSea = wy > m.seaY(x / K - (m.ox ?? 0)) - 40;
       col = mix(col, mix(C.shallow, isSea ? C.sea : C.deep, sm(L.winter && !isSea ? 0.75 : 0.55, 0.95, dv)), sm(0.47, 0.52, wv));
       const light = Math.max(0.72, Math.min(1.22, 1 + shv * (0.35 + 0.9 * sm(0.5, 0.85, ev)) * (wv > 0.5 ? 0.1 : 1)));
       const n = (((x * 73856093) ^ (y * 19349663)) & 255) / 255 - 0.5;

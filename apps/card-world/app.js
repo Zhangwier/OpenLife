@@ -18,7 +18,7 @@ const MIN_PER_SEC = 15;                // at 1×, one game day ≈ 96 s; dusk an
 const SEASONS = ["春", "夏", "秋", "冬"], DAYS_PER_SEASON = 4;
 
 const seed = Number(new URLSearchParams(location.search).get("seed")) || LAND.seed;
-const MAP = generateValley(seed, LAND.w, LAND.h, SITES);
+const MAP = generateValley(seed, LAND.w, LAND.h, SITES, { annex: LAND.annexW });
 const WW = MAP.W, WH = MAP.H;
 
 // ---------------------------------------------------------------------------

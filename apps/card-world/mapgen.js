@@ -92,35 +92,43 @@ function chaikin(pts, n = 2) {
  * A valley: mountains on three sides (north, west, east), a lake in the middle, one river from the lake south to the sea.
  * specs: the content pack — which places this land has and where each likes to be (see app.js · SITES).
  */
-export function generateValley(seed, W, H, specs) {
+export function generateValley(seed, W, H, specs, { annex = 0 } = {}) {
   for (let tries = 0; tries < 40; tries++) {
-    const m = tryValley(seed + tries * 7919, W, H, specs);
+    const m = tryValley(seed + tries * 7919, W, H, specs, annex);
     if (m) { m.seed = seed; m.tries = tries + 1; return m; }
   }
   throw new Error("valley: no layout passed the checks");
 }
 
-function tryValley(seed, W, H, specs) {
-  const cols = Math.ceil(W / CELL), rows = Math.ceil(H / CELL), N = cols * rows;
+function tryValley(seed, W, H, specs, annex = 0) {
+  // A rectangle of old-growth wood attached to the valley's west side. The valley keeps its own size and
+  // rules; only the grid grows to hold both, so everything in the valley stays where it was.
+  const OX = annex, worldW = W + OX, worldH = H;
+  const cols = Math.ceil(worldW / CELL), rows = Math.ceil(worldH / CELL), N = cols * rows;
   const nA = fbm(seed), nB = fbm(seed + 1), nC = fbm(seed + 2);
   const R = rng(seed ^ 0x5bd1);
   const X = (i) => ((i % cols) + 0.5) * CELL, Y = (i) => (Math.floor(i / cols) + 0.5) * CELL;
   const idx = (x, y) => Math.min(rows - 1, Math.max(0, Math.floor(y / CELL))) * cols + Math.min(cols - 1, Math.max(0, Math.floor(x / CELL)));
 
   // 1 · elevation: a bowl open to the south, plus noise; a basin for the lake; the sea along the south edge
-  const lake = { x: W * (0.5 + (R() - 0.5) * 0.16), y: H * (0.4 + (R() - 0.5) * 0.08), rx: W * (0.1 + R() * 0.03), ry: H * (0.1 + R() * 0.03) };
+  const lake = { x: OX + W * (0.5 + (R() - 0.5) * 0.16), y: H * (0.4 + (R() - 0.5) * 0.08), rx: W * (0.1 + R() * 0.03), ry: H * (0.1 + R() * 0.03) };
   const seaY = (x) => H * (0.93 + 0.05 * (nA(x / 900, 3.3) - 0.5));
   const elev = new Float32Array(N), water = new Uint8Array(N); // 1 lake, 2 river, 3 sea
   for (let i = 0; i < N; i++) {
-    const x = X(i), y = Y(i), v = y / H;
-    const band = H * 0.3 * (0.65 + 0.7 * nB(x / 1300, y / 1300)) * (1 - 0.3 * smooth(0.75, 1, v));
-    const m = smooth(band, 0, Math.min(y, x, W - x));
-    const ridge = 1 - Math.abs(2 * nC(x / 380, y / 380) - 1);
-    let e = 0.3 + 0.08 * (1 - v) + 0.72 * m + 0.34 * m * (ridge - 0.5) + 0.14 * (nA(x / 650, y / 650) - 0.5);
-    const lr = Math.hypot((x - lake.x) / lake.rx, (y - lake.y) / lake.ry) / (1 + 0.4 * (nB(x / 520 + 9, y / 520) - 0.5));
+    const x = X(i), y = Y(i), lx = x - OX, v = y / H;
+    if (lx < 0) {                                                      // the west wood: gentle ground, no lake or river
+      if (y > seaY(lx)) { water[i] = 3; elev[i] = 0.12; }
+      else elev[i] = 0.42 + 0.06 * (nA(x / 700, y / 700) - 0.5) + 0.72 * smooth(-460, 0, lx);   // foothills rise to the valley's wall
+      continue;
+    }
+    const band = H * 0.3 * (0.65 + 0.7 * nB(lx / 1300, y / 1300)) * (1 - 0.3 * smooth(0.75, 1, v));
+    const m = smooth(band, 0, Math.min(y, lx, W - lx));
+    const ridge = 1 - Math.abs(2 * nC(lx / 380, y / 380) - 1);
+    let e = 0.3 + 0.08 * (1 - v) + 0.72 * m + 0.34 * m * (ridge - 0.5) + 0.14 * (nA(lx / 650, y / 650) - 0.5);
+    const lr = Math.hypot((x - lake.x) / lake.rx, (y - lake.y) / lake.ry) / (1 + 0.4 * (nB(lx / 520 + 9, y / 520) - 0.5));
     if (lr < 1.6) e = 0.2 + (e - 0.2) * smooth(0.85, 1.6, lr);
     if (lr < 1) water[i] = 1;
-    if (y > seaY(x)) { water[i] = 3; e = Math.min(e, 0.12); }
+    if (y > seaY(lx)) { water[i] = 3; e = Math.min(e, 0.12); }
     elev[i] = e;
   }
 
@@ -128,7 +136,7 @@ function tryValley(seed, W, H, specs) {
   const ang = Math.PI / 2 + (R() - 0.5) * 0.9;
   let out = idx(lake.x, lake.y);
   for (let s = 0; s < 4000 && water[out] === 1; s += CELL / 2) out = idx(lake.x + Math.cos(ang) * s, lake.y + Math.sin(ang) * s);
-  const path = search(cols, rows, out, (i) => water[i] === 3, (j) => (water[j] === 1 ? Infinity : 1 + 60 * Math.max(0, elev[j] - 0.4) + 3 * nC(X(j) / 500, Y(j) / 500)));
+  const path = search(cols, rows, out, (i) => water[i] === 3 && X(i) >= OX, (j) => (water[j] === 1 ? Infinity : 1 + 60 * Math.max(0, elev[j] - 0.4) + 3 * nC(X(j) / 500, Y(j) / 500)));
   if (!path || path.length < 12) return fail("river");
   const river = chaikin(path.map((i) => [X(i), Y(i)]), 3);
   const lakeEdge = [lake.x + Math.cos(ang) * lake.rx * 0.8, lake.y + Math.sin(ang) * lake.ry * 0.8];
@@ -163,7 +171,7 @@ function tryValley(seed, W, H, specs) {
   const dw = spread(cols, rows, isWater), dl = spread(cols, rows, (i) => water[i] === 1), dr = spread(cols, rows, (i) => water[i] === 2), ds = spread(cols, rows, (i) => water[i] === 3);
   const cls = new Uint8Array(N), mo = new Float32Array(N);
   for (let i = 0; i < N; i++) {
-    const x = X(i), y = Y(i), e = elev[i];
+    const x = X(i), y = Y(i), lx = x - OX, e = elev[i];
     // The valley's back (north) carries a broad wood that climbs the lower slopes; it thins out towards
     // the lake and the fields, so the village keeps its open ground.
     const back = 1 - smooth(H * 0.15, H * 0.62, y);
@@ -174,6 +182,7 @@ function tryValley(seed, W, H, specs) {
     else if (e > 0.76) cls[i] = G.ROCK;
     else if (e > 0.64) cls[i] = nA(x / 260, y / 260) > 0.6 ? G.SCREE : mo[i] > 0.44 - 0.12 * back ? G.FOREST : G.SLOPE;
     else if (dw[i] <= 1 || (ds[i] <= 3)) cls[i] = G.SAND;
+    else if (lx < 0) cls[i] = nC(x / 700 + 11, y / 700 + 5) > 0.32 ? G.FOREST : G.MEADOW;   // the west wood, with glades
     else cls[i] = nC(x / 800 + 7, y / 800 + 3) > 0.6 - 0.3 * back && mo[i] > 0.42 - 0.2 * back ? G.FOREST : G.MEADOW;
   }
   // Let the woods settle: a meadow with five wooded neighbours fills in, a lone tree out in the open dies back.
@@ -194,6 +203,17 @@ function tryValley(seed, W, H, specs) {
     }
     cls.set(next);
   }
+  if (OX > 0) {
+    // A wooded saddle where the old wood climbs over the valley's west wall, so the two are one forest.
+    for (let c = Math.max(0, Math.floor((OX - 12 * CELL) / CELL)); c <= Math.min(cols - 1, Math.floor((OX + 10 * CELL) / CELL)); c++) {
+      const cx = (c + 0.5) * CELL, mid = H * 0.28 + (nB(cx / 520, 7.7) - 0.5) * H * 0.1, half = CELL * (3.2 + 2.4 * nC(cx / 380, 3.1));
+      for (let r = 0; r < rows; r++) {
+        if (Math.abs((r + 0.5) * CELL - mid) > half) continue;
+        const i = r * cols + c;
+        if (cls[i] === G.ROCK || cls[i] === G.SNOW || cls[i] === G.SCREE || cls[i] === G.SLOPE) cls[i] = G.FOREST;
+      }
+    }
+  }
   const dm = spread(cols, rows, (i) => cls[i] >= G.ROCK);
 
   // 4 · sites, by rules (content pack): terrain, distance from another site, near which water, near the mountains…
@@ -205,8 +225,8 @@ function tryValley(seed, W, H, specs) {
     const ref = s.from ? sites[s.from] : null;
     for (let i = 0; i < N; i++) {
       if (!s.ground.includes(cls[i]) || !free(i, s.gap ?? 560) || roomy(i) < (s.room ?? 15)) continue;
-      const x = X(i), y = Y(i);
-      if (x < 400 || x > W - 400 || y < 300) continue;
+      const x = X(i), y = Y(i), lx = x - OX;
+      if (lx < 400 || lx > W - 400 || y < 300) continue;
       const near = { lake: dl[i], river: dr[i], sea: ds[i], water: dw[i], mountain: dm[i] };
       if (s.water && !(near[s.water[0]] * CELL >= s.water[1] && near[s.water[0]] * CELL <= s.water[2])) continue;
       if (s.mountain && !(dm[i] * CELL >= s.mountain[0] && dm[i] * CELL <= s.mountain[1])) continue;
@@ -222,7 +242,7 @@ function tryValley(seed, W, H, specs) {
           score -= da * (s.dirW ?? 1.15);
         }
       }
-      if (s.prefer) score += s.prefer({ x, y, W, H, lake, mouth: river[river.length - 1], e: elev[i], ...near });
+      if (s.prefer) score += s.prefer({ x: lx, y, W, H, lake, mouth: river[river.length - 1], e: elev[i], ...near });
       if (score > bs) { bs = score; best = i; }
     }
     if (best < 0) return fail(`site:${s.key}`);
@@ -269,7 +289,7 @@ function tryValley(seed, W, H, specs) {
   const cover = new Float32Array(N);
   for (let i = 0; i < N; i++) cover[i] = Math.min(1, dEdge[i] / 6);
 
-  return { W, H, cols, rows, elev, water, ford, cls, mo, cover, road, river, riverW, fordPt, fordDir, lake, sites, roads, seaY, dm, dw, X, Y, idx, jungle, orchard };
+  return { W: worldW, H: worldH, vw: W, vh: H, ox: OX, oy: 0, cols, rows, elev, water, ford, cls, mo, cover, road, river, riverW, fordPt, fordDir, lake, sites, roads, seaY, dm, dw, X, Y, idx, jungle, orchard };
 }
 
 // ---------------------------------------------------------------------------

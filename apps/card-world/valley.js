@@ -2,7 +2,8 @@
 // Each place: what ground it wants, how far from another place, which water or mountain it must be near.
 import { G } from "./mapgen.js";
 
-export const LAND = { key: "valley", name: "河谷", w: 3200, h: 2300, seed: 20261101 };
+// annexW: a rectangle of old-growth wood attached west of the valley (see DESIGN.md §20).
+export const LAND = { key: "valley", name: "河谷", w: 3200, h: 2300, seed: 20261101, annexW: 1800 };
 
 // Places are spread over the whole valley, not piled around the yard: a screen shows two or three of them,
 // and the everyday ones are still a drag or two away.
