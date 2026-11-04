@@ -18,6 +18,7 @@ import {
   STORY_PACK, type AchievementCondition, type BondChange, type IncidentSpec, type ItemGrant, type Objective, type QuestSpec, type Requirements, type Reward,
 } from "./spec.ts";
 import { allIncidents } from "./pack-incidents.ts";
+import { ACTION_INCIDENTS } from "./life-routes.ts";
 
 export const STORY_OWNER = "village-stories";
 export const StoryComponents = { journal: "village-stories.journal" } as const;
@@ -458,16 +459,20 @@ function mix(a: number, b: number): number {
 }
 
 /** Whether an incident's trigger holds for this player now (story requirements, and `once`). */
-export type IncidentGate = ((incident: IncidentSpec) => boolean) & { scheduled?: (tick: number) => IncidentSpec | undefined };
+export type IncidentGate = ((incident: IncidentSpec) => boolean) & { scheduled?: (tick: number) => IncidentSpec | undefined; scheduledAt?: (id: string) => number };
 export function incidentGate(world: WorldView, me: string, j: Journal): IncidentGate {
   const seen = new Set(Object.values(j.incidents).map((v) => v.split(":")[0]!));
   const gate: IncidentGate = (i) => !(i.once && seen.has(i.id)) && !meets(world, me, j, i.requires);
   // A follow-up an earlier choice set in motion comes on its day, whatever the season or the draw.
   gate.scheduled = (tick) => {
-    const id = j.scheduled[String(tick)];
+    const due = Object.keys(j.scheduled).map(Number).filter(at => at <= tick && !Object.values(j.incidents).some(seen => seen.startsWith(`${j.scheduled[String(at)]}:`)))
+      .sort((a, b) => Number(b === tick) - Number(a === tick)
+        || Number(ACTION_INCIDENTS.has(j.scheduled[String(a)]!)) - Number(ACTION_INCIDENTS.has(j.scheduled[String(b)]!)) || a - b)[0];
+    const id = due === undefined ? undefined : j.scheduled[String(due)];
     const i = id ? STORY_PACK.incidents.list.find((x) => x.id === id) : undefined;
     return i && gate(i) ? i : undefined;
   };
+  gate.scheduledAt = (id) => Math.min(...Object.keys(j.scheduled).map(Number).filter(t => j.scheduled[String(t)] === id));
   return gate;
 }
 /** Incidents nobody's story can trigger: only season and weather gate them (used for a forecast with no player). */
@@ -481,8 +486,9 @@ const untriggered: IncidentGate = (i) => !i.requires && !i.once;
 export function incidentOn(tick: number, gate: IncidentGate = untriggered): IncidentSpec | undefined {
   const spec = STORY_PACK.incidents;
   const due = gate.scheduled?.(tick);
-  if (due) return due;
-  if (mix(tick, 1) % 1000 >= Math.round(spec.chance * 1000)) return undefined;
+  if (due && (!ACTION_INCIDENTS.has(due.id) || gate.scheduledAt?.(due.id) === tick)) return due;
+  // An overdue optional route prompt remains available, while authored story events can still happen.
+  if (mix(tick, 1) % 1000 >= Math.round(spec.chance * 1000)) return due;
   const season = seasonOf(tick);
   // Content packs (format v2) contribute their own incidents, so the pool is
   // the base list plus whatever the loaded packs add. Packs carry no weight,
@@ -491,7 +497,7 @@ export function incidentOn(tick: number, gate: IncidentGate = untriggered): Inci
   const wet = isWet(tick);
   const pool = allIncidents(spec.list).filter((i) => !i.followUpOnly && (!i.seasons || i.seasons.includes(season)) && (!i.weather || (i.weather === "wet") === wet) && gate(i));
   const total = pool.reduce((n, i) => n + (i.weight ?? 1), 0);
-  if (!total) return undefined;
+  if (!total) return due;
   let roll = mix(tick, 2) % total;
   for (const i of pool) { roll -= i.weight ?? 1; if (roll < 0) return i; }
   return undefined;

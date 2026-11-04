@@ -64,6 +64,22 @@
     {"placeId": "place:herb-hut", "resourceId": "resource:herb", "label": "药圃里的草药", "capacity": 4, "renewDays": 6, "unit": "束"}
   ],
   "prototypes": [
+    {
+      "id": "prototype:shadoof",
+      "name": "桔槔",
+      "material": "wood-and-stone",
+      "resourceId": "resource:tool",
+      "unit": "架",
+      "mass": 0,
+      "capacity": 0,
+      "capabilities": [
+        "fixture",
+        "tool",
+        "workable"
+      ],
+      "durability": 100,
+      "visible": true
+    },
     {"id": "prototype:water-jar", "name": "储水陶罐", "material": "fired-clay", "resourceId": "resource:jar", "unit": "个", "mass": 2.6, "capacity": 4, "capabilities": ["carryable", "container", "liquid-holder", "storage"], "durability": 70},
     {"id": "prototype:small-jar", "name": "小陶罐", "material": "fired-clay", "resourceId": "resource:jar", "unit": "个", "mass": 0.9, "capacity": 1, "capabilities": ["carryable", "container", "liquid-holder"], "durability": 45},
     {"id": "prototype:grain-jar", "name": "储粮陶瓮", "material": "fired-clay", "resourceId": "resource:jar", "unit": "个", "mass": 6.2, "capacity": 8, "capabilities": ["container", "storage"], "durability": 90, "visible": true},

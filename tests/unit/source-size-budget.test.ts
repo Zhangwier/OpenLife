@@ -26,6 +26,9 @@ export const CEILINGS: Record<string, number> = {
   "modules/historical-memory/src/module.ts": 1292,
   "modules/world-geography/src/boundary-handshake.ts": 1290,
   "modules/world-objects/src/module.ts": 1223,
+  // The standalone read-only pixel page (pixel-scene.html), an art study kept
+  // beside the playable life map (life-map*.js) that replaced it in 此刻.
+  "apps/web/public/pixel-scene.js": 1824,
 };
 
 const SOURCE = /\.(ts|js|mjs|css)$/;

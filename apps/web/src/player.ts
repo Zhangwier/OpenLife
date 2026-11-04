@@ -108,6 +108,13 @@ export function runSettlementAction(sim: Simulation, actorId: string, action: st
   };
 
   switch (action) {
+    case SettlementCommands.improvementStart:
+    case SettlementCommands.improvementPrepare:
+    case SettlementCommands.improvementTrial:
+    case SettlementCommands.improvementInstall:
+    case SettlementCommands.improvementTeach:
+    case SettlementCommands.improvementCancel:
+      return dispatch(action, { payload });
     case SettlementCommands.beginSeason: {
       const lived = liveSeason(sim as never, actorId, String(payload.focus ?? ""));
       return lived.ok ? { ok: true, events: [], errors: [] } as unknown as ReturnType<Simulation["dispatch"]> : rejected(lived.error ?? "这一季过不下去。");
@@ -234,6 +241,7 @@ export function playerActions(sim: Simulation, actorId: string) {
   const alive = world.getEntity(actorId)?.archivedAt === undefined;
   const actions: Record<string, any>[] = [];
   const add = (id: string, label: string, hint: string, cost: number, enabled = true, reason = "", payload = {}, tone = "warm") => actions.push({ id, label, hint, cost, enabled, reason, payload, tone });
+  if (alive && !world.hasEntity("settlement-locations:settlement:river-terrace")) add("life-expand", "走进完整的聚落生活", "保留这一生、家人和作品，去务农、编织、建房与远行。", 0, !p.practice && Boolean(world.getComponent("modern:world", "world-clock.clock")), p.practice ? "先完成手中的陶器" : "这份旧人生保留原玩法；新人生可体验完整聚落。");
   // 聚落生活里走完一生：长大的孩子接过来。
   if (!alive && world.getEntity("settlement-locations:settlement:river-terrace")) {
     const heirs = heirsOf(world, actorId);

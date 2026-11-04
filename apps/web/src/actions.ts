@@ -7,6 +7,12 @@ import { SettlementCommands } from "@openlife/module-settlement-locations";
 
 /** Settlement actions the UI is allowed to send, and how long each takes. */
 export const SETTLEMENT_ACTIONS: Record<string, number> = {
+  [SettlementCommands.improvementStart]: 0,
+  [SettlementCommands.improvementPrepare]: 0,
+  [SettlementCommands.improvementTrial]: 0,
+  [SettlementCommands.improvementInstall]: 0,
+  [SettlementCommands.improvementTeach]: 0,
+  [SettlementCommands.improvementCancel]: 0,
   [SettlementCommands.arrive]: 1,
   [SettlementCommands.draw]: 1,
   [SettlementCommands.talk]: 1,

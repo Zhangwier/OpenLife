@@ -21,6 +21,7 @@ import {
   yieldPoints, RESOURCE_LABELS, StockRequestEvent as STOCK_REQUEST,
   type StoryEventSpec, type StoryChoiceSpec,
 } from "@openlife/module-settlement-locations";
+import { queueLifeRoute } from "./life-routes.ts";
 import { installPackIncidents, packChoice, packIncidentSource } from "./pack-incidents.ts";
 import { STORY_PACK, saidFlag, storyPackProblems, type BondChange, type QuestSpec } from "./spec.ts";
 import { bondsProblems } from "./bonds.ts";
@@ -173,6 +174,10 @@ export const earnedTitles = (j: Journal) => STORY_PACK.achievements.filter((a) =
 // --- counters fed by the settlement's own events ----------------------------
 
 const COUNTED: Record<string, (data: Record<string, unknown>, target: string) => string[]> = {
+  "settlement-build.planned": () => ["build-plan"],
+  "settlement-build.finished": () => ["build"],
+  "travel.departed": () => ["travel"],
+  "travel.arrived": () => ["travel-arrive"],
   "settlement-locations.conversation": (d, t) => ["talk", `talk:${keyOf(t)}`, ...(d.feast ? ["feast", `feast:${String(d.feast)}`] : [])],
   "settlement-locations.gathered": (d) => ["gather", `gather:${String(d.resourceId)}`],
   "settlement-locations.water_carried": () => ["water"],
@@ -447,7 +452,11 @@ export const villageStoriesModule: OpenLifeModule = {
           packNote = applyPackChoice(c, out, packSpec, packSide);
         }
         out.j = { ...out.j, incidents: { ...out.j.incidents, [String(out.tick)]: `${incident.id}:${choice.id}` } };
-        if (choice.followUp) out.j = { ...out.j, scheduled: { ...out.j.scheduled, [String(out.tick + choice.followUp.afterDays)]: choice.followUp.incident } };
+        if (choice.followUp) {
+          let due = out.tick + choice.followUp.afterDays;
+          while (out.j.scheduled[String(due)]) due += 1;
+          out.j = { ...out.j, scheduled: { ...out.j.scheduled, [String(due)]: choice.followUp.incident } };
+        }
         out.count("incident");
         out.count(`incident:${incident.id}`);
         out.say("village-stories.incident_resolved", `${choice.line}${got.length ? `（得到：${got.join("、")}）` : ""}${packNote}`, { incidentId: incident.id, choiceId: choice.id });
@@ -523,6 +532,7 @@ export const villageStoriesModule: OpenLifeModule = {
           if (eventType === "settlement-locations.conversation" && target && !out.j.talked.includes(keyOf(target))) {
             out.j = { ...out.j, talked: [...out.j.talked, keyOf(target)] };
           }
+          queueLifeRoute(out, eventType, c.event.data as Record<string, unknown>);
           return out.finish(`counted ${eventType}`);
         },
       });
@@ -537,6 +547,7 @@ export const villageStoriesModule: OpenLifeModule = {
         const out = new Outcome(c.world, me, readJournal(c.world, me), c.world.tick);
         out.observe("日子里的来往");
         keepRoutines(out, true);
+        queueLifeRoute(out, "settlement-locations.arrived", c.event.data as Record<string, unknown>);
         return out.finish("arrived");
       },
     });

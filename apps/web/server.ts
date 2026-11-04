@@ -12,8 +12,8 @@ import {
   readingAtTick as clockReadingAt,
   ageAt,
 } from "@openlife/module-world-clock";
-import { Life } from "@openlife/module-settlement-life";
-import { SettlementCommands } from "@openlife/module-settlement-locations";
+import { Life } from "@openlife/module-settlement-life"; import { isBuildingAction, runBuildingAction, lifeDecision } from "./src/life-routes.ts"; import { expandSettlement } from "./src/settlement-entry.ts";
+import { SettlementCommands, SettlementId } from "@openlife/module-settlement-locations";
 import { StoryCommands, StoryProjections } from "@openlife/module-village-stories";
 import { isSettlementAction, isTravelAction } from "./src/actions.ts";
 import { residentId, rollOrigin, originCatalog } from "@openlife/module-settlement-locations";
@@ -35,9 +35,11 @@ import { outlookOf } from "./src/outlook.ts";
 import { installGeography } from "./src/geography.ts";
 import { recordLife } from "./src/replay.ts";
 import { exportLife, importLife, isReplayFile } from "./src/life-file.ts";
-import { contentPackStamps } from "@openlife/module-settlement-locations";
+import { contentPackStamps } from "@openlife/module-settlement-locations"; import { MAP_ACTIONS, runMapAction, withMap, advanceDayPhase } from "./src/local-map.ts";
 const PORT = Number(process.env.PORT ?? 4173);
 const PUBLIC_DIR = fileURLToPath(new URL("./public/", import.meta.url));
+/** 卡牌世界样稿（`apps/card-world/`）：独立静态页，占住 `/` 当主画面；正式客户端在 `/life`。 */
+const CARD_DIR = fileURLToPath(new URL("../card-world/", import.meta.url));
 /** 仓库里的地图包目录：`apps/web/` 往上两层。 */
 const PACKS_DIR = process.env.OPENLIFE_PACKS ?? fileURLToPath(new URL("../../packs/", import.meta.url));
 /** Which opening a brand-new life uses: the M1 settlement, or the older slice. */
@@ -535,7 +537,7 @@ function gameState() {
       /** Borrowed objects and their due dates, so the UI can offer a return. */
       settlementLoans: characterId ? loansHeldBy(simulation, characterId) : [],
     },
-    settlement: withNature(simulation, settlementView(simulation, characterId), characterId),
+    settlement: withMap(simulation, characterId, withNature(simulation, settlementView(simulation, characterId), characterId)),
     stories: storiesView(characterId), guide: guideView(characterId),
     office: officeViews(simulation).panel, officeRegistry: officeViews(simulation).registry,
     outlook: outlookOf(simulation, characterId),
@@ -645,8 +647,10 @@ function buildActions(input: {
 }
 
 function runAction(action: string, payload: Record<string, unknown> = {}) {
-  const id = activeCharacterId();
+  const id = activeCharacterId(); if (isBuildingAction(action)) return runBuildingAction(simulation, id, action, payload);
+  if (action === "life-expand") return expandSettlement(simulation, id, PACKS_DIR);
   // Bare object/space verbs from the browser pass isSettlementAction (src/actions.ts); player.ts maps them.
+  if (MAP_ACTIONS.has(action)) return runMapAction(simulation, id, action, payload, () => withMap(simulation, id, withNature(simulation, settlementView(simulation, id), id)), runAction);
   if (STORY_ACTIONS.has(action)) return simulation.dispatch({ type: action, actorId: id, source: "player", payload: payload as never });
   // 远行：出发/走一天/落脚/折返。它们不走聚落动作表——那几个命令的代价不是
   // 「花掉今天一格活动时间」，而是真的在路上一天天过去。
@@ -840,17 +844,8 @@ function thoughtTemplate(roleId: string) {
   }
 }
 
-/**
- * M2-UX1: a short, bounded slice of continuous waiting.
- * The browser requests another slice only while its Start control is active.
- * Existing AutoSim drives the authoritative clock; no server background job.
- */
-/**
- * An explicit player's routine, committed via existing world commands.
- * At most five days/six actions per day per request, no background worker.
- * A stop on a failed action keeps its cursor so it cannot silently skip work.
- */
-function plannedTimeBatch(days: number) {
+/** Runs only the player-authorized daily routine, stopping for decisions. */
+function plannedTimeBatch(days: number, stopForDecisions = false) {
   const actorId = activeCharacterId();
   const startTick = simulation.tick;
   const actions: string[] = [];
@@ -859,6 +854,7 @@ function plannedTimeBatch(days: number) {
     interrupted: true, stopReason: reason, actions,
   });
   for (let day = 0; day < days; day += 1) {
+    const attention = stopForDecisions && lifeDecision(simulation, actorId); if (attention) return fail(attention);
     const actor = activeCharacter();
     if (!actor || actor.archivedAt !== undefined ||
         actor.components["modern.vitals"]?.alive === false ||
@@ -956,7 +952,7 @@ function plannedTimeBatch(days: number) {
     interrupted: false, actions };
 }
 
-function continuousTimeBatch(days: number) {
+function continuousTimeBatch(days: number, stopForDecisions = false) {
   const actorId = activeCharacterId();
   const world = simulation.worldView();
   if (clockReading(world).legacyScale) {
@@ -976,6 +972,8 @@ function continuousTimeBatch(days: number) {
 
   const startTick = simulation.tick;
   const startAge = ageOf(actor);
+  const attention = stopForDecisions && lifeDecision(simulation, actorId);
+  if (attention) return { ok: true, steps: 0, days: 0, interrupted: true, stopReason: attention };
   const boundedDays = Math.max(1, Math.min(5, Math.trunc(days)));
   let interruption = "";
   const result = runAutoSim({
@@ -998,6 +996,8 @@ function continuousTimeBatch(days: number) {
           } else if (!nextActor || nextActor.archivedAt !== undefined
               || nextActor.components["modern.vitals"]?.alive === false) {
             interruption = "这一生已经结束。";
+          } else if (stopForDecisions && lifeDecision(simulation, actorId)) {
+            interruption = lifeDecision(simulation, actorId);
           } else if (playerView(simulation, actorId).practice) {
             interruption = "有制陶工序需要你的决定。";
           } else if (Number(settlementView(simulation, actorId)?.hunger ?? 0) >= 10) {
@@ -1026,7 +1026,7 @@ function continuousTimeBatch(days: number) {
 }
 
 function autoSim(mode: string) {
-  if (simulation.worldView().getComponent(activeCharacterId(), Life.state)) {
+  if (simulation.worldView().getComponent(activeCharacterId(), Life.state) && !simulation.worldView().hasEntity(SettlementId)) {
     const p = playerView(simulation, activeCharacterId());
     if (p.practice) return rejected("手中的陶器正在等待你的决定，先完成这段手艺。");
     const start = simulation.tick;
@@ -1192,14 +1192,15 @@ const server = createServer(async (req, res) => {
         const result = runAction(action, payload);
         // Manual action wins over a previously authorized routine. Suspend it
         // only after a successful action, never as a side effect of a refusal.
-        if (result.ok && action !== SettlementCommands.configurePlan && activePlan?.enabled) {
+        if (result.ok && action !== SettlementCommands.configurePlan && action !== "map.walk" && activePlan?.enabled) {
           runSettlementAction(simulation, manualActorId, SettlementCommands.configurePlan, {
             steps: activePlan.steps, repeat: activePlan.repeat, enabled: false,
           });
         }
+        { const day = settlementView(simulation, manualActorId)?.dailyActivity; advanceDayPhase(simulation, manualActorId, day?.used, day?.capacity); }
         simulation.syncHistory();
         historyDay(simulation);   // 喂给历史实验室；装不上就什么也不做
-        if (action === SettlementCommands.step) historySeason(simulation);
+        if (action === SettlementCommands.step || (action === "map.interact" && payload.action === SettlementCommands.step)) historySeason(simulation);
         const narrative = narrativeSince(seqBefore, manualActorId);
         const hopeAfter = settlementView(simulation, manualActorId)?.aspiration;
         if (hopeBefore === false && hopeAfter?.done) narrative.push(hopeAfter.line);
@@ -1223,7 +1224,7 @@ const server = createServer(async (req, res) => {
             return;
           }
           const planned = settlementView(simulation, activeCharacterId())?.dailyPlan?.enabled === true;
-          const result = planned ? plannedTimeBatch(days) : continuousTimeBatch(days);
+          const result = planned ? plannedTimeBatch(days, body.stopForDecisions === true) : continuousTimeBatch(days, body.stopForDecisions === true);
           res.end(JSON.stringify({ result, state: gameState() }));
           return;
         }
@@ -1309,11 +1310,22 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method !== "GET" && req.method !== "HEAD") throw new HttpError(405, "静态文件只接受 GET");
+    // 主画面是卡牌世界样稿；原来的文字人生客户端移到 `/life`（它的静态资源仍在根路径）。
+    if (url.pathname === "/" || url.pathname === "/card-world") {
+      res.statusCode = 302;
+      res.setHeader("location", "/card-world/");
+      res.end();
+      return;
+    }
+    const card = url.pathname.startsWith("/card-world/");
     let requested: string;
-    try { requested = decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname); }
-    catch { throw new HttpError(400, "无效的路径"); }
-    // Resolve inside public/ and refuse anything that escapes it.
-    const root = resolve(PUBLIC_DIR);
+    try {
+      let pathname = card ? url.pathname.slice("/card-world".length) : url.pathname;
+      if (pathname === "/" || pathname === "/life" || pathname === "/life/") pathname = "/index.html";
+      requested = decodeURIComponent(pathname);
+    } catch { throw new HttpError(400, "无效的路径"); }
+    // Resolve inside the served directory and refuse anything that escapes it.
+    const root = resolve(card ? CARD_DIR : PUBLIC_DIR);
     const file = resolve(root, "." + requested);
     if (requested.includes("\u0000") || (file !== root && !file.startsWith(root + sep))) throw new HttpError(404, "not found");
     let data: Buffer;
@@ -1369,5 +1381,6 @@ function contentType(ext: string): string {
   if (ext === ".png") return "image/png";
   if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
   if (ext === ".ogg") return "audio/ogg";
+  if (ext === ".json" || ext === ".webmanifest") return "application/json; charset=utf-8";
   return "application/octet-stream";
 }

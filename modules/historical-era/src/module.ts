@@ -8,13 +8,14 @@
  */
 
 import type { ComponentData, Effect, OpenLifeModule, WorldView } from "@openlife/contracts";
+import { ERA_START_YEAR, ticksPerYearIn } from "@openlife/life-contracts";
 import {
   WORLD_ENTITY_ID,
   formatYear,
-  yearOfTick,
 } from "@openlife/life-contracts/modern";
 
 const OWNER = "historical-era";
+const eraYear = (world: WorldView) => ERA_START_YEAR + Math.floor(world.tick / ticksPerYearIn(world));
 
 export const HistoricalEraComponents = {
   state: "historical-era.state",
@@ -183,9 +184,8 @@ export const historicalEraModule: OpenLifeModule = {
   register(ctx) {
     ctx.provideCapability("history.era-context", (world: WorldView) => {
       const state = world.getComponent(WORLD_ENTITY_ID, HistoricalEraComponents.state) ?? {};
-      const definition = ANCIENT_CHINA_ERAS.find((era) => era.id === state.id)
-        ?? eraForYear(yearOfTick(world.tick));
-      return eraState(definition, Number(state.enteredAt ?? world.tick));
+      const definition = eraForYear(eraYear(world));
+      return eraState(definition, state.id === definition.id ? Number(state.enteredAt ?? world.tick) : world.tick);
     });
 
     ctx.registerComponent({
@@ -198,7 +198,7 @@ export const historicalEraModule: OpenLifeModule = {
       id: "historical-era.world_initialized.seed",
       eventType: "modern.world_initialized",
       react: (c): Effect[] => {
-        const era = eraForYear(yearOfTick(c.world.tick));
+        const era = eraForYear(eraYear(c.world));
         return [
           {
             kind: "setComponent",
@@ -228,7 +228,7 @@ export const historicalEraModule: OpenLifeModule = {
       id: "historical-era.year_passed.transition",
       eventType: "modern.year_passed",
       react: (c) => {
-        const year = yearOfTick(c.world.tick);
+        const year = eraYear(c.world);
         const next = eraForYear(year);
         const current = c.world.getComponent(
           WORLD_ENTITY_ID,
@@ -275,12 +275,11 @@ export const historicalEraModule: OpenLifeModule = {
       description: "Current public era context, not a list of forced unlocks.",
       build: ({ world }) => {
         const state = world.getComponent(WORLD_ENTITY_ID, HistoricalEraComponents.state) ?? {};
-        const definition = ANCIENT_CHINA_ERAS.find((era) => era.id === state.id)
-          ?? eraForYear(yearOfTick(world.tick));
+        const definition = eraForYear(eraYear(world));
         return {
-          ...eraState(definition, Number(state.enteredAt ?? world.tick)),
+          ...eraState(definition, state.id === definition.id ? Number(state.enteredAt ?? world.tick) : world.tick),
           displayStart: formatYear(definition.startYear),
-          currentYear: formatYear(yearOfTick(world.tick)),
+          currentYear: formatYear(eraYear(world)),
         };
       },
     });

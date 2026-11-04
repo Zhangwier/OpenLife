@@ -17,9 +17,9 @@ import type {
   CommandIntent, ConstraintOutcome, Effect, JsonValue, OpenLifeModule, WorldView,
 } from "@openlife/contracts";
 import {
-  SettlementComponents, SettlementId, yieldPoints, type SettlementPack, RIVER_TERRACE_PACK,
+  SettlementComponents, SettlementId, yieldPoints, dailyActivity, RIVER_TERRACE_PACK,
 } from "@openlife/module-settlement-locations";
-import { StockCommands } from "@openlife/module-settlement-locations";
+import { StockRequestEvent } from "@openlife/module-settlement-locations";
 
 export const BUILD_OWNER = "settlement-build";
 export const BuildComponents = {
@@ -220,6 +220,15 @@ export const settlementBuildModule: OpenLifeModule = {
     for (const type of Object.values(BuildCommands)) {
       ctx.registerCommand({ type, description: "Village building action." });
     }
+    for (const [type, cost] of [[BuildCommands.plan, 1], [BuildCommands.work, 2]] as const) {
+      ctx.registerConstraintRule({ id: `${type}.activity`, commandType: type, evaluate: c => {
+        const me = c.command.actorId ?? "";
+        return c.world.getComponent(me, SettlementComponents.holding) && dailyActivity(c.world, me).remaining < cost
+          ? refuse(BuildRejection.NoLabour, "今天的活动时间不够，明天再来。") : { ok: true };
+      } });
+      ctx.registerResolutionRule({ id: `${type}.activity`, commandType: type, resolve: c => [{ kind: "emitEvent",
+        eventType: StockRequestEvent, actorId: c.command.actorId, data: { stock: [], activityCost: cost } }] });
+    }
 
     // ---- plan -------------------------------------------------------------
     ctx.registerConstraintRule({
@@ -301,6 +310,8 @@ export const settlementBuildModule: OpenLifeModule = {
             delivered: { ...site.delivered, [resourceId]: (site.delivered[resourceId] ?? 0) + amount },
           } as unknown as Record<string, never>,
           reason: `delivered ${amount} ${resourceId}`,
+        }, { kind: "emitEvent", eventType: StockRequestEvent, actorId: c.command.actorId,
+          data: { stock: [{ resourceId, delta: -amount, reason: "运到工地" }] },
         }, {
           kind: "emitEvent", eventType: "settlement-build.delivered",
           actorId: c.command.actorId,
@@ -399,6 +410,8 @@ export const settlementBuildModule: OpenLifeModule = {
             data: { resourceId, amount },
             historicalSignificance: 0,
           });
+          effects.push({ kind: "emitEvent", eventType: StockRequestEvent, actorId: c.command.actorId,
+            data: { stock: [{ resourceId, delta: amount, reason: "停工退料" }] } });
         }
         effects.push({
           kind: "emitEvent", eventType: "settlement-build.abandoned",
@@ -471,24 +484,15 @@ export function blueprintById(id: string): BlueprintSpec | undefined {
 /**
  * Carry one load of material to the site.
  *
- * Two commands, in order, because ownership is split: settlement-locations owns
- * the stock (INV-007), this module owns the site. Doing it in one shot would
- * mean writing another module's component, which the kernel refuses -- correctly.
- *
- * Returns the stock result so the caller can tell the player exactly why a
- * delivery did not happen.
+ * The site command emits a stock request; the stock owner settles it in the
+ * same transaction. A rejected delivery leaves both ledgers untouched.
  */
 export function deliverMaterial(
-  sim: { dispatch: (intent: Record<string, unknown>) => { ok: boolean; errors?: Array<{ message: string }> } },
+  sim: { dispatch: (intent: CommandIntent) => { ok: boolean; errors?: Array<{ message: string }> } },
   actorId: string,
   resourceId: string,
   amount = 1,
 ): { ok: boolean; message?: string } {
-  const take = sim.dispatch({
-    type: StockCommands.adjust, actorId, source: "player",
-    payload: { resourceId, delta: -amount, reason: "carried to the build site" },
-  });
-  if (!take.ok) return { ok: false, message: take.errors?.[0]?.message ?? "料没有取出来。" };
   const record = sim.dispatch({
     type: BuildCommands.deliver, actorId, source: "player",
     payload: { resourceId, amount },
@@ -497,5 +501,3 @@ export function deliverMaterial(
   return { ok: true };
 }
 
-void (0 as unknown as SettlementPack);
-void (0 as unknown as CommandIntent);

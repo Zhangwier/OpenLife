@@ -1,6 +1,7 @@
 # OpenLife 文档索引
 
 - AI 协作者入口：[模型分工、首轮任务与协作交接](AI_COLLABORATION.md)。
+- 地图美术入口：[像素地图美术工作规范](design/PIXEL_ART_WORKFLOW.md) · 用户认可基线、素材分层、动画与同镜头验收；[可运行样例](../tools/art-lab/README.md)。
 
 根目录只保留长期有效的需求与计划文档；带日期的工作记录统一放在 `docs/notes/`
 （`tests/unit/workspace-structure.test.ts` 会拒绝根目录出现 `*_YYYY-MM-DD.md`）。
@@ -53,3 +54,5 @@
 ## 状态核验
 
 - [需求状态矩阵（BASE-01）](status/requirement-status-matrix.md) · 逐条需求映射到源码证据、自动化验收与真人验收三列，并记录文档声称与代码事实的冲突。
+- [地图生活 M1–M2 交接（2026-10-31）](notes/OPENLIFE_MAP_LIFE_HANDOFF_2026-10-31.md) · 「此刻」全屏可走动地图、权威位置与地图动作、素材来源、验证与未覆盖边界。
+- [林缘庭院 v7 与美术规范交接（2026-10-25）](notes/OPENLIFE_ART_V7_HANDOFF_2026-10-25.md) · v6 认可基线、独立样例、源素材、复现命令和实际检查边界。

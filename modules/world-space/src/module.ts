@@ -19,6 +19,7 @@
  */
 
 import type { Effect, OpenLifeModule, WorldView } from "@openlife/contracts";
+import { registerLocalGrid } from "./local-grid.ts";
 
 const OWNER = "world-space";
 
@@ -156,6 +157,7 @@ export const worldSpaceModule: OpenLifeModule = {
     registerEnter(ctx);
     registerMoveWithin(ctx);
     registerLeave(ctx);
+    registerLocalGrid(ctx);
 
     ctx.registerProjection({
       id: SpaceProjections.scene,

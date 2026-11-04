@@ -1,3 +1,5 @@
+import { registerDayPhase } from "./day-phase.ts";
+import { improvementActions, registerImprovements } from "./improvements.ts";
 import { refuse, type Registration } from "./rules.ts";
 import { registerNpcBarter, registerPlayerBarter, tradeReady } from "./barter.ts";
 import { fixtureActions, registerFixtures } from "./fixtures.ts";
@@ -117,7 +119,7 @@ export const settlementLocationsModule: OpenLifeModule = {
     type: "content-pack",
     name: "Settlement Locations",
     // Walking into a place and a night's rest are traces; meals, work, gifts and the NPCs' day summaries stay routine.
-    traceEvents: { types: ["settlement-locations.arrived", "settlement-locations.rested"], days: 3 },
+    traceEvents: { types: ["settlement-locations.arrived", "settlement-locations.rested", "settlement-locations.day_phase"], days: 3 },
     description: "The first inhabited settlement: places, spaces, renewing resources, residents and the first daily loop.",
     requires: ["world.space", "world.objects", "time.life-scale"],
     optional: ["world.geography"],
@@ -164,6 +166,7 @@ export const settlementLocationsModule: OpenLifeModule = {
 
     registerFound(ctx);
     registerArrive(ctx);
+    registerDayPhase(ctx);
     registerTalk(ctx);
     registerAskAbout(ctx); registerStock(ctx);
     registerDraw(ctx);
@@ -196,6 +199,7 @@ export const settlementLocationsModule: OpenLifeModule = {
     registerSeasonLife(ctx);
     registerMarriage(ctx);
     registerFixtures(ctx, dailyActivity);
+    registerImprovements(ctx);
     registerFamilyLife(ctx);
     registerPassing(ctx);
     registerStoryteller(ctx);
@@ -1678,10 +1682,10 @@ function homesteadActions(
     "装水带回",
     carriedJar
       ? jarHasRoom
-        ? `把${nameOfObject(world, carriedJar)}灌满，再带回家。`
+        ? `把${nameOfObject(world, carriedJar)}灌满，再带回家。${world.getComponent(SettlementId, SettlementComponents.improvement)?.stage === "installed" && placeId === "place:river" ? "桔槔替你省了一格工夫。" : ""}`
         : `${nameOfObject(world, carriedJar)}已经装满了。`
       : "手里先要有一个容器，才能装水带走。",
-    1,
+    activityCostFor(world, actorId, SettlementCommands.drink),
     Boolean(carriedJar) && jarHasRoom && waterHere,
     !carriedJar ? "手里没有可装的容器" : !waterHere ? "这里没有可取的水" : !jarHasRoom ? "容器已经满了" : "",
     carriedJar ? { containerId: carriedJar, resourceId: "resource:water" } : {},
@@ -1870,6 +1874,7 @@ function homesteadActions(
   );
 
   actions.push(...fixtureActions(world, actorId, dailyActivity));
+  actions.push(...improvementActions(world, actorId));
   add(SettlementCommands.step, "让这一天过去", "时间向前走一天，聚落里的其他人也会继续过日子。", 1, true, "", {});
   actionAddExits(add, world, placeId);
   return actions;

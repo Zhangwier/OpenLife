@@ -274,6 +274,38 @@ export function setVolume(v) {
   if (ctx && settings.on && settings.mode !== "off") master.gain.setTargetAtTime(settings.volume * 0.9, ctx.currentTime, 0.15);
   save();
 }
+/**
+ * 短音效（地图里的脚步、拿东西、说话、开门、新的一天）。只在声音开着时响，跟随总音量；
+ * 全部现场合成，几十毫秒，不打断音乐。
+ */
+export function sfx(kind) {
+  if (!ctx || !settings.on || settings.mode === "off" || ctx.state !== "running") return;
+  const t = ctx.currentTime, out = ctx.createGain();
+  out.connect(master);
+  const tone = (freq, dur, type = "triangle", vol = 0.12, at = 0, glide = 0) => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t + at);
+    if (glide) o.frequency.exponentialRampToValueAtTime(freq * glide, t + at + dur);
+    g.gain.setValueAtTime(0, t + at); g.gain.linearRampToValueAtTime(vol, t + at + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + at + dur);
+    o.connect(g); g.connect(out); o.start(t + at); o.stop(t + at + dur + 0.02);
+  };
+  const tick = (vol, cutoff, dur = 0.05) => {
+    const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    src.buffer = noiseBuffer("pink", 1); f.type = "lowpass"; f.frequency.value = cutoff;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f); f.connect(g); g.connect(out); src.start(t); src.stop(t + dur + 0.02);
+  };
+  switch (kind) {
+    case "step": tick(0.05, 700 + Math.random() * 300, 0.045); break;
+    case "pick": tone(660, 0.09, "triangle", 0.1); tone(990, 0.12, "triangle", 0.08, 0.06); break;
+    case "talk": tone(520 + Math.random() * 80, 0.06, "square", 0.025); break;
+    case "door": tick(0.16, 300, 0.18); tone(110, 0.16, "sine", 0.08, 0, 0.7); break;
+    case "day": [0, 4, 7, 12].forEach((s, i) => tone(hz(60 + s), 0.5, "sine", 0.06, i * 0.12)); break;
+    case "select": tone(880, 0.05, "sine", 0.05); break;
+    default: break;
+  }
+}
+
 /** 场景变化（地点 / 季节 / 时段）时调用，变化了才重排环境声 */
 export function setAudioScene(next) {
   const changed = next.placeId !== scene.placeId || next.season !== scene.season || next.daypart !== scene.daypart || next.sky !== scene.sky;

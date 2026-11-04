@@ -379,6 +379,8 @@ async function performSettlementAction(action, payload) {
     if (!data.result.ok) throw new Error(data.result.errors?.[0]?.message || "这件事现在还不能发生");
     const before = state.settlement;
     state = data.state;
+    // A map interaction runs the original action: describe that one.
+    if (action === "map.interact") { action = payload.action; payload = payload.payload ?? {}; }
     const target = payload?.targetId ? (before?.neighbours || []).find((n) => n.id === payload.targetId) : null;
     const told = data.narrative?.length ? data.narrative.join("")
       : describeSettlementResult(action, data.result, state).replace("眼前的村民", target?.name || "眼前的村民");
@@ -388,14 +390,60 @@ async function performSettlementAction(action, payload) {
     if (!isTextMode()) playActionFx({ action, payload: payload ?? {}, before, after: state.settlement });
     showToast(isTextMode() && chips.length ? `${told}（${chipText(chips)}）` : told);
     await autoRemember();
+    return { ok: true, told, narrative: data.narrative ?? [], chips: chips.map((c) => chipText([c])) };
   } catch (error) {
     showToast(error.message);
     await loadState().catch(() => {});
+    return { ok: false, error: error.message };
   } finally {
     busy = false;
     document.body.classList.remove("is-busy");
   }
 }
+
+/**
+ * One free step on the life map. No toast, no log: the walk itself is the
+ * feedback. Returns the server's result (with its confirmed route).
+ */
+async function performMapWalk(payload) {
+  if (busy) return { ok: false, errors: [{ message: "上一个行动还没做完。" }] };
+  busy = true;
+  try {
+    const data = await api("/api/action", { method: "POST", body: JSON.stringify({
+      action: "map.walk", payload, expectedTick: state.tick, expectedActorId: state.character?.id }) });
+    state = data.state;
+    render(state);
+    return data.result;
+  } catch (error) {
+    await loadState().catch(() => {});
+    return { ok: false, errors: [{ message: error.message }] };
+  } finally {
+    busy = false;
+  }
+}
+/** Let a few days pass (1–5), stopping early when the world needs the player. Quiet: the caller tells the story. */
+async function performAdvance(days) {
+  if (busy) return { ok: false, errors: [{ message: "上一个行动还没做完。" }] };
+  busy = true;
+  document.body.classList.add("is-busy");
+  try {
+    const data = await api("/api/autosim", { method: "POST", body: JSON.stringify({
+      mode: "continuous-batch", days, expectedTick: state.tick, expectedActorId: state.character?.id,
+      stopForDecisions: true,
+      expectedPlanRevision: state.settlement?.dailyPlan?.revision }) });
+    state = data.state;
+    render(state);
+    await autoRemember();
+    return data.result ?? { ok: true };
+  } catch (error) {
+    await loadState().catch(() => {});
+    return { ok: false, errors: [{ message: error.message }] };
+  } finally {
+    busy = false;
+    document.body.classList.remove("is-busy");
+  }
+}
+window.OpenLifeGame = { act: (action, payload) => performSettlementAction(action, payload), walk: performMapWalk, advance: performAdvance, state: () => state };
 
 async function performAction(action, button) {
   if (busy) return;

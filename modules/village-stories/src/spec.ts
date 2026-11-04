@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import { withOverlay } from "./overlay.ts";
 import { RIVER_TERRACE_PACK, type SettlementPack } from "@openlife/module-settlement-locations";
 import { BONDS_PACK } from "./bonds.ts";
+import { ACTION_INCIDENTS } from "./life-routes.ts";
 
 export type BondChange = Partial<Record<"familiarity" | "trust" | "grudge", number>>;
 export interface ItemGrant { prototype: string; name?: string }
@@ -157,6 +158,8 @@ export const STORY_PACK: StoryPack = withOverlay(new URL("../data/river-terrace.
   readFileSync(new URL("../data/river-terrace.stories.json", import.meta.url), "utf8"),
 ) as StoryPack);
 
+STORY_PACK.incidents.list.push(...JSON.parse(readFileSync(new URL("../data/life-routes.json", import.meta.url), "utf8")) as IncidentSpec[]);
+
 /** Every reference the story pack makes must exist in the settlement pack. Returns problems, [] when sound. */
 export function storyPackProblems(story: StoryPack = STORY_PACK, pack: SettlementPack = RIVER_TERRACE_PACK): string[] {
   const problems: string[] = [];
@@ -285,7 +288,7 @@ export function storyPackProblems(story: StoryPack = STORY_PACK, pack: Settlemen
         if (!(Number.isInteger(c.followUp.afterDays) && c.followUp.afterDays >= 1 && c.followUp.afterDays <= 90)) problems.push(`incident ${i.id}.${c.id}: afterDays must be 1-90`);
       }
     }
-    if (i.followUpOnly && !story.incidents.list.some((x) => x.choices.some((c) => c.followUp?.incident === i.id))) problems.push(`incident ${i.id}: followUpOnly but nothing leads to it`);
+    if (i.followUpOnly && !ACTION_INCIDENTS.has(i.id) && !story.incidents.list.some((x) => x.choices.some((c) => c.followUp?.incident === i.id))) problems.push(`incident ${i.id}: followUpOnly but nothing leads to it`);
   }
   for (const a of story.achievements) {
     const c = a.condition;

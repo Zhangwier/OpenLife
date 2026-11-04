@@ -209,6 +209,11 @@ export const OUTDOOR_WORK = new Set<string>([SettlementCommands.draw, Settlement
 
 export function activityCostFor(world: WorldView, actorId: string, commandType: string): number {
   let cost = ACTIVITY_COST[commandType] ?? 0;
+  const improvement = world.getComponent(SettlementId, SettlementComponents.improvement);
+  if (commandType === SettlementCommands.drink && improvement?.stage === "installed"
+      && improvement.placeId === occupiedPlaceId(world, actorId)
+      && world.getEntity("settlement-locations:shadoof")?.archivedAt === undefined
+      && world.hasEntity("settlement-locations:shadoof")) cost = Math.max(0, cost - 1);
   const fx = talentFx(world, actorId);
   if (cost && CRAFT_COMMANDS.has(commandType)) {
     const recipe = (RIVER_TERRACE_PACK.recipes ?? []).find((r) => r.command === commandType);

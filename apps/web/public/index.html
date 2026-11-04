@@ -11,12 +11,20 @@
   <link rel="stylesheet" href="/stories.css" />
   <link rel="stylesheet" href="/guide.css">
   <link rel="stylesheet" href="/scene.css" />
+  <link rel="stylesheet" href="/life-map.css" />
+  <link rel="stylesheet" href="/life-story.css" />
   <link rel="stylesheet" href="/ui-polish.css" />
-  <link rel="icon" href="data:," />
+  <link rel="icon" href="/art/map/icon-192.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="color-scheme" content="light dark" />
   <meta name="theme-color" content="#f2ece1" />
   <script>try{var t=localStorage.getItem("openlife-theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t;}catch(e){}</script>
   <script type="module" src="/pages-ux.js"></script>
+  <script type="module" src="/life-map.js"></script>
+  <script type="module" src="/life-title.js"></script>
+  <script type="module" src="/life-story.js"></script>
 </head>
 <body data-screen="home">
   <div class="grain"></div>
@@ -309,6 +317,10 @@
         <div class="setting-row">
           <div><strong>版式</strong><small id="layoutHint">跟随窗口宽度</small></div>
           <button id="layoutButton" class="segmented" type="button"><span id="layoutLabel">跟随窗口</span></button>
+        </div>
+        <div class="setting-row">
+          <div><strong>玩法</strong><small>文字人生：像读一本自己写的书；地图：在像素村子里走动；经典页面：原来的卡片页。点一下换一种（会刷新）</small></div>
+          <button id="mapModeButton" class="segmented" type="button"><span id="mapModeLabel">文字人生</span></button>
         </div>
         <div class="setting-row">
           <div><strong>画面</strong><small>纯文字更省电、读得更快；画面模式显示场景插画与氛围动效</small></div>

@@ -1,0 +1,552 @@
+{
+  "format": "openlife-art-lab/1",
+  "version": "v8-candidate",
+  "baseline": {
+    "version": "v6",
+    "status": "user-accepted",
+    "date": "2026-10-25",
+    "quote": "现在这个还可以",
+    "image": "baseline/accepted-v6.png",
+    "native": "baseline/accepted-v6-native.png",
+    "nativeSize": [
+      768,
+      432
+    ],
+    "displayScale": 2,
+    "sha256": {
+      "image": "913af0bf11cc2beef361783472cb83f6db2cec7abcb152ec127ae2a6630734e0",
+      "native": "a7539bfce486e23b98abf659f0d16cdb9d6ec6ff204495d62fe0b3e17bec5648"
+    }
+  },
+  "scene": {
+    "width": 768,
+    "height": 432,
+    "defaultScale": 2,
+    "seed": 7,
+    "objects": [
+      {
+        "id": "home",
+        "kind": "house",
+        "x": 177,
+        "y": 117
+      },
+      {
+        "id": "fence-north",
+        "kind": "fence",
+        "x": 523,
+        "y": 160
+      },
+      {
+        "id": "shed-edge",
+        "kind": "house",
+        "x": 712,
+        "y": 509
+      },
+      {
+        "id": "tree-nw",
+        "kind": "tree",
+        "x": 18,
+        "y": 155
+      },
+      {
+        "id": "tree-north",
+        "kind": "slender",
+        "x": 393,
+        "y": 162
+      },
+      {
+        "id": "tree-ne",
+        "kind": "birch",
+        "x": 649,
+        "y": 188
+      },
+      {
+        "id": "tree-e",
+        "kind": "tree",
+        "x": 786,
+        "y": 301
+      },
+      {
+        "id": "tree-center-right",
+        "kind": "tree",
+        "x": 578,
+        "y": 315
+      },
+      {
+        "id": "tree-west",
+        "kind": "treeFront",
+        "x": 14,
+        "y": 332
+      },
+      {
+        "id": "tree-southwest",
+        "kind": "treeFront",
+        "x": 123,
+        "y": 512
+      },
+      {
+        "id": "shrub-home-left",
+        "kind": "shrub",
+        "x": 74,
+        "y": 132
+      },
+      {
+        "id": "shrub-home-right",
+        "kind": "shrub",
+        "x": 271,
+        "y": 128
+      },
+      {
+        "id": "shrub-north",
+        "kind": "shrub",
+        "x": 386,
+        "y": 169
+      },
+      {
+        "id": "shrub-forest-1",
+        "kind": "shrubLarge",
+        "x": 684,
+        "y": 208
+      },
+      {
+        "id": "shrub-forest-2",
+        "kind": "shrub",
+        "x": 728,
+        "y": 225
+      },
+      {
+        "id": "shrub-road-1",
+        "kind": "shrubLarge",
+        "x": 582,
+        "y": 335
+      },
+      {
+        "id": "shrub-road-2",
+        "kind": "shrub",
+        "x": 652,
+        "y": 329
+      },
+      {
+        "id": "shrub-west-1",
+        "kind": "shrubLarge",
+        "x": 41,
+        "y": 342
+      },
+      {
+        "id": "shrub-front",
+        "kind": "shrubLarge",
+        "x": 216,
+        "y": 449
+      },
+      {
+        "id": "shrub-shed",
+        "kind": "shrub",
+        "x": 611,
+        "y": 408
+      },
+      {
+        "id": "flower-01",
+        "kind": "flower",
+        "x": 313,
+        "y": 213
+      },
+      {
+        "id": "flower-02",
+        "kind": "flower",
+        "x": 329,
+        "y": 220
+      },
+      {
+        "id": "flower-03",
+        "kind": "flower",
+        "x": 292,
+        "y": 206
+      },
+      {
+        "id": "flower-04",
+        "kind": "flower",
+        "x": 441,
+        "y": 296
+      },
+      {
+        "id": "flower-05",
+        "kind": "flower",
+        "x": 454,
+        "y": 301
+      },
+      {
+        "id": "flower-06",
+        "kind": "flower",
+        "x": 251,
+        "y": 151
+      },
+      {
+        "id": "flower-07",
+        "kind": "flower",
+        "x": 263,
+        "y": 155
+      },
+      {
+        "id": "flower-08",
+        "kind": "flower",
+        "x": 497,
+        "y": 178
+      },
+      {
+        "id": "grass-01",
+        "kind": "tallgrass",
+        "x": 340,
+        "y": 221
+      },
+      {
+        "id": "grass-02",
+        "kind": "tallgrass",
+        "x": 279,
+        "y": 158
+      },
+      {
+        "id": "grass-03",
+        "kind": "tallgrass",
+        "x": 472,
+        "y": 311
+      },
+      {
+        "id": "grass-04",
+        "kind": "tallgrass",
+        "x": 509,
+        "y": 186
+      },
+      {
+        "id": "grass-05",
+        "kind": "tallgrass",
+        "x": 216,
+        "y": 318
+      },
+      {
+        "id": "grass-06",
+        "kind": "tallgrass",
+        "x": 388,
+        "y": 368
+      },
+      {
+        "id": "grass-07",
+        "kind": "tallgrass",
+        "x": 538,
+        "y": 351
+      },
+      {
+        "id": "player",
+        "kind": "person",
+        "x": 365,
+        "y": 273
+      }
+    ]
+  },
+  "assets": {
+    "birch": {
+      "crop": [
+        65,
+        52,
+        900,
+        1409
+      ],
+      "size": [
+        118,
+        185
+      ],
+      "alphaCutoff": 235
+    },
+    "fence": {
+      "crop": [
+        72,
+        197,
+        1916,
+        424
+      ],
+      "size": [
+        112,
+        25
+      ],
+      "alphaCutoff": 190
+    },
+    "tree": {
+      "crop": [
+        38,
+        74,
+        1001,
+        1367
+      ],
+      "size": [
+        144,
+        197
+      ],
+      "alphaCutoff": 190
+    },
+    "treeFront": {
+      "source": "tree",
+      "crop": [
+        38,
+        74,
+        1001,
+        1367
+      ],
+      "size": [
+        206,
+        281
+      ],
+      "alphaCutoff": 190,
+      "tint": [
+        0.77,
+        0.83,
+        0.9
+      ]
+    },
+    "slender": {
+      "crop": [
+        140,
+        92,
+        680,
+        1490
+      ],
+      "size": [
+        91,
+        199
+      ],
+      "alphaCutoff": 190
+    },
+    "house": {
+      "crop": [
+        71,
+        78,
+        1363,
+        918
+      ],
+      "size": [
+        208,
+        140
+      ],
+      "alphaCutoff": 190
+    },
+    "shrub": {
+      "crop": [
+        114,
+        119,
+        1444,
+        789
+      ],
+      "size": [
+        77,
+        42
+      ],
+      "alphaCutoff": 190
+    },
+    "shrubLarge": {
+      "source": "shrub",
+      "crop": [
+        114,
+        119,
+        1444,
+        789
+      ],
+      "size": [
+        112,
+        61
+      ],
+      "alphaCutoff": 190,
+      "tint": [
+        0.9,
+        0.94,
+        0.98
+      ]
+    },
+    "flower": {
+      "crop": [
+        422,
+        192,
+        498,
+        828
+      ],
+      "size": [
+        13,
+        22
+      ],
+      "alphaCutoff": 190
+    },
+    "tallgrass": {
+      "crop": [
+        390,
+        193,
+        546,
+        899
+      ],
+      "size": [
+        17,
+        28
+      ],
+      "alphaCutoff": 190
+    },
+    "person": {
+      "crop": [
+        304,
+        176,
+        409,
+        1205
+      ],
+      "size": [
+        13,
+        38
+      ],
+      "alphaCutoff": 190
+    }
+  },
+  "animations": {
+    "walk": {
+      "source": "walk",
+      "direction": "front-right",
+      "frames": [
+        [
+          85,
+          61,
+          318,
+          764
+        ],
+        [
+          529,
+          61,
+          318,
+          764
+        ],
+        [
+          972,
+          61,
+          318,
+          764
+        ],
+        [
+          1415,
+          61,
+          318,
+          764
+        ]
+      ],
+      "nativeSize": [
+        16,
+        38
+      ],
+      "stepPixels": 7,
+      "notes": "Four-frame candidate; horizontally mirrored for leftward preview, not a complete four-direction set."
+    }
+  },
+  "sources": {
+    "birch": {
+      "file": "sources/birch.png",
+      "sha256": "529927a0d1565acd5cf24ab4d32b67724a403772ca098c78d59f70046f60d05f",
+      "origin": "AI-generated asset; source PNG retained"
+    },
+    "fence": {
+      "file": "sources/fence.png",
+      "sha256": "75a43834e91d2c39b0e8000f01c0360216b3ad5a4d0293a335ba79e147d46685",
+      "origin": "AI-generated asset; source PNG retained"
+    },
+    "flower": {
+      "file": "sources/flower.png",
+      "sha256": "4b3cfd7510400282e93b958cbdaac0aac4af1f30d3d0539ba5b219ef51e838e3",
+      "origin": "AI-generated asset; source PNG retained"
+    },
+    "ground": {
+      "file": "sources/ground.png",
+      "sha256": "0a68fad45e46110ace3e75d43201f602560439b4e417459ca6b4464c32eaba62",
+      "origin": "AI-generated asset; source PNG retained"
+    },
+    "house": {
+      "file": "sources/house.png",
+      "sha256": "78bc4f7b94cfd6bb110f290b649a163d24ed2abd04bd94fa2650eab679fda29e",
+      "origin": "AI-generated asset; source PNG retained"
+    },
+    "lawn": {
+      "file": "sources/lawn.png",
+      "sha256": "90a4a79105e53d658612c7fc9706b8f63fbac9b38e73060a0143033963d0e5d8",
+      "origin": "AI-generated asset; source PNG retained"
+    },
+    "person": {
+      "file": "sources/person.png",
+      "sha256": "feea2afcb97f785ebf77c43e9bdb4d8004444d7c78fd63e5899e09aa1f427caf",
+      "origin": "AI-generated asset; source PNG retained"
+    },
+    "shrub": {
+      "file": "sources/shrub.png",
+      "sha256": "aa61d4f3913cb0b60058ed2441b50126f71df72f132380569dcbe41f5002c70f",
+      "origin": "AI-generated asset; source PNG retained"
+    },
+    "slender": {
+      "file": "sources/slender.png",
+      "sha256": "94c419cedab5c8961feeec915bedf0e03077e283ab1eb9d90bbc4e6c70498574",
+      "origin": "AI-generated asset; source PNG retained"
+    },
+    "tallgrass": {
+      "file": "sources/tallgrass.png",
+      "sha256": "fe5a928f141390bce39f77e1186bc35bf0054859df8e65c7a62e9f424e7963e7",
+      "origin": "AI-generated asset; source PNG retained"
+    },
+    "tree": {
+      "file": "sources/tree.png",
+      "sha256": "d57da9ede29a2552ef15285aa15d7fcbfa4cdf5944096e0c2b8e272665d443bd",
+      "origin": "AI-generated asset; source PNG retained"
+    },
+    "walk": {
+      "file": "sources/walk.png",
+      "sha256": "c3bed053862e69581b894b96d9cac10018f636f8a98dd5a6ccab364b00f5d399",
+      "origin": "AI-generated asset; source PNG retained"
+    }
+  },
+  "capture": {
+    "viewport": [
+      1640,
+      1150
+    ],
+    "deviceScaleFactor": 1,
+    "camera": "full",
+    "displayScale": 2,
+    "windTimeMs": 0,
+    "light": true,
+    "seed": 7
+  },
+  "colliders": {
+    "house": [
+      -86,
+      -47,
+      86,
+      0
+    ],
+    "tree": [
+      -6,
+      -8,
+      6,
+      0
+    ],
+    "treeFront": [
+      -9,
+      -11,
+      9,
+      0
+    ],
+    "slender": [
+      -4,
+      -6,
+      4,
+      0
+    ],
+    "birch": [
+      -4,
+      -6,
+      4,
+      0
+    ],
+    "fence": [
+      -55,
+      -4,
+      55,
+      0
+    ]
+  }
+}

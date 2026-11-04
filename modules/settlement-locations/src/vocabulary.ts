@@ -8,6 +8,7 @@
  */
 
 export const SettlementComponents = {
+  improvement: "settlement-locations.improvement",
   /** Marks the settlement entity and carries its authored identity. */
   settlement: "settlement-locations.settlement",
   /** Per-resident daily life: household, work place, hunger, standing routine. */
@@ -24,6 +25,12 @@ export const SettlementComponents = {
 } as const;
 
 export const SettlementCommands = {
+  improvementStart: "settlement-locations.improvement.start",
+  improvementPrepare: "settlement-locations.improvement.prepare",
+  improvementTrial: "settlement-locations.improvement.trial",
+  improvementInstall: "settlement-locations.improvement.install",
+  improvementTeach: "settlement-locations.improvement.teach",
+  improvementCancel: "settlement-locations.improvement.cancel",
   found: "settlement-locations.found",
   arrive: "settlement-locations.arrive",
   draw: "settlement-locations.draw",
@@ -42,6 +49,8 @@ export const SettlementCommands = {
   tend: "settlement-locations.tend",
   rest: "settlement-locations.rest",
   step: "settlement-locations.end_day",
+  /** Residents go to work mid-day and back in the evening (day-phase.ts). */
+  dayPhase: "settlement-locations.day_phase",
   configurePlan: "settlement-locations.plan.configure",
   npcMarkDay: "settlement-locations.npc.mark_day",
   npcOffer: "settlement-locations.npc.barter_offer",

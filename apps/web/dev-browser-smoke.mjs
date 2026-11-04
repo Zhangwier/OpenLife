@@ -88,7 +88,7 @@ async function screenshot(file){
   return path.join("artifacts", "mobile-ui",file).replaceAll("\\","/");
 }
 async function tap(selector) {
-  await evaluate(`document.querySelector(${JSON.stringify(selector)}).scrollIntoView({block:"nearest"});true`);
+  await evaluate(`document.querySelector(${JSON.stringify(selector)}).scrollIntoView({block:"center"});true`);
   const point = await evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)}),r=e.getBoundingClientRect();const x=r.left+r.width/2,y=r.top+r.height/2;return {x,y,reachable:e.contains(document.elementFromPoint(x,y))};})()`);
   assert.ok(point.reachable, `touch target is covered: ${selector} ${JSON.stringify(point)}`);
   await cdp("Input.dispatchTouchEvent",{type:"touchStart",touchPoints:[{x:point.x,y:point.y}]});
@@ -96,11 +96,15 @@ async function tap(selector) {
 }
 try{
   const url=await startServer();
-  assert.equal((await fetch(url + "/")).status, 200);
+  assert.equal((await fetch(url + "/life")).status, 200);
   assert.equal((await fetch(url + "/api/state")).status, 200);
-  await openBrowser(url+"/");
+  await openBrowser(url+"/life");
   await cdp("Emulation.setDeviceMetricsOverride",{width:390,height:844,deviceScaleFactor:1,mobile:true});
   await until(async()=>await evaluate('Boolean(document.querySelector("#screen-character"))'),"Frontend scripts did not initialize");
+  // This runner checks the text pages: switch the default pixel map off (menu › 显示 › 地图) and reload.
+  await evaluate('localStorage.setItem("openlife-map","off"), location.reload(), true');
+  await sleep(600);
+  await until(async()=>await evaluate('Boolean(document.querySelector("#screen-character"))'),"Frontend scripts did not initialize after turning the map off");
   assert.equal(await evaluate('document.documentElement.dataset.view'), "text");
   await tap("#homeNewLife");
   await until(async()=>await evaluate('Boolean(document.querySelector("#newLifeModal:not([hidden])"))'),"New life form did not open");

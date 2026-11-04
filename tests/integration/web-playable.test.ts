@@ -351,7 +351,7 @@ test("M3-C: manual end-day and continuous batches share one persisted NPC day bo
     await action("settlement-locations.arrive", { placeId: "place:hearth-yard", travelMode: "local" });
     assert.ok(cookedStock() >= 0, "shared food stays a real, finite stock");
     assert.match(cook()?.dailyNote ?? "", /\S/, "the cook kept living while the player travelled");
-    const page = await (await fetch(`${base}/`)).text();
+    const page = await (await fetch(`${base}/life`)).text();
     assert.match(page, /pauseAutoButton|startContinuousAuto/,
       "the existing start/pause controls remain present");
     assert.equal(stderr, "");
@@ -610,8 +610,9 @@ test("M2-B-C: Web turns harvested reeds into a worn wrap with real field-work sa
 });
 
 test("M2-B: Web weaves a carrying bag and sleeping mat with real storage and rest benefits", { timeout: 40000 }, async () => {
+  // Counts hand slots exactly, so villagers met during the day (and their gifts) are kept out.
   const child = spawn(process.execPath, [fileURLToPath(new URL("../../apps/web/server.ts", import.meta.url))], {
-    env: { ...process.env, OPENLIFE_PERSISTENCE: "0", PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, OPENLIFE_PERSISTENCE: "0", OPENLIFE_DAY_PHASES: "0", PORT: "0" }, stdio: ["ignore", "pipe", "pipe"],
   });
   let stderr = "";
   child.stderr.on("data", (data) => { stderr += data; });
@@ -1183,7 +1184,7 @@ test("M2-UX2-B: configured routine repeats real actions, survives save, and yiel
       "manual pottery decision passes through the original Practice command");
     assert.equal(s.settlement.dailyPlan.enabled, false, "manual craft does not silently resume automation");
 
-    const page = await (await fetch(`${base}/`)).text();
+    const page = await (await fetch(`${base}/life`)).text();
     const script = await (await fetch(`${base}/app.js`)).text();
     assert.match(page, /id="planSteps"/);
     assert.match(page, /id="saveDailyPlan"/);
@@ -1265,7 +1266,7 @@ test("M2-UX1: bounded continuous batches advance, guard stale requests, and stop
     assert.equal(load.data.result.ok, true);
     assert.equal(load.data.state.tick, state.tick);
     assert.equal(load.data.state.settlement.hunger, 10);
-    const page = await (await fetch(`${base}/`)).text();
+    const page = await (await fetch(`${base}/life`)).text();
     const script = await (await fetch(`${base}/app.js`)).text();
     assert.match(page, /id="pauseAutoButton"/, "the Pause control is present in real HTML");
     assert.match(page, /id="startContinuousAuto"/, "the Start control is present in real HTML");

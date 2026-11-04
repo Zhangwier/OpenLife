@@ -95,12 +95,13 @@ tests/unit/          单元测试（node --test），含 workspace-structure 分
 ## 当前规划与服务端保存
 
 当前玩法优先级与阶段验收见 [2026-10-22 长期计划](docs/plans/long-term-game-design-2026-10-22.md)；手机交互和工程约束仍参考 [2026-10-16 开发规划](docs/plans/mobile-life-roadmap-2026-10-16.md)。
-当前默认文字模式；运行 `node apps/web/dev-browser-smoke.mjs` 可在安装了 Edge 的 Windows 上检查实际触控与布局。
+「此刻」默认是**文字人生**：像读一本自己写的书，此刻能做的事、对话、心里记着的事、“我想……”都在书页下方（设计见 [文字人生设计](docs/design/text-life-design-2026-11-01.md)）。菜单「显示 › 玩法」可换成像素地图或经典页面。运行 `node apps/web/dev-browser-smoke.mjs`（经典页面）和 `node apps/web/map-browser-smoke.mjs [844x390]`（地图）可在安装了 Edge 的 Windows 上检查实际触控与布局。
 
 `npm run web` 默认从 `apps/web/data/openlife-save.json` 恢复共享世界，每 5 分钟落盘。成功读档或重开后立即尝试落盘；写入串行执行，损坏/不兼容存档先保留为 `.rejected-时间戳`。无法读取或保留原档时禁用覆盖并记录错误。
 
 - `OPENLIFE_SAVE_PATH`：自定义存档路径；每个服务器进程必须使用独立路径。
 - `OPENLIFE_SAVE_INTERVAL_MS=0`：仅关闭定时器，读档/重开和正常信号退出仍尝试保存。
 - `OPENLIFE_PERSISTENCE=0`：完全关闭服务端读写，供独立测试使用。
+- `OPENLIFE_DAY_PHASES=0`：村民白天不去做活（日内时段），供需要“空村子”精确计数的测试使用。
 
 磁盘写失败会记录服务端日志，API 操作仍可成功；界面保存失败提示属于下一轮 SAVE-01。硬杀进程/断电不能依赖退出保存，只恢复最近成功快照。服务当前是单实例共享世界，不提供多用户隔离。

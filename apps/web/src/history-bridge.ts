@@ -31,41 +31,20 @@
  * 这张表写在桥接层而不是改科技表，因为科技表是给整个游戏用的（以后别的地图
  * 会有真的木料），而"河岸台地有什么"是这个世界的属性。
  */
-const MATERIAL_ALIASES: Record<string, string[]> = {
-  "resource:timber": ["resource:reed", "resource:fuel"],
-  "resource:rope": ["resource:reed"],
-  "resource:stone": ["resource:clay"],
-  "resource:fuel": ["resource:fuel"],
-  "resource:clay": ["resource:clay"],
-};
-
 /** Map the village's real yields onto the material names the tech tree uses. */
 export function materialsForTech(world: ReturnType<Simulation["worldView"]>): string[] {
-  const have = new Set(
-    world.listEntities({ kind: "settlement-locations.yield-point" })
-      .filter((e) => e.archivedAt === undefined && Number(e.components[SettlementComponents.yieldPoint]?.stock ?? 0) > 0)
-      .map((e) => String(e.components[SettlementComponents.yieldPoint]?.resourceId ?? ""))
-      .filter(Boolean),
-  );
-  const out = new Set(have);
-  for (const [needed, substitutes] of Object.entries(MATERIAL_ALIASES)) {
-    if (out.has(needed)) continue;
-    if (substitutes.some((s) => have.has(s))) out.add(needed);
-  }
-  return [...out];
+  return settlementMaterials(world);
 }
 
+import type { JsonValue } from "@openlife/contracts";
 import type { Simulation } from "@openlife/simulation";
-import { SettlementComponents, SettlementId } from "@openlife/module-settlement-locations";
-import { AGE_OF } from "@openlife/module-settlement-locations";
-import { DAY_TICKS_PER_YEAR } from "@openlife/life-contracts";
+import { runSettlementHistory, settlementMaterials } from "@openlife/module-tech";
+import { SettlementComponents } from "@openlife/module-settlement-locations";
 
 /** The tech module's singleton village entity. */
 const TECH_VILLAGE = "tech:village";
 /** The era ladder's singleton state entity. */
 const ERA_ENTITY = "era:ladder";
-/** The polity module's singleton village entity. */
-const POLITY_ENTITY = "polity:village";
 
 interface VillageRecord {
   members?: string[];
@@ -81,7 +60,7 @@ interface VillageRecord {
  * second world in the same process, or a reload, does not inherit the first
  * one's calendar.
  */
-const TOLD_YEAR = new WeakMap<Simulation, number>();
+
 
 /** Which optional modules this world actually has. */
 function installedOf(sim: Simulation): { heredity: boolean; tech: boolean; era: boolean; polity: boolean } {
@@ -105,7 +84,7 @@ function installedOf(sim: Simulation): { heredity: boolean; tech: boolean; era: 
  */
 /** Dispatch and record the failure, if any. */
 function fire(
-  sim: Simulation, type: string, payload: Record<string, unknown>, actorId?: string, targetId?: string,
+  sim: Simulation, type: string, payload: Record<string, JsonValue>, actorId?: string, targetId?: string,
 ): boolean {
   try {
     const result = sim.dispatch({
@@ -114,7 +93,7 @@ function fire(
       ...(targetId ? { targetId } : {}),
       payload,
       source: "system",
-    } as never);
+    });
     if (result?.ok) return true;
     note(type, result?.errors?.[0]?.message ?? "rejected", sim.tick);
     return false;
@@ -149,10 +128,11 @@ function note(type: string, why: string, at: number): void {
 }
 
 function residents(sim: Simulation): string[] {
+  const player = String(sim.worldView().getComponent("modern:world", "modern.world_state")?.activeCharacterId ?? "");
   return sim.worldView()
     .listEntities({ kind: "modern.character" })
     .filter((e) => e.archivedAt === undefined &&
-      Boolean(e.components[SettlementComponents.resident]) &&
+      (Boolean(e.components[SettlementComponents.resident]) || e.id === player) &&
       e.components["modern.vitals"]?.alive !== false)
     .map((e) => e.id);
 }
@@ -183,6 +163,7 @@ export function startHistory(sim: Simulation): void {
       members: people,
       capabilities: ["fire", "clay", "reed", "water", "stone"],
     });
+    historyDay(sim);
   }
 }
 
@@ -196,144 +177,15 @@ export function startHistory(sim: Simulation): void {
 export function historyDay(sim: Simulation): void {
   const have = installedOf(sim);
   if (!have.tech) return;
-  const record = villageRecord(sim);
-  if (!record) return;
-  const known = new Set(record.members ?? []);
-  for (const id of residents(sim)) {
-    if (known.has(id)) continue;
-    // A person the ledger has never seen: give them a genome too, so heredity
-    // and tech agree about who exists.
-    if (have.heredity) fire(sim, "heredity.found", { origin: "migrant" }, undefined, id);
-    fire(sim, "tech.enroll", {}, undefined, id);
-  }
-  // The dead leave the ledger the day they die, not the day someone remembers
-  // to tell the bridge. Reading it off the ledger means a death that happens
-  // inside a batch, a load, or an NPC's own day still costs the village what
-  // only that person knew.
-  for (const id of [...known]) {
-    if (sim.worldView().getComponent(id, "modern.vitals")?.alive !== false) continue;
-    historyPersonGone(sim, id);
-  }
+  try {
+    runSettlementHistory(sim, type => type.startsWith("tech.") ||
+      (type.startsWith("heredity.") && have.heredity) ||
+      (type.startsWith("polity.") && have.polity) || (type.startsWith("era-ladder.") && have.era));
+  } catch (error) { note("history.day", (error as Error).message, sim.tick); }
 }
 
-/**
- * Called when a season turns over.
- *
- * This is where a real village's year becomes the history lab's year: one
- * season of thinking, trying, copying and believing, driven by the state the
- * player actually lived through.
- */
-export function historySeason(sim: Simulation): void {
-  const have = installedOf(sim);
-  if (!have.tech) return;
-  const world = sim.worldView();
-  // `busy` is the set of people who had NO leisure this season -- the engine
-  // multiplies the spark chance by `busyFactor` for anyone in it. Passing every
-  // villager (the obvious reading of "who was busy") suppressed all invention,
-  // which is exactly what happened the first time this bridge ran.
-  //
-  // In a village this size most hands are free most seasons, so the honest
-  // answer is the people the settlement marked as working right now.
-  const people = residents(sim);
-  const working = new Set(
-    world.listEntities({ kind: "modern.character" })
-      .filter((e) => e.archivedAt === undefined &&
-        Number(e.components[SettlementComponents.resident]?.lastRoutineAt ?? -1) === world.tick)
-      .map((e) => e.id),
-  );
-  const busy = [...working];
-  const materials = materialsForTech(world);
-  fire(sim, "tech.season", { people, busy, materials, community: people.length });
-
-  // Needs raise the spark chance (needFactor up to 3x). The ids must be the ones
-  // inventions actually answer -- `need:move-heavy`, `need:lift-water` and so on.
-  // Inventing our own names ("need:food") left the factor at `curiosity` 0.15,
-  // and the village invented nothing for years while looking perfectly healthy.
-  //
-  // Each entry is a real pressure the terrace feels: water to lift, loads to
-  // carry, grain to keep, floods to hold back.
-  const settlement = world.getComponent(SettlementId, SettlementComponents.settlement) as
-    Record<string, unknown> | undefined;
-  const tolled = settlement?.hungerToll === true;
-  const needs: Array<[string, number]> = [
-    ["need:lift-water", 3],          // every day starts with carrying water
-    ["need:carry-loads", 2],         // reeds, clay and fuel all travel by hand
-    ["need:more-grain", tolled ? 3 : 1],
-    ["need:keep-records", 1],
-  ];
-  const roof = world.getComponent(SettlementId, SettlementComponents.roof) as Record<string, unknown> | undefined;
-  if (roof && Number(roof.condition ?? 1) < 0.6) needs.push(["need:protect-from-flood", 2]);
-  for (const [needId, amount] of needs) fire(sim, "tech.report_need", { needId, amount });
-
-  // Phenomena the village can genuinely see from the terrace.
-  for (const phenomenonId of ["river-flood", "season-change", "clay-deposit"]) {
-    fire(sim, "tech.observe", { phenomenonId });
-  }
-  historyYear(sim);
-}
-
-/**
- * Once a year: the numbers the era ladder and the polity need.
- *
- * These are yearly commands with no other caller in the web app — the
- * chronicle runner (`modules/village-chronicle/src/run.ts`) drives them in the
- * offline simulation, so until this existed the browser world never left
- * `era:settled-village` and `polity.year` never ran: no prestige, no
- * institutions, no debts, and `historyEra()` read "尚未定名" forever.
- *
- * The two commands take different payloads, and both are taken from what the
- * village actually has this moment rather than from a year-end plan, because in
- * the browser the year ends when the player's seasons do.
- */
-function historyYear(sim: Simulation): void {
-  const have = installedOf(sim);
-  const world = sim.worldView();
-  const year = Math.floor(world.tick / DAY_TICKS_PER_YEAR);
-  if (TOLD_YEAR.get(sim) === year) return;
-  TOLD_YEAR.set(sim, year);
-
-  const alive = residents(sim);
-  if (!alive.length) return;
-  // Adults are what the polity counts for prestige; the ladder only needs a
-  // headcount. Ages come from the same reader the settlement uses, so a person
-  // whose `modern.vitals` lacks `ageYears` still counts correctly.
-  const adults = alive
-    .map((id) => ({ id, age: Math.floor(AGE_OF(world, id)) }))
-    .filter((a) => a.age >= 16);
-
-  if (have.polity) {
-    if (world.getComponent(POLITY_ENTITY, "polity.state")) {
-      const grain = storedFood(world);
-      fire(sim, "polity.year", {
-        population: alive.length,
-        // `polity.year` only asks whether the year was a surplus one
-        // (`surplus > 0 ? surplusYears + 1 : 0`), and its institution table
-        // reads `surplusYears`. Days of grain is the same answer the granary
-        // panel gives, so a village that looks fed in the UI also looks fed
-        // to its institutions.
-        surplus: grain,
-        contacts: reachablePlaces(world),
-        adults,
-        gone: [],
-      });
-    } else {
-      // `polity.year` refuses with E_POLITY_NO_VILLAGE until the village has a
-      // polity record; founding it is one command and changes nothing else.
-      fire(sim, "polity.found", {});
-    }
-  }
-
-  if (have.era) {
-    fire(sim, "era-ladder.check", {
-      population: alive.length,
-      contacts: reachablePlaces(world),
-      // The browser world has one settlement; the map packs give it places, not
-      // other villages with headcounts. Reporting our own size is the honest
-      // answer, and the ladder takes `max(reported, population)` anyway.
-      largestSettlement: alive.length,
-    });
-  }
-}
+/** Compatibility entry point: the persisted calendar marker prevents repeat work. */
+export function historySeason(sim: Simulation): void { historyDay(sim); }
 
 /**
  * How many places outside the village you can actually walk to.

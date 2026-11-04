@@ -16,6 +16,7 @@
  * people's hardship does not press their holders to invent).
  */
 import type { Effect, JsonValue, OpenLifeModule, WorldView } from "@openlife/contracts";
+import { registerSettlementHistory } from "./settlement-history.ts";
 import { loadBaseTechContent, validateTechContent, type TechContent } from "./content.ts";
 import {
   emptyMind, emptyVillage, believersShare, goneStep, livingHolders, observeStep, seasonStep,
@@ -94,10 +95,11 @@ export const techModule: OpenLifeModule = {
     description: "A need ledger, hidden inventions people think of and spread or lose, and theories (right or wrong) tested by evidence.",
     provides: [TECH_CAPABILITY, "tech.learning", "tech.need-ledger"],
     optional: ["life.heredity", "fate.perturbation", "polity.institutions", "polity.labor"],
-    capabilities: ["component.register", "command.register", "rule.constraint.register", "rule.resolution.register", "projection.register"],
+    capabilities: ["component.register", "command.register", "rule.constraint.register", "rule.resolution.register", "rule.reaction.register", "projection.register"],
   },
 
   register(ctx) {
+    registerSettlementHistory(ctx);
     const registry = ctx.registry;
     const heredity = () => registry.capabilityImplementation("life.heredity") as HeredityLike | undefined;
     const fate = () => registry.capabilityImplementation("fate.perturbation") as FateLike | undefined;
@@ -149,6 +151,27 @@ export const techModule: OpenLifeModule = {
 
     ctx.registerComponent({ id: TechComponents.village, persist: true, description: "The village's needs, observations, evidence, inventions made and lost." });
     ctx.registerComponent({ id: TechComponents.mind, persist: true, description: "What one person knows how to make, is trying to make, and believes." });
+    for (const eventType of ["settlement-locations.improvement_installed", "settlement-locations.improvement_taught"]) {
+      ctx.registerReactionRule({ id: `tech.certify.${eventType}`, eventType, react: c => {
+        const record = village(c.world);
+        if (!record || c.event.data.inventionId !== "invention:shadoof") return [];
+        const actor = c.event.actorId ?? "", learner = c.event.targetId ?? actor;
+        const v = structuredClone(record) as VillageRecord;
+        const minds = mindsOf(c.world, v);
+        let m = minds.get(learner);
+        if (!m && c.world.hasEntity(learner) && c.world.getEntity(learner)?.components["modern.vitals"]?.alive !== false) {
+          m = emptyMind(); minds.set(learner, m);
+          if (!v.members.includes(learner)) v.members.push(learner);
+        }
+        if (!m || m.gone) return [];
+        if (eventType.endsWith("_taught") && (minds.get(actor)?.knows["invention:shadoof"] ?? 0) <= 0) return [];
+        m.knows["invention:shadoof"] = 1;
+        delete m.ideas["invention:shadoof"]; delete v.lost["invention:shadoof"];
+        v.invented["invention:shadoof"] ??= { by: actor, at: c.world.tick, times: 1 };
+        return writeBack(c.world, v, minds, [{ type: eventType.endsWith("_taught") ? "tech.learned" : "tech.invented",
+          actorId: learner, data: { inventionId: "invention:shadoof", how: "real-practice" } }], "桔槔经过实做验证与传授");
+      } });
+    }
 
     for (const [type, description] of [
       ["tech.found", "Start tracking a village's knowledge: base capabilities and members."],

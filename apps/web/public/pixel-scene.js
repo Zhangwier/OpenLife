@@ -193,6 +193,35 @@
   };
   const TER = layer(), DET = layer(), PRP = layer(), CAN = layer();
 
+  /* 整数倍缩放（目标平台手机小程序/App 同样适用）：
+     画布 CSS 尺寸 = 640×360 × 整数 k（k = 容器能放下的最大整数倍），
+     余量由 stage 背景填充居中。绝不小数放大——`image-rendering: pixelated`
+     在非整数倍下是"最近邻到整数倍再平滑补差"（CSS Images 3），会插值出
+     调色板外的颜色并让同一条 1px 线粗细不一，毁掉所有颗粒度调优。
+     容器放不下 1×（手机竖屏）时按比例缩小，牺牲颗粒但不变形。 */
+  function fitIntegerScale() {
+    const stage = view.parentElement;
+    if (!stage) return;
+    const availW = stage.clientWidth, availH = stage.clientHeight;
+    if (availW < 40 || availH < 40) return;
+    const k = Math.floor(Math.min(availW / W, availH / H));
+    if (k >= 1) {
+      view.style.width = (W * k) + 'px';
+      view.style.height = (H * k) + 'px';
+      view.style.aspectRatio = '';
+    } else {
+      // 缩小场景：保持 16:9，让宽或高贴边，剩余留边
+      const s = Math.min(availW / W, availH / H);
+      view.style.width = Math.round(W * s) + 'px';
+      view.style.height = Math.round(H * s) + 'px';
+    }
+  }
+  fitIntegerScale();
+  window.addEventListener('resize', fitIntegerScale);
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(fitIntegerScale).observe(view.parentElement);
+  }
+
   /* 尺度基准：人物 24px 高（约 1.5 格），门高 28，房高 82 → 房子约 4.2 个身高。
      所有建筑都按 w/h 的比例算内部尺寸，改 HOUSE 不用再改画法。 */
   const PATH = [[-30, 318], [90, 308], [200, 298], [320, 292], [440, 286], [560, 280], [680, 274]];
@@ -1033,19 +1062,27 @@
     return lobes;
   }
 
-  /** 叶团色阶：从 season.leaf 派生，最深只压到 38% 黑——不再有描边级死黑。 */
+  /** 叶团色阶（4 档）：亮半区约一半（saint11 "almost half of the gradient is light"），
+     暗部走**冷色**（往蓝紫压，saint11 "cold shadow"）而不是纯降黑——纯黑压灰会发闷。
+     最暗档负责真正的深绿，让最暗 ¼ 有分量（参考 20%+，此前实测仅 10–16%）。 */
   function treeCanopyShades(leaf) {
+    const cold = [34, 44, 54];                                    // 冷蓝紫阴影基
     return [
-      mixc(leaf, [0, 0, 0], 0.38), mixc(leaf, [0, 0, 0], 0.21), leaf,
-      mixc(leaf, [255, 255, 255], 0.13), mixc(leaf, [255, 255, 255], 0.26),
+      mixc(mixc(leaf, cold, 0.42), [0, 0, 0], 0.26),              // 0 最暗·冷
+      mixc(mixc(leaf, cold, 0.18), [0, 0, 0], 0.10),              // 1 暗中·偏冷
+      leaf,                                                        // 2 中亮（叶本色）
+      mixc(leaf, [255, 240, 200], 0.16),                          // 3 高光·微暖
     ];
   }
-  /* 橙色秋叶树色阶（A10b）：从点缀橙派生，亮部偏金黄、暗部偏褐，是画面唯一的强点缀。 */
+  /* 橙色秋叶树色阶（A10b）：同 4 档结构，暗部同样走冷（褐→冷紫），亮部偏金黄。 */
   const TREE_AUTUMN = hex('#c8862e');
   function treeAutumnShades() {
+    const cold = [42, 36, 52];
     return [
-      mixc(TREE_AUTUMN, [0, 0, 0], 0.46), mixc(TREE_AUTUMN, [0, 0, 0], 0.24), TREE_AUTUMN,
-      mixc(TREE_AUTUMN, [255, 230, 150], 0.28), mixc(TREE_AUTUMN, [255, 240, 190], 0.5),
+      mixc(mixc(TREE_AUTUMN, cold, 0.42), [0, 0, 0], 0.28),
+      mixc(mixc(TREE_AUTUMN, cold, 0.16), [0, 0, 0], 0.10),
+      TREE_AUTUMN,
+      mixc(TREE_AUTUMN, [255, 214, 140], 0.24),
     ];
   }
 
@@ -1150,14 +1187,16 @@
       const dx = x - host.x, dy = y - host.cy;
       const clump = vnoise(x, y, 7, 17);
       const fine = vnoise(x, y, 3.4, 29);
-      // A9 色阶断层：连续 lit 先量化成 5 档，档边界用 Bayer 抖动过渡
-      const litRaw = clamp(0.46 + (-dx * 0.44 - dy * 0.80) / (host.r * 1.15)
-        + (clump - 0.5) * 0.52 + (fine - 0.5) * 0.20, 0, 1);
-      const quant = litRaw * 5;
+      // A9 色阶断层：4 档量化（Slynyrd：每簇 4–5 色足够），档边界局部 Bayer 抖动。
+      // 基线压到 0.22 + 朝向项减弱（0.30/0.55 而非 0.44/0.80）：实测此前亮半区 61–87%、
+      // 朝向项把 litRaw 推过亮；重心回到中部（目标亮半区 ~50%，参考 43.6%）。
+      const litRaw = clamp(0.22 + (-dx * 0.30 - dy * 0.55) / (host.r * 1.15)
+        + (clump - 0.5) * 0.55 + (fine - 0.5) * 0.22, 0, 1);
+      const quant = litRaw * 4;
       let idx = Math.floor(quant);
       // 档间抖动：小数部分与 Bayer 阈值比，过了就进上一档 → 颗粒状过渡
-      if (quant - idx > bayer && idx < 4) idx++;
-      idx = clamp(idx, 0, 4);
+      if (quant - idx > bayer && idx < 3) idx++;
+      idx = clamp(idx, 0, 3);
 
       let out = idx;
       if (band < 0.985) {
@@ -1169,14 +1208,14 @@
         let pick = 1;
         if (Math.abs(shadeL[2] - target) < Math.abs(shadeL[pick] - target)) pick = 2;
         if (Math.abs(shadeL[3] - target) < Math.abs(shadeL[pick] - target)) pick = 3;
-        out = (litRaw > 0.82 && h2(gx, gy, 5301) < 0.30) ? 3 : pick;
+        out = (litRaw > 0.80 && h2(gx, gy, 5301) < 0.30) ? 3 : pick;
       } else {
         // A5 透光点：以"格"为单位撒，朝光面密、背光面几乎不撒。
         // litRaw 走平方让亮点集中到最亮的一小片，密度压到稀疏（参考图每棵树只有几粒透光）。
         const hk = h2(gx, gy, 5201);
         const dens = 0.0015 + litRaw * litRaw * 0.012;
         if (hk < dens) out = CELL_HILITE;
-        else if (hk < dens + 0.0012 && litRaw > 0.55) out = CELL_ACCENT;
+        else if (hk < dens + 0.0012 && litRaw > 0.50) out = CELL_ACCENT;
       }
       cell[gy * gw + gx] = out;
       if (host.autumn) cellAutumn[gy * gw + gx] = 1;

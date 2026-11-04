@@ -16,6 +16,7 @@ import { runFirstNpcDay, type NpcDailyResult } from "./npc.ts";
 import { runSecondNpcDay } from "./npc-cook.ts";
 import { runThirdNpcDay } from "./npc-reed.ts";
 import { runOtherNpcDays } from "./npc-general.ts";
+import { DayPhase, anyoneAway } from "../day-phase.ts";
 
 export const VILLAGE_DAY_AGENT = "settlement-locations.village-day";
 
@@ -42,6 +43,8 @@ export function runVillageDayBoundary(sim: AgentHost, fromTick: number): Village
       scaleIn(world) !== "day" || !world.getEntity(SettlementId)) {
     return { ran: false, fromTick, tick, notes: [], residents: [] };
   }
+  // Anyone still at work from yesterday's day phases goes back to where they began, so routines start as always.
+  if (anyoneAway(world)) sim.dispatch({ type: DayPhase.command, payload: { phase: 0 } });
   // 你家的日子也往前走一天：添丁、出生、孩子长大（没事就什么也不记）。
   const player = String(world.getComponent("modern:world", "modern.world_state")?.activeCharacterId ?? "");
   // 换季那天，村里这一季的大事。

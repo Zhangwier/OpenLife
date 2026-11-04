@@ -10,9 +10,11 @@
  * 这里不再做二次裁剪——但也不额外加料。
  */
 import type { Simulation } from "@openlife/simulation";
+import { lifeRoutesOf } from "./life-routes.ts";
 import { calendarView, type CalendarView } from "./calendar.ts";
 
 export interface Outlook {
+  progress: ReturnType<typeof lifeRoutesOf>;
   /** 这两个月有什么事：节庆、集市、农时、认识的谁过生日。 */
   calendar: CalendarView;
   /** 村子走到哪一级、下一级差什么。 */
@@ -48,6 +50,7 @@ export function outlookOf(sim: Simulation, actorId: string): Outlook {
     return projected.ok ? (projected.data as Record<string, unknown>) : null;
   };
   return {
+    progress: lifeRoutesOf(sim, actorId),
     calendar: actorId ? calendarView(world, actorId) : EMPTY_CALENDAR,
     goals: read("settlement-goals.progress"),
     director: read("story-director.status"),

@@ -12,6 +12,7 @@
 import type { Effect, JsonValue, WorldView } from "@openlife/contracts";
 import type { Registration } from "./rules.ts";
 import { SettlementComponents } from "./vocabulary.ts";
+import { dailyActivity } from "./village-reads.ts";
 
 /**
  * Yield points, read straight from their components.
@@ -125,6 +126,13 @@ export function registerStock(ctx: Registration): void {
         ? ((c.event.data as { stock: Array<{ resourceId?: unknown; delta?: unknown; reason?: unknown }> }).stock)
         : [];
       const effects: Effect[] = [];
+      const activity = Number(c.event.data.activityCost ?? 0);
+      if (activity > 0 && c.event.actorId && c.world.hasEntity(c.event.actorId)) {
+        const before = dailyActivity(c.world, c.event.actorId);
+        effects.push({ kind: "setComponent", entityId: c.event.actorId, component: SettlementComponents.holding,
+          value: { ...c.world.getComponent(c.event.actorId, SettlementComponents.holding),
+            activityDay: c.world.tick, activityUsed: before.used + activity }, reason: "建造耗时" });
+      }
       for (const item of asked) {
         const resourceId = String(item?.resourceId ?? "");
         const delta = Number(item?.delta ?? 0);
