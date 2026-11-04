@@ -39,8 +39,8 @@ export const SITES = [
  *  The field is big, so it has two plots to work at; the granary and the stove stand just above it, on the way home. */
 export const LAYOUT = {
   home: [["taoHouse", 0, -10]],
-  lakeside: [["lake", 0, 0, 30]],
-  shallows: [["shallows", 0, 0, 16]],
+  lakeside: [["lake", 0, 0, 10]],
+  shallows: [["shallows", 0, 0, 6]],
   field: [["field", -150, -30, 1], ["field2", 150, -30, 0], ["granary", -110, -330, 10], ["stove", 110, -330, 4]],
   kiln: [["kiln", 0, 0, 0]],
   reeds: [["reeds", 0, 0], ["nest", 150, 60]],

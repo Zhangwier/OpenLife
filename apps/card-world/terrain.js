@@ -5,7 +5,6 @@ import { CELL, G, rng } from "./mapgen.js";
 const lerp = (a, b, t) => a + (b - a) * t;
 const mix = (c, d, t) => [lerp(c[0], d[0], t), lerp(c[1], d[1], t), lerp(c[2], d[2], t)];
 const sm = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
-const shade = (hex, k) => { const n = parseInt(hex.slice(1), 16); return `rgb(${Math.round(((n >> 16) & 255) * k)},${Math.round(((n >> 8) & 255) * k)},${Math.round((n & 255) * k)})`; };
 
 const COMMON = { slope: [158, 150, 108], scree: [166, 158, 144], rock: [138, 126, 112], snow: [238, 240, 236], wetSand: [178, 162, 122], ford: [170, 182, 150] };
 export const SEASON_LOOK = {
@@ -47,7 +46,7 @@ function fieldsOf(m) {
     shade[r * m.cols + c] = (at(r, c - 1) - at(r, c + 1) + at(r - 1, c) - at(r + 1, c)) * 5.5;
   }
   m._fields = [e, wat, blurField(m, wat, 2), blurField(m, ind((c) => (c === G.FORD ? 1 : 0))), blurField(m, ind((c) => (c === G.FOREST ? 1 : 0))),
-    blurField(m, ind((c) => (c === G.SAND ? 1 : 0))), blurField(m, ind((c) => (c === G.SCREE ? 1 : 0))), m.mo, shade, blurField(m, Float32Array.from(m.jungle ?? new Uint8Array(m.cls.length)), 2), blurField(m, Float32Array.from(m.water, (w) => (w === 3 ? 1 : 0))), blurField(m, ind((c) => (c === G.VOID ? 1 : 0)), 2), blurField(m, Float32Array.from(m.wood ?? new Uint8Array(m.cls.length)), 1)];
+    blurField(m, ind((c) => (c === G.SAND ? 1 : 0))), blurField(m, ind((c) => (c === G.SCREE ? 1 : 0))), m.mo, shade, blurField(m, Float32Array.from(m.jungle ?? new Uint8Array(m.cls.length)), 2), blurField(m, Float32Array.from(m.water, (w) => (w === 3 ? 1 : 0))), blurField(m, ind((c) => (c === G.VOID ? 1 : 0)), 2), blurField(m, m.cover ?? new Float32Array(m.cls.length), 1)];
   return m._fields;
 }
 
@@ -64,7 +63,7 @@ function paintBase(m, L) {
       const gx = Math.max(0, Math.min(m.cols - 1.001, (x / K) / CELL - 0.5)), c0 = Math.floor(gx), fx = gx - c0;
       const i00 = r0 * m.cols + c0, i10 = i00 + 1, i01 = i00 + m.cols, i11 = i01 + 1;
       for (let k = 0; k < fields.length; k++) { const f = fields[k]; v[k] = lerp(lerp(f[i00], f[i10], fx), lerp(f[i01], f[i11], fx), fy); }
-      const [ev, wv, dv, fdv, fov, sav, scv, mov, shv, jv, sev, vov, wdv] = v;
+      const [ev, wv, dv, fdv, fov, sav, scv, mov, shv, jv, sev, vov, cov] = v;
       let col = mix(C.dry, C.lush, sm(0.3, 0.7, mov));
       if (L.winter) col = mix(col, [168, 166, 140], sm(0.66, 0.74, mov) * 0.6);    // grass showing through thin snow
       col = mix(col, C.forest, sm(0.3, 0.7, fov));
@@ -77,7 +76,7 @@ function paintBase(m, L) {
       col = mix(col, C.wetSand, sm(0.36, 0.46, wv) * (1 - sm(0.48, 0.5, wv)) * (L.winter ? 0.3 : 1));
       const isSea = sev > 0.55;
       col = mix(col, mix(C.shallow, isSea ? C.sea : C.deep, sm(L.winter && !isSea ? 0.75 : 0.55, 0.95, dv)), sm(0.47, 0.52, wv));
-      col = mix(col, [74, 100, 58], sm(0.4, 0.8, wdv) * sm(0.3, 0.7, fov) * 0.6);   // the wood floor is older, darker
+      col = mix(col, [74, 100, 58], sm(0.2, 0.75, cov) * sm(0.3, 0.7, fov) * 0.65);   // deep wood is darker than its edge
       col = mix(col, [42, 33, 25], sm(0.4, 0.75, vov));                              // beyond the tiles: mist
       const light = Math.max(0.72, Math.min(1.22, 1 + shv * (0.35 + 0.9 * sm(0.5, 0.85, ev)) * (wv > 0.5 ? 0.1 : 1)));
       const n = (((x * 73856093) ^ (y * 19349663)) & 255) / 255 - 0.5;
@@ -198,7 +197,8 @@ export function paintTerrain(canvas, m, { DECO = {}, keepClear = [], season = "æ
       for (let k = 0; k < 2 + (r2 < 0.4 ? 1 : 0); k++) { const p = j(); if (clearOf(p.x, p.y, 150) && plant(p, 118)) items.push({ ...p, kind: "jtree", s: 0.92 + R() * 0.4, v: R() }); }
       continue;
     }
-    if (c === G.FOREST && r1 < (m.elev[i] > 0.64 ? 0.4 : 0.55)) { const p = j(); if (clearOf(p.x, p.y, 170) && plant(p, m.elev[i] > 0.64 ? 150 : 168 - 60 * (m.dense?.[i] ?? 0.5))) items.push({ ...p, kind: m.elev[i] > 0.64 ? "pine" : "tree", s: 0.82 + 0.3 * (m.dense?.[i] ?? 0.5) + R() * 0.25, v: R(), old: m.wood?.[i] === 1 }); }
+    if (c === G.FOREST && r1 < (m.elev[i] > 0.64 ? 0.4 : (m.cover?.[i] ?? 0.5) < 0.2 ? 0.2 : 0.55)) { const p = j(); if (clearOf(p.x, p.y, 170) && plant(p, m.elev[i] > 0.64 ? 150 : 215 - 105 * (m.cover?.[i] ?? 0.5) - 15 * (m.dense?.[i] ?? 0.5))) items.push({ ...p, kind: m.elev[i] > 0.64 ? "pine" : "tree", s: 0.7 + 0.35 * (m.cover?.[i] ?? 0.5) + 0.2 * (m.dense?.[i] ?? 0.5) + R() * 0.2, v: R() }); }
+    else if (c === G.FOREST && (m.cover?.[i] ?? 1) < 0.35 && r2 < 0.2) { const p = j(); if (clearOf(p.x, p.y, 130)) items.push({ ...p, kind: r2 < 0.11 ? "bush" : "flowers", s: 0.8 + R() * 0.3, v: R() }); }   // undergrowth at the wood's edge
     else if (c === G.SLOPE && r1 < 0.06) { const p = j(); if (clearOf(p.x, p.y, 170) && plant(p, 185)) items.push({ ...p, kind: "pine", s: 0.7 + R() * 0.4, v: R() }); }
     else if (c === G.MEADOW && r1 < 0.007) { const p = j(); const lone = r2 < 0.6; if (clearOf(p.x, p.y, 220) && (!lone || plant(p, 215))) items.push({ ...p, kind: lone ? "tree" : "bush", s: 0.8 + R() * 0.4, v: R() }); }
     else if (c === G.MEADOW && r1 < 0.032) { const p = j(); if (clearOf(p.x, p.y, 120)) items.push({ ...p, kind: L.flowers && r2 < 0.45 ? "flowers" : "grass_tuft", s: 1, v: R() }); }
@@ -268,7 +268,7 @@ function drawDeco(g, it, DECO, L) {
     if (!blossom) { g.fillStyle = L.leaves ? "#a8442e" : "#e88a6a"; for (let q = 0; q < 9; q++) { g.beginPath(); g.arc(Math.cos(k + q * 0.7) * (14 + (q % 3) * 8), Math.sin(k + q * 0.7) * (12 + (q % 3) * 6), 5.5, 0, 7); g.fill(); } }
   } else if (it.kind === "jtree") {
     const k = v * 6.28, parts = [[0, 0, 46], ...[0, 1, 2, 3, 4, 5].map((i) => [Math.cos(k + i * 1.05) * 34, Math.sin(k + i * 1.05) * 30, 28 + ((i * 5 + v * 9) % 9)])];
-    blobs(parts, v < 0.5 ? ["#28411f", "#355428", "#4a6e36", "#1c2e16"] : ["#2e4a22", "#3c5e2c", "#56783c", "#203418"]);
+    blobs(parts, L.canopy[Math.floor(v * L.canopy.length) % L.canopy.length]);
     if (L.winter) { g.fillStyle = "rgba(240,242,238,.55)"; for (let q = 0; q < 4; q++) { g.beginPath(); g.arc(Math.cos(k + q) * 20 - 6, Math.sin(k + q) * 16 - 8, 7, 0, 7); g.fill(); } }
     g.strokeStyle = "rgba(90,120,60,.7)"; g.lineWidth = 3;                // hanging vines
     for (let q = 0; q < 3; q++) { const x = (q - 1) * 22 + v * 10; g.beginPath(); g.moveTo(x, 20); g.quadraticCurveTo(x + 6, 40, x - 2, 58); g.stroke(); }
@@ -280,7 +280,7 @@ function drawDeco(g, it, DECO, L) {
       g.fillStyle = "#6e5640"; g.beginPath(); g.arc(0, 0, 9, 0, 7); g.fill();
     } else {
       const k = v * 6.28, parts = [[0, 0, 44], ...[0, 1, 2, 3, 4].map((i) => [Math.cos(k + i * 1.26) * 30, Math.sin(k + i * 1.26) * 26, 26 + ((i * 7 + v * 10) % 8)])];
-      const base = L.blossom && v > 0.78 && !it.old ? L.blossom : L.canopy[Math.floor(v * L.canopy.length) % L.canopy.length], look = it.old ? base.map((c) => shade(c, 0.76)) : base;
+      const look = L.canopy[Math.floor(v * L.canopy.length) % L.canopy.length];
       blobs(parts, look);
     }
   } else if (it.kind === "pine") {

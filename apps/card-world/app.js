@@ -38,10 +38,10 @@ const DEFS = {
   kiln:       { name: "共用陶窑", type: "structure", icon: "kiln", text: "阿埴背来的黏土堆在这儿。带一捆柴来，就用窑上的两份黏土烧一个陶罐（自己带两份黏土也行）。空罐拿到公灶能装三份熟食。", stockLabel: "黏土" },
   field:      { name: "旱地·西块", type: "source", icon: "field", text: "阿予照看的田。照看几天才熟；带石锄来能帮着锄。", stockLabel: "长势" },
   field2:     { name: "旱地·东块", type: "source", icon: "field", text: "同一片田的另一头，阿予两边轮着照看。", stockLabel: "长势" },
-  lake:       { name: "湖边", type: "source", icon: "river", text: "走过来：捞鱼。", stock: 30 },
+  lake:       { name: "湖边", type: "source", icon: "river", text: "走过来：捞鱼。网眼里的鱼会被捞光，过一两天鱼群再回来。", stock: 10 },
   pit:        { name: "黏土坑", type: "source", icon: "pit", text: "河湾的黏土。走过来：挖一份。", stock: 14 },
-  reeds:      { name: "芦苇荡", type: "source", icon: "reeds", text: "走过来：割芦苇（带燧石刀一次两捆）。", stock: 12 },
-  chestnut:   { name: "栗子树", type: "source", icon: "chestnut", text: "走过来：伐木（带石斧一次两根木头）。木头要劈开才是柴。", stock: 8, stockLabel: "木头" },
+  reeds:      { name: "芦苇荡", type: "source", icon: "reeds", text: "走过来：割芦苇（带燧石刀一次两捆）。割光了要等几天才长回来。", stock: 5 },
+  chestnut:   { name: "栗子树", type: "source", icon: "chestnut", text: "走过来：伐木（带石斧一次两根木头）。砍光了树桩要歇几天再长。", stock: 4, stockLabel: "木头" },
   scree:      { name: "乱石滩", type: "source", icon: "scree", text: "山上滚下来的石头。走过来：捡一块趁手的石块。", stock: 20 },
   flintVein:  { name: "燧石", type: "source", icon: "flint", text: "乱石堆里夹着的燧石。燧石硬，要带一块石块当锤子才敲得下来。", stock: 8 },
   hemp:       { name: "葛麻丛", type: "source", icon: "hemp", text: "走过来：割葛麻剥纤维（带燧石刀一次两份）。", stock: 10 },
@@ -76,7 +76,7 @@ const DEFS = {
   egg:        { name: "鸭蛋", type: "food", icon: "egg", text: "一个鸭蛋。", food: 10 },
   spear:      { name: "石矛", type: "tool", icon: "spear", text: "打鹿、打野猪要用它，能投得远些；野猪见了它不敢冲。会用坏。", uses: 15 },
   farm:       { name: "开荒", type: "source", icon: "field", text: "开出一块新田。" },
-  shallows:   { name: "湖西浅滩", type: "source", icon: "clams", text: "水浅，底下有河蚌。退潮的时候一次能摸到两只。", stock: 16 },
+  shallows:   { name: "湖西浅滩", type: "source", icon: "clams", text: "水浅，底下有河蚌。退潮的时候一次能摸到两只；摸光了要等几天。", stock: 6 },
   clam:       { name: "河蚌", type: "food", icon: "clam", text: "一只河蚌，生吃也行。", food: 14 },
   hammer:     { name: "石锤", type: "tool", icon: "hammer", text: "带着它走到自己盖的房子上，就把它拆了，拿回一半材料；拆还没盖好的地基，材料全拿回来。", uses: 20 },
   plot:       { name: "地基", type: "structure", icon: "plot", text: "盖房子的地方。把材料带上来或者拖上来，齐了以后站在上面一段段地盖。" },
@@ -168,6 +168,10 @@ const HINT = {
 let uid = 0;
 const boards = { world: [], tao: [] };   // stacks per board
 let board = "world";
+// Wild sources that can be picked clean: when one is emptied the card goes away and grows back where it stood.
+// Days are game days; the range is the earliest and latest it may come back.
+const REGROW = { chestnut: [3, 5], lake: [1, 2], reeds: [2, 3], shallows: [2, 3] };
+const respawns = [];
 const stacks = () => boards[board];
 const clock = { min: 6 * 60, speed: 1, fast: 0 };
 const me = { food: 70, rest: 90, trust: { aunt: 0, yu: 0, zao: 0, zhi: 0 }, talkedDay: {}, giftDay: {}, recent: [], auto: true, lastInput: 6 * 60 };
@@ -301,7 +305,36 @@ const at = ([site, dx, dy]) => { const s = MAP.sites[site]; return { x: s.x + dx
 function placeCard(key, p, stock) {
   const c = newCard(key, stock);
   const q = settle(p.x, p.y, DEFS[key].type === "boat", c.w, c.h);
-  return newStack([c], q.x - c.w / 2, q.y - c.h / 2, "world");
+  const st = newStack([c], q.x - c.w / 2, q.y - c.h / 2, "world");
+  st.home = { x: q.x, y: q.y };          // where it grew: a picked-clean node comes back here
+  return st;
+}
+/** A wild node picked clean: the card goes away, and a fresh one grows back after a few days. */
+function deplete(t) {
+  const days = REGROW[t?.key];
+  if (!days || t.stock === undefined || t.stock > 0) return;
+  const st = stackOf(t);
+  if (!st || st.board !== "world") return;
+  const at = center(st), home = st.home ?? at;
+  respawns.push({ key: t.key, x: home.x, y: home.y, due: clock.min + (days[0] + Math.random() * (days[1] - days[0])) * 1440 });
+  const tools = st.cards.slice(1).filter((c) => DEFS[c.key].type === "tool");
+  for (const c of st.cards) if (!tools.includes(c)) { c.el.classList.add("gone"); setTimeout(() => c.el.remove(), 300); }
+  for (const n of allStacks()) {
+    if (n.parkedAt === st) n.parkedAt = null;
+    if (n.goalStack === st) { n.goalStack = null; n.job = null; n.bar?.remove(); n.bar = null; n.goal = ""; n.task = ""; }
+  }
+  const you = youStack(); if (you?.job?.target === st) cancelJob(you);
+  removeStack(st);
+  if (tools.length) newStack(tools, at.x - tools[0].w / 2, at.y, "world");   // a tool left on it stays in the world
+  float(`${DEFS[t.key].name}采光了`, at, "world");
+}
+/** It grew back where it stood before — or as close as there is room for. */
+function respawnNode(r) {
+  const c = newCard(r.key);
+  const q = settle(r.x, r.y, false, c.w, c.h);
+  const st = newStack([c], q.x - c.w / 2, q.y - c.h / 2, "world");
+  st.home = { x: q.x, y: q.y };
+  float(`${DEFS[r.key].name}又长出来了`, { x: q.x, y: q.y - 20 }, "world");
 }
 function build() {
   for (const [site, list] of Object.entries(LAYOUT)) for (const [k, dx, dy, stock] of list) placeCard(k, at([site, dx, dy]), stock);
@@ -330,9 +363,9 @@ const ROOMS = { tao: [["door", 470, 520], ["bed", 180, 140], ["fire", 470, 250],
 
 const SPECIES = {
   rabbit: { n: 1, roam: 600, fear: 300, speed: 1.8, home: () => quietSpot() },
-  deer: { n: 3, fear: 380, speed: 2.2, home: () => woodSpot(0.6) },
-  tiger: { n: 1, roam: 520, fear: 0, speed: 1.1, predator: true, home: () => nearSite(["jungle"], 220) },
-  boar: { n: 1, fear: 0, speed: 1.4, aggro: true, home: () => woodSpot(0.65) },
+  deer: { n: 3, fear: 380, speed: 2.2, home: () => woodSpot(0.8) },
+  tiger: { n: 1, roam: 520, fear: 0, speed: 1.1, predator: true, home: () => jungleSpot(0.7) },
+  boar: { n: 1, fear: 0, speed: 1.4, aggro: true, home: () => woodSpot(0.8) },
   duck: { n: 3, roam: 420, fear: 220, speed: 0.6, water: true, home: () => lakeSpot() },
 };
 const HUNT_BY = { rabbit: ["axe", "knife", "spear"], deer: ["spear"], boar: ["spear"], tiger: ["spear"] };
@@ -346,19 +379,35 @@ function nearSite(keys, r) {
 }
 /** A spot in the thick of the woods: deer and boar live where the canopy closes over, several trees in
  *  from the edge, near the woods they belong to. No fence — it is the ground that decides how far in. */
-function woodSpot(min = 0.6) {
+function woodSpot(min = 0.8) {
   let best = null, bs = -Infinity;
   for (let k = 0; k < 700; k++) {
     const i = Math.floor(Math.random() * MAP.cls.length);
     if (MAP.cls[i] !== G.FOREST || MAP.road[i]) continue;
     const p = { x: MAP.X(i), y: MAP.Y(i) }, thick = woodDepth(MAP, p.x, p.y);
     if (thick < min) continue;
+    if (dist(p, MAP.sites.jungle) < 520) continue;                 // not on the doorstep between valley and wood
     if (boards.world.some((st) => dist(p, center(st)) < 260)) continue;
     const near = dist(p, MAP.sites.home);
-    const s = thick * 2 - near / 1600 + Math.random() * 0.4;
+    const s = thick * 3 - near / 2200 + Math.random() * 0.4;
     if (s > bs) { bs = s; best = p; }
   }
   return best ?? nearSite(["wood", "jungle"], 320);
+}
+/** The tiger's own ground: deep jungle, away from the mushroom card and from the way in from the valley. */
+function jungleSpot(min = 0.7) {
+  let best = null, bs = -Infinity;
+  for (let k = 0; k < 900; k++) {
+    const i = Math.floor(Math.random() * MAP.cls.length);
+    if (!MAP.jungle[i] || MAP.road[i]) continue;
+    const p = { x: MAP.X(i), y: MAP.Y(i) }, thick = woodDepth(MAP, p.x, p.y);
+    if (thick < min) continue;
+    if (dist(p, MAP.sites.jungle) < 420) continue;
+    if (boards.world.some((st) => dist(p, center(st)) < 260)) continue;
+    const s = thick * 3 - dist(p, MAP.sites.home) / 2600 + Math.random() * 0.4;
+    if (s > bs) { bs = s; best = p; }
+  }
+  return best ?? nearSite(["jungle"], 320);
 }
 function lakeSpot() {
   const r = MAP.sites.reeds; let best = null, bd = 1e9;
@@ -823,6 +872,7 @@ function finish(st) {
     if (me.food <= 20) toast("饿得干不动了");
     else if (me.rest <= 15) toast("累了，先歇会儿");
   }
+  deplete(t);
   carryChanged();
 }
 const marks = new Set();
@@ -1096,6 +1146,7 @@ function brain(st, minutes) {
 function go(st, key, task, want, stack) {
   st.want = want;
   if (stack) {                                                   // a particular one (this field, not just any field)
+    if (!boards.world.includes(stack)) { st.goal = ""; st.task = ""; st.npc.wait = 60; return; }
     const path = route(st, stack);
     if (path === null) { st.goal = ""; st.task = ""; st.npc.wait = 60; return; }
     st.goalStack = stack; st.parkedAt = null; st.walk = { target: stack, path, k: 0 }; st.task = task; st.goal = key; intent(st, DEFS[key].icon);
@@ -1104,6 +1155,7 @@ function go(st, key, task, want, stack) {
   // a source with something left in it, if there are several (two groves of chestnuts)
   const ok = (s) => s.cards[0].key === key && (s.cards[0].stock === undefined || s.cards[0].stock > 0) && !inJungle(center(s));
   const target = boards.world.find(ok) ?? boards.world.find((s) => s.cards[0].key === key && !inJungle(center(s))) ?? find(key);
+  if (!target) { st.goal = ""; st.task = ""; st.goalStack = null; st.npc.wait = 120; return; }   // nothing left to go to
   st.goalStack = target; st.parkedAt = null;
   const path = route(st, target);
   if (path === null) { st.goal = ""; st.task = ""; st.npc.wait = 60; return; }   // no way round the water: wait and retry
@@ -1114,7 +1166,9 @@ const JOBS = { eat: 30, wait: 60, tend: 180, harvest: 150, dig: 90, drop: 15, fe
 function npcArrive(st) {
   if (st.task === "sleep") return goInside(st);
   if (!st.task) return;                 // just stepping out of the door
-  const t = st.goalStack; if (t) { st.slot = standOn(st, t).slot; st.parkedAt = t; }
+  const t = st.goalStack;
+  if (t && !boards.world.includes(t)) { st.goal = ""; st.task = ""; st.goalStack = null; st.npc.wait = 60; return; }
+  if (t) { st.slot = standOn(st, t).slot; st.parkedAt = t; }
   let min = JOBS[st.task] ?? 30;
   if (st.task === "craft") min = st.plans.at(-1).r.min;
   if ((st.task === "chop" || (st.task === "gather" && st.want === "log")) && hasTool(st, t, "axe")) min *= 0.6;   // an axe makes short work of it
@@ -1122,7 +1176,9 @@ function npcArrive(st) {
   st.job = { npcTask: st.task, left: min, total: min };
 }
 function npcDone(st) {
-  const target = st.goalStack ?? find(st.goal), t = target.cards[0], task = st.task;
+  const target = st.goalStack ?? find(st.goal), task = st.task;
+  if (!target?.cards?.length) { st.goal = ""; st.task = ""; st.goalStack = null; st.job = null; return; }
+  const t = target.cards[0];
   st.goal = ""; st.lastTask = task; intent(st, "");
   if (task === "eat" && t.stock > 0) { t.stock--; refreshStock(t); st.npc.hunger = 0; }
   if (task === "tend" && t.sown !== false) { const hoe = hasTool(st, target, "hoe"); t.stock = Math.min(3, (t.stock ?? 0) + (hoe ? 2 : 1)); if (hoe) wearAny(st, target, "hoe"); refreshStock(t); t.el.querySelector(".card-art").innerHTML = iconFor(t.stock >= 3 ? "fieldRipe" : "field"); }
@@ -1131,7 +1187,7 @@ function npcDone(st) {
   if (task === "harvest") { t.stock = 0; t.sown = false; refreshStock(t); t.el.querySelector(".card-art").innerHTML = iconFor("field"); carry(st, "grain", 3); }
   if (task === "dig" && t.stock > 0) { t.stock--; refreshStock(t); carry(st, "clay", 1); }
   if (task === "fetch" && t.stock > 0) { t.stock--; refreshStock(t); carry(st, "grain", 1); }
-  if (task === "fish") { const net = hasTool(st, target, "net"); carry(st, "fish", net ? 2 : 1, net ? 2 : 1); if (net) wearAny(st, target, "net"); }
+  if (task === "fish") { if (t.stock > 0) { t.stock--; refreshStock(t); } const net = hasTool(st, target, "net"); carry(st, "fish", net ? 2 : 1, net ? 2 : 1); if (net) wearAny(st, target, "net"); }
   if (task === "chop" && t.stock > 0) { t.stock--; refreshStock(t); carry(st, "log", 1); if (hasTool(st, target, "axe")) wearAny(st, target, "axe"); }
   if (task === "gather" && t.stock > 0) { t.stock--; refreshStock(t); addCard(st, st.want === "wood" ? "log" : st.want); if (st.want === "log" && hasTool(st, target, "axe")) wearAny(st, target, "axe"); }
   if (task === "fetchHome") { const pile = boards.tao.find((s) => s.store), c = pile?.cards.find((x) => x.key === st.want || (st.want === "wood" && x.key === "log")); if (c) { pile.cards = pile.cards.filter((x) => x !== c); if (!pile.cards.length) removeStack(pile); cardsLayer.append(c.el); st.cards.push(c); } }
@@ -1142,6 +1198,7 @@ function npcDone(st) {
   if (task === "store") storeCarry(st);
   if (task === "drop" || task === "give") dropCarry(st, t);
   if (task === "cook") { dropCarry(st); t.stock = (t.stock ?? 0) + 3; refreshStock(t); float("+3 熟食", center(target), "world"); }
+  deplete(t);
   // Not every waking hour is work: after a task they often stand and rest a while.
   if (task === "evening") st.npc.wait = 80;
   else if (task !== "eat" && st.npc.hunger < 9 && Math.random() < 0.4) st.npc.wait = 40 + Math.random() * 90;
@@ -1303,6 +1360,7 @@ function tick(minutes) {
   if (you && board === "world" && inJungle(center(you)) && me.jungleDay !== day()) { me.jungleDay = day(); toast("进丛林了：这是老虎的地盘，带上火把"); }
   if (day() !== lastDay) {
     lastDay = day();
+    for (let i = respawns.length - 1; i >= 0; i--) if (respawns[i].due <= clock.min) respawnNode(respawns.splice(i, 1)[0]);
     for (const [id, k] of Object.entries(me.known)) {
       if (k.day === day() - 1) continue;                       // used yesterday: still fresh
       k.mem -= FORGET_PER_DAY;
