@@ -3,7 +3,8 @@
 import { CELL, G, rng } from "./mapgen.js";
 
 const lerp = (a, b, t) => a + (b - a) * t;
-const mix = (c, d, t) => [lerp(c[0], d[0], t), lerp(c[1], d[1], t), lerp(c[2], d[2], t)];
+/** A #rrggbb colour with less light in it (k < 1), leaning a little towards blue-green shade. */
+const darker = (hex, k) => { const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map((v, i) => Math.round(v * k + [4, 10, 8][i] * (1 - k))); return `rgb(${c.join(",")})`; };
 const sm = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 const COMMON = { slope: [158, 150, 108], scree: [166, 158, 144], rock: [138, 126, 112], snow: [238, 240, 236], wetSand: [178, 162, 122], ford: [170, 182, 150] };
@@ -46,46 +47,75 @@ function fieldsOf(m) {
     shade[r * m.cols + c] = (at(r, c - 1) - at(r, c + 1) + at(r - 1, c) - at(r + 1, c)) * 5.5;
   }
   m._fields = [e, wat, blurField(m, wat, 2), blurField(m, ind((c) => (c === G.FORD ? 1 : 0))), blurField(m, ind((c) => (c === G.FOREST ? 1 : 0))),
-    blurField(m, ind((c) => (c === G.SAND ? 1 : 0))), blurField(m, ind((c) => (c === G.SCREE ? 1 : 0))), m.mo, shade, blurField(m, Float32Array.from(m.jungle ?? new Uint8Array(m.cls.length)), 2), blurField(m, Float32Array.from(m.water, (w) => (w === 3 ? 1 : 0))), blurField(m, ind((c) => (c === G.VOID ? 1 : 0)), 2), blurField(m, m.cover ?? new Float32Array(m.cls.length), 1)];
+    blurField(m, ind((c) => (c === G.SAND ? 1 : 0))), blurField(m, ind((c) => (c === G.SCREE ? 1 : 0))), m.mo, shade, blurField(m, Float32Array.from(m.jungle ?? new Uint8Array(m.cls.length)), 2), blurField(m, Float32Array.from(m.water, (w) => (w === 3 ? 1 : 0))), blurField(m, ind((c) => (c === G.VOID ? 1 : 0)), 2), blurField(m, m.cover ?? new Float32Array(m.cls.length), 1), blurField(m, ind((c) => (c === G.CAVE ? 1 : 0)))];
   return m._fields;
 }
 
-/** Base terrain, one pixel per 4 world px, shaded from the elevation; colours blend where ground changes. */
-function paintBase(m, L) {
+/** Base terrain, one pixel per 4 world px, shaded from the elevation; colours blend where ground changes.
+ *  Written with plain numbers (no arrays per pixel): it runs over a few million pixels, and open sea takes a short cut. */
+function paintBase(m, L) { const job = baseJob(m, L); while (!job.step(1e9)); return job.cv; }
+/** The same work cut into slices: step(ms) paints rows until the time is up; true when the canvas is finished. */
+function baseJob(m, L) {
   const K = 0.25, w = Math.round(m.W * K), h = Math.round(m.H * K);
-  const fields = fieldsOf(m), v = new Float32Array(fields.length);
+  const F = fieldsOf(m), NF = F.length, v = new Float32Array(NF);
   const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
   const g = cv.getContext("2d"), img = g.createImageData(w, h), px = img.data;
-  const C = { ...COMMON, ...L };
-  for (let y = 0; y < h; y++) {
+  const C = { ...COMMON, ...L }, W = L.winter;
+  const thinSnow = [168, 166, 140], jungleFloor = W ? [150, 162, 140] : [58, 84, 48], deepWood = [74, 100, 58], mist = [42, 33, 25], cave = W ? [112, 104, 96] : [92, 80, 68];
+  const C0 = new Int32Array(w), FX = new Float32Array(w);
+  for (let x = 0; x < w; x++) { const gx = Math.max(0, Math.min(m.cols - 1.001, (x / K) / CELL - 0.5)); C0[x] = Math.floor(gx); FX[x] = gx - C0[x]; }
+  const SEA = F[10], DIST = F[2];
+  let r = 0, gg = 0, b = 0, y = 0;
+  const mx = (c, t) => { if (t > 0) { r += (c[0] - r) * t; gg += (c[1] - gg) * t; b += (c[2] - b) * t; } };
+  const row = (y) => {
     const gy = Math.max(0, Math.min(m.rows - 1.001, (y / K) / CELL - 0.5)), r0 = Math.floor(gy), fy = gy - r0;
     for (let x = 0; x < w; x++) {
-      const gx = Math.max(0, Math.min(m.cols - 1.001, (x / K) / CELL - 0.5)), c0 = Math.floor(gx), fx = gx - c0;
-      const i00 = r0 * m.cols + c0, i10 = i00 + 1, i01 = i00 + m.cols, i11 = i01 + 1;
-      for (let k = 0; k < fields.length; k++) { const f = fields[k]; v[k] = lerp(lerp(f[i00], f[i10], fx), lerp(f[i01], f[i11], fx), fy); }
-      const [ev, wv, dv, fdv, fov, sav, scv, mov, shv, jv, sev, vov, cov] = v;
-      let col = mix(C.dry, C.lush, sm(0.3, 0.7, mov));
-      if (L.winter) col = mix(col, [168, 166, 140], sm(0.66, 0.74, mov) * 0.6);    // grass showing through thin snow
-      col = mix(col, C.forest, sm(0.3, 0.7, fov));
-      col = mix(col, L.winter ? [150, 162, 140] : [58, 84, 48], sm(0.3, 0.75, jv) * 0.85);     // jungle floor: deep shade
-      col = mix(col, C.slope, sm(0.6, 0.7, ev) * (1 - sm(0.4, 0.7, fov)));
-      col = mix(col, C.scree, sm(0.35, 0.65, scv));
-      col = mix(col, C.rock, sm(0.73, 0.8, ev));
-      col = mix(col, C.snow, sm(L.snowLine, L.snowLine + 0.08, ev));
-      col = mix(col, C.sand, sm(0.35, 0.6, sav) * (1 - sm(0.62, 0.7, ev)));
-      col = mix(col, C.wetSand, sm(0.36, 0.46, wv) * (1 - sm(0.48, 0.5, wv)) * (L.winter ? 0.3 : 1));
-      const isSea = sev > 0.55;
-      col = mix(col, mix(C.shallow, isSea ? C.sea : C.deep, sm(L.winter && !isSea ? 0.75 : 0.55, 0.95, dv)), sm(0.47, 0.52, wv));
-      col = mix(col, [74, 100, 58], sm(0.2, 0.75, cov) * sm(0.3, 0.7, fov) * 0.65);   // deep wood is darker than its edge
-      col = mix(col, [42, 33, 25], sm(0.4, 0.75, vov));                              // beyond the tiles: mist
+      const c0 = C0[x], fx = FX[x], i00 = r0 * m.cols + c0, i10 = i00 + 1, i01 = i00 + m.cols, i11 = i01 + 1;
+      const o = (y * w + x) * 4, n = (((x * 73856093) ^ (y * 19349663)) & 255) / 255 - 0.5;
+      if (SEA[i00] > 0.999 && SEA[i10] > 0.999 && SEA[i01] > 0.999 && SEA[i11] > 0.999 && DIST[i00] > 0.95 && DIST[i10] > 0.95 && DIST[i01] > 0.95 && DIST[i11] > 0.95) {
+        px[o] = C.sea[0] + n * 10; px[o + 1] = C.sea[1] + n * 10; px[o + 2] = C.sea[2] + n * 8; px[o + 3] = 255;   // open sea: nothing else shows
+        continue;
+      }
+      for (let k = 0; k < NF; k++) { const f = F[k], a0 = f[i00] + (f[i10] - f[i00]) * fx, a1 = f[i01] + (f[i11] - f[i01]) * fx; v[k] = a0 + (a1 - a0) * fy; }
+      const ev = v[0], wv = v[1], dv = v[2], fov = v[4], sav = v[5], scv = v[6], mov = v[7], shv = v[8], jv = v[9], sev = v[10], vov = v[11], cov = v[12], cav = v[13];
+      const tm = sm(0.3, 0.7, mov); r = C.dry[0] + (C.lush[0] - C.dry[0]) * tm; gg = C.dry[1] + (C.lush[1] - C.dry[1]) * tm; b = C.dry[2] + (C.lush[2] - C.dry[2]) * tm;
+      if (W) mx(thinSnow, sm(0.66, 0.74, mov) * 0.6);                       // grass showing through thin snow
+      const tf = sm(0.3, 0.7, fov);
+      mx(C.forest, tf);
+      mx(jungleFloor, sm(0.3, 0.75, jv) * 0.85);                            // jungle floor: deep shade
+      mx(C.slope, sm(0.6, 0.7, ev) * (1 - sm(0.4, 0.7, fov)));
+      mx(C.scree, sm(0.35, 0.65, scv));
+      mx(C.rock, sm(0.73, 0.8, ev));
+      mx(C.snow, sm(L.snowLine, L.snowLine + 0.08, ev));
+      mx(C.sand, sm(0.35, 0.6, sav) * (1 - sm(0.62, 0.7, ev)));
+      mx(C.wetSand, sm(0.36, 0.46, wv) * (1 - sm(0.48, 0.5, wv)) * (W ? 0.3 : 1));
+      const tw = sm(0.47, 0.52, wv);
+      if (tw > 0) {
+        const isSea = sev > 0.55, far = isSea ? C.sea : C.deep, td = sm(W && !isSea ? 0.75 : 0.55, 0.95, dv);
+        r += (C.shallow[0] + (far[0] - C.shallow[0]) * td - r) * tw; gg += (C.shallow[1] + (far[1] - C.shallow[1]) * td - gg) * tw; b += (C.shallow[2] + (far[2] - C.shallow[2]) * td - b) * tw;
+      }
+      mx(deepWood, sm(0.2, 0.75, cov) * tf * 0.65);                        // deep wood is darker than its edge
+      mx(mist, sm(0.4, 0.75, vov));                                          // beyond the tiles: mist
+      mx(cave, sm(0.25, 0.6, cav));                                          // the tunnel floor: trodden rock
       const light = Math.max(0.72, Math.min(1.22, 1 + shv * (0.35 + 0.9 * sm(0.5, 0.85, ev)) * (wv > 0.5 ? 0.1 : 1)));
-      const n = (((x * 73856093) ^ (y * 19349663)) & 255) / 255 - 0.5;
-      const o = (y * w + x) * 4;
-      px[o] = col[0] * light + n * 10; px[o + 1] = col[1] * light + n * 10; px[o + 2] = col[2] * light + n * 8; px[o + 3] = 255;
+      px[o] = r * light + n * 10; px[o + 1] = gg * light + n * 10; px[o + 2] = b * light + n * 8; px[o + 3] = 255;
     }
-  }
-  g.putImageData(img, 0, 0);
-  return cv;
+  };
+  return { cv, step(ms) {
+    const until = performance.now() + ms;
+    while (y < h) { row(y++); if ((y & 7) === 0 && performance.now() > until) return false; }
+    g.putImageData(img, 0, 0);
+    return true;
+  } };
+}
+/** Get the next season's ground ready a slice at a time while nothing much is happening, so the change itself doesn't stall. */
+export function prewarmBase(m, season) {
+  m._base ??= {};
+  if (m._base[season] || m._warming === season) return;
+  m._warming = season;
+  const job = baseJob(m, SEASON_LOOK[season]);
+  const slice = () => { if (m._warming !== season) return; if (job.step(8)) { m._base[season] = job.cv; m._warming = null; } else setTimeout(slice, 30); };
+  setTimeout(slice, 30);
 }
 
 function curve(g, pts) {
@@ -207,7 +237,8 @@ export function paintTerrain(canvas, m, { DECO = {}, keepClear = [], season = "æ
   canvas.width = m.W * K; canvas.height = m.H * K; canvas.style.width = `${m.W}px`; canvas.style.height = `${m.H}px`;
   const g = canvas.getContext("2d");
   g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high";
-  g.drawImage(paintBase(m, L), 0, 0, canvas.width, canvas.height);
+  m._base ??= {};                                    // the base depends only on the map and the season: paint each once
+  g.drawImage(m._base[season] ??= paintBase(m, L), 0, 0, canvas.width, canvas.height);
   g.scale(K, K); g.lineCap = g.lineJoin = "round";
   const R = rng(m.seed ^ 0x2f1);                      // same seed every season: things stay where they were
 
@@ -228,7 +259,7 @@ export function paintTerrain(canvas, m, { DECO = {}, keepClear = [], season = "æ
       g.globalAlpha = .92; g.fillStyle = soil; g.fill(); g.globalAlpha = 1; g.clip();
       g.strokeStyle = furrow; g.lineWidth = 9;
       for (let y = s.y - h / 2 + 26; y < s.y + h / 2; y += 44) { g.beginPath(); g.moveTo(s.x - w / 2, y); g.quadraticCurveTo(s.x, y - 10, s.x + w / 2, y + 6); g.stroke(); }
-      if (!L.winter) { g.strokeStyle = crop; g.lineWidth = 5; for (let y = s.y - h / 2 + 32; y < s.y + h / 2; y += 44) for (let x = s.x - w / 2 + 22; x < s.x + w / 2 - 10; x += 30) { const yy = y - 10 * (1 - ((x - s.x) / (w / 2)) ** 2) * 0.3; g.beginPath(); g.moveTo(x, yy + 5); g.lineTo(x + 2, yy - (season === "æ˜¥" ? 5 : 12)); g.stroke(); } }
+      if (!L.winter && !s.card) { g.strokeStyle = crop; g.lineWidth = 5; for (let y = s.y - h / 2 + 32; y < s.y + h / 2; y += 44) for (let x = s.x - w / 2 + 22; x < s.x + w / 2 - 10; x += 30) { const yy = y - 10 * (1 - ((x - s.x) / (w / 2)) ** 2) * 0.3; g.beginPath(); g.moveTo(x, yy + 5); g.lineTo(x + 2, yy - (season === "æ˜¥" ? 5 : 12)); g.stroke(); } }   // fields with a card grow their crop on their own layer (paintCrop)
       g.restore();
     }
     if (s.patch === "bank") { blob(g, s.x, s.y, 150, R); g.fillStyle = `rgba(${L.sand.join(",")},.55)`; g.fill(); }
@@ -284,7 +315,7 @@ export function paintTerrain(canvas, m, { DECO = {}, keepClear = [], season = "æ
   const items = [];
   for (let i = 0; i < m.cls.length; i++) {
     const c = m.cls[i], x = m.X(i), y = m.Y(i), r1 = R(), r2 = R();
-    if (m.road[i]) continue;
+    if (m.road[i] || c === G.CAVE) continue;
     const j = () => ({ x: x + (R() - 0.5) * CELL * 2.3, y: y + (R() - 0.5) * CELL * 2.3 });
     if ((c === G.ROCK || c === G.SNOW) && r1 < 0.1) { items.push({ x: x + (r2 - 0.5) * CELL, y: y + (R() - 0.5) * CELL, kind: "peak", s: 0.6 + R() * 0.35 + (m.elev[i] - 0.76), v: R(), snow: m.elev[i] > L.snowLine - 0.06 }); continue; }
     if (m.orchard?.[i]) {                                             // trees set out in rows, grass between
@@ -316,13 +347,70 @@ export function paintTerrain(canvas, m, { DECO = {}, keepClear = [], season = "æ
   const grows = (eco ?? []).map((e) => ({ x: e.x, y: e.y, s: e.size, v: e.v, kind: e.kind, bare: e.bare, dry: e.dry })).sort((a, b) => a.y - b.y);
   for (const it of grows) if (it.kind === "tree" || it.kind === "berry") shadow(g, it);
   for (const it of grows) drawDeco(g, it, DECO, L);
+  if (m.tunnel) mouth(g, m.tunnel);
   if (house) paintFence(g, house, L);
+}
+
+/** The crop on one field, on its own small canvas: it changes with sowing, weeding and harvest, the ground doesn't. */
+export function paintCrop(canvas, f, season, stock) {
+  const L = SEASON_LOOK[season], K = 0.5, { w, h } = f;
+  canvas.width = Math.round(w * K); canvas.height = Math.round(h * K);
+  const g = canvas.getContext("2d"); g.scale(K, K); g.lineCap = "round";
+  const tall = 5 + stock * 5 + (season === "å¤" ? 4 : 0), ripe = season === "ç§‹" && stock >= 3;
+  g.beginPath(); g.roundRect(0, 0, w, h, 34); g.clip();
+  for (let y = 32; y < h; y += 44) for (let x = 22; x < w - 10; x += 30) {
+    const yy = y - 10 * (1 - ((x - w / 2) / (w / 2)) ** 2) * 0.3;
+    g.strokeStyle = ripe ? "#c9a640" : L.field[2]; g.lineWidth = 5; g.beginPath(); g.moveTo(x, yy + 5); g.lineTo(x + 2, yy - tall); g.stroke();
+    if (ripe) { g.fillStyle = "#e8c45a"; g.beginPath(); g.ellipse(x + 3, yy - tall, 3.5, 7, 0.35, 0, 7); g.fill(); }
+  }
+}
+
+/** The way into the mountain: a dark arch at the tunnel's mouth, the rest of it under the cover. */
+function mouth(g, t) {
+  const { x, y } = t.mouth, gr = g.createRadialGradient(x + 70, y, 10, x + 70, y, 120);
+  gr.addColorStop(0, "rgba(20,14,10,.85)"); gr.addColorStop(0.6, "rgba(30,22,16,.55)"); gr.addColorStop(1, "rgba(30,22,16,0)");
+  g.fillStyle = gr; g.beginPath(); g.ellipse(x + 70, y, 110, 90, 0, 0, 7); g.fill();
+  g.strokeStyle = "#4e463c"; g.lineWidth = 10; g.beginPath(); g.ellipse(x + 60, y, 70, 84, 0, Math.PI * 0.6, Math.PI * 1.4); g.stroke();
+}
+
+/** What the mountain looks like over the tunnel while you are outside: rock and peaks, fading out at the edge. */
+export function paintCover(canvas, m, rect, season = "æ˜¥") {
+  const L = SEASON_LOOK[season], K = 0.5;
+  canvas.width = Math.round(rect.w * K); canvas.height = Math.round(rect.h * K);
+  const g = canvas.getContext("2d");
+  g.scale(K, K);
+  const R = rng(m.seed ^ 0xc0e7);
+  g.fillStyle = L.winter ? "#c8c4bc" : "#8c8172"; g.fillRect(0, 0, rect.w, rect.h);
+  for (let k = 0; k < 160; k++) {                                          // mottled stone
+    g.fillStyle = R() < 0.5 ? "rgba(60,50,40,.10)" : "rgba(250,240,225,.08)";
+    g.beginPath(); g.arc(R() * rect.w, R() * rect.h, 18 + R() * 60, 0, 7); g.fill();
+  }
+  const peaks = Array.from({ length: Math.round(rect.w * rect.h / 26000) }, () => ({ x: 40 + R() * (rect.w - 80), y: 70 + R() * (rect.h - 90), kind: "peak", s: 0.7 + R() * 0.4, v: R(), snow: L.winter || R() < 0.3 }));
+  peaks.sort((a, b) => a.y - b.y).forEach((it) => drawDeco(g, it, {}, L));
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.globalCompositeOperation = "destination-in";                            // feather the edge into the painted mountain
+  const f = 40 * K, w = canvas.width, h = canvas.height;
+  for (const [x0, y0, x1, y1] of [[0, 0, f, 0], [w, 0, w - f, 0], [0, 0, 0, f], [0, h, 0, h - f]]) {
+    const gr = g.createLinearGradient(x0, y0, x1, y1); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,1)");
+    g.fillStyle = gr; g.fillRect(x0 === x1 ? 0 : Math.min(x0, x1), y0 === y1 ? 0 : Math.min(y0, y1), x0 === x1 ? w : f, y0 === y1 ? h : f);
+  }
+  g.globalCompositeOperation = "source-over";
 }
 
 /** A wooden fence round a house's yard, with a gate gap on the south side. */
 function paintFence(g, house, L) {
   const { x, y, w, h, gate } = house, t = 14;
   g.save(); g.lineCap = "round";
+  // Inside the walls the ground is floored: boards laid edge to edge, a few knots and worn patches.
+  const R = rng(Math.round(x * 7 + y));
+  g.fillStyle = L.winter ? "#a89478" : "#a27c50"; g.fillRect(x, y, w, h);
+  for (let py = y + 8; py < y + h; py += 34) {
+    g.fillStyle = R() < 0.5 ? "rgba(255,240,210,.07)" : "rgba(70,45,20,.07)"; g.fillRect(x, py, w, 34);
+    g.strokeStyle = "rgba(70,46,24,.45)"; g.lineWidth = 2.5; g.beginPath(); g.moveTo(x, py); g.lineTo(x + w, py); g.stroke();
+    for (let px = x + 40 + R() * 120; px < x + w - 20; px += 140 + R() * 120) { g.beginPath(); g.moveTo(px, py); g.lineTo(px, py + 34); g.stroke(); }
+    if (R() < 0.6) { g.fillStyle = "rgba(80,52,26,.35)"; g.beginPath(); g.ellipse(x + 30 + R() * (w - 60), py + 17, 5, 3, 0, 0, 7); g.fill(); }
+  }
+  if (L.winter) { g.fillStyle = "rgba(240,242,238,.35)"; g.fillRect(gate.x - 10, y + h - 60, gate.w + 20, 60); }   // snow blown in at the gate
   const wood = L.winter ? "#8a7860" : "#6e5232", cap = L.winter ? "rgba(240,242,238,.7)" : null;
   const rail = (x1, y1, x2, y2) => {
     g.strokeStyle = "rgba(30,20,10,.22)"; g.lineWidth = t + 8; g.beginPath(); g.moveTo(x1, y1 + 3); g.lineTo(x2, y2 + 3); g.stroke();
@@ -391,7 +479,7 @@ function drawDeco(g, it, DECO, L) {
     if (!blossom) { g.fillStyle = L.leaves ? "#a8442e" : "#e88a6a"; for (let q = 0; q < 9; q++) { g.beginPath(); g.arc(Math.cos(k + q * 0.7) * (14 + (q % 3) * 8), Math.sin(k + q * 0.7) * (12 + (q % 3) * 6), 5.5, 0, 7); g.fill(); } }
   } else if (it.kind === "jtree") {
     const k = v * 6.28, parts = [[0, 0, 46], ...[0, 1, 2, 3, 4, 5].map((i) => [Math.cos(k + i * 1.05) * 34, Math.sin(k + i * 1.05) * 30, 28 + ((i * 5 + v * 9) % 9)])];
-    blobs(parts, L.canopy[Math.floor(v * L.canopy.length) % L.canopy.length]);
+    blobs(parts, L.canopy[Math.floor(v * L.canopy.length) % L.canopy.length].map((c) => darker(c, L.winter ? 0.85 : 0.62)));   // the same trees, but no light gets in
     if (L.winter) { g.fillStyle = "rgba(240,242,238,.55)"; for (let q = 0; q < 4; q++) { g.beginPath(); g.arc(Math.cos(k + q) * 20 - 6, Math.sin(k + q) * 16 - 8, 7, 0, 7); g.fill(); } }
     g.strokeStyle = "rgba(90,120,60,.7)"; g.lineWidth = 3;                // hanging vines
     for (let q = 0; q < 3; q++) { const x = (q - 1) * 22 + v * 10; g.beginPath(); g.moveTo(x, 20); g.quadraticCurveTo(x + 6, 40, x - 2, 58); g.stroke(); }

@@ -31,9 +31,7 @@ button { font-family: inherit; cursor: pointer; }
 .table.paused .world, .table.paused .room { filter: saturate(.55); }
 /* Night: darkness painted on a canvas, cut away where there is light (app.js · drawDark). */
 .dark { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 30000; }
-.weather { position: absolute; inset: 0; pointer-events: none; z-index: 31000; opacity: 0; transition: opacity .6s; }
-.weather.rain { opacity: .38; background-image: repeating-linear-gradient(105deg, rgba(200, 220, 255, .4) 0 1px, transparent 1px 11px); animation: rain .55s linear infinite; }
-@keyframes rain { to { background-position: 40px 80px; } }
+.weather { position: absolute; inset: 0; pointer-events: none; z-index: 31000; opacity: 0; }   /* the sky's tint under rain or snow, set each frame */
 .snowfall { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 31000; }
 
 /* ---------- Rooms ---------- */
@@ -51,6 +49,7 @@ button { font-family: inherit; cursor: pointer; }
   transition: transform .12s linear, opacity .3s, filter .3s; will-change: transform; cursor: pointer;
 }
 .card.hidden { visibility: hidden; pointer-events: none; }
+.card.no-card { display: none !important; }
 .card-head { flex: 0 0 26px; display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 0 7px; border-radius: 6px 6px 0 0;
   background: var(--c); color: #fffaf0; font-size: 13px; font-weight: 800; border-bottom: 2px solid var(--line); white-space: nowrap; overflow: hidden; }
 .card-head .stock { font-style: normal; font-size: 12px; background: rgba(0, 0, 0, .28); border-radius: 6px; padding: 0 6px; }
@@ -284,3 +283,29 @@ button { font-family: inherit; cursor: pointer; }
   border-radius: 6px;
 }
 .roof.open { opacity: 0; pointer-events: none; }
+
+/* The mountainside over the tunnel: it lifts when you walk in. */
+.cover { position: absolute; z-index: 8000; pointer-events: auto; transition: opacity .45s ease; }
+.cover.open { opacity: 0; pointer-events: none; }
+
+/* What people say pops up in the top right, with their face; thoughts are quieter. */
+.chat { position: fixed; z-index: 41000; right: calc(10px + env(safe-area-inset-right)); top: calc(62px + env(safe-area-inset-top)); width: min(340px, 70vw); display: grid; gap: 6px; pointer-events: none; }
+.chat-line { display: grid; grid-template-columns: 40px 1fr; gap: 8px; align-items: start; padding: 7px 10px 8px 7px; border-radius: 12px; background: rgba(255, 250, 240, .96); border: 3px solid var(--line); box-shadow: 0 4px 0 rgba(36, 26, 18, .35); animation: chatin .25s ease-out; transition: opacity .5s, transform .5s; }
+.chat-line.out { opacity: 0; transform: translateX(16px); }
+.chat-line .chat-face { width: 40px; height: 40px; border-radius: 8px; overflow: hidden; background: #efe2c8; display: grid; place-items: center; }
+.chat-line .chat-face svg, .chat-line .chat-face img { width: 100%; height: 100%; }
+.chat-line b { font-size: 13px; color: #6a4a2a; }
+.chat-line b i { font-style: normal; font-weight: 600; font-size: 11px; color: #9a8a74; margin-left: 6px; }
+.chat-line p { margin: 2px 0 0; font-family: var(--serif); font-size: 14.5px; line-height: 1.5; color: #2e241a; }
+.chat-line.think { background: rgba(236, 232, 222, .92); border-style: dashed; }
+.chat-line.think p { color: #5e5446; font-style: italic; }
+@keyframes chatin { from { opacity: 0; transform: translateX(20px); } }
+.card.talking::after, .card.thinking::after { content: "💬"; position: absolute; right: -12px; top: -18px; font-size: 20px; filter: drop-shadow(0 1px 0 #3a2c20); pointer-events: none; }
+.card.thinking::after { content: "💭"; }
+.card.musing { filter: saturate(.85); }
+.card.musing .card-art::after { content: "…"; position: absolute; right: 10px; top: 26px; font-weight: 900; color: #8a7a6a; font-size: 18px; animation: zz 1.8s infinite; }
+.card.hidden-kit { display: none !important; }
+.crop { position: absolute; z-index: 1; pointer-events: none; }
+/* Winter: snow lies on the thatch; in rain the thatch darkens with wet. */
+.table[data-season="冬"] .roof { background: radial-gradient(ellipse 30% 22% at 28% 30%, rgba(246, 248, 246, .95), transparent 70%), radial-gradient(ellipse 34% 20% at 70% 64%, rgba(246, 248, 246, .9), transparent 70%), linear-gradient(rgba(240, 242, 240, .78), rgba(226, 230, 230, .7)), repeating-linear-gradient(90deg, #8a6a3c 0 12px, #7c5e34 12px 24px); }
+.table[data-weather="雨"] .roof { filter: brightness(.82) saturate(.9); }

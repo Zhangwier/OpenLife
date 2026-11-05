@@ -2,8 +2,9 @@
 import { iconFor } from "./icons.js";
 import { loadArt, deco as DECO } from "./art.js";
 import { generateWorld, walkable, reachAlong, findPath, woodDepth, G } from "./mapgen.js";
-import { paintTerrain, paintTide } from "./terrain.js";
-import { LAND, SITES, LAYOUT, PEOPLE, START, WOOD_LAYOUT, LAKE_LAYOUT } from "./valley.js";
+import { paintTerrain, paintTide, paintCover, paintCrop, prewarmBase } from "./terrain.js";
+import { LAND, SITES, LAYOUT, PEOPLE, START, WOOD_LAYOUT, LAKE_LAYOUT, FARM_FIELDS, FIELD_SIZE, PLATEAU_LAYOUT } from "./valley.js";
+import * as VOICE from "./voice.js";
 
 const $ = (id) => document.getElementById(id);
 const CARD_W = 112, CARD_H = 148, PEEK = 30;
@@ -14,7 +15,7 @@ const SIZE = { taoHouse: "m", bighouse: "l", barn: "m" };
 const REVEAL = 640, SIGHT = 9999, REACH = 260, HUNT = 360;
 const MOVE_RANGE = 560;                // how far you can go in one drag, fed and rested
 const PX_PER_MIN = 20;                 // walking speed: px per game minute
-const MIN_PER_SEC = 15;                // at 1×, one game day ≈ 96 s; dusk and dawn take a few seconds each
+const MIN_PER_SEC = 8;                 // at 1×, one game day = 180 s (3 minutes); dusk and dawn take several seconds each
 const SEASONS = ["春", "夏", "秋", "冬"], DAYS_PER_SEASON = 4;
 
 const params = new URLSearchParams(location.search);
@@ -28,25 +29,24 @@ const WW = MAP.W, WH = MAP.H;
 // ---------------------------------------------------------------------------
 const DEFS = {
   you:        { name: "你 · 启禾", type: "you", icon: "you", text: "十六岁，刚搬进陶家庭院帮工。" },
-  aunt:       { name: "陶婶", type: "person", icon: "aunt", text: "操持家事。白天去湖边捞鱼，送去公灶。" },
-  yu:         { name: "阿予", type: "person", icon: "yu", text: "种地的年轻人。收了粟就背去公仓。" },
-  zao:        { name: "阿灶", type: "person", icon: "cook", text: "管公灶。从公仓取粟，煮给全村吃。" },
-  zhi:        { name: "阿埴", type: "person", icon: "digger", text: "挖土的。把黏土一份份背去共用陶窑。" },
+  aunt:       { name: "陶婶", type: "person", icon: "aunt", text: "操持家事，管着公灶：从公仓取粟煮饭，锅满了就去湖边捞鱼。嘴上爱念叨，心里热乎。" },
+  san:        { name: "阿三", type: "person", icon: "yu", text: "种地的。话少，手上的活从不含糊：春天下种，春夏锄草，秋天收了粟背去公仓。" },
   dog:        { name: "阿黄", type: "animal", icon: "dog", text: "院子里的狗，在家附近转悠。" },
   rabbit:     { name: "野兔", type: "animal", icon: "rabbit", text: "一只野兔。你靠近它就蹦开；走近了、带着石斧或燧石刀才打得着。" },
   taoHouse:   { name: "陶家主屋", type: "house", icon: "house", text: "全村人晚上都睡在这儿。南边有道门，走进院子才看得见铺位和火塘。" },
-  stove:      { name: "公用灶台", type: "structure", icon: "stove", text: "全村吃饭的地方。走过来就吃，吃到饱为止（一份熟食顶小半个饱）。", stockLabel: "熟食" },
-  granary:    { name: "公仓", type: "structure", icon: "granary", text: "村里的存粮。本身只能存 10 份粟，每放进一只陶罐多存 5 份；存不下的粟就糟蹋了。阿予收了粟背来，阿灶从这里取。", stockLabel: "粟" },
-  kiln:       { name: "共用陶窑", type: "structure", icon: "kiln", text: "阿埴背来的黏土堆在这儿。带一捆柴来，就用窑上的两份黏土烧一个陶罐（自己带两份黏土也行）。空罐拿到公灶能装三份熟食。", stockLabel: "黏土" },
-  field:      { name: "旱地·西块", type: "source", icon: "field", text: "阿予照看的田。照看几天才熟；带石锄来能帮着锄。", stockLabel: "长势" },
-  field2:     { name: "旱地·东块", type: "source", icon: "field", text: "同一片田的另一头，阿予两边轮着照看。", stockLabel: "长势" },
-  lake:       { name: "湖边", type: "source", icon: "river", text: "走过来：捞鱼。网眼里的鱼会被捞光，过一两天鱼群再回来。", stock: 10 },
-  pit:        { name: "黏土坑", type: "source", icon: "pit", text: "河湾的黏土。走过来：挖一份。", stock: 14 },
+  stove:      { name: "公用灶台", type: "structure", icon: "stove", text: "全家吃饭的地方。走过来就吃，吃到饱为止（一份熟食顶小半个饱）。", stockLabel: "熟食" },
+  granary:    { name: "公仓", type: "structure", icon: "granary", text: "家里的存粮，能存 20 份粟；存不下的粟就糟蹋了。阿三收了粟背来，陶婶从这里取去煮。", stockLabel: "粟" },
+  field:      { name: "旱地·一", type: "source", icon: "field", text: "春天带 1 份粟来播种；春夏锄草（带石锄快一倍），长势到 3 就等秋天收，一块收 6 份粟。入冬还没收的就烂在地里。", stockLabel: "长势" },
+  field2:     { name: "旱地·二", type: "source", icon: "field", text: "同一片田的另一头，一样春种、夏锄、秋收，冬天歇地。", stockLabel: "长势" },
+  lake:       { name: "湖边", type: "source", icon: "river", text: "走过来：捞鱼。网眼里的鱼会被捞光，过一两天鱼群再回来。", stock: 7 },
+  pit:        { name: "黏土坑", type: "source", icon: "pit", text: "河湾的黏土。走过来：挖一份。", stock: 6 },
   reeds:      { name: "芦苇荡", type: "source", icon: "reeds", text: "走过来：割芦苇（带燧石刀一次两捆）。割光了要等几天才长回来。", stock: 5 },
   chestnut:   { name: "栗子树", type: "source", icon: "chestnut", text: "走过来：伐木（带石斧一次两根木头）。砍光了树桩要歇几天再长。", stock: 4, stockLabel: "木头" },
-  scree:      { name: "乱石滩", type: "source", icon: "scree", text: "山上滚下来的石头。走过来：捡一块趁手的石块。", stock: 20 },
-  flintVein:  { name: "燧石", type: "source", icon: "flint", text: "乱石堆里夹着的燧石。燧石硬，要带一块石块当锤子才敲得下来。", stock: 8 },
-  hemp:       { name: "葛麻丛", type: "source", icon: "hemp", text: "走过来：割葛麻剥纤维（带燧石刀一次两份）。", stock: 10 },
+  scree:      { name: "林间石堆", type: "source", icon: "scree", text: "林子里露出来的石堆。走过来：捡一块趁手的石块。", stock: 6 },
+  flintVein:  { name: "燧石", type: "source", icon: "flint", text: "矿道石缝里夹着的燧石。燧石硬，要带一块石块当锤子才敲得下来。", stock: 5 },
+  mineFace:   { name: "矿道石壁", type: "source", icon: "scree", text: "矿道尽头的石壁。空手抠一块石头要好一阵；带石锤一次敲下两块。每天能再凿出一些。", stock: 7, stockLabel: "石块" },
+  cliffFoot:  { name: "崖脚", type: "source", icon: "scree", text: "高原的崖壁底下。崖太陡，直接爬不上去，得先做出攀爬的工具（还没定）。上了高原，每一步都费力气。" },
+  hemp:       { name: "葛麻丛", type: "source", icon: "hemp", text: "走过来：割葛麻剥纤维（带燧石刀一次两份）。", stock: 6 },
   berries:    { name: "野果丛", type: "source", icon: "berries", text: "春夏秋有果子，每天长一些；冬天只剩枝子。", stock: 0 },
   clay:       { name: "黏土", type: "material", icon: "clay", text: "一份湿黏土。" },
   reed:       { name: "芦苇", type: "material", icon: "reed", text: "一捆芦苇。补船用得上。" },
@@ -70,7 +70,6 @@ const DEFS = {
   peachFruit: { name: "桃", type: "food", icon: "peach", text: "一个熟桃。", food: 14 },
   jujubeFruit:{ name: "枣", type: "food", icon: "jujube", text: "一把红枣。", food: 10 },
   tiger:      { name: "老虎", type: "animal", icon: "tiger", text: "丛林里的老虎。饿了就去扑鹿；你没拿火把走近它，它会扑人。火把能把它逼退；石矛能打它，可只有一半把握。" },
-  jungleFood: { name: "老林深处", type: "source", icon: "jungle", text: "老林深处，树密得透不进光，地上长着蘑菇。这是老虎的地盘，村里人不往这儿来。", stock: 6 },
   mushroom:   { name: "蘑菇", type: "food", icon: "mushroom", text: "丛林里采的蘑菇。", food: 16 },
   pelt:       { name: "虎皮", type: "material", icon: "pelt", text: "一张虎皮。打到老虎的人，村里会记很久。" },
   duck:       { name: "野鸭", type: "animal", icon: "duck", text: "在湖面上游来游去，在芦苇里做窝。" },
@@ -104,20 +103,18 @@ const SERVING = 45;                    // one helping at the stove
 // Recipes with an id are know-how: you have to have learned them (or work them out, slowly and not always).
 // who: the villagers who know it and can teach you. Recipes without an id are things anyone can do.
 const RECIPES = [
-  { id: "jar", who: ["zhi"], needs: ["kiln", "clay", "clay", "wood"], make: ["jar"], min: 360, use: ["clay", "clay", "wood"], mark: "第一只陶罐" },
-  { id: "jar", who: ["zhi"], needs: ["kiln", "wood"], make: ["jar"], min: 360, use: ["wood"], kilnClay: 2, mark: "第一只陶罐" },
-  { id: "basket", who: ["yu"], needs: ["fire", "reed", "reed", "reed", "rope"], make: ["basket"], min: 180, use: ["reed", "reed", "reed", "rope"], mark: "第一只背篓" },
+  { id: "basket", who: ["san"], needs: ["fire", "reed", "reed", "reed", "rope"], make: ["basket"], min: 180, use: ["reed", "reed", "reed", "rope"], mark: "第一只背篓" },
   { id: "net", who: ["aunt"], needs: ["fire", "fiber", "fiber", "rope"], make: ["net"], min: 180, use: ["fiber", "fiber", "rope"], mark: "第一张渔网" },
   { id: "sandals", who: ["aunt"], needs: ["fire", "reed", "reed", "fiber"], make: ["sandals"], min: 120, use: ["reed", "reed", "fiber"], mark: "第一双草鞋" },
-  { id: "hoe", who: ["yu"], needs: ["fire", "stone", "log", "fiber"], make: ["hoe"], min: 120, use: ["stone", "log", "fiber"], mark: "第一把石锄" },
-  { id: "roast", who: ["aunt", "zao"], needs: ["fire", "fish", "wood"], make: ["roastFish"], min: 40, use: ["fish", "wood"] },
-  { id: "roast", who: ["aunt", "zao"], needs: ["fire", "meat", "wood"], make: ["roastMeat"], min: 50, use: ["meat", "wood"] },
-  { id: "torch", who: ["zao"], needs: ["fire", "wood", "fiber"], make: ["torch"], min: 30, use: ["wood", "fiber"] },
-  { id: "hammer", who: ["zhi"], needs: ["fire", "stone", "stone", "log"], make: ["hammer"], min: 90, use: ["stone", "stone", "log"], mark: "第一把石锤" },
-  { id: "axe", who: ["yu", "zhi"], needs: ["fire", "stone", "log"], make: ["axe"], min: 120, use: ["stone", "log"], mark: "第一把石斧" },
-  { id: "spear", who: ["zhi"], needs: ["fire", "flint", "log", "fiber"], make: ["spear"], min: 150, use: ["flint", "log", "fiber"], mark: "第一支石矛" },
-  { id: "knife", who: ["zhi"], needs: ["fire", "flint", "log"], make: ["knife"], min: 150, use: ["flint", "log"], mark: "第一把燧石刀" },
-  { id: "rope", who: ["aunt", "yu"], needs: ["fire", "fiber", "fiber"], make: ["rope"], min: 90, use: ["fiber", "fiber"] },
+  { id: "hoe", who: ["san"], needs: ["fire", "stone", "log", "fiber"], make: ["hoe"], min: 120, use: ["stone", "log", "fiber"], mark: "第一把石锄" },
+  { id: "roast", who: ["aunt"], needs: ["fire", "fish", "wood"], make: ["roastFish"], min: 40, use: ["fish", "wood"] },
+  { id: "roast", who: ["aunt"], needs: ["fire", "meat", "wood"], make: ["roastMeat"], min: 50, use: ["meat", "wood"] },
+  { id: "torch", who: ["aunt"], needs: ["fire", "wood", "fiber"], make: ["torch"], min: 30, use: ["wood", "fiber"] },
+  { id: "hammer", who: ["san"], needs: ["fire", "stone", "stone", "log"], make: ["hammer"], min: 90, use: ["stone", "stone", "log"], mark: "第一把石锤" },
+  { id: "axe", who: ["san"], needs: ["fire", "stone", "log"], make: ["axe"], min: 120, use: ["stone", "log"], mark: "第一把石斧" },
+  { id: "spear", who: ["san"], needs: ["fire", "flint", "log", "fiber"], make: ["spear"], min: 150, use: ["flint", "log", "fiber"], mark: "第一支石矛" },
+  { id: "knife", who: ["san"], needs: ["fire", "flint", "log"], make: ["knife"], min: 150, use: ["flint", "log"], mark: "第一把燧石刀" },
+  { id: "rope", who: ["aunt", "san"], needs: ["fire", "fiber", "fiber"], make: ["rope"], min: 90, use: ["fiber", "fiber"] },
   { needs: ["fire", "log", "axe"], make: ["wood", "wood"], min: 90, use: ["log"] },
   { needs: ["lake", "net"], make: ["fish", "fish"], min: 90, take: true },
   { needs: ["fire", "wood"], make: [], min: 20, use: ["wood"], fuel: true },
@@ -130,18 +127,19 @@ const RECIPES = [
   { needs: ["lake"], make: ["fish"], min: 120, take: true },
   { needs: ["chestnut"], make: ["log"], min: 180, take: true },
   { needs: ["scree"], make: ["stone"], min: 45, take: true },
+  { needs: ["mineFace", "hammer"], make: ["stone", "stone"], min: 60, take: true },
+  { needs: ["mineFace"], make: ["stone"], min: 90, take: true },
   { needs: ["hemp"], make: ["fiber"], min: 90, take: true },
   { needs: ["berries"], make: ["berry", "berry"], min: 40, take: true },
-  { needs: ["field", "grain"], when: (t) => t.sown === false, make: [], min: 60, use: ["grain"], sow: true },
-  { needs: ["field2", "grain"], when: (t) => t.sown === false, make: [], min: 60, use: ["grain"], sow: true },
-  { needs: ["field"], when: (t) => t.stock >= 3 && t.sown !== false, make: ["grain", "grain", "grain"], min: 120, harvest: true },
-  { needs: ["field2"], when: (t) => t.stock >= 3 && t.sown !== false, make: ["grain", "grain", "grain"], min: 120, harvest: true },
-  { needs: ["field", "hoe"], when: (t) => t.sown !== false, make: [], min: 60, tend: 2 },
-  { needs: ["field2", "hoe"], when: (t) => t.sown !== false, make: [], min: 60, tend: 2 },
-  { needs: ["field"], when: (t) => t.sown !== false, make: [], min: 150, tend: 1 },
-  { needs: ["field2"], when: (t) => t.sown !== false, make: [], min: 150, tend: 1 },
+  { needs: ["field", "grain"], when: (t) => t.sown === false && season() === "春", make: [], min: 60, use: ["grain"], sow: true },
+  { needs: ["field2", "grain"], when: (t) => t.sown === false && season() === "春", make: [], min: 60, use: ["grain"], sow: true },
+  { needs: ["field"], when: (t) => t.stock >= 3 && t.sown !== false && season() === "秋", make: ["grain", "grain", "grain", "grain", "grain", "grain"], min: 120, harvest: true },
+  { needs: ["field2"], when: (t) => t.stock >= 3 && t.sown !== false && season() === "秋", make: ["grain", "grain", "grain", "grain", "grain", "grain"], min: 120, harvest: true },
+  { needs: ["field", "hoe"], when: (t) => t.sown !== false && (season() === "春" || season() === "夏"), make: [], min: 60, tend: 2 },
+  { needs: ["field2", "hoe"], when: (t) => t.sown !== false && (season() === "春" || season() === "夏"), make: [], min: 60, tend: 2 },
+  { needs: ["field"], when: (t) => t.sown !== false && (season() === "春" || season() === "夏"), make: [], min: 150, tend: 1 },
+  { needs: ["field2"], when: (t) => t.sown !== false && (season() === "春" || season() === "夏"), make: [], min: 150, tend: 1 },
   { needs: ["nest"], make: ["egg"], min: 20, take: true },
-  { needs: ["jungleFood"], make: ["mushroom"], min: 60, take: true },
   { needs: ["peach"], make: ["peachFruit"], min: 20, take: true },
   { needs: ["jujube"], make: ["jujubeFruit", "jujubeFruit"], min: 30, take: true },
   { needs: ["shallows"], make: ["clam"], min: 60, take: true },
@@ -151,16 +149,13 @@ const RECIPES = [
   { needs: ["stove"], make: [], min: 30, eat: true },
   { needs: ["bed"], make: [], min: 0, sleep: true },
 ];
-const TALK = {
-  aunt: ["“吃过了没有？”", "“开春雨多，罐子得修。”", "“湖里的鱼冬天不爱动。”"],
-  yu: ["“地里的苗冒头了。”", "“等收了，分你一筐。”"],
-  zao: ["“公仓的粟不多了。”", "“来吃一口，刚出锅的。”"],
-  zhi: ["“窑上缺土，我多背两趟。”", "“烧窑得有柴，你砍柴就给窑上送点。”"],
+const TALK = {                                              // people's lines come from voice.js; these are the animals
   dog: ["（阿黄摇了摇尾巴）"],
   rabbit: ["（它竖起耳朵，随时要跑）"],
 };
 const HINT = {
-  field: "田空着：带 1 份粟来播种", field2: "田空着：带 1 份粟来播种", granary: "公仓的粮由阿灶取用", kiln: "两份黏土加一捆柴：烧一个空陶罐",
+  field: "春天带 1 份粟来播种；春夏锄草长势；秋天收割", field2: "春天带 1 份粟来播种；春夏锄草长势；秋天收割", granary: "公仓的粮由陶婶取去煮", mineFace: "空手能抠一块石头；带石锤一次两块",
+  cliffFoot: "崖太陡，直接爬不上去：得先做出攀爬的工具（还没定）",
   fire: "在火塘边打石器、搓绳子；带着空陶罐去公灶能装熟食", flintVein: "空手敲不下来，带一块石块当锤子",
 };
 
@@ -176,7 +171,7 @@ const REGROW = { chestnut: [3, 5], lake: [1, 2], reeds: [2, 3], shallows: [2, 3]
 const respawns = [];
 const stacks = () => boards[board];
 const clock = { min: 6 * 60 + (firstDay - 1) * 1440, speed: 1, fast: 0 };
-const me = { food: 70, rest: 90, trust: { aunt: 0, yu: 0, zao: 0, zhi: 0 }, talkedDay: {}, giftDay: {}, recent: [], auto: true, lastInput: clock.min };
+const me = { food: 70, rest: 90, trust: { aunt: 0, san: 0 }, talkedDay: {}, giftDay: {}, recent: [], auto: true, lastInput: clock.min };
 // Who you can direct besides yourself: anyone who trusts you enough (熟识 3), and your dog from the start.
 // Each has a mode — auto (lives their own day), work (you pick the job, they do it on their own), manual (you drag them like yourself).
 const TRUST_TO_JOIN = 3, IDLE_MIN = 1440;
@@ -186,21 +181,21 @@ me.askedDay = {};
 const FORGET_PER_DAY = 0.15, LEARNED_MEM = 0.8, FIGURE_CHANCE = 0.6;
 // Buildings: lay a foundation first, bring the materials, then put in the work. A big house takes a lot, and long.
 const BUILDS = {
-  bighouse: { tier: "l", needs: { log: 10, stone: 6, reed: 8, rope: 3, clay: 4 }, work: 1440, who: ["zhi", "yu"] },
-  barn: { tier: "m", needs: { log: 6, reed: 6, stone: 3 }, work: 480, who: ["yu"] },
-  farm: { tier: "s", needs: {}, work: 360, who: ["yu"], tool: "hoe", grass: true },
+  bighouse: { tier: "l", needs: { log: 10, stone: 6, reed: 8, rope: 3, clay: 4 }, work: 1440, who: ["san"] },
+  barn: { tier: "m", needs: { log: 6, reed: 6, stone: 3 }, work: 480, who: ["san"] },
+  farm: { tier: "s", needs: {}, work: 360, who: ["san"], tool: "hoe", grass: true },
 };
 const buildNeeds = (kind) => Object.entries(BUILDS[kind].needs).flatMap(([k, n]) => Array(n).fill(k));
 const CRAFTS = [...new Map(RECIPES.filter((r) => r.id).map((r) => [r.id, r])).values(),
   ...Object.entries(BUILDS).map(([id, b]) => ({ id, who: b.who, build: true, needs: ["plot", ...buildNeeds(id)], make: [id] }))];   // one entry per know-how
 const craftName = (id) => DEFS[CRAFTS.find((r) => r.id === id).make[0]].name;
-const granaryCap = (g) => 10 + 5 * (g.jars ?? 0);
+const granaryCap = (g) => 20 + 5 * (g.jars ?? 0);
 /** Carry: 4 things in your arms, 10 with a basket on your back (tools don't count). */
 const loose = (st) => st.cards.filter((c, j) => j > 0 && DEFS[c.key].type !== "tool");
 const capOf = (st) => (st.cards.some((c) => c.key === "basket") ? 10 : 4);
 const party = { open: false };
-const DEPOT = { granary: "grain", kiln: "clay", stove: "fish" };      // what each store takes in
-const weather = { now: "晴" };
+const DEPOT = { granary: "grain", stove: "fish" };                   // what each store takes in
+const weather = { now: "晴", events: [], hold: 0 };          // events: weather set for a time of day [{ at, kind }]
 const discs = [];                        // explored circles
 const eco = [];                          // things that grow: young trees, berry bushes, reeds
 const cardsLayer = $("cards"), worldEl = $("world"), roomWorld = $("roomWorld"), table = $("table");
@@ -253,9 +248,7 @@ function seedEco() {
       break;
     }
   };
-  // the old chestnut grove on the east side is gone; the west wood keeps its own trees, no extra seedlings
-  put("berry", MAP.sites.berries, 3, 300, 220, 0.55, 0.72);
-  // reeds now stand on the river bank as a card; no seedlings round a lake that is gone
+  const b = find("berries"); if (b) put("berry", center(b), 3, 300, 220, 0.55, 0.72);   // the berry thicket at the wood's edge
 }
 function growEco() {
   const winter = season() === "冬";
@@ -268,13 +261,20 @@ function growEco() {
   if (berry) berry.el.querySelector(".card-art").innerHTML = iconFor(winter ? "barebush" : "berries");
 }
 // ---------------------------------------------------------------------------
-// Snow: flakes at three depths, drifting on a slow wind
+// Weather you can see: rain and snow on one screen-sized canvas. They come on and die away gradually,
+// showers vary in strength through the day, and the sky darkens under them.
 // ---------------------------------------------------------------------------
-const snow = { on: false, cv: null, ctx: null, w: 0, h: 0, t: 0, flakes: [], sprite: null };
+const sky = { kind: "", next: "", level: 0, target: 0, cv: null, ctx: null, w: 0, h: 0, t: 0, flakes: [], drops: [], splashes: [], sprite: null, flash: 0, nextFlash: 0 };
 const SNOW_LAYERS = [
   { n: 84, r: 0.9, vy: 22, sway: 6, alpha: .55, rate: .9 },
   { n: 54, r: 1.7, vy: 40, sway: 12, alpha: .72, rate: .62 },
   { n: 22, r: 3.3, vy: 74, sway: 22, alpha: .45, rate: .4 },
+];
+// Rain at three depths: far drops are short, thin, faint and slow; near ones long, bright, fast, and they splash.
+const RAIN_LAYERS = [
+  { n: 150, len: 9, vy: 620, lw: 0.9, alpha: .26 },
+  { n: 110, len: 16, vy: 900, lw: 1.2, alpha: .38 },
+  { n: 46, len: 26, vy: 1250, lw: 1.7, alpha: .5, splash: true },
 ];
 function snowFlake() {
   const s = document.createElement("canvas"); s.width = s.height = 32;
@@ -283,68 +283,190 @@ function snowFlake() {
   g.fillStyle = gr; g.fillRect(0, 0, 32, 32);
   return s;
 }
-function snowSetup() {
-  snow.cv = $("snowfall"); snow.ctx = snow.cv.getContext("2d"); snow.sprite ??= snowFlake();
+function skySetup() {
+  sky.cv = $("snowfall"); sky.ctx = sky.cv.getContext("2d"); sky.sprite ??= snowFlake();
   const w = innerWidth, h = innerHeight, dpr = Math.min(1.5, window.devicePixelRatio || 1);
-  snow.cv.width = Math.round(w * dpr); snow.cv.height = Math.round(h * dpr);
-  snow.cv.style.width = `${w}px`; snow.cv.style.height = `${h}px`;
-  snow.w = w; snow.h = h; snow.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  snow.flakes = [];
-  const area = Math.max(.55, (w * h) / (1280 * 800));   // fewer flakes on a small window
-  for (const L of SNOW_LAYERS) for (let k = 0; k < Math.round(L.n * area); k++) {
-    snow.flakes.push({ ...L, x: Math.random() * w, y: Math.random() * h, ph: Math.random() * 6.28, v: L.vy * (.8 + Math.random() * .4), r: L.r * (.7 + Math.random() * .6) });
-  }
+  sky.cv.width = Math.round(w * dpr); sky.cv.height = Math.round(h * dpr);
+  sky.cv.style.width = `${w}px`; sky.cv.style.height = `${h}px`;
+  sky.w = w; sky.h = h; sky.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const area = Math.max(.55, (w * h) / (1280 * 800));   // fewer on a small window
+  sky.flakes = [];
+  for (const L of SNOW_LAYERS) for (let k = 0; k < Math.round(L.n * area); k++)
+    sky.flakes.push({ ...L, x: Math.random() * w, y: Math.random() * h, ph: Math.random() * 6.28, v: L.vy * (.8 + Math.random() * .4), r: L.r * (.7 + Math.random() * .6), k: Math.random() });
+  sky.drops = RAIN_LAYERS.map((L) => Array.from({ length: Math.round(L.n * area) }, () => newDrop(L, true)));
+  sky.splashes = [];
 }
-function snowSet(on) {
-  if (on === snow.on) return;
-  snow.on = on;
-  $("snowfall").hidden = !on;
-  if (on) { snow.t = 0; snowSetup(); }
-  else if (snow.ctx) snow.ctx.clearRect(0, 0, snow.w, snow.h);
+/** A raindrop somewhere above (or, at the start, anywhere on) the screen; near drops know where they will land. */
+function newDrop(L, anywhere = false) {
+  const y = anywhere ? Math.random() * sky.h : -L.len - Math.random() * sky.h * 0.4;
+  return { L, x: Math.random() * (sky.w + 450) - 400, y, v: L.vy * (.85 + Math.random() * .3), k: Math.random(), land: L.splash ? sky.h * (.25 + Math.random() * .8) : sky.h + 40 };
 }
-function snowDraw(dt) {
-  const ctx = snow.ctx; if (!ctx) return;
-  snow.t += dt;
-  ctx.clearRect(0, 0, snow.w, snow.h);
-  const wind = 13 + Math.sin(snow.t * 0.16) * 9;    // a slow gust, not a gale
-  const dim = 1 - darkness() * 0.6;                  // snow is lit by the sky, not by the dark
-  for (const f of snow.flakes) {
-    f.y += f.v * dt;
-    f.x += (wind + Math.sin(snow.t * f.rate + f.ph) * f.sway) * dt;
-    if (f.y > snow.h + 8) { f.y = -8; f.x = Math.random() * snow.w; }
-    if (f.x > snow.w + 10) f.x -= snow.w + 20; else if (f.x < -10) f.x += snow.w + 20;
-    const s = f.r * 7;
-    ctx.globalAlpha = f.alpha * dim;
-    ctx.drawImage(snow.sprite, f.x - s / 2, f.y - s / 2, s, s);
+/** What the weather is now: rain or snow fade in (or the other fades out first), and how hard it comes down. */
+function skySet(kind) {
+  const strength = kind === "雨" ? 0.45 + Math.random() * 0.55 : kind === "雪" ? 0.55 + Math.random() * 0.45 : 0;
+  if (!sky.cv) skySetup();
+  if (kind && sky.kind && sky.kind !== kind && sky.level > 0.02) { sky.next = kind; sky.nextTarget = strength; sky.target = 0; return; }
+  if (kind) sky.kind = kind;
+  sky.next = ""; sky.target = strength;
+  if (kind) $("snowfall").hidden = false;
+}
+/** Through the day a shower comes and goes: now and then it gets heavier or eases off. */
+function skyDrift(minutes) {
+  if (!sky.kind || sky.next || sky.target === 0 || Math.random() > minutes / 150) return;
+  sky.target = Math.max(0.25, Math.min(1, sky.target + (Math.random() - 0.5) * 0.6));
+}
+function skyDraw(dt) {
+  const ctx = sky.ctx; if (!ctx) return;
+  sky.t += dt;
+  const under = board !== "world" || inMine(youAt());                 // indoors or under the mountain: no weather
+  sky.level += ((under ? 0 : sky.target) - sky.level) * Math.min(1, dt * (under ? 4 : 0.5));
+  if (sky.next && sky.level < 0.02) { sky.kind = sky.next; sky.target = sky.nextTarget; sky.next = ""; }
+  const tint = $("weatherLayer");
+  ctx.clearRect(0, 0, sky.w, sky.h);
+  if (sky.level < 0.004 && sky.target === 0) { $("snowfall").hidden = true; tint.style.opacity = 0; if (!sky.next) sky.kind = ""; return; }
+  const dim = 1 - darkness() * 0.55, lv = sky.level;
+  if (sky.kind === "雨") {
+    tint.style.background = "rgb(28,40,58)"; tint.style.opacity = 0.2 * lv;   // an overcast sky
+    const gust = 0.82 + 0.18 * Math.sin(sky.t * 0.55) * Math.sin(sky.t * 0.21 + 1);
+    const wind = 140 + 90 * Math.sin(sky.t * 0.18);                    // px/s sideways: the rain leans with it
+    ctx.lineCap = "round";
+    for (const list of sky.drops) {
+      const L = list[0]?.L; if (!L) continue;
+      const vx = wind * (0.55 + 0.45 * (L.vy / 1250));
+      ctx.strokeStyle = `rgba(206,222,240,${L.alpha * dim * (0.6 + 0.4 * lv)})`; ctx.lineWidth = L.lw;
+      ctx.beginPath();
+      for (const d of list) {
+        d.y += d.v * dt; d.x += vx * dt;
+        if (d.y > d.land || d.x > sky.w + 120) {
+          if (L.splash && d.k < lv * gust && sky.splashes.length < 140) sky.splashes.push({ x: d.x, y: d.land, t: 0, r: 4 + Math.random() * 5 });
+          Object.assign(d, newDrop(L)); continue;
+        }
+        if (d.k > lv * gust) continue;                                  // a lighter shower: only some of the drops fall
+        const s = L.len / Math.hypot(vx, d.v);
+        ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - vx * s, d.y - d.v * s);
+      }
+      ctx.stroke();
+    }
+    ctx.strokeStyle = `rgba(220,232,246,${0.5 * dim})`; ctx.lineWidth = 1;   // splashes: a ring that opens and fades
+    for (let i = sky.splashes.length - 1; i >= 0; i--) {
+      const p = sky.splashes[i]; p.t += dt;
+      if (p.t > 0.32) { sky.splashes.splice(i, 1); continue; }
+      const k = p.t / 0.32;
+      ctx.globalAlpha = 1 - k; ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r * (0.4 + k * 1.6), p.r * (0.15 + k * 0.5), 0, 0, 7); ctx.stroke();
+      if (k < 0.5) { ctx.beginPath(); ctx.moveTo(p.x - 2, p.y - 2); ctx.lineTo(p.x - 4, p.y - 6 * (1 - k)); ctx.moveTo(p.x + 2, p.y - 2); ctx.lineTo(p.x + 4, p.y - 6 * (1 - k)); ctx.stroke(); }
+    }
+    ctx.globalAlpha = 1;
+    // Summer storms: now and then a far flash lights the clouds.
+    if (season() === "夏" && lv > 0.75 && sky.t > sky.nextFlash) { sky.flash = 1; sky.nextFlash = sky.t + 25 + Math.random() * 50; }
+    if (sky.flash > 0) { ctx.fillStyle = `rgba(235,240,255,${sky.flash * 0.22})`; ctx.fillRect(0, 0, sky.w, sky.h); sky.flash = Math.max(0, sky.flash - dt * (sky.flash > 0.6 ? 6 : 2.2)); }
+  } else if (sky.kind === "雪") {
+    tint.style.background = "rgb(226,232,238)"; tint.style.opacity = 0.1 * lv;   // a white, muffled sky
+    const wind = 13 + Math.sin(sky.t * 0.16) * 9;                     // a slow gust, not a gale
+    for (const f of sky.flakes) {
+      f.y += f.v * dt;
+      f.x += (wind + Math.sin(sky.t * f.rate + f.ph) * f.sway) * dt;
+      if (f.y > sky.h + 8) { f.y = -8; f.x = Math.random() * sky.w; }
+      if (f.x > sky.w + 10) f.x -= sky.w + 20; else if (f.x < -10) f.x += sky.w + 20;
+      if (f.k > lv) continue;
+      const s = f.r * 7;
+      ctx.globalAlpha = f.alpha * dim;
+      ctx.drawImage(sky.sprite, f.x - s / 2, f.y - s / 2, s, s);
+    }
+    ctx.globalAlpha = 1;
   }
-  ctx.globalAlpha = 1;
 }
 
 function rollWeather() {
+  if (clock.min < weather.hold) return;                                // a spell of weather already set (the first winter night's snow)
   const s = season(), r = Math.random();
-  weather.now = s === "冬" ? (r < 0.45 ? "雪" : "晴") : r < (s === "春" ? 0.34 : s === "夏" ? 0.18 : 0.27) ? "雨" : "晴";
-  $("weather").textContent = weather.now;
-  table.dataset.weather = weather.now;
-  $("weatherLayer").className = `weather${weather.now === "雨" ? " rain" : ""}`;
-  snowSet(weather.now === "雪");
+  setWeather(s === "冬" ? (r < 0.45 ? "雪" : "晴") : r < (s === "春" ? 0.34 : s === "夏" ? 0.18 : 0.27) ? "雨" : "晴");
 }
-/** Repaint the ground for the season: blossom, deep green, red and gold, then snow. */
+function setWeather(kind, strength) {
+  weather.now = kind;
+  $("weather").textContent = kind;
+  table.dataset.weather = kind;
+  skySet(kind === "晴" ? "" : kind);
+  if (strength) { if (sky.next) sky.nextTarget = strength; else sky.target = strength; }
+}
+// ---------------------------------------------------------------------------
+// The look of the land turns slowly. When a season starts, its look is laid over the old one, transparent, and comes
+// through as the days pass: leaves turn over about two days, a thaw takes a day and a half (faster in rain), and winter
+// comes with the snow — the first night of winter it snows till morning, and the land whitens as it falls.
+// ---------------------------------------------------------------------------
+const look = { from: null, to: null, p: 1, top: null };
+function terrainOpts(s) {
+  const R = { home: 520, stove: 260, hemp: 300 };
+  const clearings = [...Object.values(MAP.sites).map((q) => ({ x: q.x, y: q.y, r: R[q.key] ?? 220 })), ...(MAP.extraFields ?? []).map((f) => ({ x: f.x, y: f.y, r: Math.max(f.w, f.h) * 0.6 }))];
+  // Only things that stay put keep the ground clear: people and animals move, and two looks painted at different
+  // times must put every tree in the same place or the turning season shows double.
+  const fixed = boards.world.filter((q) => !q.npc && !q.critter && !q.pet && q.cards[0].key !== "you" && !CARRY.has(DEFS[q.cards[0].key].type));
+  return { DECO, keepClear: [...fixed.map(center), ...clearings], season: s, eco, house: MAP.house };
+}
+const shownSeason = () => (look.p >= 0.5 ? look.to : look.from);
+/** Repaint the ground as it looks now (both looks while one season is turning into the next), e.g. after a new field. */
 function paintSeason() {
+  look.to ??= season();
   growEco();
-  table.dataset.season = season();
-  MAP.frozen = season() === "冬";                      // the lake bears weight once the cold sets in
+  paintTerrain($("ground"), MAP, terrainOpts(look.p < 1 ? look.from : look.to));
+  if (look.p < 1 && look.top) paintTerrain(look.top, MAP, terrainOpts(look.to));
+  if (MAP.tunnel?.el) paintCover(MAP.tunnel.el, MAP, MAP.tunnel, shownSeason());
+  lookChanged(true);
+  groundChanged();
+  setTimeout(() => prewarmBase(MAP, SEASONS[(SEASONS.indexOf(look.to) + 1) % 4]), 5000);   // next season's ground, a slice at a time
+}
+/** A new season begins: paint its look on a transparent layer over the ground; turnTick brings it through. */
+function turnSeason(to) {
+  if (look.top) finishTurn();
+  look.from = look.to ?? season(); look.to = to; look.p = 0;
+  const c = document.createElement("canvas"); c.className = "ground"; c.style.opacity = "0";
+  $("ground").after(c); look.top = c;
+  growEco();
+  paintTerrain(c, MAP, terrainOpts(to));
+  setTimeout(() => prewarmBase(MAP, SEASONS[(SEASONS.indexOf(to) + 1) % 4]), 5000);
+  lookChanged();
+}
+function turnTick(minutes) {
+  if (look.p >= 1 || !look.top) return;
+  const rate = look.to === "冬" ? (weather.now === "雪" ? 1 / 700 : 1 / 8000)       // snow lies as it falls: a night of it turns the land white
+    : look.from === "冬" ? (weather.now === "雨" ? 2 : 1) / (1.5 * 1440)            // the thaw
+    : 1 / (2 * 1440);                                                              // leaves turning, grass greening
+  look.p = Math.min(1, look.p + minutes * rate);
+  look.top.style.opacity = look.p.toFixed(3);
+  lookChanged();
+  if (look.p >= 1) finishTurn();
+}
+/** The new look has come all the way through: it becomes the ground. */
+function finishTurn() {
+  const old = $("ground"); old.removeAttribute("id"); old.remove();
+  look.top.id = "ground"; look.top.style.opacity = ""; look.top = null; look.p = 1; look.from = null;
+  if (MAP.tunnel?.el) paintCover(MAP.tunnel.el, MAP, MAP.tunnel, look.to);
+  lookChanged();
+}
+/** What follows the look: snow on the roof, and the lake freezing (once winter has mostly set in) or opening (halfway through the thaw). */
+function lookChanged(force = false) {
+  table.dataset.season = shownSeason();
+  const frozen = look.p >= 1 ? look.to === "冬" : look.to === "冬" ? look.p >= 0.75 : look.from === "冬" && look.p < 0.5;
+  if (frozen === MAP.frozen && !force) return;
+  MAP.frozen = frozen;                                                  // the lake bears weight once the cold sets in
   for (const st of allStacks()) if (st.critter?.water) st.cards.forEach((c) => c.el.classList.toggle("hidden", MAP.frozen));   // ducks leave with the open water
-  const R = { home: 520, field: 560, kiln: 300, berries: 300, hemp: 300, scree: 160 };
-  const clearings = Object.values(MAP.sites).map((s) => ({ x: s.x, y: s.y, r: R[s.key] ?? 220 }));
-  paintTerrain($("ground"), MAP, { DECO, keepClear: [...boards.world.map(center), ...clearings], season: season(), eco, house: MAP.house });
   tide.level = null; updateTide();
+}
+/** A field's crop changed (sown, weeded, cut, or rotted): redraw the crop layers — cheap, the ground stays as it is. */
+function groundChanged() {
+  const winter = season() === "冬";
+  for (const f of MAP.extraFields ?? []) {
+    if (!f.card) continue;
+    if (!f.cv) { f.cv = document.createElement("canvas"); f.cv.className = "crop"; Object.assign(f.cv.style, { left: `${f.x - f.w / 2}px`, top: `${f.y - f.h / 2}px`, width: `${f.w}px`, height: `${f.h}px` }); cardsLayer.prepend(f.cv); }
+    f.cv.hidden = winter || f.card.sown === false;
+    if (!f.cv.hidden) paintCrop(f.cv, f, season(), f.card.stock ?? 0);
+  }
 }
 /** Two tides a day: the lake swells over its beach and drains back, showing wet sand. */
 const tide = { level: null };
 const tideNow = () => Math.sin((clock.min / (12.4 * 60)) * Math.PI * 2);
 function updateTide() {
   const cv = $("tide");
-  if (season() === "冬") { cv.hidden = true; return; }                  // frozen over: the water no longer rises
+  if (MAP.frozen) { cv.hidden = true; return; }                        // frozen over: the water no longer rises
   if (!MAP.water?.includes(1)) { cv.hidden = true; return; }            // no lake on this map: no tide
   cv.hidden = false;
   const lv = tideNow();
@@ -365,7 +487,7 @@ function settle(x, y, boat = false, w = CARD_W, h = CARD_H) {
 }
 const at = ([site, dx, dy]) => { const s = MAP.sites[site]; return { x: s.x + dx, y: s.y + dy }; };
 function placeCard(key, p, stock) {
-  const c = newCard(key, stock);
+  const c = newCard(key, stock); if (key === "field" || key === "field2") { c.sown = false; c.stock = 0; refreshStock(c); }
   const q = settle(p.x, p.y, DEFS[key].type === "boat", c.w, c.h);
   const st = newStack([c], q.x - c.w / 2, q.y - c.h / 2, "world");
   st.home = { x: q.x, y: q.y };          // where it grew: a picked-clean node comes back here
@@ -400,15 +522,21 @@ function respawnNode(r) {
 }
 function build() {
   for (const [site, list] of Object.entries(LAYOUT)) for (const [k, dx, dy, stock] of list) placeCard(k, at([site, dx, dy]), stock);
-  const wd = MAP.tiles?.wood;
-  if (wd) for (const [k, fx, fy] of WOOD_LAYOUT) placeCard(k, { x: wd.x + wd.w * fx, y: wd.y + wd.h * fy });
-  const rv = MAP.tiles?.lake;
-  if (rv) for (const [k, fx, fy] of LAKE_LAYOUT) placeCard(k, { x: rv.x + rv.w * fx, y: rv.y + rv.h * fy });
+  const T = MAP.tiles, inTile = (t, fx, fy) => ({ x: t.x + t.w * fx, y: t.y + t.h * fy });
+  if (T.farm) for (const [k, fx, fy] of FARM_FIELDS) {                 // the farm tile: fields already broken, furrows on the ground
+    const p = inTile(T.farm, fx, fy);
+    const st = placeCard(k, p);
+    (MAP.extraFields ??= []).push({ patch: "field", x: p.x, y: p.y, ...FIELD_SIZE, card: st.cards[0] });   // furrows always; the crop once it is sown
+  }
+  if (T.forest) for (const [k, fx, fy] of WOOD_LAYOUT) placeCard(k, inTile(T.forest, fx, fy));
+  if (T.lake) for (const [k, fx, fy] of LAKE_LAYOUT) placeCard(k, inTile(T.lake, fx, fy));
+  if (T.plateau) for (const [k, fx, fy] of PLATEAU_LAYOUT) placeCard(k, inTile(T.plateau, fx, fy));
+  if (MAP.tunnel) for (const [k, x, y] of MAP.tunnel.faces) placeCard(k, { x, y });
   for (const [k, n] of Object.entries(PEOPLE)) {
     const order = Object.keys(PEOPLE).indexOf(k);
     const st = placeCard(k, at(n.at));
-    st.npc = { key: k, order, home: n.home, job: n.job, hunger: 2 + Math.random() * 2, wait: 0, inside: false,
-      wake: 5.6 + order * 0.15, sleep: 20 + order * 0.12, outAt: 0 };
+    st.npc = { key: k, order, home: n.home, job: n.job, hunger: 1 + Math.random() * 3, wait: 0, inside: false, kit: [],
+      wake: 5.6 + order * 0.2, sleep: 20.2 + order * 0.25, outAt: 0, nextChat: clock.min + 120 };
   }
   const dog = placeCard("dog", at(START.dog));
   dog.pet = { home: center(dog) };
@@ -416,6 +544,7 @@ function build() {
   for (const [kind, sp] of Object.entries(SPECIES)) for (let i = 0; i < sp.n; i++) spawnAnimal(kind);
   placeCard("you", at(START.you));
   setupMainHouse();
+  setupMine();
   const fire = find("fire")?.cards[0]; if (fire) fire.fuel = 2;
   const stoveCard = find("stove")?.cards[0]; if (stoveCard) stoveCard.fuel = 3;
   seedEco();
@@ -429,8 +558,8 @@ function build() {
 function setupMainHouse() {
   const house = find("taoHouse");
   if (!house) return;
-  const hx = house.x, hy = house.y;
-  const c = { x: hx - 126, y: hy - 40, w: 420, h: 520, gate: { x: hx + 29, w: 110 } };
+  const s = MAP.sites.home, yd = s.yard;                // the yard's size lives with the site (valley.js), so places keep off its walls
+  const c = { x: s.x + yd.x, y: s.y + yd.y, w: yd.w, h: yd.h, gate: { x: s.x - 60, w: 120 } };
   c.roof = { x: c.x + 8, y: c.y + 8, w: c.w - 16, h: c.h - 16 };
   house.compound = c;
   MAP.house = c;
@@ -442,9 +571,10 @@ function setupMainHouse() {
     { x: c.x, y: c.y + c.h - t, w: c.gate.x - c.x, h: t },
     { x: c.gate.x + c.gate.w, y: c.y + c.h - t, w: c.x + c.w - (c.gate.x + c.gate.w), h: t },
   ];
-  newStack([newCard("bed")], hx - 110, hy + 240, "world");
-  newStack([newCard("fire")], hx + 10, hy + 240, "world");
-  newStack([newCard("grain"), newCard("grain")], hx + 130, hy + 240, "world");
+  newStack([newCard("bed")], c.x + 110, c.y + c.h - 200, "world");
+  newStack([newCard("fire")], c.x + 280, c.y + c.h - 200, "world");
+  newStack([newCard("grain"), newCard("grain")], c.x + 440, c.y + c.h - 200, "world");
+  house.cards[0].el.classList.add("no-card");        // the yard is the house; no label card standing in it
   const roof = document.createElement("div");
   roof.className = "roof";
   roof.style.left = `${c.roof.x}px`; roof.style.top = `${c.roof.y}px`;
@@ -452,12 +582,22 @@ function setupMainHouse() {
   cardsLayer.append(roof);
   c.roofEl = roof;
 }
+/** The tunnel into the mountain: from outside you see the mountainside over it; walk in and it lifts. */
+function setupMine() {
+  const t = MAP.tunnel; if (!t) return;
+  const cv = document.createElement("canvas");
+  cv.className = "cover";
+  cv.style.left = `${t.x}px`; cv.style.top = `${t.y}px`; cv.style.width = `${t.w}px`; cv.style.height = `${t.h}px`;
+  cardsLayer.append(cv);
+  t.el = cv;
+}
+const inMine = (p) => Boolean(MAP.tunnel && p && MAP.cave[MAP.idx(p.x, p.y)] === 1 && p.x > MAP.tunnel.x + 30);
 const ROOMS = { tao: [["door", 470, 520], ["bed", 180, 140], ["fire", 470, 250], ["grain", 760, 150], ["grain", 800, 175]] };
 
 const SPECIES = {
-  rabbit: { n: 1, roam: 600, fear: 300, speed: 1.8, home: () => quietSpot() },
+  rabbit: { n: 2, roam: 600, fear: 300, speed: 1.8, home: () => quietSpot() },
   deer: { n: 3, fear: 380, speed: 2.2, home: () => woodSpot(0.8) },
-  tiger: { n: 1, roam: 520, fear: 0, speed: 1.1, predator: true, home: () => woodSpot(0.9) },
+  tiger: { n: 1, roam: 520, fear: 0, speed: 1.1, predator: true, home: () => deepSpot() },
   boar: { n: 1, fear: 0, speed: 1.4, aggro: true, home: () => woodSpot(0.8) },
   duck: { n: 3, roam: 420, fear: 220, speed: 0.6, water: true, home: () => lakeSpot() },
 };
@@ -476,8 +616,9 @@ function woodSpot(min = 0.8) {
   let best = null, bs = -Infinity;
   for (let k = 0; k < 700; k++) {
     const i = Math.floor(Math.random() * MAP.cls.length);
-    if (MAP.cls[i] !== G.FOREST || MAP.road[i]) continue;
+    if (MAP.cls[i] !== G.FOREST || MAP.road[i] || MAP.jungle[i]) continue;
     const p = { x: MAP.X(i), y: MAP.Y(i) }, thick = woodDepth(MAP, p.x, p.y);
+    if (MAP.zoneAt(p.x, p.y) !== "forest") continue;                    // the forest, not the deep wood behind it (that is the tiger's)
     if (thick < min) continue;
     // no jungle site any more: deep cover alone decides where they live
     if (boards.world.some((st) => dist(p, center(st)) < 260)) continue;
@@ -485,7 +626,20 @@ function woodSpot(min = 0.8) {
     const s = thick * 3 - near / 2200 + Math.random() * 0.4;
     if (s > bs) { bs = s; best = p; }
   }
-  return best ?? { x: MAP.tiles.wood.x + MAP.tiles.wood.w / 2, y: MAP.tiles.wood.y + MAP.tiles.wood.h / 2 };
+  const f = MAP.tiles.forest;
+  return best ?? { x: f.x + f.w / 2, y: f.y + f.h / 2 };
+}
+/** The tiger's lair: far into the deep wood, where the canopy never opens. */
+function deepSpot() {
+  let best = null, bs = -Infinity;
+  for (let k = 0; k < 900; k++) {
+    const i = Math.floor(Math.random() * MAP.cls.length);
+    if (!MAP.jungle[i] || MAP.cls[i] !== G.FOREST) continue;
+    const p = { x: MAP.X(i), y: MAP.Y(i) }, s = woodDepth(MAP, p.x, p.y) * 2 + dist(p, MAP.sites.home) / 4000 + Math.random() * 0.3;
+    if (s > bs) { bs = s; best = p; }
+  }
+  const d = MAP.tiles.deep;
+  return best ?? { x: d.x + d.w * 0.4, y: d.y + d.h * 0.4 };
 }
 /** Ducks live on the lake tile: pick a water cell near its middle. */
 function lakeSpot() {
@@ -502,17 +656,19 @@ function spawnAnimal(kind) {
   st.critter = { kind, ...sp, home: p };
   return st;
 }
-/** Somewhere quiet for the rabbit: open meadow, well away from the house, the places and the paths people walk. */
+/** Somewhere quiet for a rabbit: a glade or the thin edge of the forest, away from the paths and whatever people go to. */
 function quietSpot() {
-  const home = MAP.sites.home; let best = null, bs = -1;
-  for (let i = 0; i < MAP.cls.length; i += 3) {
-    if (MAP.cls[i] !== G.MEADOW || MAP.road[i]) continue;
-    const p = { x: MAP.X(i), y: MAP.Y(i) }, dh = dist(p, home);
-    if (dh < 650 || dh > 1300) continue;
-    const s = Math.min(...boards.world.map((st) => dist(p, center(st))), ...Object.values(MAP.sites).map((q) => dist(p, q)));
+  let best = null, bs = -Infinity;
+  for (let k = 0; k < 600; k++) {
+    const i = Math.floor(Math.random() * MAP.cls.length);
+    if ((MAP.cls[i] !== G.MEADOW && MAP.cls[i] !== G.FOREST) || MAP.road[i] || MAP.jungle[i]) continue;
+    const p = { x: MAP.X(i), y: MAP.Y(i) };
+    if (MAP.zoneAt(p.x, p.y) !== "forest" || woodDepth(MAP, p.x, p.y) > 0.5) continue;
+    const s = Math.min(...boards.world.map((st) => dist(p, center(st)))) / 600 + Math.random() * 0.4;
     if (s > bs) { bs = s; best = p; }
   }
-  return best ?? at(["home", -300, 280]);
+  const f = MAP.tiles.forest;
+  return best ?? { x: f.x + f.w * 0.7, y: f.y + f.h * 0.7 };
 }
 
 // ---------------------------------------------------------------------------
@@ -596,6 +752,7 @@ function moveRange(p = youAt()) {
   let k = starving() ? 0.4 : hungry() ? 0.7 : 1;
   k *= spent() ? 0.5 : tired() ? 0.8 : 1;
   if (groping(p)) k *= 0.5;
+  if (p && MAP.zoneAt(p.x, p.y) === "plateau") k *= 0.5;
   if (youStack()?.cards.some((c) => c.key === "sandals")) k *= 1.25;
   return MOVE_RANGE * k;
 }
@@ -741,7 +898,8 @@ function dropYou(d) {
   if (t) Object.assign(you, standOn(you, t));
   if (board !== "world") { if (t) arrive(you, t); return; }
   const mins = Math.round(dist(d.from, you) / PX_PER_MIN);
-  me.rest = Math.max(0, me.rest - mins * 0.04);
+  const steep = MAP.zoneAt(center(you).x, center(you).y) === "plateau" ? 5 : 1;        // up on the plateau every step costs
+  me.rest = Math.max(0, me.rest - mins * 0.04 * steep);
   if (mins >= 3) wearTool(you, "sandals");
   cam.follow = true;
   if (mins < 3) { if (t) arrive(you, t); return; }
@@ -899,7 +1057,7 @@ function giveFood(target, lift) {
 }
 function talk(target, st) {
   const k = target.cards[0].key;
-  say(target, pick(TALK[k] ?? ["……"]));
+  say(target, target.npc ? VOICE.line(k, "greet") : pick(TALK[k] ?? ["……"]));
   if (target.npc) { target.npc.wait = 40; face(target, st); }
   if (k in me.trust && me.talkedDay[k] !== day()) { me.talkedDay[k] = day(); gainTrust(target); }
 }
@@ -928,11 +1086,12 @@ function finish(st) {
     }
     t.stock = Math.max(0, t.stock - 3); refreshStock(t);
   }
-  if (r.harvest) { t.stock = 0; t.sown = false; refreshStock(t); t.el.querySelector(".card-art").innerHTML = iconFor("field"); }
-  if (r.sow) { t.sown = true; t.stock = 0; refreshStock(t); float("种下了", center(target), target.board); }
+  if (r.harvest) { t.stock = 0; t.sown = false; refreshStock(t); t.el.querySelector(".card-art").innerHTML = iconFor("field"); groundChanged(); }
+  if (r.sow) { t.sown = true; t.stock = 0; refreshStock(t); float("种下了", center(target), target.board); groundChanged(); }
   if (r.jarIn) { t.jars = (t.jars ?? 0) + 1; refreshStock(t); float(`公仓能存 ${granaryCap(t)} 份了`, center(target), "world"); }
   if (r.take && t.key === "shallows" && tide.level < -0.3) { const c = newCard("clam"); layerOf(st.board).append(c.el); st.cards.push(c); float("退潮，多摸到一只", center(st), st.board); }
   if (r.tend) { t.stock = Math.min(3, (t.stock ?? 0) + r.tend); if (r.tend > 1) float("石锄：长势 +2", center(target), target.board); refreshStock(t); t.el.querySelector(".card-art").innerHTML = iconFor(t.stock >= 3 ? "fieldRipe" : "field"); float("锄了一遍", center(target), target.board); }
+  if (r.tend) groundChanged();
   if (r.fuel) { t.fuel = Math.min(6, (t.fuel ?? 0) + 1); float("火更旺了", center(target), target.board); }
   if (r.say) say(target, r.say);
   for (const k of r.make) { const c = newCard(k); layerOf(st.board).append(c.el); st.cards.push(c); c.el.classList.add("pop"); float(`+1 ${DEFS[k].name}`, center(st), st.board); }
@@ -1151,83 +1310,129 @@ function sleepTillDawn() {
 // ---------------------------------------------------------------------------
 const hour = () => (clock.min / 60) % 24;
 const EVENING = () => hour() >= 18 && hour() < 20;
+const isField = (s) => s.cards[0].key === "field" || s.cards[0].key === "field2";
+/** Inside the yard walls (the house)? */
+const inYard = (p) => { const c = MAP.house; return Boolean(c && p.x > c.x && p.x < c.x + c.w && p.y > c.y && p.y < c.y + c.h); };
+/** Where you'd hear them: lines from far off don't fill your screen. Asleep in the yard, you hear them only from inside it. */
+function heard(st, r = 1300) {
+  const y = youStack(); if (!y || y.board !== st.board) return false;
+  if (inYard(center(st)) !== inYard(center(y))) return dist(center(st), center(y)) < 420;
+  return dist(center(st), center(y)) < r;
+}
+const WINDING = new Set(["evening", "drop", "give", "hide", "eat", "wait"]);   // jobs that belong to the end of the day
+const talks = [];                           // lines waiting to be said, in game minutes: a chat goes back and forth
+const moodOf = (n) => (n.hunger >= n.eatAt ? "low" : find("granary")?.cards[0].stock >= 8 ? "happy" : "idle");
+/** Stand still a while, thinking. Sometimes you catch what they're thinking. */
+function muse(st, min) {
+  const n = st.npc;
+  n.wait = min; st.musing = true; st.task = ""; intent(st, "");
+  st.cards[0].el.classList.add("musing");
+  if (heard(st, 900) && Math.random() < 0.45) say(st, VOICE.thought(n.key, { hour: hour(), weather: weather.now, hungry: n.hunger >= n.eatAt, mood: moodOf(n) }), "think");
+}
+/** Two of them free and close together: a few words back and forth. */
+function startChat(a, b) {
+  const [x, y] = a.npc.key === "aunt" ? [a, b] : [b, a];
+  const lines = VOICE.chat(x.npc.key, y.npc.key, { weather: weather.now, season: season() });
+  const who = { [x.npc.key]: x, [y.npc.key]: y };
+  lines.forEach(([k, t], i) => talks.push({ at: clock.min + 2 + i * 7, st: who[k], text: t }));
+  for (const s of [a, b]) {
+    s.npc.wait = 12 + lines.length * 7; s.npc.nextChat = clock.min + 540 + Math.random() * 600;
+    s.task = ""; intent(s, ""); s.cards[0].el.classList.add("musing");
+  }
+  face(a, b); face(b, a);
+}
+/** Not every waking hour is work: a breather mid-morning and mid-afternoon, and a word with whoever is near. */
+function idleTurn(st) {
+  const n = st.npc, h = hour();
+  const other = boards.world.find((o) => o !== st && o.npc && !o.npc.inside && !o.walk && !o.job && (o.npc.wait ?? 0) <= 0 && o.ctl?.mode !== "manual" && dist(center(o), center(st)) < 320);
+  if (other && clock.min > (n.nextChat ?? 0) && clock.min > (other.npc.nextChat ?? 0) && Math.random() < 0.5) { startChat(st, other); return true; }
+  const slot = h >= 10 && h < 10.6 ? "am" : h >= 15 && h < 15.6 ? "pm" : null;
+  if (slot && n.breakAt !== `${day()}${slot}`) { n.breakAt = `${day()}${slot}`; muse(st, 30 + Math.random() * 40); return true; }
+  return false;
+}
 function brain(st, minutes) {
   const n = st.npc;
-  n.hunger = Math.min(10, n.hunger + minutes / (n.inside ? 480 : 220));       // asleep, you hardly get hungry
-  n.eatAt ??= 5.5 + Math.random() * 2;                                      // some eat more often than others
+  n.hunger = Math.min(10, n.hunger + minutes / (n.inside ? 900 : 600));       // a good meal lasts them about three days
+  n.eatAt ??= 5.6 + Math.random() * 1.2;
   const asleep = hour() >= n.sleep || hour() < n.wake;
   if (asleep) {
     if (n.inside) return;
-    if (st.walk) return;
-    if (st.goal === n.home) return goInside(st);
-    cancelJob(st); dropCarry(st); go(st, n.home, "sleep");
-    return;
+    if (st.task === "sleep" && st.walk) return;
+    cancelJob(st); endMuse(st);
+    return go(st, "bed", "sleep");                                         // into the yard and onto the bed, not into thin air
   }
   const tiger = boards.world.find((s) => s.critter?.predator);
   if (!n.inside && tiger && dist(center(tiger), center(st)) < 560 && st.task !== "hide") {
-    cancelJob(st); dropCarry(st); say(st, "“有老虎！快跑！”"); n.wait = 0;
+    cancelJob(st); endMuse(st); say(st, VOICE.line(n.key, "tiger")); n.wait = 0;
     return go(st, n.home, "hide");
   }
-  if (n.wait > 0) { n.wait -= minutes; return; }
+  if (n.wait > 0) { n.wait -= minutes; if (n.wait <= 0) endMuse(st); return; }
   if (n.inside) {
-    // Not all at once: each gets up and comes out a beat after the others.
-    if (!n.outAt) n.outAt = performance.now() + 200 + n.order * 380 + Math.random() * 260;
-    if (performance.now() < n.outAt) return;
+    // Not all at once: each gets up a beat after the others (game minutes, so ▶▶▶ and skipping the night don't cost them the morning).
+    if (!n.outAt) n.outAt = clock.min + 3 + n.order * 8 + Math.random() * 6;
+    if (clock.min < n.outAt) return;
     n.outAt = 0;
     return comeOut(st);
   }
   if (st.walk || st.job) {
-    // Midday: down tools and eat, even if a job is half done. Evening: knock off.
-    if (!st.walk && hour() >= 12 && hour() < 13.5 && !n.lunched) {
-      n.lunched = true;
-      if (n.hunger >= 3.5 && find("stove").cards[0].stock > 0) { cancelJob(st); return go(st, "stove", "eat"); }   // full people (or an empty pot) — keep working
-    }
-    if (!st.walk && EVENING()) {
-      cancelJob(st); dropCarry(st);
-      return go(st, n.home, "evening");
-    }
+    if (!st.walk && EVENING() && !WINDING.has(st.job?.npcTask)) { cancelJob(st); return headHome(st); }   // knock off at six
     return;
   }
-  if (hour() < 11) n.lunched = false;
-  // After six they stop working: home, a bite, the fire, then bed.
-  if (EVENING()) {
-    if (st.goal !== n.home) { cancelJob(st); dropCarry(st); go(st, n.home, "evening"); }
-    return;
-  }
-  // Midday, everyone down tools and eats together.
+  // After six they stop working: what they carry goes where it belongs, then the fire, then bed.
+  if (EVENING()) return headHome(st);
   const food = find("stove").cards[0].stock > 0, justUp = hour() < n.wake + 1.5;   // nobody heads for the pot the moment they wake
-  if (hour() >= 12 && hour() < 13.5 && !n.lunched) { n.lunched = true; if (n.hunger >= 3.5 && food) return go(st, "stove", "eat"); }
   if (n.hunger >= (justUp ? 8 : n.eatAt) && food) return go(st, "stove", "eat");
+  if (n.hunger >= n.eatAt && !food) {                                     // nothing in the pot: go and pick something rather than stand there
+    const b = find("berries"); if (b && b.cards[0].stock > 0) return go(st, "berries", "forage", null, b);
+  }
   if (n.hunger >= 8) return go(st, "stove", "wait");
-  if (!st.plans?.length) { const id = WANT[n.key]?.(st); if (id) st.plans = [{ r: recipeFor(id) }]; }
-  if (st.plans?.length) return planStep(st);
+  if (st.ctl?.mode !== "work" && idleTurn(st)) return;
+  // Sowing and harvest wait for no one: a farmer's half-made tool waits instead (the plan is kept, not dropped).
+  const fieldwork = n.job === "farm" && !(st.ctl?.mode === "work" && st.ctl.job && st.ctl.job !== "farm") && fieldsCall(st);
+  if (!fieldwork && !st.plans?.length) { const id = WANT[n.key]?.(st); if (id) st.plans = [{ r: recipeFor(id) }]; }
+  if (!fieldwork && st.plans?.length) return planStep(st);
   switch (st.ctl?.mode === "work" && st.ctl.job ? st.ctl.job : n.job) {     // the job you gave them, if you did
     case "farm": {
       if (st.carry) return go(st, "granary", "drop");
-      const fields = boards.world.filter((s) => s.cards[0].key === "field" || s.cards[0].key === "field2");
-      const ripe = fields.find((f) => f.cards[0].stock >= 3 && f.cards[0].sown !== false);
-      if (ripe) return go(st, ripe.cards[0].key, "harvest", null, ripe);
-      const bare = fields.find((f) => f.cards[0].sown === false);
-      if (bare && holds(st, "grain")) return go(st, bare.cards[0].key, "sow", null, bare);
-      if (bare && find("granary").cards[0].stock > 0) return go(st, "granary", "seed");
-      const low = fields.filter((f) => f.cards[0].sown !== false).sort((x, y) => (x.cards[0].stock ?? 0) - (y.cards[0].stock ?? 0))[0];
-      return low ? go(st, low.cards[0].key, "tend", null, low) : go(st, "granary", "watch");
+      const fields = boards.world.filter((s) => isField(s) && s.cards[0].sown !== false);
+      const bare = boards.world.filter((s) => isField(s) && s.cards[0].sown === false);
+      const now = season();
+      if (now === "冬") return go(st, "fire", "watch");                         // the fields rest; so does the farmer, by the fire
+      if (now === "秋") {
+        const ripe = fields.find((f) => f.cards[0].stock >= 3);
+        return ripe ? go(st, ripe.cards[0].key, "harvest", null, ripe) : muse(st, 60 + Math.random() * 60);
+      }
+      if (now === "春" && bare.length) {                                        // sow first, then tend
+        if (holds(st, "grain")) return go(st, bare[0].cards[0].key, "sow", null, bare[0]);
+        if (find("granary").cards[0].stock > 0) return go(st, "granary", "seed");
+      }
+      const low = fields.filter((f) => (f.cards[0].stock ?? 0) < 3).sort((x, y) => (x.cards[0].stock ?? 0) - (y.cards[0].stock ?? 0))[0];
+      return low ? go(st, low.cards[0].key, "tend", null, low) : muse(st, 60 + Math.random() * 60);
     }
-    case "clay": return st.carry ? go(st, "kiln", "drop") : go(st, "pit", "dig");
     case "cook": {
       const g = find("granary").cards[0], s = find("stove").cards[0];
-      if (st.carry) return go(st, "stove", "cook");
-      if (s.stock >= 6 || g.stock <= 0) return go(st, "stove", "watch");
-      return go(st, "granary", "fetch");
+      if (st.carry) return go(st, "stove", st.carry.key === "fish" ? "give" : "cook");
+      const seed = boards.world.filter((q) => isField(q) && q.cards[0].sown === false).length;
+      if (s.stock < 4 && g.stock > seed) return go(st, "granary", "fetch");      // next spring's seed stays in the granary
+      if (s.stock < 6 && season() !== "冬" && find("lake")?.cards[0].stock > 0) return go(st, "lake", "fish");
+      return Math.random() < 0.5 ? go(st, "granary", "tidy") : muse(st, 40 + Math.random() * 50);
     }
     case "fish": return st.carry ? go(st, "stove", "give") : go(st, "lake", "fish");
     case "wood": return st.carry ? go(st, "taoHouse", "store") : go(st, "chestnut", "chop");
-    case "stone": return st.carry ? go(st, "taoHouse", "store") : go(st, "scree", "pick");
+    case "stone": return st.carry ? go(st, "taoHouse", "store") : go(st, "mineFace", "pick");
     case "build": { const p = boards.world.find((s) => s.cards[0].key === "plot" && Object.values(s.cards[0].need).every((v) => v <= 0)); return p ? go(st, "plot", "build") : go(st, "chestnut", "chop"); }
   }
 }
+/** Evening: deliver what they are carrying, then go and sit by the fire in the yard. */
+function headHome(st) {
+  endMuse(st);
+  if (st.carry?.key === "grain") return go(st, "granary", "drop");
+  if (st.carry?.key === "fish") return go(st, "stove", "give");
+  return go(st, "fire", "evening");
+}
+function endMuse(st) { if (st.musing) { st.musing = false; st.cards[0].el.classList.remove("musing"); } }
 function go(st, key, task, want, stack) {
-  st.want = want;
+  st.want = want; endMuse(st);
   if (stack) {                                                   // a particular one (this field, not just any field)
     if (!boards.world.includes(stack)) { st.goal = ""; st.task = ""; st.npc.wait = 60; return; }
     const path = route(st, stack);
@@ -1237,7 +1442,8 @@ function go(st, key, task, want, stack) {
   }
   // a source with something left in it, if there are several (two groves of chestnuts)
   const ok = (s) => s.cards[0].key === key && (s.cards[0].stock === undefined || s.cards[0].stock > 0) && !inJungle(center(s));
-  const target = boards.world.find(ok) ?? boards.world.find((s) => s.cards[0].key === key && !inJungle(center(s))) ?? find(key);
+  const near = (a, b) => dist(center(a), center(st)) - dist(center(b), center(st));
+  const target = boards.world.filter(ok).sort(near)[0] ?? boards.world.find((s) => s.cards[0].key === key && !inJungle(center(s))) ?? find(key);
   if (!target) { st.goal = ""; st.task = ""; st.goalStack = null; st.npc.wait = 120; return; }   // nothing left to go to
   st.goalStack = target; st.parkedAt = null;
   const path = route(st, target);
@@ -1245,9 +1451,11 @@ function go(st, key, task, want, stack) {
   st.walk = { target, path, k: 0 };
   st.task = task; st.goal = key; intent(st, DEFS[key].icon);
 }
-const JOBS = { eat: 30, wait: 60, tend: 180, harvest: 150, dig: 90, drop: 15, fetch: 20, cook: 120, watch: 90, fish: 120, give: 15, evening: 100, chop: 150, pick: 60, store: 15, gather: 90, fetchHome: 15, jarIn: 15, build: 240, sow: 60, seed: 15, hide: 90 };
+const JOBS = { eat: 30, wait: 60, tend: 180, harvest: 150, dig: 90, drop: 15, fetch: 20, cook: 120, watch: 90, fish: 120, give: 15, evening: 100, chop: 150, pick: 60, store: 15, gather: 90, fetchHome: 15, jarIn: 15, build: 240, sow: 60, seed: 15, hide: 90, forage: 40, tidy: 60 };
+// What they say as they set to a task (now and then, not every time).
+const TOPIC = { sow: "sow", tend: "tend", harvest: "harvest", cook: "cook", fetch: "cook", fish: "fish" };
 function npcArrive(st) {
-  if (st.task === "sleep") return goInside(st);
+  if (st.task === "sleep") { const t = st.goalStack; if (t) { st.slot = standOn(st, t).slot; st.parkedAt = t; } return goInside(st); }   // keep their own place on the bed
   if (!st.task) return;                 // just stepping out of the door
   const t = st.goalStack;
   if (t && !boards.world.includes(t)) { st.goal = ""; st.task = ""; st.goalStack = null; st.npc.wait = 60; return; }
@@ -1256,7 +1464,11 @@ function npcArrive(st) {
   if (st.task === "craft") min = st.plans.at(-1).r.min;
   if ((st.task === "chop" || (st.task === "gather" && st.want === "log")) && hasTool(st, t, "axe")) min *= 0.6;   // an axe makes short work of it
   if (st.task === "fish" && hasTool(st, t, "net")) min *= 0.75;
+  if (st.task === "pick" && hasTool(st, t, "hammer")) min *= 0.6;
   st.job = { npcTask: st.task, left: min, total: min };
+  const n = st.npc, topic = TOPIC[st.task];
+  if (topic && Math.random() < 0.3 && heard(st)) say(st, VOICE.line(n.key, topic));
+  if (st.task === "fetch" && find("granary").cards[0].stock <= 4 && n.grumbled !== day() && heard(st)) { n.grumbled = day(); say(st, VOICE.line(n.key, "lowFood")); }
 }
 function npcDone(st) {
   const target = st.goalStack ?? find(st.goal), task = st.task;
@@ -1264,10 +1476,11 @@ function npcDone(st) {
   const t = target.cards[0];
   st.goal = ""; st.lastTask = task; intent(st, "");
   if (task === "eat" && t.stock > 0) { t.stock--; refreshStock(t); st.npc.hunger = 0; }
-  if (task === "tend" && t.sown !== false) { const hoe = hasTool(st, target, "hoe"); t.stock = Math.min(3, (t.stock ?? 0) + (hoe ? 2 : 1)); if (hoe) wearAny(st, target, "hoe"); refreshStock(t); t.el.querySelector(".card-art").innerHTML = iconFor(t.stock >= 3 ? "fieldRipe" : "field"); }
+  if (task === "forage" && t.stock > 0) { t.stock--; refreshStock(t); st.npc.hunger = Math.max(0, st.npc.hunger - 5); float("摘了把野果垫肚子", center(target), "world"); }
+  if (task === "tend" && t.sown !== false) { const hoe = hasTool(st, target, "hoe"); t.stock = Math.min(3, (t.stock ?? 0) + (hoe ? 2 : 1)); if (hoe) wearAny(st, target, "hoe"); refreshStock(t); groundChanged(); t.el.querySelector(".card-art").innerHTML = iconFor(t.stock >= 3 ? "fieldRipe" : "field"); }
   if (task === "seed" && t.stock > 0) { t.stock--; refreshStock(t); addCard(st, "grain"); }
-  if (task === "sow") { const i = st.cards.findIndex((c, j) => j > 0 && c.key === "grain"); if (i > 0) { st.cards[i].el.remove(); st.cards.splice(i, 1); t.sown = true; t.stock = 0; refreshStock(t); } }
-  if (task === "harvest") { t.stock = 0; t.sown = false; refreshStock(t); t.el.querySelector(".card-art").innerHTML = iconFor("field"); carry(st, "grain", 3); }
+  if (task === "sow") { const i = st.cards.findIndex((c, j) => j > 0 && c.key === "grain"); if (i > 0) { st.cards[i].el.remove(); st.cards.splice(i, 1); t.sown = true; t.stock = 0; refreshStock(t); groundChanged(); } }
+  if (task === "harvest") { t.stock = 0; t.sown = false; refreshStock(t); t.el.querySelector(".card-art").innerHTML = iconFor("field"); carry(st, "grain", 6); groundChanged(); }   // one harvest a year: enough to see the house through
   if (task === "dig" && t.stock > 0) { t.stock--; refreshStock(t); carry(st, "clay", 1); }
   if (task === "fetch" && t.stock > 0) { t.stock--; refreshStock(t); carry(st, "grain", 1); }
   if (task === "fish") { if (t.stock > 0) { t.stock--; refreshStock(t); } const net = hasTool(st, target, "net"); carry(st, "fish", net ? 2 : 1, net ? 2 : 1); if (net) wearAny(st, target, "net"); }
@@ -1277,14 +1490,14 @@ function npcDone(st) {
   if (task === "craft") craftDone(st, target);
   if (task === "jarIn") { const i = st.cards.findIndex((c, j) => j > 0 && c.key === "jar"); if (i > 0) { st.cards[i].el.remove(); st.cards.splice(i, 1); t.jars = (t.jars ?? 0) + 1; refreshStock(t); float(`公仓多了只陶罐，能存 ${granaryCap(t)} 份`, center(target), "world"); } st.plans = []; }
   if (task === "build") { const c = target.cards[0]; if (c.key === "plot" && (!BUILDS[c.build].tool || holds(st, BUILDS[c.build].tool))) { c.work += 240; refreshPlot(c); if (c.work >= BUILDS[c.build].work) completeBuild(target); } }
-  if (task === "pick" && t.stock > 0) { t.stock--; refreshStock(t); carry(st, "stone", 1); }
+  if (task === "pick" && t.stock > 0) { t.stock--; refreshStock(t); const two = hasTool(st, target, "hammer"); carry(st, "stone", two ? 2 : 1, two ? 2 : 1); if (two) wearAny(st, target, "hammer"); }
   if (task === "store") storeCarry(st);
   if (task === "drop" || task === "give") dropCarry(st, t);
-  if (task === "cook") { dropCarry(st); t.stock = (t.stock ?? 0) + 3; refreshStock(t); float("+3 熟食", center(target), "world"); }
+  if (task === "cook") { dropCarry(st); t.stock = (t.stock ?? 0) + 3; refreshStock(t); float("+3 熟食", center(target), "world"); if (t.stock >= 6 && Math.random() < 0.4 && heard(st)) say(st, VOICE.line(st.npc.key, "full")); }
   deplete(t);
-  // Not every waking hour is work: after a task they often stand and rest a while.
-  if (task === "evening") st.npc.wait = 80;
-  else if (task !== "eat" && st.npc.hunger < 9 && Math.random() < 0.4) st.npc.wait = 40 + Math.random() * 90;
+  // Not every waking hour is work: after a task they often stand a while, thinking about this and that.
+  if (task === "evening") st.npc.wait = 60;
+  else if (task !== "eat" && task !== "hide" && Math.random() < 0.35) muse(st, 20 + Math.random() * 50);
 }
 function carry(st, key, n = 1, cards = 1) {
   for (let i = 0; i < cards; i++) { const c = newCard(key); layerOf(st.board).append(c.el); c.el.classList.add("pop"); st.cards.push(c); }
@@ -1304,14 +1517,14 @@ function dropCarry(st, into = null) {
   }
   st.carry = null;
 }
-/** Things carried home go on a pile inside the house, where you can pick them up. */
+/** Things carried home go on a pile inside the yard, where you (and they) can pick them up. */
 function storeHome(cards) {
   if (!cards.length) return;
   const house = find("taoHouse"), c = house?.compound;
   if (c) {
     cards.forEach((card) => { card.el.classList.remove("gone", "pop"); cardsLayer.append(card.el); });
     const pile0 = allStacks().find((s) => s.store);
-    if (pile0) pile0.cards.push(...cards); else newStack(cards, c.x + 16, c.y + 100, "world").store = true;
+    if (pile0) pile0.cards.push(...cards); else newStack(cards, c.x + 30, c.y + 60, "world").store = true;
     return;
   }
   cards.forEach((card) => { card.el.classList.remove("gone", "pop"); roomWorld.append(card.el); });
@@ -1324,30 +1537,41 @@ function storeCarry(st) {
   storeHome(load); st.carry = null;
   float("放回家了", center(st), st.board);
 }
-function goInside(st) {
-  cancelJob(st); st.walk = null; st.task = ""; st.goal = ""; intent(st, "");
-  st.npc.inside = true; st.npc.outAt = 0;
-  const home = find(st.npc.home, "world"), c = home?.compound; home?.cards[0].el.classList.add("occupied");
-  // the compound (if this house has one) is on the home stack
-  const room = DEFS[st.npc.home].room;
-  if (room) { removeStack(st); st.board = room; boards[room].push(st); st.x = 40 + st.npc.order * 125; st.y = 360; st.cards.forEach((c) => { roomWorld.append(c.el); c.el.classList.add("sleeping"); }); }
-  else if (c) { st.indoors = true; st.x = c.x + 40 + st.npc.order * 12; st.y = c.y + 80; st.cards.forEach((card) => card.el.classList.add("sleeping")); }
-  else { st.indoors = true; st.cards.forEach((card) => card.el.classList.add("sleeping")); }
+/** Before lying down: things in hand go on the pile in the yard, tools are hung up (they take them again in the morning). */
+function stash(st) {
+  const things = st.cards.slice(1).filter((c) => DEFS[c.key].type !== "tool"), tools = st.cards.slice(1).filter((c) => DEFS[c.key].type === "tool");
+  st.cards = [st.cards[0]]; st.carry = null;
+  storeHome(things);
+  st.npc.kit = [...(st.npc.kit ?? []), ...tools];
+  tools.forEach((c) => c.el.classList.add("hidden-kit"));
 }
+/** Lie down on a bed in the yard (or go into a house that is a room of its own). */
+function goInside(st) {
+  cancelJob(st); st.walk = null; st.task = ""; st.goal = ""; intent(st, ""); endMuse(st);
+  stash(st);
+  st.npc.inside = true; st.npc.outAt = 0;
+  const home = find(st.npc.home, "world"); home?.cards[0].el.classList.add("occupied");
+  const room = DEFS[st.npc.home].room;
+  if (room) { removeStack(st); st.board = room; boards[room].push(st); st.x = 40 + st.npc.order * 125; st.y = 360; st.cards.forEach((c) => { roomWorld.append(c.el); c.el.classList.add("sleeping"); }); return; }
+  st.cards.forEach((card) => card.el.classList.add("sleeping"));
+  if (Math.random() < 0.35 && heard(st)) say(st, VOICE.line(st.npc.key, "sleep"));
+}
+/** Morning: get up off the bed, take up the tools, and walk out through the gate. */
 function comeOut(st) {
   st.npc.inside = false; st.indoors = false;
   find(st.npc.home, "world")?.cards[0].el.classList.remove("occupied");
   const home = find(st.npc.home, "world"), c = home?.compound;
-  if (st.board !== "world") { removeStack(st); st.board = "world"; boards.world.push(st); st.cards.forEach((c) => cardsLayer.append(c.el)); }
-  if (c) { st.x = c.gate.x + 10 + st.npc.order * 12; st.y = c.y + c.h + 10; }
-  else { st.x = home.x + 10 + st.npc.order * 40; st.y = home.y + home.h + 16; }
-  // Step away from the door instead of standing in a stack, and fade in.
-  st.walk = { x: st.x + (Math.random() - 0.5) * 90, y: st.y + 46 + Math.random() * 40 };
-  st.task = "";
-  st.cards.forEach((c) => {
-    c.el.classList.remove("sleeping"); c.el.classList.add("appear");
-    setTimeout(() => c.el.classList.remove("appear"), 900);
-  });
+  if (st.board !== "world") { removeStack(st); st.board = "world"; boards.world.push(st); st.cards.forEach((x) => cardsLayer.append(x.el)); st.x = home.x + 10 + st.npc.order * 40; st.y = home.y + home.h + 16; }
+  const kit = st.npc.kit ?? []; st.npc.kit = [];
+  kit.forEach((t) => t.el.classList.remove("hidden-kit")); st.cards.push(...kit);
+  st.cards.forEach((x) => x.el.classList.remove("sleeping"));
+  st.task = ""; st.parkedAt = null;
+  if (c) {
+    const out = { x: c.gate.x + c.gate.w / 2 + (Math.random() - 0.5) * 80 + (st.npc.order - 0.5) * 90, y: c.y + c.h + 70 + Math.random() * 50 };
+    const path = findPath(MAP, center(st), out);
+    if (path) st.walk = { path: path.slice(0, -1), k: 0, x: out.x - CARD_W / 2, y: out.y - CARD_H / 2 };
+  }
+  if (Math.random() < 0.35 && heard(st)) say(st, Math.random() < 0.5 ? VOICE.line(st.npc.key, "wake") : `（${DEFS[st.npc.key].name}${VOICE.gesture(st.npc.key)}）`);
 }
 function intent(st, icon) {
   const el = st.cards[0].el.querySelector(".intent");
@@ -1366,16 +1590,21 @@ function frame(now) {
   let minutes = dt * MIN_PER_SEC * clock.speed;
   if (clock.fast) { minutes = Math.max(minutes, 25); if (clock.min + minutes >= clock.fast) { minutes = clock.fast - clock.min; clock.fast = 0; } }
   try { if (minutes > 0) tick(minutes); render(); } catch (err) { console.error(err); }
-  if (snow.on) snowDraw(dt);
+  if (sky.kind) skyDraw(dt);
   requestAnimationFrame(frame);
 }
 function tick(minutes) {
   clock.min += minutes;
   updateTide();
+  turnTick(minutes);
+  while (weather.events.length && weather.events[0].at <= clock.min) { const e = weather.events.shift(); if (e.kind === "roll") { weather.hold = 0; rollWeather(); } else setWeather(e.kind, e.strength); }
+  skyDrift(minutes);
   burnTorch(minutes);
   autoYou();
   const you = youStack();
-  me.food = Math.max(0, me.food - minutes * (you?.job && !you.job.r.nap ? 0.04 : 0.02));
+  me.food = Math.max(0, me.food - minutes * (you?.job && !you.job.r.nap ? 0.03 : 0.016));   // a full belly lasts you about three days
+  talks.sort((a, b) => a.at - b.at);
+  while (talks.length && talks[0].at <= clock.min) { const t = talks.shift(); if (boards.world.includes(t.st) && !t.st.npc?.inside && heard(t.st)) say(t.st, t.text); }
   for (const st of [...allStacks()]) {
     if (st.lifted) continue;
     if (st.npc) {
@@ -1466,17 +1695,31 @@ function tick(minutes) {
     const stove = find("stove")?.cards[0]; if (stove) stove.fuel = Math.max(0, (stove.fuel ?? 0) - 1);
     for (const t of boards.world.filter((s) => s.cards[0].key === "peach" || s.cards[0].key === "jujube")) {
       const c = t.cards[0], add = c.key === "peach" ? { 春: 0, 夏: 3, 秋: 1, 冬: 0 }[season()] : { 春: 0, 夏: 0, 秋: 3, 冬: 0 }[season()];
-      c.stock = season() === "冬" ? 0 : Math.min(8, c.stock + add); refreshStock(c);
+      c.stock = season() === "冬" ? 0 : Math.min(7, c.stock + add); refreshStock(c);
     }
-    const shrooms = find("jungleFood")?.cards[0];
-    if (shrooms) { shrooms.stock = Math.min(8, shrooms.stock + (season() === "冬" ? 0 : 2)); refreshStock(shrooms); }
+    for (const f of boards.world.filter((q) => q.cards[0].key === "mineFace" || q.cards[0].key === "flintVein")) {   // the cut face gives a little more each day
+      const c = f.cards[0]; c.stock = Math.min(c.key === "mineFace" ? 7 : 5, c.stock + (c.key === "mineFace" ? 2 : 1)); refreshStock(c);
+    }
     const nest = find("nest")?.cards[0];
     if (nest) { nest.stock = Math.min(4, nest.stock + ({ 春: 2, 夏: 2, 秋: 1, 冬: 0 }[season()])); refreshStock(nest); }
     for (const [kind, sp] of Object.entries(SPECIES)) if (boards.world.filter((s) => s.critter?.kind === kind).length < sp.n && Math.random() < 0.35) spawnAnimal(kind);
     const berries = find("berries")?.cards[0];
-    if (berries) { berries.stock = season() === "冬" ? 0 : Math.min(8, berries.stock + (weather.now === "雨" ? 4 : 3)); refreshStock(berries); }
+    if (berries) { berries.stock = season() === "冬" ? 0 : Math.min(7, berries.stock + (weather.now === "雨" ? 4 : 3)); refreshStock(berries); }
     const s = SEASONS.indexOf(season());
-    if (s !== lastSeason) { lastSeason = s; paintSeason(); banner(SEASONS[s], `${SEASONS[s]}天来了`); }
+    if (s !== lastSeason) {
+      lastSeason = s; turnSeason(SEASONS[s]); banner(SEASONS[s], `${SEASONS[s]}天来了`);
+      if (SEASONS[s] === "冬") {                                       // the first night of winter: snow from dusk till the next morning
+        const d0 = (day() - 1) * 1440 + 360;
+        if (weather.now === "雪") setWeather("晴");                      // a cold, clear first day; the snow comes with the dark
+        weather.hold = d0 + 1440 + 210;
+        weather.events.push({ at: d0 + 630, kind: "雪", strength: 1 }, { at: weather.hold, kind: "roll" });
+      }
+      boards.world.filter((q) => q.npc).forEach((q, i) => talks.push({ at: clock.min + 420 + i * 15, st: q, text: VOICE.seasonLine(q.npc.key, SEASONS[s]) }));
+      if (SEASONS[s] === "冬") for (const f of boards.world.filter((q) => (q.cards[0].key === "field" || q.cards[0].key === "field2") && q.cards[0].sown !== false)) {
+        const t = f.cards[0]; t.sown = false; t.stock = 0; refreshStock(t); t.el.querySelector(".card-art").innerHTML = iconFor("field");
+        float("没收的粟烂在地里了", center(f), "world"); groundChanged();     // missed the autumn: the field goes back to bare
+      }
+    }
   }
 }
 
@@ -1507,7 +1750,7 @@ const litAt = (p) => lights().some((l) => dist(l, p) < l.r * 0.7);
 /** Darkness is painted over everything, and light cuts it away — the ground under a fire is simply visible. */
 const darkCv = $("dark"), darkG = darkCv.getContext("2d");
 function drawDark() {
-  const d = darkness(), r = table.getBoundingClientRect(), K = 0.5;
+  const d = Math.max(darkness(), board === "world" && inMine(youAt()) ? 0.55 : 0), r = table.getBoundingClientRect(), K = 0.5;   // the tunnel is dim at noon
   const w = Math.ceil(r.width * K), h = Math.ceil(r.height * K);
   if (darkCv.width !== w || darkCv.height !== h) { darkCv.width = w; darkCv.height = h; }
   darkG.globalCompositeOperation = "source-over";
@@ -1563,6 +1806,7 @@ function render() {
       } else if (st.bar) { st.bar.remove(); st.bar = null; }
     }
   }
+  if (MAP.tunnel?.el) MAP.tunnel.el.classList.toggle("open", board === "world" && inMine(you ? center(you) : null));
   const hc = find("taoHouse")?.compound;
   if (hc?.roofEl) {
     const p = you ? center(you) : null;
@@ -1667,7 +1911,7 @@ function renderAutoMe() { const b = $("autoMe"); b.classList.toggle("on", me.aut
 // The people (and the dog) you can direct
 // ---------------------------------------------------------------------------
 const JOB_CHOICES = {
-  npc: [["farm", "field", "种田"], ["wood", "chestnut", "砍树，木头背回家"], ["fish", "river", "捕鱼，送去公灶"], ["clay", "pit", "挖黏土，送去陶窑"], ["stone", "scree", "捡石头，背回家"], ["cook", "stove", "做饭"], ["build", "plot", "盖房子：去材料齐了的地基上干活"]],
+  npc: [["farm", "field", "种田"], ["wood", "chestnut", "砍树，木头背回家"], ["fish", "river", "捕鱼，送去公灶"], ["stone", "scree", "去矿道挖石头，背回家"], ["cook", "stove", "做饭"], ["build", "plot", "盖房子：去材料齐了的地基上干活"]],
   dog: [["carry", "granary", "搬运：你背的东西一多，它就来接走送回家"]],
 };
 const MODES = [["auto", "⟳", "自己安排"], ["work", "⚒", "派活：选一样活，它自己去干"], ["manual", "✋", "我来指挥：直接拖动这张牌"]];
@@ -1720,8 +1964,9 @@ function steerDrop(d) {
   intent(st, t ? DEFS[t.cards[0].key].icon : "");
 }
 /** A villager you steered got there: do whatever that place is for. */
-const TASK_AT = { field: (t) => (t.stock >= 3 ? "harvest" : "tend"), field2: (t) => (t.stock >= 3 ? "harvest" : "tend"), chestnut: () => "chop", lake: () => "fish",
-  pit: () => "dig", scree: () => "pick", granary: () => "drop", kiln: () => "drop", stove: (t, st) => (st.carry ? "give" : "eat"), taoHouse: () => "store" };
+const FIELD_TASK = (t) => { const s = season(); if (s === "冬") return null; if (s === "秋") return t.stock >= 3 ? "harvest" : null; if (s === "春" && t.sown === false) return "sow"; return t.sown !== false ? "tend" : null; };
+const TASK_AT = { field: FIELD_TASK, field2: FIELD_TASK, chestnut: () => "chop", lake: () => "fish",
+  pit: () => "dig", scree: () => "pick", mineFace: () => "pick", granary: () => "drop", stove: (t, st) => (st.carry ? "give" : "eat"), taoHouse: () => "store" };
 function manualArrive(st, t) {
   intent(st, "");
   if (!t) return;
@@ -1777,19 +2022,27 @@ function dogArrive(st, t) {
 // ---------------------------------------------------------------------------
 const holds = (st, k) => st.cards.some((c) => c.key === k);
 /** Which tool goes where: leave it there and whoever works the place uses it. */
-const TOOL_AT = { chestnut: ["axe"], reeds: ["knife"], hemp: ["knife"], lake: ["net"], field: ["hoe"], field2: ["hoe"] };
+const TOOL_AT = { chestnut: ["axe"], reeds: ["knife"], hemp: ["knife"], lake: ["net"], field: ["hoe"], field2: ["hoe"], mineFace: ["hammer"] };
 const toolAt = (place, k) => Boolean(place?.cards.some((c, j) => j > 0 && c.key === k));
 const hasTool = (st, place, k) => holds(st, k) || toolAt(place, k);
 /** Wear the tool someone is using: their own if they carry one, else the one left at the place. */
 function wearAny(st, place, k) { if (holds(st, k)) return st.npc ? wearNpc(st, k) : wearTool(st, k); if (toolAt(place, k)) wearTool(place, k); }
+/** Does the season call this farmer to the fields right now — sowing in spring, weeding till the crop is up, harvest in autumn? */
+function fieldsCall(st) {
+  const fields = boards.world.filter((s) => s.cards[0].key === "field" || s.cards[0].key === "field2").map((s) => s.cards[0]);
+  const growing = fields.some((f) => f.sown !== false && (f.stock ?? 0) < 3);
+  if (season() === "春") return growing || (fields.some((f) => f.sown === false) && (holds(st, "grain") || find("granary").cards[0].stock > 0));
+  if (season() === "夏") return growing;
+  if (season() === "秋") return fields.some((f) => f.sown !== false && f.stock >= 3);
+  return false;
+}
+const kitHas = (st, k) => holds(st, k) || (st.npc?.kit ?? []).some((c) => c.key === k);
 const WANT = {
-  aunt: (st) => (holds(st, "net") || toolAt(find("lake"), "net") ? null : "net"),
-  yu: (st) => (holds(st, "hoe") || boards.world.some((s) => (s.cards[0].key === "field" || s.cards[0].key === "field2") && toolAt(s, "hoe")) ? null : "hoe"),
-  zhi: (st) => { const k = find("kiln")?.cards[0], g = find("granary")?.cards[0]; return k?.stock >= 2 && (g?.jars ?? 0) < 6 ? "jar" : holds(st, "axe") || boards.world.some((s) => s.cards[0].key === "chestnut" && toolAt(s, "axe")) ? null : "axe"; },
-  zao: (st) => (hour() >= 15.5 && hour() < 17.5 && !holds(st, "torch") && find("stove")?.cards[0].fuel >= 2 ? "torch" : null),
+  aunt: (st) => (kitHas(st, "net") || toolAt(find("lake"), "net") ? null : "net"),
+  san: (st) => (kitHas(st, "hoe") || boards.world.some((s) => isField(s) && toolAt(s, "hoe")) ? null : "hoe"),
 };
-const SOURCE = { log: "chestnut", wood: "chestnut", stone: "scree", fiber: "hemp", reed: "reeds", clay: "pit", fish: "lake" };
-const NPC_STATION = { fire: "taoHouse", kiln: "kiln", stove: "stove" };
+const SOURCE = { log: "chestnut", wood: "chestnut", stone: "mineFace", fiber: "hemp", reed: "reeds", clay: "pit", fish: "lake" };
+const NPC_STATION = { fire: "fire", stove: "stove" };
 const TORCH_FROM_STOVE = { id: "torch", needs: ["stove"], make: ["torch"], min: 20, fuelCost: 1 };
 function recipeFor(id) {
   if (id === "jar") return RECIPES.find((r) => r.id === "jar" && r.kilnClay);
@@ -1810,7 +2063,7 @@ function missingFor(st, r) {
   for (const k of r.needs.slice(1)) { const i = pool.findIndex((x) => x === k || (k === "wood" && x === "log")); if (i >= 0) pool.splice(i, 1); else out.push(k); }
   return out;
 }
-const pileHas = (k) => boards.tao.find((s) => s.store)?.cards.some((c) => c.key === k || (k === "wood" && c.key === "log"));
+const pileHas = (k) => allStacks().find((s) => s.store)?.cards.some((c) => c.key === k || (k === "wood" && c.key === "log"));
 function planStep(st) {
   const plan = st.plans.at(-1);
   if (plan.deliver) return go(st, "granary", "jarIn");
@@ -1819,9 +2072,12 @@ function planStep(st) {
     const k = miss[0];
     if (pileHas(k)) return go(st, "taoHouse", "fetchHome", k);
     if (SOURCE[k]) {
-      const src = boards.world.find((s) => s.cards[0].key === SOURCE[k] && s.cards[0].stock > 0 && !inJungle(center(s)));
-      if (!src) { st.plans = []; st.npc.wait = 120; return; }           // nothing left to gather: give up for now
-      return go(st, SOURCE[k], "gather", k === "wood" ? "log" : k);
+      // The nearest one that isn't in the tiger's beat: whoever ran from it won't walk straight back there.
+      const tiger = boards.world.find((s) => s.critter?.predator), me = center(st);
+      const src = boards.world.filter((s) => s.cards[0].key === SOURCE[k] && s.cards[0].stock > 0 && !inJungle(center(s))
+        && !(tiger && dist(center(tiger), center(s)) < 760)).sort((a, b) => dist(center(a), me) - dist(center(b), me))[0];
+      if (!src) { st.plans = []; st.npc.wait = 120; return; }           // nothing left to gather (or the tiger sits on it): give up for now
+      return go(st, SOURCE[k], "gather", k === "wood" ? "log" : k, src);
     }
     const sub = RECIPES.find((x) => x.id && x.make[0] === k && x.who?.includes(st.npc.key));
     if (sub && st.plans.length < 3) { st.plans.push({ r: sub }); return planStep(st); }
@@ -1965,7 +2221,7 @@ function completeField(target) {
   c.el.remove(); cardsLayer.append(nc.el);
   target.cards = [nc]; target.w = nc.w; target.h = nc.h;
   const p = center(target);
-  (MAP.extraFields ??= []).push({ patch: "field", x: p.x, y: p.y + 10, w: 230, h: 190 });
+  (MAP.extraFields ??= []).push({ patch: "field", x: p.x, y: p.y + 10, w: 230, h: 190, card: nc });   // painted by paintSeason below
   me.known.farm = { mem: 1, day: day() };
   paintSeason();
   banner("✦", "开出一块新田");
@@ -1993,11 +2249,11 @@ function finishDismantle(st, target, r) {
 // ---------------------------------------------------------------------------
 // Little things
 // ---------------------------------------------------------------------------
-const DOING = { eat: "吃饭", wait: "等饭", tend: "照看田", harvest: "收粟", dig: "挖黏土", drop: "放东西", fetch: "取粟", cook: "煮饭", watch: "守着灶", fish: "在湖边捞鱼", give: "送鱼去灶上", sleep: "回家", evening: "在门口歇着", chop: "砍树", pick: "捡石头", store: "把东西送回家", sow: "播种", seed: "去公仓拿种子", hide: "躲老虎", gather: "去采材料", fetchHome: "回家拿材料", craft: "做东西", jarIn: "把陶罐放进公仓", build: "盖房子" };
+const DOING = { eat: "吃饭", wait: "等饭", tend: "锄地", harvest: "收粟", dig: "挖黏土", drop: "放东西", fetch: "取粟", cook: "煮饭", watch: "在火塘边歇着", fish: "在湖边捞鱼", give: "送鱼去灶上", sleep: "回去睡觉", evening: "在火塘边坐着", chop: "砍树", pick: "挖石头", store: "把东西送回家", sow: "播种", seed: "去公仓拿种子", hide: "躲老虎", gather: "去采材料", fetchHome: "回家拿材料", craft: "做东西", jarIn: "把陶罐放进公仓", build: "盖房子", forage: "摘野果", tidy: "翻公仓里的粟" };
 function showDetail(card) {
   const d = { ...DEFS[card.key], ...(card.name ? { name: card.name } : {}) }, st = stackOf(card), box = $("detail");
   const ghost = card.el.classList.contains("ghost");
-  const doing = st.npc ? (ghost ? "不在你眼前，这是你最后见到的地方" : st.npc.inside ? "在屋里歇着" : st.job ? `正在${DOING[st.job.npcTask] ?? "忙"}` : st.walk ? `要去${DEFS[st.goal]?.name ?? "别处"}${DOING[st.task] ? `（${DOING[st.task]}）` : ""}` : "") : "";
+  const doing = st.npc ? (ghost ? "不在你眼前，这是你最后见到的地方" : st.npc.inside ? "在铺位上睡着" : st.musing ? "站着出神，想着心事" : st.job ? `正在${DOING[st.job.npcTask] ?? "忙"}` : st.walk ? `要去${DEFS[st.goal]?.name ?? "别处"}${DOING[st.task] ? `（${DOING[st.task]}）` : ""}` : "") : "";
   const mine = st === youStack() && d.type === "food";
   const trust = card.key in me.trust ? `<p class="doing">熟识：${me.trust[card.key]}/3</p>` : "";
   const inside = d.type === "house" ? allStacks().filter((s) => s.npc?.inside && s.npc.home === card.key).map((s) => DEFS[s.npc.key].name) : [];
@@ -2063,13 +2319,18 @@ function renderCrafts() {
   const builds = Object.keys(BUILDS).map((id) => `<div class="build-row">${craftRow(CRAFTS.find((r) => r.id === id))}<button class="act" data-place="${id}">${id === "farm" ? "选块草地开荒" : "选地方打地基"}</button></div>`).join("");
   box.innerHTML = `<b>你会的手艺</b>${mine.filter((r) => !r.build).map(craftRow).join("") || `<p>还什么都不会。</p>`}<b class="sub">盖房子</b>${builds}<p class="doing">没学会的还有 ${CRAFTS.length - mine.length} 样：点开村民按「请教」，或者带齐东西到地方自己琢磨（慢，还不一定成）。不用的手艺一周左右就忘。</p>`;
 }
-function say(st, text) {
-  if (!st) return;
-  const b = document.createElement("div");
-  b.className = "speech"; b.textContent = text;
-  b.style.transform = `translate(${st.x - 40}px, ${st.y - 64}px)`;
-  layerOf(st.board).append(b);
-  setTimeout(() => b.classList.add("out"), 2600); setTimeout(() => b.remove(), 3100);
+/** Someone says something (or thinks it): it pops up in the top right with their face; their card shows a little ✦ while it lasts. */
+function say(st, text, kind = "say") {
+  if (!st || !text) return;
+  const k = st.cards[0].key, box = $("chat"), el = document.createElement("div");
+  el.className = `chat-line${kind === "think" ? " think" : ""}`;
+  el.innerHTML = `<span class="chat-face">${iconFor(DEFS[k].icon)}</span><div><b>${DEFS[k].name}${kind === "think" ? "<i>心里想</i>" : ""}</b><p></p></div>`;
+  el.querySelector("p").textContent = text;
+  box.append(el);
+  while (box.children.length > 4) box.firstElementChild.remove();
+  setTimeout(() => el.classList.add("out"), 6500); setTimeout(() => el.remove(), 7100);
+  const c = st.cards[0].el; c.classList.add(kind === "think" ? "thinking" : "talking");
+  clearTimeout(st.talkT); st.talkT = setTimeout(() => c.classList.remove("talking", "thinking"), 3000);
 }
 function float(text, p, b = board) {
   const f = document.createElement("div");
@@ -2113,6 +2374,6 @@ $("meFace").innerHTML = iconFor("you");
 renderRecent(); renderParty(); renderAutoMe();
 { const r = table.getBoundingClientRect(); cam.z = Math.min(1.05, Math.max(0.7, r.height / 800)); const c = center(youStack()); cam.x = c.x; cam.y = c.y - 30; }
 applyCam(); fitRoom();
-window.addEventListener("resize", () => { applyCam(); fitRoom(); if (snow.on) snowSetup(); });
+window.addEventListener("resize", () => { applyCam(); fitRoom(); if (sky.cv) skySetup(); });
 requestAnimationFrame(frame);
-window.__mock = { inJungle, SPECIES, spawnAnimal, attackRabbit, BUILDS, startPlacing, placeFoundation, completeBuild, refreshPlot, newStack, WANT, planStep, holds, teach, renderCrafts, setMode, members, gainTrust, party, renderParty, tide, darkness, lights, litAt, boards, clock, cam, me, MAP, youStack, walkTo, find, center, discs, setSpeed, artFound, moveRange, arrive, walkable: (x, y) => walkable(MAP, x, y), explore, paintFog, paintSeason, newCard, eco, attackRabbit, showDetail, findPath: (a, b) => findPath(MAP, a, b) };
+window.__mock = { look, weather, skySet, sky, say, startChat, inJungle, SPECIES, spawnAnimal, attackRabbit, BUILDS, startPlacing, placeFoundation, completeBuild, refreshPlot, newStack, WANT, planStep, holds, teach, renderCrafts, setMode, members, gainTrust, party, renderParty, tide, darkness, lights, litAt, boards, clock, cam, me, MAP, youStack, walkTo, find, center, discs, setSpeed, artFound, moveRange, arrive, walkable: (x, y) => walkable(MAP, x, y), explore, paintFog, paintSeason, newCard, eco, attackRabbit, showDetail, findPath: (a, b) => findPath(MAP, a, b) };
