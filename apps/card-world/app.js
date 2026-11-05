@@ -48,7 +48,7 @@ const DEFS = {
   taoHouse:   { name: "陶家主屋", type: "house", icon: "house", text: "全村人晚上都睡在这儿。南边有道门，走进院子才看得见铺位和火塘。" },
   stove:      { name: "公用灶台", type: "structure", icon: "stove", text: "全家吃饭的地方。走过来就吃，吃到饱为止（一份熟食顶小半个饱）。", stockLabel: "熟食" },
   granary:    { name: "公仓", type: "structure", icon: "granary", text: "家里的存粮，能存 20 份粟；存不下的粟就糟蹋了。阿三收了粟背来，陶婶从这里取去煮。", stockLabel: "粟" },
-  field:      { name: "旱地·一", type: "source", icon: "field", text: "春天带 1 份粟来播种；春夏锄草（带石锄快一倍），长势到 3 就等秋天收，一块收 6 份粟。入冬还没收的就烂在地里。", stockLabel: "长势" },
+  field:      { name: "旱地·一", type: "source", icon: "field", text: "春天带 1 份粟来播种；春夏锄草（带石锄快一倍），秋天收，收成看长势：满 3 收 6 份粟，旱了长得差就收得少。入冬还没收的就烂在地里。", stockLabel: "长势" },
   field2:     { name: "旱地·二", type: "source", icon: "field", text: "同一片田的另一头，一样春种、夏锄、秋收，冬天歇地。", stockLabel: "长势" },
   lake:       { name: "湖边", type: "source", icon: "river", text: "走过来：捞鱼。网眼里的鱼会被捞光，过一两天鱼群再回来。", stock: 7 },
   pit:        { name: "黏土坑", type: "source", icon: "pit", text: "河湾的黏土。走过来：挖一份。", stock: 6 },
@@ -149,8 +149,9 @@ const RECIPES = [
   { needs: ["berries"], make: ["berry", "berry"], min: 40, take: true },
   { needs: ["field", "grain"], when: (t) => t.sown === false && season() === "春", make: [], min: 60, use: ["grain"], sow: true },
   { needs: ["field2", "grain"], when: (t) => t.sown === false && season() === "春", make: [], min: 60, use: ["grain"], sow: true },
-  { needs: ["field"], when: (t) => t.stock >= 3 && t.sown !== false && season() === "秋", make: ["grain", "grain", "grain", "grain", "grain", "grain"], min: 120, harvest: true },
-  { needs: ["field2"], when: (t) => t.stock >= 3 && t.sown !== false && season() === "秋", make: ["grain", "grain", "grain", "grain", "grain", "grain"], min: 120, harvest: true },
+  // the yield follows how well it grew: two grain for every step of growth (a full field, six; a dry year, less)
+  { needs: ["field"], when: (t) => t.stock >= 1 && t.sown !== false && season() === "秋", make: [], min: 120, harvest: true },
+  { needs: ["field2"], when: (t) => t.stock >= 1 && t.sown !== false && season() === "秋", make: [], min: 120, harvest: true },
   { needs: ["field", "hoe"], when: (t) => t.sown !== false && (season() === "春" || season() === "夏"), make: [], min: 60, tend: 2 },
   { needs: ["field2", "hoe"], when: (t) => t.sown !== false && (season() === "春" || season() === "夏"), make: [], min: 60, tend: 2 },
   { needs: ["field"], when: (t) => t.sown !== false && (season() === "春" || season() === "夏"), make: [], min: 150, tend: 1 },
@@ -1317,7 +1318,7 @@ function finish(st) {
     }
     t.stock = Math.max(0, t.stock - 3); refreshStock(t);
   }
-  if (r.harvest) { t.stock = 0; t.sown = false; refreshStock(t); t.el.querySelector(".card-art").innerHTML = iconFor("field"); groundChanged(); firstHarvest(); }
+  if (r.harvest) { for (let k = 0; k < 2 * (t.stock ?? 0); k++) addCard(st, "grain"); float(t.stock >= 3 ? "好收成" : "旱了一季，收得少", center(target), target.board); t.stock = 0; t.sown = false; refreshStock(t); t.el.querySelector(".card-art").innerHTML = iconFor("field"); groundChanged(); firstHarvest(); }
   if (r.sow) { t.sown = true; t.stock = 0; refreshStock(t); float("种下了", center(target), target.board); groundChanged(); }
   if (r.jarIn) { t.jars = (t.jars ?? 0) + 1; refreshStock(t); float(`公仓能存 ${granaryCap(t)} 份了`, center(target), "world"); }
   if (r.take && t.key === "shallows" && tide.level < -0.3) { const c = newCard("clam"); layerOf(st.board).append(c.el); st.cards.push(c); float("退潮，多摸到一只", center(st), st.board); }
@@ -1633,7 +1634,7 @@ function brain(st, minutes) {
       const now = season();
       if (now === "冬") return go(st, "fire", "watch");                         // the fields rest; so does the farmer, by the fire
       if (now === "秋") {
-        const ripe = fields.find((f) => f.cards[0].stock >= 3);
+        const ripe = fields.find((f) => f.cards[0].stock >= 1);
         return ripe ? go(st, ripe.cards[0].key, "harvest", null, ripe) : muse(st, 60 + Math.random() * 60);
       }
       if (now === "春" && bare.length) {                                        // sow first, then tend
@@ -1721,7 +1722,7 @@ function npcDone(st) {
   if (task === "tend" && t.sown !== false) { t.tendDay = day(); const hoe = hasTool(st, target, "hoe"); t.stock = Math.min(3, (t.stock ?? 0) + (hoe ? 2 : 1)); if (hoe) wearAny(st, target, "hoe"); refreshStock(t); groundChanged(); t.el.querySelector(".card-art").innerHTML = iconFor(t.stock >= 3 ? "fieldRipe" : "field"); }
   if (task === "seed" && t.stock > 0) { t.stock--; refreshStock(t); addCard(st, "grain"); }
   if (task === "sow") { const i = st.cards.findIndex((c, j) => j > 0 && c.key === "grain"); if (i > 0) { st.cards[i].el.remove(); st.cards.splice(i, 1); t.sown = true; t.stock = 0; refreshStock(t); groundChanged(); } }
-  if (task === "harvest") { t.stock = 0; t.sown = false; refreshStock(t); t.el.querySelector(".card-art").innerHTML = iconFor("field"); carry(st, "grain", 6); groundChanged(); firstHarvest(); }   // one harvest a year: enough to see the house through
+  if (task === "harvest") { const yieldN = 2 * (t.stock ?? 0); t.stock = 0; t.sown = false; refreshStock(t); t.el.querySelector(".card-art").innerHTML = iconFor("field"); carry(st, "grain", yieldN); groundChanged(); firstHarvest(); }   // one harvest a year: enough to see the house through
   if (task === "dig" && t.stock > 0) { t.stock--; refreshStock(t); carry(st, "clay", 1); }
   if (task === "fetch" && t.stock > 0) { t.stock--; refreshStock(t); carry(st, "grain", 1); }
   if (task === "fish") { if (t.stock > 0) { t.stock--; refreshStock(t); } const net = hasTool(st, target, "net"); carry(st, "fish", net ? 2 : 1, net ? 2 : 1); if (net) wearAny(st, target, "net"); }
@@ -2230,7 +2231,7 @@ function steerDrop(d) {
   intent(st, t ? DEFS[t.cards[0].key].icon : "");
 }
 /** A villager you steered got there: do whatever that place is for. */
-const FIELD_TASK = (t) => { const s = season(); if (s === "冬") return null; if (s === "秋") return t.stock >= 3 ? "harvest" : null; if (s === "春" && t.sown === false) return "sow"; return t.sown !== false ? "tend" : null; };
+const FIELD_TASK = (t) => { const s = season(); if (s === "冬") return null; if (s === "秋") return t.stock >= 1 ? "harvest" : null; if (s === "春" && t.sown === false) return "sow"; return t.sown !== false ? "tend" : null; };
 const TASK_AT = { field: FIELD_TASK, field2: FIELD_TASK, chestnut: () => "chop", lake: () => "fish",
   pit: () => "dig", scree: () => "pick", mineFace: () => "pick", granary: () => "drop", stove: (t, st) => (st.carry ? "give" : "eat"), taoHouse: () => "store" };
 function manualArrive(st, t) {
@@ -2299,7 +2300,7 @@ function fieldsCall(st) {
   const growing = fields.some((f) => f.sown !== false && (f.stock ?? 0) < 3);
   if (season() === "春") return growing || (fields.some((f) => f.sown === false) && (holds(st, "grain") || find("granary").cards[0].stock > 0));
   if (season() === "夏") return growing;
-  if (season() === "秋") return fields.some((f) => f.sown !== false && f.stock >= 3);
+  if (season() === "秋") return fields.some((f) => f.sown !== false && f.stock >= 1);
   return false;
 }
 const kitHas = (st, k) => holds(st, k) || (st.npc?.kit ?? []).some((c) => c.key === k);
