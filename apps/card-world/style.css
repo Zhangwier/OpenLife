@@ -334,3 +334,4 @@ button { font-family: inherit; cursor: pointer; }
 .village-book .lore b { margin-right: 6px; color: #6a4a2a; }
 .village-book .lore i { display: block; font-style: normal; font-size: 11px; color: #9a8a74; }
 #season small { margin-left: 6px; font-size: 11px; font-weight: 600; opacity: .8; }
+.me-name { align-self: center; font-size: 12px; font-weight: 700; color: #f6ecd8; white-space: nowrap; text-shadow: 0 1px 0 #241a12; }

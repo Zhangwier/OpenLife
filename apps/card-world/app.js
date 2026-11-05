@@ -557,7 +557,7 @@ function build() {
   for (const [k, n] of Object.entries(PEOPLE)) {
     const order = Object.keys(PEOPLE).indexOf(k);
     const st = placeCard(k, at(n.at));
-    st.npc = { key: k, order, home: n.home, job: n.job, hunger: 1 + Math.random() * 3, wait: 0, inside: false, kit: [],
+    st.npc = { key: k, order, home: n.home, job: n.job, hunger: 1 + Math.random() * 3, wait: 0, inside: false, kit: [], born: bornFor(PEOPLE_DATA[k]?.age ?? 25),
       wake: 5.6 + order * 0.2, sleep: 20.2 + order * 0.25, outAt: 0, nextChat: clock.min + 120 };
   }
   const dog = placeCard("dog", at(START.dog));
@@ -565,6 +565,7 @@ function build() {
   dog.ctl = { mode: "auto", job: "carry" };
   for (const [kind, sp] of Object.entries(SPECIES)) for (let i = 0; i < sp.n; i++) spawnAnimal(kind);
   placeCard("you", at(START.you));
+  me.name = "启禾"; me.gen = 1; me.born = bornFor(16); me.family = { spouse: null, kids: [] };
   setupMainHouse();
   setupMine();
   const fire = find("fire")?.cards[0]; if (fire) fire.fuel = 2;
@@ -781,11 +782,12 @@ function moveRange(p = youAt()) {
   if (groping(p)) k *= 0.5;
   if (p && MAP.zoneAt(p.x, p.y) === "plateau") k *= 0.5;
   if (isSick()) k *= 0.8;
+  if (myAge() >= 60) k *= 0.85;
   if (weather.now === "雪" && board === "world") k *= 0.85;      // snow underfoot
   if (youStack()?.cards.some((c) => c.key === "sandals")) k *= 1.25;
   return MOVE_RANGE * k;
 }
-const workPace = () => (hungry() ? 1.4 : 1) * (tired() ? 1.4 : 1) * (isSick() ? 1.5 : 1) * (weather.now === "雨" && !inYard(youAt() ?? { x: 0, y: 0 }) ? 1.1 : 1);
+const workPace = () => (hungry() ? 1.4 : 1) * (tired() ? 1.4 : 1) * (isSick() ? 1.5 : 1) * (myAge() >= 60 ? 1.2 : 1) * (weather.now === "雨" && !inYard(youAt() ?? { x: 0, y: 0 }) ? 1.1 : 1);
 function bodyState() {
   const s = [];
   if (starving()) s.push("饿得发慌：走不远，干不了活");
@@ -794,6 +796,7 @@ function bodyState() {
   else if (tired()) s.push("累了：干活慢");
   if (groping()) s.push("天黑看不清路：走不远");
   if (isSick()) s.push("病了：干活慢、走不远");
+  if (myAge() >= 60) s.push("上了年纪：走得慢、干活慢");
   else if ((me.cold ?? 0) > 60) s.push("冷得发抖：找个火边暖和暖和");
   return s;
 }
@@ -1102,6 +1105,7 @@ const doyNow = () => ((day() - 1) % (DAYS_PER_SEASON * 4)) + 1;
 function talk(target, st) {
   const k = target.cards[0].key;
   if (!target.npc) { say(target, pick(TALK[k] ?? ["……"])); return; }
+  if (!PD(target)) { target.npc.wait = Math.max(target.npc.wait, 20); return target.npc.retired ? say(target, pick(["“这院子，当年是一根根木头立起来的。”", "“好好干，别学我年轻时候那样莽。”", "“天凉了，多穿点。”"])) : kidTalk(target); }
   const n = soc(target.npc), P = PD(target), h = hearts(n);
   target.npc.wait = Math.max(target.npc.wait, 30); face(target, st); endMuse(target);
   if (n.talkDay !== day()) { n.talkDay = day(); bondUp(target, { fam: n.bond.grudge >= 2 ? 0.15 : 0.45 }); }
@@ -1156,6 +1160,7 @@ function repay(st) {
 
 /** Now and then, near you and with time on their hands, they ask you for something. */
 function considerAsking(st, minutes) {
+  if (!PD(st)) return;
   const n = soc(st.npc), you = youStack();
   if (n.req || n.inside || st.job || n.askDay === day() || !you || you.board !== "world") return;
   if (hour() < 8 || hour() > 17 || dist(center(st), center(you)) > 600 || Math.random() > minutes / 90) return;
@@ -1251,6 +1256,7 @@ function gift(target, cards) {
 }
 /** Once a day, coming close to someone awake and about: a nod, a word — how warm depends on how well you know each other. */
 function encounter(st) {
+  if (!PD(st)) { st.npc.metDay = day(); return; }
   const n = soc(st.npc), h = hearts(n);
   n.metDay = day();
   bondUp(st, { fam: 0.15 });
@@ -1273,7 +1279,7 @@ function peopleTick(minutes) {
 }
 /** At dawn their spirits drift back towards the middle; fears pull them down. */
 function peopleDay() {
-  for (const st of boards.world.filter((s) => s.npc)) {
+  for (const st of boards.world.filter((s) => s.npc && PD(s))) {
     const n = soc(st.npc);
     n.mood += (6 - n.mood) * 0.3;
     if ((find("granary")?.cards[0].stock ?? 0) < 4 && st === boards.world.find((q) => q.npc)) needUp("more-grain");
@@ -1653,6 +1659,18 @@ function brain(st, minutes) {
       return Math.random() < 0.5 ? go(st, "granary", "tidy") : muse(st, 40 + Math.random() * 50);
     }
     case "fish": return st.carry ? go(st, "stove", "give") : go(st, "lake", "fish");
+    case "play": {                                                        // children (and the old) potter about near home
+      const c = MAP.house, small = npcAge(n) < 4 || n.retired;
+      const anchor = small ? { x: c.x + c.w / 2, y: c.y + c.h / 2 } : { x: c.gate.x + c.gate.w / 2, y: c.y + c.h + 220 };
+      for (let k = 0; k < 8; k++) {
+        const p = { x: anchor.x + (Math.random() - 0.5) * (small ? 360 : 700), y: anchor.y + (Math.random() - 0.5) * (small ? 400 : 360) };
+        if (!walkable(MAP, p.x, p.y)) continue;
+        const path = findPath(MAP, center(st), p);
+        if (path) { st.walk = { path: path.slice(0, -1), k: 0, x: p.x - CARD_W / 2, y: p.y - CARD_H / 2 }; st.task = "play"; return; }
+      }
+      return muse(st, 30);
+    }
+    case "help": return st.carry ? go(st, "taoHouse", "store") : go(st, "hemp", "help");   // a half-grown child cuts hemp and brings it home
     case "reed": {                                                        // 阿苇 cuts only while there is old reed to spare
       if (st.carry) return go(st, "taoHouse", "store");
       const r = find("reeds");
@@ -1693,7 +1711,7 @@ function go(st, key, task, want, stack) {
   st.walk = { target, path, k: 0 };
   st.task = task; st.goal = key; intent(st, DEFS[key].icon);
 }
-const JOBS = { eat: 30, wait: 60, tend: 180, harvest: 150, dig: 90, drop: 15, fetch: 20, cook: 120, watch: 90, fish: 120, give: 15, evening: 100, chop: 150, pick: 60, store: 15, gather: 90, fetchHome: 15, jarIn: 15, build: 240, sow: 60, seed: 15, hide: 90, forage: 40, tidy: 60, cut: 90, arrive: 20, feast: 120, shelter: 90 };
+const JOBS = { eat: 30, wait: 60, tend: 180, harvest: 150, dig: 90, drop: 15, fetch: 20, cook: 120, watch: 90, fish: 120, give: 15, evening: 100, chop: 150, pick: 60, store: 15, gather: 90, fetchHome: 15, jarIn: 15, build: 240, sow: 60, seed: 15, hide: 90, forage: 40, tidy: 60, cut: 90, arrive: 20, feast: 120, shelter: 90, play: 40, help: 80 };
 // What they say as they set to a task (now and then, not every time).
 const TOPIC = { sow: "sow", tend: "tend", harvest: "harvest", cook: "cook", fetch: "cook", fish: "fish", cut: "cut", pick: "pick" };
 function npcArrive(st) {
@@ -1736,6 +1754,7 @@ function npcDone(st) {
   if (task === "store") storeCarry(st);
   if (task === "drop" || task === "give") dropCarry(st, t);
   if (task === "arrive") welcome(st);
+  if (task === "help" && t.stock > 0) { t.stock--; refreshStock(t); carry(st, "fiber", 1); }
   if (task === "cut" && t.stock > 0) { t.stock--; refreshStock(t); const two = hasTool(st, target, "knife"); carry(st, "reed", two ? 2 : 1, two ? 2 : 1); if (two) wearAny(st, target, "knife"); }
   if (task === "cook") { dropCarry(st); t.stock = (t.stock ?? 0) + 3; refreshStock(t); float("+3 熟食", center(target), "world"); if (t.stock >= 6 && Math.random() < 0.4 && heard(st)) say(st, VOICE.line(st.npc.key, "full")); }
   deplete(t);
@@ -1945,6 +1964,7 @@ function tick(minutes) {
     peopleDay();
     festivalMorning();
     natureDay();
+    lifeDay();
     const fire = find("fire")?.cards[0]; if (fire) fire.fuel = Math.max(0, (fire.fuel ?? 0) - 1);
     const stove = find("stove")?.cards[0]; if (stove) stove.fuel = Math.max(0, (stove.fuel ?? 0) - 1);
     for (const t of boards.world.filter((s) => s.cards[0].key === "peach" || s.cards[0].key === "jujube")) {
@@ -2093,6 +2113,7 @@ function render() {
   const state = bodyState().join(" · ");
   $("me").classList.toggle("low", Boolean(state));
   $("meFace").title = state || "点一下：接着做刚才那件事";
+  const nm = `${me.name ?? "启禾"} · ${myAge()}岁`; if ($("meName").textContent !== nm) $("meName").textContent = nm;
 }
 function carryChanged() {
   const you = youStack();
@@ -2528,7 +2549,7 @@ function showDetail(card) {
   const ghost = card.el.classList.contains("ghost");
   const doing = st.npc ? (ghost ? "不在你眼前，这是你最后见到的地方" : st.npc.inside ? "在铺位上睡着" : st.musing ? "站着出神，想着心事" : st.job ? `正在${DOING[st.job.npcTask] ?? "忙"}` : st.walk ? `要去${DEFS[st.goal]?.name ?? "别处"}${DOING[st.task] ? `（${DOING[st.task]}）` : ""}` : "") : "";
   const mine = st === youStack() && d.type === "food";
-  const trust = st.npc && PD(st) ? socialBlock(st) : "";
+  const trust = st.npc && PD(st) ? socialBlock(st) : st.npc ? `<p class="doing">${st.npc.retired ? "上一代当家的" : family().kids.includes(st.npc.key) ? "你家的孩子" : (family().siblings ?? []).includes(st.npc.key) ? "你的兄弟姐妹" : "村里的人"} · ${looksAge(npcAge(st.npc))}</p>` : "";
   const inside = d.type === "house" ? allStacks().filter((s) => s.npc?.inside && s.npc.home === card.key).map((s) => DEFS[s.npc.key].name) : [];
   const pile = d.type === "house" ? boards.tao.find((s) => s.store)?.cards ?? [] : [];
   const stored = Object.entries(pile.reduce((n, c) => ({ ...n, [DEFS[c.key].name]: (n[DEFS[c.key].name] ?? 0) + 1 }), {})).map(([k, v]) => `${k} ${v}`);
@@ -2587,7 +2608,9 @@ function socialBlock(st) {
     const left = Object.entries(n.req.need).filter(([, v]) => v > 0), can = left.some(([k]) => loose(you).some((c) => c.key === k));
     req = `<div class="req"><p>答应了${P.he}：${askOf(st).why}${left.length ? `，还差 ${left.map(([k, v]) => `${DEFS[k].name}×${v}`).join("、")}` : ""}</p>${near ? (can ? btn("deliver", `交给${P.he}`) : "") + btn("decline", "说办不成了", true) : ""}</div>`;
   }
-  return `<p class="doing">关系：${tierOf(hearts(n)).name}${mood ? ` · ${mood}` : ""}</p>${mems ? `<p class="doing">${P.he}记得：</p><ul class="mems">${mems}</ul>` : ""}`
+  const kin = family().spouse === st.npc.key ? "你的另一半" : family().parent === st.npc.key ? "你家里的长辈" : "";
+  const famBtns = near ? (canCourt(st) ? btn("court", "求亲") : "") + (family().spouse === st.npc.key && canHaveChild() ? btn("child", "想要个孩子") : "") : "";
+  return `<p class="doing">${kin ? `${kin} · ` : ""}关系：${tierOf(hearts(n)).name}${mood ? ` · ${mood}` : ""} · 看着${looksAge(npcAge(st.npc))}</p>${famBtns ? `<div class="social-acts">${famBtns}</div>` : ""}${mems ? `<p class="doing">${P.he}记得：</p><ul class="mems">${mems}</ul>` : ""}`
     + `${facts.length ? `<p class="doing">你知道的：${facts.join(" · ")}</p>` : ""}${req}`
     + (near ? `<div class="social-acts">${btn("talk", "聊聊")}${btn("news", "问问近况")}</div>` : `<p class="doing">走近了才能说话</p>`);
 }
@@ -2597,6 +2620,8 @@ $("detail").addEventListener("click", (e) => {
   const act = b.dataset.social, you = youStack();
   if (act === "talk") talk(st, you);
   if (act === "news") askNews(st);
+  if (act === "court") court(st);
+  if (act === "child") wantChild(st);
   if (act === "accept") acceptReq(st);
   if (act === "decline") declineReq(st);
   if (act === "deliver") {
@@ -2649,8 +2674,9 @@ document.addEventListener("keydown", (e) => { if (e.code === "Space") { e.preven
 $("help").onclick = () => { $("helpbox").hidden = false; };
 $("craftBook").onclick = () => { if (placing) { placing = null; table.classList.remove("placing"); toast("不打地基了"); return; } const b = $("crafts"); b.hidden = !b.hidden; renderCrafts(); };
 $("crafts").addEventListener("click", (e) => { const b = e.target.closest("[data-place]"); if (b) startPlacing(b.dataset.place); });
-$("nameOk").onclick = () => { const c = naming; if (!c) return; c.name = $("nameInput").value.trim() || DEFS[c.key].name; c.el.querySelector(".card-head span").textContent = c.name; $("namer").hidden = true; naming = null; toast(`就叫「${c.name}」`); };
+$("nameOk").onclick = () => { if (naming?.kidKey) { nameKid(naming.kidKey, naming.card, $("nameInput").value.trim()); $("namer").hidden = true; naming = null; return; } const c = naming; if (!c) return; c.name = $("nameInput").value.trim() || DEFS[c.key].name; c.el.querySelector(".card-head span").textContent = c.name; $("namer").hidden = true; naming = null; toast(`就叫「${c.name}」`); };
 $("helpClose").onclick = () => { $("helpbox").hidden = true; };
+$("villageBook").addEventListener("click", (e) => { if (e.target.closest("[data-passon]") && confirm("退下来养老，让孩子当家？往后你就是他了。")) { passOn(false); renderVillage(); } });
 $("villageBtn").onclick = () => { const b = $("villageBook"); b.hidden = !b.hidden; $("crafts").hidden = true; renderVillage(); };
 $("lifeNew").onclick = () => { if (confirm("从头开始一段新的人生？现在的存档会被清掉。")) location.search = "?new=1"; };
 $("lifeExport").onclick = () => {
@@ -2696,14 +2722,15 @@ const npcs = () => boards.world.filter((s) => s.npc).concat(Object.entries(board
 const beds = () => boards.world.filter((s) => s.cards[0].key === "bed" || s.cards[0].key === "hut");
 const capOfBed = (b) => (b.cards[0].key === "hut" ? 2 : 4);
 const bedOf = (n) => { const all = beds(); return (n.bed && all.find((b) => dist(center(b), n.bed) < 60)) ?? all.find((b) => b.cards[0].key === "bed"); };
-const sleepersAt = (b) => npcs().filter((s) => bedOf(s.npc) === b).length;
+const sleepersAt = (b) => npcs().filter((s) => bedOf(s.npc) === b && !(s.npc.kid && npcAge(s.npc) < 8)).length;   // small children sleep by their parents
 const freeBed = () => beds().find((b) => sleepersAt(b) < capOfBed(b));
 /** The snapshot the ladder reads. */
 function villageNow() {
   const people = npcs().filter((s) => !s.npc.arriving);
   return {
     firstHarvest: village.firstHarvest, winters: village.winters, starved: village.starved,
-    allKnown: people.every((s) => hearts(soc(s.npc)) >= 1),
+    allKnown: people.filter(PD).every((s) => hearts(soc(s.npc)) >= 1), generations: me.gen ?? 1,
+    threeGen: Boolean(family().parent && npcs().some((q) => q.npc.key === family().parent) && family().kids.length),
     people: people.length + 1, beds: beds().reduce((n, b) => n + capOfBed(b), 0) + 1,
     granary: find("granary")?.cards[0].stock ?? 0, fields: boards.world.filter(isField).length,
   };
@@ -2728,7 +2755,7 @@ function considerArrival() {
   const t = MAP.tiles[who.from[0]], p = settle(t.x + t.w * who.from[1], t.y + t.h * who.from[2]);
   const order = npcs().length;
   const st = placeCard(who.key, p);
-  st.npc = { key: who.key, order, home: "taoHouse", job: who.job, hunger: 3, wait: 0, inside: false, kit: [], arriving: true,
+  st.npc = { key: who.key, order, home: "taoHouse", job: who.job, hunger: 3, wait: 0, inside: false, kit: [], arriving: true, born: bornFor(PEOPLE_DATA[who.key]?.age ?? 25),
     wake: 5.6 + order * 0.2, sleep: 20.2 + (order % 4) * 0.25, outAt: 0, nextChat: clock.min + 240, bed: center(bed) };
   village.nextArrival = clock.min + 1.5 * 1440;
   explore(p);
@@ -2782,7 +2809,10 @@ function renderVillage() {
   const customs = THEORIES.filter((t) => t.custom && lore.customs.includes(t.custom.id)).map((t) => `<li><b>${t.custom.name}</b>${t.custom.text}</li>`).join("");
   const made = INVENTIONS.filter((i) => lore.inventions[i.id]).map((i) => { const by = lore.inventions[i.id].by; return `<li><b>${i.name}</b>${DEFS[by]?.name ?? ""}想到的，可以找${PEOPLE_DATA[by]?.he ?? "他"}请教</li>`; }).join("");
   const needs = Object.entries(lore.needs).filter(([, n]) => n >= 1).map(([k]) => NEEDS[k]).filter(Boolean);
-  box.innerHTML = `<b>村子</b><div class="ladder">${ladder}</div><b class="sub">村里的人（${v.people} 人，能住 ${v.beds} 人）</b><div class="folks">${folks}</div>`
+  const f = family(), kids = f.kids.map((k) => npcs().find((q) => q.npc.key === k)).filter(Boolean);
+  const home = `<b class="sub">你家（第 ${me.gen ?? 1} 代）</b><p class="doing">${me.name ?? "启禾"}，${myAge()} 岁${f.spouse ? ` · 另一半：${DEFS[f.spouse]?.name}` : ""}${kids.length ? ` · 孩子：${kids.map((q) => `${nameOf(q)}（${npcAge(q.npc)} 岁）`).join("、")}` : ""}${me.expecting ? " · 家里要添人了" : ""}</p>`
+    + (heirs().length ? `<button class="act" data-passon="1">退下来，把家交给${nameOf(heirs()[0])}</button>` : "");
+  box.innerHTML = `<b>村子</b><div class="ladder">${ladder}</div>${home}<b class="sub">村里的人（${v.people} 人，能住 ${v.beds} 人）</b><div class="folks">${folks}</div>`
     + (needs.length ? `<b class="sub">大伙发愁的</b><p class="doing">${needs.join("、")}</p>` : "")
     + (ideas ? `<b class="sub">琢磨出的道理</b><ul class="lore">${ideas}</ul>` : "") + (customs ? `<b class="sub">规矩</b><ul class="lore">${customs}</ul>` : "")
     + (made ? `<b class="sub">想到的新东西</b><ul class="lore">${made}</ul>` : "") + `<b class="sub">村史</b><ul class="history">${hist}</ul>`;
@@ -2913,6 +2943,145 @@ function thinkTick() {
 }
 
 // ---------------------------------------------------------------------------
+// A life: everyone grows older (three years for every year of the game, so a life fits in an evening or two of play),
+// marries, has children, dies. When you die your grown child carries on: your things, the start of your crafts, and
+// half the goodwill the village had for you. No grown child: a young stranger takes up the life instead.
+// ---------------------------------------------------------------------------
+const AGE_PER_YEAR = 3, DAYS_PER_YEAR = DAYS_PER_SEASON * 4;
+const ageOf = (born) => Math.floor(((day() - born) * AGE_PER_YEAR) / DAYS_PER_YEAR);
+const bornFor = (age) => day() - (age * DAYS_PER_YEAR) / AGE_PER_YEAR;
+const myAge = () => ageOf(me.born ?? bornFor(16));
+const npcAge = (n) => ageOf(n.born ?? bornFor(PEOPLE_DATA[n.key]?.age ?? 25));
+/** How old someone looks: you can tell roughly, not to the year. */
+const looksAge = (a) => (a < 4 ? "还抱在怀里" : a < 8 ? "满地跑的年纪" : a < 13 ? "半大孩子" : a < 18 ? "十几岁" : a < 25 ? "二十来岁" : a < 60 ? `${["三", "四", "五"][Math.floor(a / 10) - 3]}十${a % 10 < 4 ? "出头" : "来岁"}` : "上了年纪");
+const isKid = (st) => Boolean(st?.npc?.kid) && npcAge(st.npc) < 16;
+const family = () => (me.family ??= { spouse: null, kids: [] });
+const kidName = (k) => me.defs?.[k]?.name ?? DEFS[k]?.name ?? "孩子";
+/** Cards made up during play (children, a parent retired) need their entry back after loading. */
+function defineCard(key, def) { (me.defs ??= {})[key] = def; DEFS[key] = { type: "person", ...def }; }
+const KID_LINES = { baby: ["（咿咿呀呀地冲你笑）", "（抓着你的手指不放）"], small: ["“你看！我抓到一只蚂蚱！”", "“陪我玩一会儿嘛。”", "“我也要去湖边！”"], youth: ["“我能帮着干活了。”", "“阿三说我锄地锄得直。”", "“等我长大了，也要去山那边看看。”"] };
+function kidTalk(st) {
+  const a = npcAge(st.npc);
+  say(st, pick(KID_LINES[a < 4 ? "baby" : a < 12 ? "small" : "youth"]));
+}
+/** Can you ask this person to marry you? Both grown, neither married, close, and not too far apart in years. */
+function canCourt(st) {
+  const n = st.npc, f = family();
+  if (!n || n.kid || n.spouse || f.spouse || !PD(st)) return false;
+  return myAge() >= 18 && npcAge(n) >= 18 && Math.abs(npcAge(n) - myAge()) <= 15 && hearts(soc(n)) >= 6;
+}
+function court(st) {
+  const n = soc(st.npc), h = hearts(n), P = PD(st);
+  if (h >= 8 || Math.random() < (h - 5) / 3) {
+    family().spouse = st.npc.key; st.npc.spouse = "you";
+    bondUp(st, { trust: 1 });
+    say(st, P.court?.accept ?? `${nameOf(st)}低头想了一会儿，点了点头：“好。”`);
+    banner("✦", `你和${nameOf(st)}成了家`); chronicle(`你和${nameOf(st)}成了一家人。`);
+    memo(st, "跟你成了家");
+  } else { say(st, P.court?.notYet ?? `“……再等等吧。”`); n.courtDay = day(); }
+}
+const canHaveChild = () => { const f = family(); return Boolean(f.spouse) && !me.expecting && f.kids.length < 4 && myAge() < 48 && npcs().some((q) => q.npc.key === f.spouse); };
+function wantChild(st) {
+  me.expecting = day() + DAYS_PER_SEASON;                                 // about a season
+  say(st, pick(["“……嗯。”", "“好。”", "（脸一下红了）"]));
+  chronicle("家里要添人了。");
+}
+function birth() {
+  me.expecting = 0;
+  const f = family(), n = f.kids.length + (me.kidCount ?? 0) + 1;
+  const key = `kid${me.gen ?? 1}_${n}`;
+  defineCard(key, { name: `孩子`, icon: "yu", text: "你家的孩子。小时候在院子附近玩，十二岁起帮着干点活，十六岁成人。" });
+  const bed = beds().find((b) => b.cards[0].key === "bed") ?? beds()[0];
+  const st = placeCard(key, center(bed));
+  st.npc = { key, order: npcs().length, home: "taoHouse", job: "play", hunger: 1, wait: 0, inside: false, kit: [], kid: true, born: day(), wake: 6.5, sleep: 19.5, outAt: 0, nextChat: clock.min + 600 };
+  f.kids.push(key); me.kidCount = (me.kidCount ?? 0) + 1;
+  banner("✦", "孩子出生了");
+  naming = { kidKey: key, card: st.cards[0] }; $("nameInput").value = ""; $("namer").hidden = false; $("nameInput").focus();
+}
+/** The name you give the child (or the stranger who takes up your life). */
+function nameKid(key, card, name) {
+  name = name || "小禾";
+  defineCard(key, { ...me.defs[key], name });
+  card.el.querySelector(".card-head span").textContent = name;
+  chronicle(`${name}出生了。`);
+}
+/** Someone dies of old age: the village mourns, and the work they did is taken up by someone else. */
+function npcDies(st) {
+  const name = nameOf(st), age = npcAge(st.npc), f = family();
+  st.cards.forEach((c) => { c.el.classList.add("gone"); setTimeout(() => c.el.remove(), 400); });
+  st.bubble?.el.remove();
+  removeStack(st);
+  for (const q of npcs()) { const n = soc(q.npc); n.mood = Math.max(0, n.mood - 2); }
+  if (f.spouse === st.npc.key) { f.spouse = null; chronicle(`你的另一半${name}走了，享年 ${age} 岁。`); }
+  else chronicle(`${name}走了，享年 ${age} 岁。`);
+  f.kids = f.kids.filter((k) => k !== st.npc.key);
+  banner("……", `${name}走了`);
+  coverJobs();
+}
+/** The stove and the fields must have someone: if nobody does the work any more, the most likely person takes it up. */
+function coverJobs() {
+  const grown = npcs().filter((q) => !isKid(q) && !q.npc.arriving && !q.npc.retired);
+  for (const job of ["cook", "farm"]) {
+    if (grown.some((q) => q.npc.job === job)) continue;
+    const who = grown.find((q) => q.npc.job === (job === "cook" ? "fish" : "reed")) ?? grown.find((q) => q.npc.job !== "cook" && q.npc.job !== "farm");
+    if (who) { who.npc.job = job; chronicle(`往后${job === "cook" ? "灶上" : "地里"}的活，由${nameOf(who)}接过去了。`); }
+  }
+}
+/** Once a day: children grow into helpers and then grown-ups, the old may die, a baby may be due, and so may you. */
+function lifeDay() {
+  for (const st of npcs()) {
+    const n = st.npc, a = npcAge(n);
+    if (n.kid) {
+      if (a >= 12 && n.job === "play") { n.job = "help"; chronicle(`${nameOf(st)}能帮着干活了。`); }
+      if (a >= 16 && n.job === "help") { n.job = "farm"; n.kid = false; n.grown = true; chronicle(`${nameOf(st)}长大成人了。`); banner("✦", `${nameOf(st)}长大成人了`); }
+    }
+    if (a >= 64 && Math.random() < 0.03 + (a - 64) * 0.012) npcDies(st);
+  }
+  if (me.expecting && day() >= me.expecting) birth();
+  const a = myAge();
+  if (a === 50 && me.toldAge !== 50) { me.toldAge = 50; toast("你五十了：力气不比从前"); }
+  if (a >= 60 && Math.random() < 0.025 + (a - 60) * 0.01) passOn(true);
+}
+const heirs = () => family().kids.map((k) => npcs().find((q) => q.npc.key === k)).filter((q) => q && npcAge(q.npc) >= 16);
+/** The life passes to your grown child (or, with none, to a young stranger who comes to stay).
+ *  died: false when you step down yourself — then you stay on in the yard, an old person among the others. */
+function passOn(died, heirSt = heirs()[0]) {
+  const you = youStack(), old = me.name ?? "启禾", oldAge = myAge(), f = family();
+  if (!died) {                                                           // stepping down: you stay, as one of the village
+    const key = `elder${me.gen ?? 1}`;
+    defineCard(key, { name: old, icon: "you", text: "上一代当家的，退下来在院里养老。" });
+    const st = placeCard(key, center(you));
+    st.npc = { key, order: npcs().length, home: "taoHouse", job: "play", retired: true, hunger: 2, wait: 0, inside: false, kit: [], born: me.born, wake: 6, sleep: 19.5, outAt: 0, nextChat: clock.min + 300 };
+  }
+  // the goodwill the village had for you passes on, halved; what they remember is that this is your child
+  for (const q of npcs()) {
+    if (!q.npc.bond) continue;
+    const n = soc(q.npc);
+    for (const k of ["fam", "trust", "grudge"]) n.bond[k] *= 0.5;
+    n.bond.owe = 0; n.req = null; n.known = { loves: [], dislikes: [] }; n.heartSeen = n.heartSeen.filter((h) => h <= 2);
+    n.mem = [{ day: day(), text: heirSt ? `${old}家的孩子` : "新来的" }];
+  }
+  for (const k of Object.keys(me.known)) me.known[k].mem = Math.min(me.known[k].mem, 0.6);   // the start of each craft, from watching
+  let name;
+  if (heirSt) {
+    name = nameOf(heirSt);
+    me.born = heirSt.npc.born; me.gen = (me.gen ?? 1) + 1;
+    f.kids = f.kids.filter((k) => k !== heirSt.npc.key);
+    you.x = heirSt.x; you.y = heirSt.y;
+    heirSt.cards.forEach((c) => c.el.remove()); removeStack(heirSt);
+    me.family = { spouse: null, kids: [], parent: f.spouse, siblings: f.kids };
+  } else {
+    name = pick(["阿禾", "阿穗", "阿田", "阿岩"]);
+    me.born = bornFor(18); me.family = { spouse: null, kids: [] };
+  }
+  me.name = name; me.food = 80; me.rest = 90; me.sickUntil = 0;
+  const c = you.cards[0]; c.name = `你 · ${name}`; c.el.querySelector(".card-head span").textContent = c.name;
+  chronicle(died ? `${old}走了，享年 ${oldAge} 岁。${heirSt ? `家交给了${name}。` : `没有留下能当家的后人；村里来了个外乡的年轻人${name}，接着过日子。`}` : `${old}退下来养老，家交给了${name}。`);
+  banner(died ? "……" : "✦", died ? `${old}走了。往后是${name}的日子` : `${name}当家了`);
+  coverJobs(); renderPromises(); renderParty(); carryChanged();
+}
+
+// ---------------------------------------------------------------------------
 // Saving: the land comes back from its seed; everything on it — cards, people, the clock, the weather, the season's
 // look, what you have explored and know — is written to the browser every little while and read back on opening.
 // ?new=1 starts a fresh life (and drops the old save); ?day=N is a preview and never touches the save.
@@ -2973,6 +3142,7 @@ function restore(d) {
   const ids = new Map();
   clock.min = d.min;
   const { marks: mk = [], ...m } = d.me; Object.assign(me, m); mk.forEach((x) => marks.add(x));
+  for (const [k, def] of Object.entries(me.defs ?? {})) DEFS[k] = { type: "person", ...def };
   for (const [b, list] of Object.entries(d.boards)) {
     boards[b] ??= [];
     for (const o of list) {
@@ -3019,4 +3189,4 @@ renderRecent(); renderParty(); renderAutoMe(); renderPromises();
 applyCam(); fitRoom();
 window.addEventListener("resize", () => { applyCam(); fitRoom(); if (sky.cv) skySetup(); });
 requestAnimationFrame(frame);
-window.__mock = { lore, observe, needUp, thinkTick, unlockInvention, nature, natureDay, isSick, coldTick, village, climb, considerArrival, villageNow, festivalTick, npcs, saveGame, look, weather, skySet, sky, say, startChat, inJungle, SPECIES, spawnAnimal, attackRabbit, BUILDS, startPlacing, placeFoundation, completeBuild, refreshPlot, newStack, WANT, planStep, holds, teach, renderCrafts, setMode, members, soc, hearts, giveTo, talk, askNews, acceptReq, declineReq, party, renderParty, tide, darkness, lights, litAt, boards, clock, cam, me, MAP, youStack, walkTo, find, center, discs, setSpeed, artFound, moveRange, arrive, walkable: (x, y) => walkable(MAP, x, y), explore, paintFog, paintSeason, newCard, eco, attackRabbit, showDetail, findPath: (a, b) => findPath(MAP, a, b) };
+window.__mock = { passOn, birth, court, canCourt, lifeDay, npcDies, myAge, npcAge, family, heirs, lore, observe, needUp, thinkTick, unlockInvention, nature, natureDay, isSick, coldTick, village, climb, considerArrival, villageNow, festivalTick, npcs, saveGame, look, weather, skySet, sky, say, startChat, inJungle, SPECIES, spawnAnimal, attackRabbit, BUILDS, startPlacing, placeFoundation, completeBuild, refreshPlot, newStack, WANT, planStep, holds, teach, renderCrafts, setMode, members, soc, hearts, giveTo, talk, askNews, acceptReq, declineReq, party, renderParty, tide, darkness, lights, litAt, boards, clock, cam, me, MAP, youStack, walkTo, find, center, discs, setSpeed, artFound, moveRange, arrive, walkable: (x, y) => walkable(MAP, x, y), explore, paintFog, paintSeason, newCard, eco, attackRabbit, showDetail, findPath: (a, b) => findPath(MAP, a, b) };

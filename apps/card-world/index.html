@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta http-equiv="Cache-Control" content="no-store" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>开放人生 · 卡牌世界样稿 v34</title>
-<link rel="stylesheet" href="style.css?v=21" />
+<title>开放人生 · 卡牌世界样稿 v35</title>
+<link rel="stylesheet" href="style.css?v=22" />
 </head>
 <body>
 <main class="table" id="table" aria-label="世界：拖动空白处看地图，拖「你」走过去">
@@ -41,6 +41,7 @@
 </nav>
 <section class="me" id="me" aria-label="你">
   <button class="me-face" id="meFace" title="点一下：接着做刚才那件事"></button>
+  <span class="me-name" id="meName"></span>
   <div class="me-gauges"><span class="g" id="barFood"><b></b></span><span class="g" id="barRest"><b></b></span></div>
   <div class="me-carry" id="meCarry"></div>
   <div class="me-recent" id="meRecent"></div>
@@ -68,13 +69,14 @@
   <p>村子：右上角「村」看村子长到哪一级、还差什么、村里有谁、村史。收下头一季的粟、跟家里人都熟了，村子就「落脚」，外乡人会陆续来投奔（打鱼的阿罟、割苇的阿苇；安顿以后还有打石头的阿砺）。来人要有地方睡：院里的铺位睡四个，再多就得盖窝棚（✎ 里打地基：木头 4、芦苇 4、麻绳 1）。春天第一天、秋天第三天、冬天第三天是节日，傍晚大家聚到公灶边，你在场就一起过。</p>
   <p>天和地：雨天庄稼自己长一点；夏天连晴三天就旱了，没锄过的田会掉长势；春天连下两天雨湖水上涨，芦苇荡、鸭窝、黏土坑泡在水里，水退了才能去。鱼、肉、野果放两天就坏（夏天一天），烤过的、装罐的能放久一点，粟不坏；夏天灶上的熟食也会馊。冬夜别在野外待着——离火远、没火把，冻久了会病一天半（在院里火边睡一觉好得快）。动物春夏下崽，打光了就没了，要过很久才有别处的来。老虎惹不起，只能拿火把逼开。</p>
   <p>知道与发明：东西老放坏、湖水漫岸、地烂在地里、冻病……这些事一多，村里人会琢磨出说法——有的说对了（湿热则腐、水候、日影一年一轮），有的是错的（沾了晦气、湖神发怒），错的会变成规矩（挂符、祭湖）。说对了、又正好发愁，就会有人想到新东西：粮窖（公仓多存 10 份）、烟熏（两条鱼或两块肉加柴，放十来天不坏）、刻木记水（放在湖边，涨水前一天报信）、立竿测影（季节旁显示还有几天换季）。去请教想到它的人就能学。都记在「村」里。</p>
+  <p>一生：游戏里一年人长三岁，你从十六岁开始（左下角写着名字和岁数）。跟年纪相仿、成了知己的人可以「求亲」；成了家可以「想要个孩子」，过一季出生，由你起名。孩子小时候在家附近玩，十二岁帮着割葛麻，十六岁成人下地。上了年纪走得慢、干活慢，六十以后随时可能走。你走了，成年的孩子接着当家：身上的东西、手艺的底子、村里人对你家一半的情分都留给他；也可以在「村」里主动退下来。没有后人，就由一个外乡的年轻人接着过。村里的老人也会走，他们的活会有人接。</p>
   <p>说话时气泡浮在人的牌上方；心里想的是虚线云朵。左下角小头像点开能给每人选：⟳ 自己安排、⚒ 派活、✋ 我来指挥。阿黄一开始就听你的，派活是搬运。右下角 ⟳ 亮着时，你一整天没动手就会自己找事做。</p>
   <p>动物：森林里有野兔、鹿（要石矛）、野猪（空手靠近会撞人，火把能逼退）；湖上有野鸭，芦苇边的鸭窝春夏有蛋。老虎住在森林深处，饿了会扑鹿；你没拿火把靠近它会扑你。村民知道深处危险，绕着走。冬天湖面结冰，能从冰上走过去。</p>
   <p class="save-row">每隔一会儿自动存档，刷新或关掉页面都能接着玩。
     <button id="lifeExport">导出存档</button><button id="lifeImport">导入存档</button><button id="lifeNew">重新开始</button><input type="file" id="lifeFile" accept=".json,application/json" hidden></p>
   <button id="helpClose">知道了</button>
 </div>
-<p class="mock-note">样稿 v34 · 数据示意，不连游戏</p>
-<script type="module" src="app.js?v=28"></script>
+<p class="mock-note">样稿 v35 · 数据示意，不连游戏</p>
+<script type="module" src="app.js?v=29"></script>
 </body>
 </html>

@@ -14,7 +14,7 @@ export const dayName = SEASON_DAY;
 
 export const PEOPLE_DATA = {
   aunt: {
-    he: "她",
+    he: "她", age: 52, sex: "f",
     loves: ["grain", "basket", "jarFull"], likes: ["fish", "reed", "berry", "egg", "rope", "roastFish"], dislikes: ["clay", "stone"],
     birthday: 6,
     fear: { id: "hunger", name: "怕挨饿", tell: "“我年轻时候闹过一回饥荒，一冬天就吃草根。从那以后看见瓮底就心慌。”" },
@@ -56,7 +56,8 @@ export const PEOPLE_DATA = {
     ],
   },
   san: {
-    he: "他",
+    he: "他", age: 19, sex: "m",
+    court: { accept: "阿三愣住了，手里的锄头差点掉在地上。半晌，他红着脸点头：“我嘴笨……往后地里的活，我们一起干。”", notYet: "阿三挠着头：“我……我还得先把地种好。再等等，好吗？”" },
     loves: ["hoe", "rope", "roastMeat", "axe"], likes: ["grain", "wood", "fiber", "meat", "log"], dislikes: ["clay", "berry"],
     birthday: 11,
     fear: { id: "scorned", name: "怕被人看不起", tell: "“我嘴笨……别人笑的时候，总觉得是在笑我。”" },
@@ -99,7 +100,7 @@ export const PEOPLE_DATA = {
 
   // —— those who come later, once the place has a footing ——
   gu: {
-    he: "他",
+    he: "他", age: 46, sex: "m",
     loves: ["rope", "net", "roastFish"], likes: ["wood", "fiber", "grain"], dislikes: ["clay"],
     birthday: 7,
     fear: { id: "alone", name: "怕孤老", tell: "“屋里太静的时候，会想起以后也是这么静。所以我爱跟鱼说话。”" },
@@ -130,7 +131,8 @@ export const PEOPLE_DATA = {
     ],
   },
   wei: {
-    he: "他",
+    he: "他", age: 27, sex: "m",
+    court: { accept: "阿苇看了你很久，才低声说：“……我这人闷，不讨人喜欢。你要是不嫌，那就这样吧。”他把一根苇杆系成了结，塞到你手里。", notYet: "阿苇别过脸去：“……别拿这种事开玩笑。”" },
     loves: ["rope", "jarFull", "roastFish"], likes: ["basket", "knife", "grain"], dislikes: ["reed"],
     birthday: 10,
     fear: { id: "scorned", name: "怕被人看不起", tell: "“我说苇子不能这么割，他们嫌我小气。可等哪年一根都没了，烧火编席拿什么？”" },
@@ -161,7 +163,8 @@ export const PEOPLE_DATA = {
     ],
   },
   li: {
-    he: "他",
+    he: "他", age: 34, sex: "m",
+    court: { accept: "阿砺手里的石锤停了。他看着你，重重点了下头：“行。”过了一会儿又补了一句，“往后我打的第一把刀，给你。”", notYet: "阿砺闷声说：“……再说吧。”" },
     loves: ["rope", "roastMeat", "jarFull"], likes: ["axe", "wood", "flint", "hammer"], dislikes: ["reed"],
     birthday: 15,
     fear: { id: "hunger", name: "怕挨饿", tell: "“小时候山里闹过饥荒，我爹把最后一口粟给了我。所以我见不得瓮空。”" },
