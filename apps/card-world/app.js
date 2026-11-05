@@ -7,6 +7,7 @@ import { LAND, SITES, LAYOUT, PEOPLE, START, WOOD_LAYOUT, LAKE_LAYOUT, FARM_FIEL
 import * as VOICE from "./voice.js";
 import { PEOPLE_DATA, TIERS as BONDS, tierOf, dayName } from "./people.js";
 import { LADDER, condDone, rungDone, POP_CAP, NEWCOMERS, FESTIVALS } from "./village.js";
+import { NEEDS, THEORIES, INVENTIONS } from "./knowledge.js";
 
 const $ = (id) => document.getElementById(id);
 const CARD_W = 112, CARD_H = 148, PEEK = 30;
@@ -36,6 +37,11 @@ const DEFS = {
   wei:        { name: "阿苇", type: "person", icon: "cook", text: "割芦苇、编席子的。话少，总担心芦苇荡一年比一年稀，只割老苇。" },
   li:         { name: "阿砺", type: "person", icon: "digger", text: "打制石器的匠人。去矿道挖石头背回家，会做斧、刀、锤、矛。" },
   hut:        { name: "窝棚", type: "structure", icon: "hut", text: "芦苇和木头搭的窝棚，能睡两个人。" },
+  granaryPit: { name: "粮窖", type: "structure", icon: "granary", text: "挖在地里的窖，底下铺石头、上头盖木头，粟不受潮。公仓因此多存 10 份。" },
+  calendarStick: { name: "测影竿", type: "structure", icon: "wood", text: "立在田边量日影的竿子。有了它，就知道还有几天换季（看左上角的季节）。" },
+  floodMark:  { name: "记水木", type: "tool", icon: "log", text: "刻着道道的木桩。放在湖边，春雨一下就看得出水涨了几道，漫岸前一天先报信。" },
+  smokedFish: { name: "熏鱼", type: "food", icon: "roastFish", text: "在火塘上熏干的鱼，放十来天不坏。", food: 22 },
+  smokedMeat: { name: "熏肉", type: "food", icon: "roastMeat", text: "熏干的肉，放十来天不坏。", food: 30 },
   san:        { name: "阿三", type: "person", icon: "yu", text: "种地的。话少，手上的活从不含糊：春天下种，春夏锄草，秋天收了粟背去公仓。" },
   dog:        { name: "阿黄", type: "animal", icon: "dog", text: "院子里的狗，在家附近转悠。" },
   rabbit:     { name: "野兔", type: "animal", icon: "rabbit", text: "一只野兔。你靠近它就蹦开；走近了、带着石斧或燧石刀才打得着。" },
@@ -113,6 +119,9 @@ const RECIPES = [
   { id: "net", who: ["aunt", "gu"], needs: ["fire", "fiber", "fiber", "rope"], make: ["net"], min: 180, use: ["fiber", "fiber", "rope"], mark: "第一张渔网" },
   { id: "sandals", who: ["aunt", "wei"], needs: ["fire", "reed", "reed", "fiber"], make: ["sandals"], min: 120, use: ["reed", "reed", "fiber"], mark: "第一双草鞋" },
   { id: "hoe", who: ["san"], needs: ["fire", "stone", "log", "fiber"], make: ["hoe"], min: 120, use: ["stone", "log", "fiber"], mark: "第一把石锄" },
+  // smoking takes two at a time (one fish and a bundle of wood is just a roast)
+  { id: "smoke", inv: "smoking", who: [], needs: ["fire", "fish", "fish", "wood"], make: ["smokedFish", "smokedFish"], min: 120, use: ["fish", "fish", "wood"], mark: "第一回熏鱼" },
+  { id: "smoke", inv: "smoking", who: [], needs: ["fire", "meat", "meat", "wood"], make: ["smokedMeat", "smokedMeat"], min: 140, use: ["meat", "meat", "wood"] },
   { id: "roast", who: ["aunt"], needs: ["fire", "fish", "wood"], make: ["roastFish"], min: 40, use: ["fish", "wood"] },
   { id: "roast", who: ["aunt"], needs: ["fire", "meat", "wood"], make: ["roastMeat"], min: 50, use: ["meat", "wood"] },
   { id: "torch", who: ["aunt"], needs: ["fire", "wood", "fiber"], make: ["torch"], min: 30, use: ["wood", "fiber"] },
@@ -120,6 +129,7 @@ const RECIPES = [
   { id: "axe", who: ["san", "li"], needs: ["fire", "stone", "log"], make: ["axe"], min: 120, use: ["stone", "log"], mark: "第一把石斧" },
   { id: "spear", who: ["san", "li"], needs: ["fire", "flint", "log", "fiber"], make: ["spear"], min: 150, use: ["flint", "log", "fiber"], mark: "第一支石矛" },
   { id: "knife", who: ["san", "li"], needs: ["fire", "flint", "log"], make: ["knife"], min: 150, use: ["flint", "log"], mark: "第一把燧石刀" },
+  { id: "floodMark", inv: "flood-marks", who: [], needs: ["fire", "log"], make: ["floodMark"], min: 60, use: ["log"] },
   { id: "rope", who: ["aunt", "san", "gu", "wei"], needs: ["fire", "fiber", "fiber"], make: ["rope"], min: 90, use: ["fiber", "fiber"] },
   { needs: ["fire", "log", "axe"], make: ["wood", "wood"], min: 90, use: ["log"] },
   { needs: ["lake", "net"], make: ["fish", "fish"], min: 90, take: true },
@@ -192,12 +202,14 @@ const BUILDS = {
   barn: { tier: "m", needs: { log: 6, reed: 6, stone: 3 }, work: 480, who: ["san"] },
   farm: { tier: "s", needs: {}, work: 360, who: ["san"], tool: "hoe", grass: true },
   hut: { tier: "s", needs: { log: 4, reed: 4, rope: 1 }, work: 480, who: ["san", "li"] },
+  granaryPit: { tier: "s", needs: { stone: 4, log: 2 }, work: 360, who: [], inv: "granary-pit" },
+  calendarStick: { tier: "s", needs: { log: 1, stone: 1 }, work: 60, who: [], inv: "calendar-stick" },
 };
 const buildNeeds = (kind) => Object.entries(BUILDS[kind].needs).flatMap(([k, n]) => Array(n).fill(k));
 const CRAFTS = [...new Map(RECIPES.filter((r) => r.id).map((r) => [r.id, r])).values(),
-  ...Object.entries(BUILDS).map(([id, b]) => ({ id, who: b.who, build: true, needs: ["plot", ...buildNeeds(id)], make: [id] }))];   // one entry per know-how
+  ...Object.entries(BUILDS).map(([id, b]) => ({ id, who: b.who, inv: b.inv, build: true, needs: ["plot", ...buildNeeds(id)], make: [id] }))];   // one entry per know-how
 const craftName = (id) => DEFS[CRAFTS.find((r) => r.id === id).make[0]].name;
-const granaryCap = (g) => 20 + 5 * (g.jars ?? 0);
+const granaryCap = (g) => 20 + 5 * (g.jars ?? 0) + 10 * boards.world.filter((s) => s.cards[0].key === "granaryPit").length;
 /** Carry: 4 things in your arms, 10 with a basket on your back (tools don't count). */
 const loose = (st) => st.cards.filter((c, j) => j > 0 && DEFS[c.key].type !== "tool");
 const capOf = (st) => (st.cards.some((c) => c.key === "basket") ? 10 : 4);
@@ -1016,7 +1028,8 @@ function arrive(st, target) {
   const kit = target.cards.slice(1).filter((c) => DEFS[c.key].type === "tool").map((c) => c.key);   // tools left here
   const carried = [...st.cards.slice(1).map((c) => c.key), ...kit];
   const has = (k, n) => carried.filter((c) => c === k).length >= n;
-  let r = RECIPES.find((x) => x.needs[0] === top.key && (!x.when || x.when(top)) && x.needs.slice(1).every((k) => has(k, x.needs.filter((a) => a === k).length)));
+  const can = RECIPES.filter((x) => x.needs[0] === top.key && invented(x) && (!x.when || x.when(top)) && x.needs.slice(1).every((k) => has(k, x.needs.filter((a) => a === k).length)));
+  let r = (st.cards[0].key === "you" ? can.find((x) => !x.id || me.known[x.id]) : null) ?? can[0];   // what you know how to do comes first
   if ((def.type === "person" || def.type === "animal") && !r) return talk(target, st);
   if (!r) return toast(HINT[top.key] ?? "这里没什么可做的");
   if (flooded(top.key)) return toast("水漫上来了，过两天水退了再来");
@@ -1262,6 +1275,7 @@ function peopleDay() {
   for (const st of boards.world.filter((s) => s.npc)) {
     const n = soc(st.npc);
     n.mood += (6 - n.mood) * 0.3;
+    if ((find("granary")?.cards[0].stock ?? 0) < 4 && st === boards.world.find((q) => q.npc)) needUp("more-grain");
     if (PD(st).fear.id === "hunger" && (find("granary")?.cards[0].stock ?? 0) < 4) { n.mood -= 2; talks.push({ at: clock.min + 90, st, text: VOICE.line(st.npc.key, "lowFood") ?? "“瓮快见底了……”" }); }
     if (n.hunger >= 9.5 && !n.arriving) { village.starved++; chronicle(`${nameOf(st)}挨了一整天的饿。`); }
     n.mood = clampN(n.mood, 0, 10);
@@ -1350,7 +1364,7 @@ function teach(npc) {
   if (me.askedDay[k] === day()) return say(npc, "“今天教过你了，明天再来。”");
   if (hearts(soc(npc.npc)) < 1) return say(npc, "“你是谁家的？先说说话吧。”");
   const theirs = CRAFTS.filter((r) => r.who.includes(k));
-  const pickOne = theirs.find((r) => !me.known[r.id]) ?? theirs.filter((r) => me.known[r.id].mem < 0.6).sort((a, b) => me.known[a.id].mem - me.known[b.id].mem)[0];
+  const pickOne = [...theirs].sort((a, b) => (b.inv ? 1 : 0) - (a.inv ? 1 : 0)).find((r) => !me.known[r.id])   // something they have just thought of first ?? theirs.filter((r) => me.known[r.id].mem < 0.6).sort((a, b) => me.known[a.id].mem - me.known[b.id].mem)[0];
   if (!pickOne) return say(npc, "“我会的你都会了。”");
   me.askedDay[k] = day();
   me.known[pickOne.id] = { mem: LEARNED_MEM, day: day() };
@@ -1948,7 +1962,7 @@ function tick(minutes) {
     if (berries) { berries.stock = season() === "冬" ? 0 : Math.min(7, berries.stock + (weather.now === "雨" ? 4 : 3)); refreshStock(berries); }
     const s = SEASONS.indexOf(season());
     if (s !== lastSeason) {
-      lastSeason = s; turnSeason(SEASONS[s]); banner(SEASONS[s], `${SEASONS[s]}天来了`);
+      lastSeason = s; turnSeason(SEASONS[s]); banner(SEASONS[s], `${SEASONS[s]}天来了`); observe("seasons-turn");
       if (SEASONS[s] === "春" && day() > 1) { village.winters++; chronicle(village.winters === 1 ? "熬过了头一个冬天。" : `又熬过一个冬天，这是第 ${village.winters} 个。`); }
       if (SEASONS[s] === "冬") {                                       // the first night of winter: snow from dusk till the next morning
         const d0 = (day() - 1) * 1440 + 360;
@@ -1959,7 +1973,7 @@ function tick(minutes) {
       boards.world.filter((q) => q.npc).forEach((q, i) => talks.push({ at: clock.min + 420 + i * 15, st: q, text: VOICE.seasonLine(q.npc.key, SEASONS[s]) }));
       if (SEASONS[s] === "冬") for (const f of boards.world.filter((q) => (q.cards[0].key === "field" || q.cards[0].key === "field2") && q.cards[0].sown !== false)) {
         const t = f.cards[0]; t.sown = false; t.stock = 0; refreshStock(t); t.el.querySelector(".card-art").innerHTML = iconFor("field");
-        float("没收的粟烂在地里了", center(f), "world"); groundChanged();     // missed the autumn: the field goes back to bare
+        float("没收的粟烂在地里了", center(f), "world"); groundChanged(); needUp("know-season");     // missed the autumn: the field goes back to bare
       }
     }
   }
@@ -2067,7 +2081,8 @@ function render() {
   const h = hour(), m = Math.floor(clock.min % 60);
   $("time").textContent = `${String(Math.floor(h)).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
   $("day").textContent = `第 ${day()} 天`;
-  $("season").textContent = season();
+  const stick = boards.world.some((q) => q.cards[0].key === "calendarStick"), left = DAYS_PER_SEASON - ((day() - 1) % DAYS_PER_SEASON);
+  $("season").innerHTML = stick ? `${season()}<small>${left}天后入${SEASONS[(SEASONS.indexOf(season()) + 1) % 4]}</small>` : season();
   drawDark();
   $("sun").className = darkness() < 0.5 ? "sun" : "moon";
   $("barFood").firstElementChild.style.width = `${me.food}%`;
@@ -2273,7 +2288,7 @@ function dogArrive(st, t) {
 // ---------------------------------------------------------------------------
 const holds = (st, k) => st.cards.some((c) => c.key === k);
 /** Which tool goes where: leave it there and whoever works the place uses it. */
-const TOOL_AT = { chestnut: ["axe"], reeds: ["knife"], hemp: ["knife"], lake: ["net"], field: ["hoe"], field2: ["hoe"], mineFace: ["hammer"] };
+const TOOL_AT = { chestnut: ["axe"], reeds: ["knife"], hemp: ["knife"], lake: ["net", "floodMark"], field: ["hoe"], field2: ["hoe"], mineFace: ["hammer"] };
 const toolAt = (place, k) => Boolean(place?.cards.some((c, j) => j > 0 && c.key === k));
 const hasTool = (st, place, k) => holds(st, k) || toolAt(place, k);
 /** Wear the tool someone is using: their own if they carry one, else the one left at the place. */
@@ -2468,6 +2483,7 @@ function completeBuild(target) {
   target.cards = [nc]; target.w = nc.w; target.h = nc.h;
   me.known[kind] = { mem: 1, day: day() };
   banner("✦", `${DEFS[kind].name}盖好了`); chronicle(`盖起了一座${DEFS[kind].name}。`);
+  if (kind === "granaryPit") { const g = find("granary")?.cards[0]; if (g) refreshStock(g); }
   naming = nc; $("nameInput").value = DEFS[kind].name; $("namer").hidden = false; $("nameInput").focus();
 }
 /** Broken ground becomes a field: empty until you sow it, its furrows painted on the land. */
@@ -2524,7 +2540,7 @@ function showDetail(card) {
   const built = card.built ? `<p class="doing">带着石锤走上来就能拆</p>` : "";
   const left = st.cards.slice(1).filter((c) => DEFS[c.key].type === "tool" && DEFS[card.key].type === "source");
   const toolsHere = TOOL_AT[card.key] ? `<p class="doing">${left.length ? `这儿放着：${left.map((c) => `${DEFS[c.key].name}（还能用 ${c.uses ?? DEFS[c.key].uses} 次）`).join("、")}` : `可以把${TOOL_AT[card.key].map((k) => DEFS[k].name).join("或")}放在这儿，来干活就不用带`}</p>` : "";
-  const here = CRAFTS.filter((r) => r.needs[0] === card.key);
+  const here = CRAFTS.filter((r) => r.needs[0] === card.key && invented(r));
   const station = here.length ? `<div class="crafts">${here.filter((r) => me.known[r.id]).map(craftRow).join("")}${here.some((r) => !me.known[r.id]) ? `<p class="doing">还有 ${here.filter((r) => !me.known[r.id]).length} 样你不会：问问村民，或带齐东西来琢磨</p>` : ""}</div>` : "";
   const theirs = st.npc ? CRAFTS.filter((r) => r.who.includes(card.key)) : [];
   const skills = theirs.length ? `<p class="doing">会做：</p><div class="skill-icons">${theirs.map((r) => `<span class="${me.known[r.id] ? "" : "new"}" title="${craftName(r.id)}${me.known[r.id] ? "" : "（你还不会）"}">${iconFor(DEFS[r.make[0]].icon)}</span>`).join("")}</div>`
@@ -2603,8 +2619,8 @@ function renderCrafts() {
   const box = $("crafts");
   if (!box || box.hidden) return;
   const mine = CRAFTS.filter((r) => me.known[r.id]);
-  const builds = Object.keys(BUILDS).map((id) => `<div class="build-row">${craftRow(CRAFTS.find((r) => r.id === id))}<button class="act" data-place="${id}">${id === "farm" ? "选块草地开荒" : "选地方打地基"}</button></div>`).join("");
-  box.innerHTML = `<b>你会的手艺</b>${mine.filter((r) => !r.build).map(craftRow).join("") || `<p>还什么都不会。</p>`}<b class="sub">盖房子</b>${builds}<p class="doing">没学会的还有 ${CRAFTS.length - mine.length} 样：点开村民按「请教」，或者带齐东西到地方自己琢磨（慢，还不一定成）。不用的手艺一周左右就忘。</p>`;
+  const builds = Object.keys(BUILDS).filter((id) => invented(BUILDS[id])).map((id) => `<div class="build-row">${craftRow(CRAFTS.find((r) => r.id === id))}<button class="act" data-place="${id}">${id === "farm" ? "选块草地开荒" : "选地方打地基"}</button></div>`).join("");
+  box.innerHTML = `<b>你会的手艺</b>${mine.filter((r) => !r.build).map(craftRow).join("") || `<p>还什么都不会。</p>`}<b class="sub">盖房子</b>${builds}<p class="doing">没学会的还有 ${CRAFTS.filter(invented).length - mine.length} 样：点开村民按「请教」，或者带齐东西到地方自己琢磨（慢，还不一定成）。不用的手艺一周左右就忘。</p>`;
 }
 /** Someone says something (or thinks it): a bubble over their card that follows them, and fades after a few seconds. */
 function say(st, text, kind = "say") {
@@ -2761,7 +2777,14 @@ function renderVillage() {
   }).join("");
   const folks = npcs().filter((s) => !s.npc.arriving).map((s) => `<span title="${DEFS[s.npc.key].name}">${iconFor(DEFS[s.npc.key].icon)}<b>${DEFS[s.npc.key].name}</b><i>${tierOf(hearts(soc(s.npc))).name}</i></span>`).join("");
   const hist = [...village.chronicle].reverse().map((c) => `<li><i>第 ${c.year} 年 ${c.season} · 第 ${c.day} 天</i>${c.text}</li>`).join("") || "<li>还没有什么可记的。</li>";
-  box.innerHTML = `<b>村子</b><div class="ladder">${ladder}</div><b class="sub">村里的人（${v.people} 人，能住 ${v.beds} 人）</b><div class="folks">${folks}</div><b class="sub">村史</b><ul class="history">${hist}</ul>`;
+  const ideas = THEORIES.filter((t) => lore.theories[t.id]).map((t) => `<li><b>${t.label}</b>${t.claim}<i>${DEFS[lore.theories[t.id].by]?.name ?? ""}琢磨出来的</i></li>`).join("");
+  const customs = THEORIES.filter((t) => t.custom && lore.customs.includes(t.custom.id)).map((t) => `<li><b>${t.custom.name}</b>${t.custom.text}</li>`).join("");
+  const made = INVENTIONS.filter((i) => lore.inventions[i.id]).map((i) => { const by = lore.inventions[i.id].by; return `<li><b>${i.name}</b>${DEFS[by]?.name ?? ""}想到的，可以找${PEOPLE_DATA[by]?.he ?? "他"}请教</li>`; }).join("");
+  const needs = Object.entries(lore.needs).filter(([, n]) => n >= 1).map(([k]) => NEEDS[k]).filter(Boolean);
+  box.innerHTML = `<b>村子</b><div class="ladder">${ladder}</div><b class="sub">村里的人（${v.people} 人，能住 ${v.beds} 人）</b><div class="folks">${folks}</div>`
+    + (needs.length ? `<b class="sub">大伙发愁的</b><p class="doing">${needs.join("、")}</p>` : "")
+    + (ideas ? `<b class="sub">琢磨出的道理</b><ul class="lore">${ideas}</ul>` : "") + (customs ? `<b class="sub">规矩</b><ul class="lore">${customs}</ul>` : "")
+    + (made ? `<b class="sub">想到的新东西</b><ul class="lore">${made}</ul>` : "") + `<b class="sub">村史</b><ul class="history">${hist}</ul>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -2771,7 +2794,7 @@ function renderVillage() {
 // ---------------------------------------------------------------------------
 const nature = { dryDays: 0, wetDays: 0, flood: false, drought: false };
 /** Things that spoil, and how many days they keep (summer halves it). Grain keeps. */
-const KEEPS = { fish: 2, meat: 2, berry: 2, clam: 2, egg: 4, peachFruit: 2, jujubeFruit: 4, mushroom: 3, roastFish: 3, roastMeat: 3, jarFull: 4 };
+const KEEPS = { fish: 2, meat: 2, berry: 2, clam: 2, egg: 4, peachFruit: 2, jujubeFruit: 4, mushroom: 3, roastFish: 3, roastMeat: 3, jarFull: 4, smokedFish: 12, smokedMeat: 12 };
 const SHORE = ["reeds", "nest", "pit"];
 const flooded = (key) => nature.flood && SHORE.includes(key);
 function natureDay() {
@@ -2784,7 +2807,7 @@ function natureDay() {
   // a dry spell: first the signs, then the crop that nobody tends loses ground, and the berries are few
   const was = nature.drought;
   nature.drought = s === "夏" && nature.dryDays >= 3;
-  if (nature.drought && !was) { chronicle("连着几天没下雨，地皮都晒裂了。"); omen("“地皮都晒裂了……再不下雨，苗要蔫。”"); }
+  if (nature.drought && !was) { needUp("more-grain"); needUp("know-season"); chronicle("连着几天没下雨，地皮都晒裂了。"); omen("“地皮都晒裂了……再不下雨，苗要蔫。”"); }
   if (nature.drought && nature.dryDays >= 4) for (const f of fields) if (f.tendDay !== day() - 1 && f.stock > 0) { f.stock -= 1; refreshStock(f); float("旱，苗蔫了", center(stackOf(f)), "world"); }
   if (!nature.drought && was) chronicle("总算下了雨，旱过去了。");
   // spring rains raise the lake over its banks: the marsh and the clay pit are under water until a dry day
@@ -2793,12 +2816,15 @@ function natureDay() {
   if (nature.flood !== wasFlood) {
     for (const st of boards.world.filter((q) => SHORE.includes(q.cards[0].key))) st.cards[0].el.classList.toggle("flooded", nature.flood);
     tide.level = null; updateTide();
-    if (nature.flood) { chronicle("春雨下个不停，湖水漫上了岸，芦苇荡和黏土坑都泡在水里。"); omen("“湖水涨上来了，岸边别去。”"); const l = find("lake")?.cards[0]; if (l) { l.stock = Math.min(9, l.stock + 2); refreshStock(l); } }
+    if (nature.flood) { observe("river-rise"); needUp("flood"); chronicle("春雨下个不停，湖水漫上了岸，芦苇荡和黏土坑都泡在水里。"); omen("“湖水涨上来了，岸边别去。”"); const l = find("lake")?.cards[0]; if (l) { l.stock = Math.min(9, l.stock + 2); refreshStock(l); } }
     else chronicle("水退了，岸边又露出来了。");
   }
+  // a flood mark at the lake: after the first day of spring rain it shows the water creeping up
+  if (s === "春" && rain && nature.wetDays === 1 && toolAt(find("lake"), "floodMark")) { omen("“记水木上水又涨了一道，再下一天就要漫岸了。”"); toast("记水木：湖水涨了一道，明天再下雨就要漫岸"); }
   spoil();
   breed();
   groundChanged();
+  thinkTick();
 }
 /** Someone remarks on the signs, a little after dawn. */
 function omen(text) { const who = npcs().find((q) => !q.npc.arriving); if (who) talks.push({ at: clock.min + 120, st: who, text }); }
@@ -2814,7 +2840,7 @@ function spoil() {
   }
   const stove = find("stove")?.cards[0];
   if (hot && stove?.stock > 2) { stove.stock -= 1; refreshStock(stove); lost.push("一份熟食"); }
-  if (lost.length) { toast(`放坏了：${[...new Set(lost)].join("、")}`); carryChanged(); }
+  if (lost.length) { toast(`放坏了：${[...new Set(lost)].join("、")}`); carryChanged(); observe("food-spoils", lost.length); needUp("preserve-food"); }
 }
 /** Animals have young in spring and summer — if any are left to have them; now and then one wanders in from the deep wood. */
 function breed() {
@@ -2833,11 +2859,57 @@ function coldTick(minutes) {
   const p = center(you), warm = inYard(p) || litAt(p) || you.cards.some((c) => c.key === "torch");
   me.cold = Math.max(0, (me.cold ?? 0) + (warm ? -minutes : minutes));
   if (me.cold > 150 && !isSick()) {
-    me.sickUntil = clock.min + 1.5 * 1440; me.cold = 0;
+    me.sickUntil = clock.min + 1.5 * 1440; me.cold = 0; observe("cold-sick"); needUp("cold");
     toast("冻着了：浑身发冷，干活慢、走不远，歇一天半才好"); chronicle("你在冬夜里冻病了。");
   }
 }
 const isSick = () => clock.min < (me.sickUntil ?? 0);
+
+// ---------------------------------------------------------------------------
+// What the village comes to know (knowledge.js): troubles that keep coming back grow into needs, things seen again
+// and again get summed up into theories — wrong ones first — and a right theory plus a pressing need makes someone
+// think of something new, which they can then teach. Wrong theories become customs.
+// ---------------------------------------------------------------------------
+const lore = { needs: {}, seen: {}, theories: {}, inventions: {}, customs: [] };
+const observe = (ph, n = 1) => { lore.seen[ph] = (lore.seen[ph] ?? 0) + n; };
+const needUp = (id, n = 1) => { lore.needs[id] = (lore.needs[id] ?? 0) + n; };
+const invented = (x) => !x?.inv || Boolean(lore.inventions[x.inv]);
+/** Someone now knows how: they can make it and teach it. */
+function unlockInvention(id, key) {
+  lore.inventions[id] ??= { by: key, day: day() };
+  for (const r of RECIPES) if (r.inv === id && !r.who.includes(key)) r.who.push(key);
+  for (const b of Object.values(BUILDS)) if (b.inv === id && !b.who.includes(key)) b.who.push(key);
+  renderCrafts();
+}
+/** A custom from a wrong theory: some of them become a day the village keeps. */
+function adoptCustom(c) {
+  if (!lore.customs.includes(c.id)) lore.customs.push(c.id);
+  if (c.id === "lake-offering" && !FESTIVALS.some((f) => f.id === "lake-offering"))
+    FESTIVALS.push({ id: "lake-offering", season: "春", day: 2, name: "祭湖", line: "大家把一条最肥的鱼放回湖里，求湖神今年别漫岸。", cost: {} });
+}
+/** Once a day: maybe someone sums up what they have seen, or thinks of something. One new idea a day at most. */
+function thinkTick() {
+  const folk = npcs().filter((q) => !q.npc.arriving);
+  if (!folk.length) return;
+  for (const t of THEORIES) {
+    if (lore.theories[t.id] || (lore.seen[t.explains] ?? 0) < t.needs || Math.random() > 0.5) continue;
+    const who = pick(folk);
+    lore.theories[t.id] = { by: who.npc.key, day: day() };
+    talks.push({ at: clock.min + 60 + Math.random() * 240, st: who, text: t.claim });
+    chronicle(`${nameOf(who)}琢磨出一个说法：${t.label}。`);
+    if (t.custom) { adoptCustom(t.custom); chronicle(`村里有了个规矩：${t.custom.name}——${t.custom.text}。`); }
+    return;
+  }
+  for (const inv of INVENTIONS) {
+    if (lore.inventions[inv.id] || !lore.theories[inv.principle] || (lore.needs[inv.need[0]] ?? 0) < inv.need[1]) continue;
+    const who = folk.find((q) => q.npc.key === lore.theories[inv.principle].by) ?? pick(folk);
+    unlockInvention(inv.id, who.npc.key);
+    talks.push({ at: clock.min + 90, st: who, text: inv.idea });
+    banner("✦", `${nameOf(who)}想到了：${inv.name}`);
+    chronicle(`${nameOf(who)}想到了${inv.name}，可以找${PD(who)?.he ?? "他"}请教。`);
+    return;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Saving: the land comes back from its seed; everything on it — cards, people, the clock, the weather, the season's
@@ -2880,7 +2952,7 @@ function saveGame() {
       v: SAVE_VERSION, seed, at: Date.now(), min: clock.min, me: { ...me, marks: [...marks] },
       boards: Object.fromEntries(Object.entries(boards).map(([b, list]) => [b, list.filter((s) => !s.lifted).map(stackOut)])),
       respawns, eco, discs, weather: { now: weather.now, events: weather.events, hold: weather.hold },
-      look: { from: look.from, to: look.to, p: look.p }, village, nature,
+      look: { from: look.from, to: look.to, p: look.p }, village, nature, lore,
       fields: (MAP.extraFields ?? []).map(({ cv, card, ...f }) => ({ ...f, card: card?.id })),
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -2919,6 +2991,7 @@ function restore(d) {
   Object.assign(weather, d.weather);
   if (d.village) Object.assign(village, d.village);
   if (d.nature) Object.assign(nature, d.nature);
+  if (d.lore) { Object.assign(lore, d.lore); for (const [id, v] of Object.entries(lore.inventions)) unlockInvention(id, v.by); for (const t of THEORIES) if (t.custom && lore.customs.includes(t.custom.id)) adoptCustom(t.custom); }
   for (const st of boards.world.filter((q) => SHORE.includes(q.cards[0].key))) st.cards[0].el.classList.toggle("flooded", nature.flood);
   setupMainHouse(false);
   setupMine();
@@ -2928,6 +3001,7 @@ function restore(d) {
   setWeather(weather.now);
   paintFog();
   paintSeason();
+  const g = find("granary")?.cards[0]; if (g) refreshStock(g);           // its capacity counts the pits, which are back now too
   toast(`接着上回：${season()}，第 ${day()} 天`);
 }
 setInterval(saveGame, 15000);
@@ -2944,4 +3018,4 @@ renderRecent(); renderParty(); renderAutoMe(); renderPromises();
 applyCam(); fitRoom();
 window.addEventListener("resize", () => { applyCam(); fitRoom(); if (sky.cv) skySetup(); });
 requestAnimationFrame(frame);
-window.__mock = { nature, natureDay, isSick, coldTick, village, climb, considerArrival, villageNow, festivalTick, npcs, saveGame, look, weather, skySet, sky, say, startChat, inJungle, SPECIES, spawnAnimal, attackRabbit, BUILDS, startPlacing, placeFoundation, completeBuild, refreshPlot, newStack, WANT, planStep, holds, teach, renderCrafts, setMode, members, soc, hearts, giveTo, talk, askNews, acceptReq, declineReq, party, renderParty, tide, darkness, lights, litAt, boards, clock, cam, me, MAP, youStack, walkTo, find, center, discs, setSpeed, artFound, moveRange, arrive, walkable: (x, y) => walkable(MAP, x, y), explore, paintFog, paintSeason, newCard, eco, attackRabbit, showDetail, findPath: (a, b) => findPath(MAP, a, b) };
+window.__mock = { lore, observe, needUp, thinkTick, unlockInvention, nature, natureDay, isSick, coldTick, village, climb, considerArrival, villageNow, festivalTick, npcs, saveGame, look, weather, skySet, sky, say, startChat, inJungle, SPECIES, spawnAnimal, attackRabbit, BUILDS, startPlacing, placeFoundation, completeBuild, refreshPlot, newStack, WANT, planStep, holds, teach, renderCrafts, setMode, members, soc, hearts, giveTo, talk, askNews, acceptReq, declineReq, party, renderParty, tide, darkness, lights, litAt, boards, clock, cam, me, MAP, youStack, walkTo, find, center, discs, setSpeed, artFound, moveRange, arrive, walkable: (x, y) => walkable(MAP, x, y), explore, paintFog, paintSeason, newCard, eco, attackRabbit, showDetail, findPath: (a, b) => findPath(MAP, a, b) };

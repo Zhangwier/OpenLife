@@ -330,3 +330,7 @@ button { font-family: inherit; cursor: pointer; }
 /* Under the spring flood: the shore cards are water-logged until it goes down. */
 .card.flooded { filter: saturate(.55) brightness(.9); }
 .card.flooded .card-art::after { content: "水"; position: absolute; inset: auto 0 0 0; height: 38%; display: grid; place-items: center; background: linear-gradient(rgba(90, 140, 170, .15), rgba(70, 120, 150, .55)); color: #eaf4f8; font-weight: 800; font-size: 14px; }
+.village-book .lore { margin: 4px 0; padding-left: 18px; font-size: 13px; line-height: 1.55; }
+.village-book .lore b { margin-right: 6px; color: #6a4a2a; }
+.village-book .lore i { display: block; font-style: normal; font-size: 11px; color: #9a8a74; }
+#season small { margin-left: 6px; font-size: 11px; font-weight: 600; opacity: .8; }

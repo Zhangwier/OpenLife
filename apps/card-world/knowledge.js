@@ -1,0 +1,36 @@
+// What the village comes to know, and what it thinks of because of it. Adapted from the old engine's tech data
+// (archives/openlife-engine-20261102/modules/tech/data: needs, phenomena, theories, inventions).
+// The chain: trouble keeps coming back (a need grows) and the same thing keeps being seen (a phenomenon) → someone
+// sums it up (a theory — wrong ones come quicker) → a right theory plus a pressing need → someone thinks of something.
+// Wrong theories don't help, but they become customs and stay. The player never sees a "truth" value.
+
+export const NEEDS = {
+  "preserve-food": "吃的放不住",
+  "more-grain": "粮不够吃",
+  "flood": "怕涨水",
+  "know-season": "拿不准农时",
+  "cold": "冬天冻病",
+};
+export const PHENOMENA = {
+  "food-spoils": "吃的放久了会坏",
+  "river-rise": "春天湖水会涨",
+  "seasons-turn": "日影长短一年一轮",
+  "cold-sick": "冬夜在外头会冻病",
+};
+/** needs: how many sightings before someone sums it up (wrong ones need fewer). custom: what a wrong one turns into. */
+export const THEORIES = [
+  { id: "bad-luck-rots", label: "沾了晦气", explains: "food-spoils", claim: "“东西坏，是沾了晦气。得挂符驱邪。”", needs: 2, custom: { id: "charms", name: "挂符", text: "公仓和灶边挂上了驱邪的符" } },
+  { id: "dry-heat-keeps", label: "湿热则腐", explains: "food-spoils", claim: "“东西坏是因为又湿又热。干了、熏了，就放得住。”", needs: 5, true: true },
+  { id: "lake-god", label: "湖神发怒", explains: "river-rise", claim: "“湖水漫上来，是湖神发怒了。开春得给湖神送条鱼。”", needs: 1, custom: { id: "lake-offering", name: "祭湖", text: "开春要给湖神送一条鱼" } },
+  { id: "water-marks", label: "水候", explains: "river-rise", claim: "“春雨连下两天，湖就要涨。在湖边刻木记着水，就能早知道。”", needs: 3, true: true },
+  { id: "shadow-year", label: "日影一年一轮", explains: "seasons-turn", claim: "“日影一天比一天长，长到头又短回来，一年一轮。立根竿子量影子，就知道哪天换季。”", needs: 4, true: true },
+  { id: "cold-evil", label: "撞了邪", explains: "cold-sick", claim: "“夜里病倒，是撞了邪。”", needs: 1, custom: { id: "exorcism", name: "驱邪", text: "有人病了要在火边念几句驱邪的话" } },
+  { id: "cold-fire", label: "寒气入骨", explains: "cold-sick", claim: "“冬夜寒气入骨，离了火就要病。”", needs: 2, true: true },
+];
+/** What can be thought of. principle: the theory it rests on; need: which need, and how strong, before anyone thinks of it. */
+export const INVENTIONS = [
+  { id: "granary-pit", name: "粮窖", principle: "dry-heat-keeps", need: ["more-grain", 2], idea: "“在地上挖个窖，底下铺石头、上头盖木头，粟就不受潮，公仓也能多存。”" },
+  { id: "smoking", name: "烟熏", principle: "dry-heat-keeps", need: ["preserve-food", 3], idea: "“鱼肉吊在火塘上熏干了，就放得住。”" },
+  { id: "flood-marks", name: "刻木记水", principle: "water-marks", need: ["flood", 1], idea: "“在湖边立根木头刻上道道，水涨一道就看得见，明天漫不漫岸心里有数。”" },
+  { id: "calendar-stick", name: "立竿测影", principle: "shadow-year", need: ["know-season", 1], idea: "“在田边立根竿子，量影子长短，就知道还有几天换季。”" },
+];
