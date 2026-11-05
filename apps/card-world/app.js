@@ -75,7 +75,7 @@ const DEFS = {
   jujube:     { name: "枣树", type: "source", icon: "jujubeTree", text: "果园里的枣树。秋天结枣，每天熟几个。", stock: 0, stockLabel: "枣" },
   peachFruit: { name: "桃", type: "food", icon: "peach", text: "一个熟桃。", food: 14 },
   jujubeFruit:{ name: "枣", type: "food", icon: "jujube", text: "一把红枣。", food: 10 },
-  tiger:      { name: "老虎", type: "animal", icon: "tiger", text: "丛林里的老虎。饿了就去扑鹿；你没拿火把走近它，它会扑人。火把能把它逼退；石矛能打它，可只有一半把握。" },
+  tiger:      { name: "老虎", type: "animal", icon: "tiger", text: "森林深处的老虎。饿了就去扑鹿；你没拿火把走近它，它会扑人。惹不起，只能举着火把把它逼开。" },
   mushroom:   { name: "蘑菇", type: "food", icon: "mushroom", text: "丛林里采的蘑菇。", food: 16 },
   pelt:       { name: "虎皮", type: "material", icon: "pelt", text: "一张虎皮。打到老虎的人，村里会记很久。" },
   duck:       { name: "野鸭", type: "animal", icon: "duck", text: "在湖面上游来游去，在芦苇里做窝。" },
@@ -219,6 +219,7 @@ function newCard(key, stock, size) {
   const hasStock = stock !== undefined || d.stock !== undefined;
   el.innerHTML = `<div class="card-head"><span>${d.name}</span>${hasStock ? `<em class="stock"></em>` : ""}</div><div class="card-art">${iconFor(d.icon)}</div><div class="intent"></div>`;
   const card = { id: ++uid, key, el, stock: stock ?? d.stock, w, h, uses: d.uses };
+  if (KEEPS[key]) card.made = day();                    // food remembers when it was got: it goes off
   el.dataset.card = card.id;
   refreshStock(card);
   return card;
@@ -477,7 +478,7 @@ function updateTide() {
   if (MAP.frozen) { cv.hidden = true; return; }                        // frozen over: the water no longer rises
   if (!MAP.water?.includes(1)) { cv.hidden = true; return; }            // no lake on this map: no tide
   cv.hidden = false;
-  const lv = tideNow();
+  const lv = tideNow() + (nature.flood ? 1.4 : 0);                    // a spring flood: the water stands well up the beach
   if (tide.level !== null && Math.abs(lv - tide.level) < 0.05) return;
   tide.level = lv; paintTide(cv, MAP, lv, season());
 }
@@ -613,8 +614,9 @@ const SPECIES = {
   boar: { n: 1, fear: 0, speed: 1.4, aggro: true, home: () => woodSpot(0.8) },
   duck: { n: 3, roam: 420, fear: 220, speed: 0.6, water: true, home: () => lakeSpot() },
 };
-const HUNT_BY = { rabbit: ["axe", "knife", "spear"], deer: ["spear"], boar: ["spear"], tiger: ["spear"] };
-const LOOT = { rabbit: ["meat", "hide"], deer: ["meat", "meat", "hide"], boar: ["meat", "meat", "meat", "hide"], tiger: ["meat", "meat", "pelt"] };
+// Hunting is for food: the tiger is not something you fight (you keep it off with fire).
+const HUNT_BY = { rabbit: ["axe", "knife", "spear"], deer: ["spear"], boar: ["spear"] };
+const LOOT = { rabbit: ["meat", "hide"], deer: ["meat", "meat", "hide"], boar: ["meat", "meat", "meat", "hide"] };
 const inJungle = (p) => MAP.jungle[MAP.idx(p.x, p.y)] === 1;
 const inLake = (p) => p.x > 0 && p.y > 0 && p.x < MAP.W && p.y < MAP.H && MAP.water[MAP.idx(p.x, p.y)] === 1;
 function nearSite(keys, r) {
@@ -765,10 +767,12 @@ function moveRange(p = youAt()) {
   k *= spent() ? 0.5 : tired() ? 0.8 : 1;
   if (groping(p)) k *= 0.5;
   if (p && MAP.zoneAt(p.x, p.y) === "plateau") k *= 0.5;
+  if (isSick()) k *= 0.8;
+  if (weather.now === "雪" && board === "world") k *= 0.85;      // snow underfoot
   if (youStack()?.cards.some((c) => c.key === "sandals")) k *= 1.25;
   return MOVE_RANGE * k;
 }
-const workPace = () => (hungry() ? 1.4 : 1) * (tired() ? 1.4 : 1);
+const workPace = () => (hungry() ? 1.4 : 1) * (tired() ? 1.4 : 1) * (isSick() ? 1.5 : 1) * (weather.now === "雨" && !inYard(youAt() ?? { x: 0, y: 0 }) ? 1.1 : 1);
 function bodyState() {
   const s = [];
   if (starving()) s.push("饿得发慌：走不远，干不了活");
@@ -776,6 +780,8 @@ function bodyState() {
   if (spent()) s.push("累垮了：得睡一觉");
   else if (tired()) s.push("累了：干活慢");
   if (groping()) s.push("天黑看不清路：走不远");
+  if (isSick()) s.push("病了：干活慢、走不远");
+  else if ((me.cold ?? 0) > 60) s.push("冷得发抖：找个火边暖和暖和");
   return s;
 }
 function eat(food, where) {
@@ -1013,6 +1019,7 @@ function arrive(st, target) {
   let r = RECIPES.find((x) => x.needs[0] === top.key && (!x.when || x.when(top)) && x.needs.slice(1).every((k) => has(k, x.needs.filter((a) => a === k).length)));
   if ((def.type === "person" || def.type === "animal") && !r) return talk(target, st);
   if (!r) return toast(HINT[top.key] ?? "这里没什么可做的");
+  if (flooded(top.key)) return toast("水漫上来了，过两天水退了再来");
   if (r.take && top.stock <= 0) return toast(top.key === "berries" && season() === "冬" ? "冬天没有果子" : "这里已经取空了");
   if (r.eat) {
     if (me.food >= 95) return toast("还饱着呢");
@@ -1234,6 +1241,7 @@ function encounter(st) {
   n.metDay = day();
   bondUp(st, { fam: 0.15 });
   if (n.req?.state === "accepted" && clock.min > n.req.until - 360) return say(st, "“答应我的事，别忘了。”");
+  if (isSick()) return say(st, "“你脸色不好，回去在火边歇着吧。”");
   say(st, h < 1 ? "（打量了你一眼，点点头）" : h < 3 ? VOICE.line(st.npc.key, "greet") : fillIn(pick(PD(st).seasons[season()]), st));
 }
 /** Every so often: requests that lapse or fall due, chance meetings, and how their spirits drift. */
@@ -1299,7 +1307,7 @@ function finish(st) {
   if (r.sow) { t.sown = true; t.stock = 0; refreshStock(t); float("种下了", center(target), target.board); groundChanged(); }
   if (r.jarIn) { t.jars = (t.jars ?? 0) + 1; refreshStock(t); float(`公仓能存 ${granaryCap(t)} 份了`, center(target), "world"); }
   if (r.take && t.key === "shallows" && tide.level < -0.3) { const c = newCard("clam"); layerOf(st.board).append(c.el); st.cards.push(c); float("退潮，多摸到一只", center(st), st.board); }
-  if (r.tend) { t.stock = Math.min(3, (t.stock ?? 0) + r.tend); if (r.tend > 1) float("石锄：长势 +2", center(target), target.board); refreshStock(t); t.el.querySelector(".card-art").innerHTML = iconFor(t.stock >= 3 ? "fieldRipe" : "field"); float("锄了一遍", center(target), target.board); }
+  if (r.tend) { t.tendDay = day(); t.stock = Math.min(3, (t.stock ?? 0) + r.tend); if (r.tend > 1) float("石锄：长势 +2", center(target), target.board); refreshStock(t); t.el.querySelector(".card-art").innerHTML = iconFor(t.stock >= 3 ? "fieldRipe" : "field"); float("锄了一遍", center(target), target.board); }
   if (r.tend) { groundChanged(); if (st.cards[0].key === "you") me.tendedFor = day(); }
   if (r.fuel) { t.fuel = Math.min(6, (t.fuel ?? 0) + 1); float("火更旺了", center(target), target.board); }
   if (r.say) say(target, r.say);
@@ -1371,8 +1379,6 @@ function attackRabbit(card) {
   if (dist(a, b) > huntRange(you)) return toast("太远了，再靠近点");
   const tools = you.cards.slice(1).filter((c) => HUNT_BY[kind].includes(c.key));
   if (kind === "boar" && tools.length && Math.random() < 0.3) { wearTool(you, tools[0].key); toast("没扎中！野猪冲过来了"); return charge(rabbit, you); }
-  if (kind === "tiger" && tools.length && Math.random() < 0.5) { wearTool(you, tools[0].key); toast("没扎中！老虎扑了过来"); return pounce(rabbit, you); }
-  if (kind === "tiger" && !tools.length) { toast("空手惹老虎？它扑过来了"); return pounce(rabbit, you); }
   if (!tools.length) {
     if (kind === "boar") { toast("空手惹它？它冲过来了"); return charge(rabbit, you); }
     toast(kind === "rabbit" ? "空手抓不住，它跑了" : "得带石矛才打得着，它跑了");
@@ -1387,6 +1393,7 @@ function attackRabbit(card) {
   wearTool(you, tools[0].key);
   overflow(you);
   float(`打到一${kind === "boar" ? "头" : "只"}${DEFS[kind].name}`, center(you), you.board);
+  if (!boards.world.some((q) => q.critter?.kind === kind)) chronicle(`林子里的${DEFS[kind].name}打光了，一时再见不着了。`);
   const mk = `第一次打到${DEFS[kind].name}`;
   if (!marks.has(mk)) { marks.add(mk); banner("✦", mk); }
   carryChanged();
@@ -1512,6 +1519,7 @@ function sleepTillDawn() {
   banner("夜", "睡下了，一觉到天亮");
   clock.fast = Math.ceil((clock.min - 6 * 60 + 1) / 1440) * 1440 + 6 * 60;
   me.rest = 100;
+  if (isSick() && inYard(youAt())) me.sickUntil -= 720;                 // a night by the fire does you good
 }
 
 // ---------------------------------------------------------------------------
@@ -1555,6 +1563,7 @@ function idleTurn(st) {
   const n = st.npc, h = hour();
   const other = boards.world.find((o) => o !== st && o.npc && !o.npc.inside && !o.walk && !o.job && (o.npc.wait ?? 0) <= 0 && o.ctl?.mode !== "manual" && dist(center(o), center(st)) < 320);
   if (other && clock.min > (n.nextChat ?? 0) && clock.min > (other.npc.nextChat ?? 0) && Math.random() < 0.5) { startChat(st, other); return true; }
+  if (weather.now === "雨" && sky.level > 0.75 && !inYard(center(st)) && Math.random() < 0.3) { go(st, "fire", "shelter"); return true; }   // a downpour: under cover for a while
   const slot = h >= 10 && h < 10.6 ? "am" : h >= 15 && h < 15.6 ? "pm" : null;
   if (slot && n.breakAt !== `${day()}${slot}`) { n.breakAt = `${day()}${slot}`; muse(st, 30 + Math.random() * 40); return true; }
   return false;
@@ -1659,9 +1668,9 @@ function go(st, key, task, want, stack) {
     return;
   }
   // a source with something left in it, if there are several (two groves of chestnuts)
-  const ok = (s) => s.cards[0].key === key && (s.cards[0].stock === undefined || s.cards[0].stock > 0) && !inJungle(center(s));
+  const ok = (s) => s.cards[0].key === key && (s.cards[0].stock === undefined || s.cards[0].stock > 0) && !inJungle(center(s)) && !flooded(key);
   const near = (a, b) => dist(center(a), center(st)) - dist(center(b), center(st));
-  const target = boards.world.filter(ok).sort(near)[0] ?? boards.world.find((s) => s.cards[0].key === key && !inJungle(center(s))) ?? find(key);
+  const target = boards.world.filter(ok).sort(near)[0] ?? (flooded(key) ? null : boards.world.find((s) => s.cards[0].key === key && !inJungle(center(s))) ?? find(key));
   if (!target) { st.goal = ""; st.task = ""; st.goalStack = null; st.npc.wait = 120; return; }   // nothing left to go to
   st.goalStack = target; st.parkedAt = null;
   const path = route(st, target);
@@ -1669,7 +1678,7 @@ function go(st, key, task, want, stack) {
   st.walk = { target, path, k: 0 };
   st.task = task; st.goal = key; intent(st, DEFS[key].icon);
 }
-const JOBS = { eat: 30, wait: 60, tend: 180, harvest: 150, dig: 90, drop: 15, fetch: 20, cook: 120, watch: 90, fish: 120, give: 15, evening: 100, chop: 150, pick: 60, store: 15, gather: 90, fetchHome: 15, jarIn: 15, build: 240, sow: 60, seed: 15, hide: 90, forage: 40, tidy: 60, cut: 90, arrive: 20, feast: 120 };
+const JOBS = { eat: 30, wait: 60, tend: 180, harvest: 150, dig: 90, drop: 15, fetch: 20, cook: 120, watch: 90, fish: 120, give: 15, evening: 100, chop: 150, pick: 60, store: 15, gather: 90, fetchHome: 15, jarIn: 15, build: 240, sow: 60, seed: 15, hide: 90, forage: 40, tidy: 60, cut: 90, arrive: 20, feast: 120, shelter: 90 };
 // What they say as they set to a task (now and then, not every time).
 const TOPIC = { sow: "sow", tend: "tend", harvest: "harvest", cook: "cook", fetch: "cook", fish: "fish", cut: "cut", pick: "pick" };
 function npcArrive(st) {
@@ -1695,7 +1704,7 @@ function npcDone(st) {
   st.goal = ""; st.lastTask = task; intent(st, "");
   if (task === "eat" && t.stock > 0) { t.stock--; refreshStock(t); st.npc.hunger = 0; }
   if (task === "forage" && t.stock > 0) { t.stock--; refreshStock(t); st.npc.hunger = Math.max(0, st.npc.hunger - 5); float("摘了把野果垫肚子", center(target), "world"); }
-  if (task === "tend" && t.sown !== false) { const hoe = hasTool(st, target, "hoe"); t.stock = Math.min(3, (t.stock ?? 0) + (hoe ? 2 : 1)); if (hoe) wearAny(st, target, "hoe"); refreshStock(t); groundChanged(); t.el.querySelector(".card-art").innerHTML = iconFor(t.stock >= 3 ? "fieldRipe" : "field"); }
+  if (task === "tend" && t.sown !== false) { t.tendDay = day(); const hoe = hasTool(st, target, "hoe"); t.stock = Math.min(3, (t.stock ?? 0) + (hoe ? 2 : 1)); if (hoe) wearAny(st, target, "hoe"); refreshStock(t); groundChanged(); t.el.querySelector(".card-art").innerHTML = iconFor(t.stock >= 3 ? "fieldRipe" : "field"); }
   if (task === "seed" && t.stock > 0) { t.stock--; refreshStock(t); addCard(st, "grain"); }
   if (task === "sow") { const i = st.cards.findIndex((c, j) => j > 0 && c.key === "grain"); if (i > 0) { st.cards[i].el.remove(); st.cards.splice(i, 1); t.sown = true; t.stock = 0; refreshStock(t); groundChanged(); } }
   if (task === "harvest") { t.stock = 0; t.sown = false; refreshStock(t); t.el.querySelector(".card-art").innerHTML = iconFor("field"); carry(st, "grain", 6); groundChanged(); firstHarvest(); }   // one harvest a year: enough to see the house through
@@ -1822,6 +1831,7 @@ function tick(minutes) {
   turnTick(minutes);
   while (weather.events.length && weather.events[0].at <= clock.min) { const e = weather.events.shift(); if (e.kind === "roll") { weather.hold = 0; rollWeather(); } else setWeather(e.kind, e.strength); }
   skyDrift(minutes);
+  coldTick(minutes);
   burnTorch(minutes);
   autoYou();
   const you = youStack();
@@ -1919,6 +1929,7 @@ function tick(minutes) {
     rollWeather();
     peopleDay();
     festivalMorning();
+    natureDay();
     const fire = find("fire")?.cards[0]; if (fire) fire.fuel = Math.max(0, (fire.fuel ?? 0) - 1);
     const stove = find("stove")?.cards[0]; if (stove) stove.fuel = Math.max(0, (stove.fuel ?? 0) - 1);
     for (const t of boards.world.filter((s) => s.cards[0].key === "peach" || s.cards[0].key === "jujube")) {
@@ -1930,7 +1941,6 @@ function tick(minutes) {
     }
     const nest = find("nest")?.cards[0];
     if (nest) { nest.stock = Math.min(4, nest.stock + ({ 春: 2, 夏: 2, 秋: 1, 冬: 0 }[season()])); refreshStock(nest); }
-    for (const [kind, sp] of Object.entries(SPECIES)) if (boards.world.filter((s) => s.critter?.kind === kind).length < sp.n && Math.random() < 0.35) spawnAnimal(kind);
     for (const h of boards.world.filter((q) => q.cards[0].key === "hemp")) {   // the hemp grows back a little each day, not in winter
       const c = h.cards[0]; if (season() !== "冬") { c.stock = Math.min(6, c.stock + 2); refreshStock(c); }
     }
@@ -2495,7 +2505,7 @@ function finishDismantle(st, target, r) {
 // ---------------------------------------------------------------------------
 // Little things
 // ---------------------------------------------------------------------------
-const DOING = { eat: "吃饭", wait: "等饭", tend: "锄地", harvest: "收粟", dig: "挖黏土", drop: "放东西", fetch: "取粟", cook: "煮饭", watch: "在火塘边歇着", fish: "在湖边捞鱼", give: "送鱼去灶上", sleep: "回去睡觉", evening: "在火塘边坐着", chop: "砍树", pick: "挖石头", store: "把东西送回家", sow: "播种", seed: "去公仓拿种子", hide: "躲老虎", gather: "去采材料", fetchHome: "回家拿材料", craft: "做东西", jarIn: "把陶罐放进公仓", build: "盖房子", forage: "摘野果", tidy: "翻公仓里的粟" };
+const DOING = { eat: "吃饭", wait: "等饭", tend: "锄地", harvest: "收粟", dig: "挖黏土", drop: "放东西", fetch: "取粟", cook: "煮饭", watch: "在火塘边歇着", fish: "在湖边捞鱼", give: "送鱼去灶上", sleep: "回去睡觉", evening: "在火塘边坐着", chop: "砍树", pick: "挖石头", store: "把东西送回家", sow: "播种", seed: "去公仓拿种子", hide: "躲老虎", gather: "去采材料", fetchHome: "回家拿材料", craft: "做东西", jarIn: "把陶罐放进公仓", build: "盖房子", forage: "摘野果", tidy: "翻公仓里的粟", shelter: "在火塘边避雨", cut: "割芦苇", feast: "过节", arrive: "刚来，往灶边走" };
 function showDetail(card) {
   const d = { ...DEFS[card.key], ...(card.name ? { name: card.name } : {}) }, st = stackOf(card), box = $("detail");
   const ghost = card.el.classList.contains("ghost");
@@ -2755,6 +2765,81 @@ function renderVillage() {
 }
 
 // ---------------------------------------------------------------------------
+// Weather with consequences: rain grows the crop, a dry spell in summer withers it, spring rains raise the lake over
+// its banks. Food goes off (sooner in the heat). Animals breed in spring and summer and can be hunted out.
+// A winter night out in the open, away from any fire, can make you ill.
+// ---------------------------------------------------------------------------
+const nature = { dryDays: 0, wetDays: 0, flood: false, drought: false };
+/** Things that spoil, and how many days they keep (summer halves it). Grain keeps. */
+const KEEPS = { fish: 2, meat: 2, berry: 2, clam: 2, egg: 4, peachFruit: 2, jujubeFruit: 4, mushroom: 3, roastFish: 3, roastMeat: 3, jarFull: 4 };
+const SHORE = ["reeds", "nest", "pit"];
+const flooded = (key) => nature.flood && SHORE.includes(key);
+function natureDay() {
+  const s = season(), rain = weather.now === "雨";
+  nature.wetDays = rain ? nature.wetDays + 1 : 0;
+  nature.dryDays = !rain && weather.now !== "雪" && (s === "春" || s === "夏") ? nature.dryDays + 1 : 0;
+  const fields = boards.world.filter((q) => isField(q) && q.cards[0].sown !== false).map((q) => q.cards[0]);
+  // rain does some of the weeding's work: the crop grows by itself
+  if (rain && (s === "春" || s === "夏")) for (const f of fields) if (Math.random() < 0.5) { f.stock = Math.min(3, (f.stock ?? 0) + 1); refreshStock(f); }
+  // a dry spell: first the signs, then the crop that nobody tends loses ground, and the berries are few
+  const was = nature.drought;
+  nature.drought = s === "夏" && nature.dryDays >= 3;
+  if (nature.drought && !was) { chronicle("连着几天没下雨，地皮都晒裂了。"); omen("“地皮都晒裂了……再不下雨，苗要蔫。”"); }
+  if (nature.drought && nature.dryDays >= 4) for (const f of fields) if (f.tendDay !== day() - 1 && f.stock > 0) { f.stock -= 1; refreshStock(f); float("旱，苗蔫了", center(stackOf(f)), "world"); }
+  if (!nature.drought && was) chronicle("总算下了雨，旱过去了。");
+  // spring rains raise the lake over its banks: the marsh and the clay pit are under water until a dry day
+  const wasFlood = nature.flood;
+  nature.flood = s === "春" && nature.wetDays >= 2;
+  if (nature.flood !== wasFlood) {
+    for (const st of boards.world.filter((q) => SHORE.includes(q.cards[0].key))) st.cards[0].el.classList.toggle("flooded", nature.flood);
+    tide.level = null; updateTide();
+    if (nature.flood) { chronicle("春雨下个不停，湖水漫上了岸，芦苇荡和黏土坑都泡在水里。"); omen("“湖水涨上来了，岸边别去。”"); const l = find("lake")?.cards[0]; if (l) { l.stock = Math.min(9, l.stock + 2); refreshStock(l); } }
+    else chronicle("水退了，岸边又露出来了。");
+  }
+  spoil();
+  breed();
+  groundChanged();
+}
+/** Someone remarks on the signs, a little after dawn. */
+function omen(text) { const who = npcs().find((q) => !q.npc.arriving); if (who) talks.push({ at: clock.min + 120, st: who, text }); }
+/** Food left lying about (or carried) goes off; the pot on the stove turns in summer heat. */
+function spoil() {
+  const hot = season() === "夏", lost = [];
+  for (const st of allStacks()) {
+    if (st.npc || st.critter) continue;
+    const keep = st.cards.filter((c) => !(KEEPS[c.key] && c.made !== undefined && day() - c.made > (hot ? Math.ceil(KEEPS[c.key] / 2) : KEEPS[c.key])));
+    if (keep.length === st.cards.length) continue;
+    st.cards.filter((c) => !keep.includes(c)).forEach((c) => { lost.push(DEFS[c.key].name); c.el.classList.add("gone"); setTimeout(() => c.el.remove(), 300); });
+    if (!keep.length) removeStack(st); else st.cards = keep;
+  }
+  const stove = find("stove")?.cards[0];
+  if (hot && stove?.stock > 2) { stove.stock -= 1; refreshStock(stove); lost.push("一份熟食"); }
+  if (lost.length) { toast(`放坏了：${[...new Set(lost)].join("、")}`); carryChanged(); }
+}
+/** Animals have young in spring and summer — if any are left to have them; now and then one wanders in from the deep wood. */
+function breed() {
+  const warm = season() === "春" || season() === "夏";
+  for (const [kind, sp] of Object.entries(SPECIES)) {
+    const alive = boards.world.filter((q) => q.critter?.kind === kind).length;
+    if (alive >= sp.n) continue;
+    if (alive > 0 && warm && Math.random() < 0.4) spawnAnimal(kind);
+    else if (alive === 0 && Math.random() < (kind === "tiger" ? 0.15 : 0.06)) { spawnAnimal(kind); if (kind !== "tiger") chronicle(`林子里又见着${DEFS[kind].name}了。`); }
+  }
+}
+/** A winter night outside, away from fire and without a torch, chills you through; too long and you fall ill. */
+function coldTick(minutes) {
+  const you = youStack();
+  if (!you || you.board !== "world" || season() !== "冬" || darkness() < 0.6) { me.cold = Math.max(0, (me.cold ?? 0) - minutes); return; }
+  const p = center(you), warm = inYard(p) || litAt(p) || you.cards.some((c) => c.key === "torch");
+  me.cold = Math.max(0, (me.cold ?? 0) + (warm ? -minutes : minutes));
+  if (me.cold > 150 && !isSick()) {
+    me.sickUntil = clock.min + 1.5 * 1440; me.cold = 0;
+    toast("冻着了：浑身发冷，干活慢、走不远，歇一天半才好"); chronicle("你在冬夜里冻病了。");
+  }
+}
+const isSick = () => clock.min < (me.sickUntil ?? 0);
+
+// ---------------------------------------------------------------------------
 // Saving: the land comes back from its seed; everything on it — cards, people, the clock, the weather, the season's
 // look, what you have explored and know — is written to the browser every little while and read back on opening.
 // ?new=1 starts a fresh life (and drops the old save); ?day=N is a preview and never touches the save.
@@ -2795,7 +2880,7 @@ function saveGame() {
       v: SAVE_VERSION, seed, at: Date.now(), min: clock.min, me: { ...me, marks: [...marks] },
       boards: Object.fromEntries(Object.entries(boards).map(([b, list]) => [b, list.filter((s) => !s.lifted).map(stackOut)])),
       respawns, eco, discs, weather: { now: weather.now, events: weather.events, hold: weather.hold },
-      look: { from: look.from, to: look.to, p: look.p }, village,
+      look: { from: look.from, to: look.to, p: look.p }, village, nature,
       fields: (MAP.extraFields ?? []).map(({ cv, card, ...f }) => ({ ...f, card: card?.id })),
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -2833,6 +2918,8 @@ function restore(d) {
   MAP.extraFields = d.fields.map((f) => ({ ...f, card: ids.get(f.card) }));
   Object.assign(weather, d.weather);
   if (d.village) Object.assign(village, d.village);
+  if (d.nature) Object.assign(nature, d.nature);
+  for (const st of boards.world.filter((q) => SHORE.includes(q.cards[0].key))) st.cards[0].el.classList.toggle("flooded", nature.flood);
   setupMainHouse(false);
   setupMine();
   look.from = d.look.from; look.to = d.look.to; look.p = d.look.p;
@@ -2857,4 +2944,4 @@ renderRecent(); renderParty(); renderAutoMe(); renderPromises();
 applyCam(); fitRoom();
 window.addEventListener("resize", () => { applyCam(); fitRoom(); if (sky.cv) skySetup(); });
 requestAnimationFrame(frame);
-window.__mock = { village, climb, considerArrival, villageNow, festivalTick, npcs, saveGame, look, weather, skySet, sky, say, startChat, inJungle, SPECIES, spawnAnimal, attackRabbit, BUILDS, startPlacing, placeFoundation, completeBuild, refreshPlot, newStack, WANT, planStep, holds, teach, renderCrafts, setMode, members, soc, hearts, giveTo, talk, askNews, acceptReq, declineReq, party, renderParty, tide, darkness, lights, litAt, boards, clock, cam, me, MAP, youStack, walkTo, find, center, discs, setSpeed, artFound, moveRange, arrive, walkable: (x, y) => walkable(MAP, x, y), explore, paintFog, paintSeason, newCard, eco, attackRabbit, showDetail, findPath: (a, b) => findPath(MAP, a, b) };
+window.__mock = { nature, natureDay, isSick, coldTick, village, climb, considerArrival, villageNow, festivalTick, npcs, saveGame, look, weather, skySet, sky, say, startChat, inJungle, SPECIES, spawnAnimal, attackRabbit, BUILDS, startPlacing, placeFoundation, completeBuild, refreshPlot, newStack, WANT, planStep, holds, teach, renderCrafts, setMode, members, soc, hearts, giveTo, talk, askNews, acceptReq, declineReq, party, renderParty, tide, darkness, lights, litAt, boards, clock, cam, me, MAP, youStack, walkTo, find, center, discs, setSpeed, artFound, moveRange, arrive, walkable: (x, y) => walkable(MAP, x, y), explore, paintFog, paintSeason, newCard, eco, attackRabbit, showDetail, findPath: (a, b) => findPath(MAP, a, b) };
