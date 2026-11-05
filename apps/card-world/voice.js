@@ -63,22 +63,49 @@ const LINES = {
     tiger: ["“老虎……快走。”"],
     season: { 春: "“开春了，该下种了。”", 夏: "“草长得比苗快。”", 秋: "“穗子黄了。”", 冬: "“地冻上了。”" },
   },
+  gu: {
+    greet: ["“站远点，别踩着网。”", "“看水色就知道鱼在哪一层。”", "“嗯。”", "“鱼认得人，你信不信？”"],
+    fish: ["“鱼在苇根底下，得慢慢来。”", "“这一网有分量。”"],
+    sleep: ["“睡了，明早看水。”"], wake: ["“看看今早的水色。”"], tiger: ["“老虎！往湖边跑！”"],
+    season: { 春: "“开春鱼上来了。”", 夏: "“晒鱼干的好天。”", 秋: "“鱼肥了。”", 冬: "“冬天补网。”" },
+  },
+  wei: {
+    greet: ["“又来割苇子？省着点割。”", "“……嗯。”", "“老苇割了，新芽留着。”"],
+    cut: ["“只割老的。”", "“根留着，明年还长。”"],
+    sleep: ["“睡了。”"], wake: ["“去滩上看看。”"], tiger: ["“老虎……快走。”"],
+    season: { 春: "“新苇冒头了，别踩。”", 夏: "“苇子长得快。”", 秋: "“能割了，留根。”", 冬: "“又稀了。”" },
+  },
+  li: {
+    greet: ["“什么事？”", "“石头有纹，顺着纹走。”", "（手里的石锤没停）"],
+    pick: ["“这面石壁纹路顺。”", "“好石头。”"],
+    sleep: ["“睡。”"], wake: ["“上山。”"], tiger: ["“老虎！”"],
+    season: { 春: "“雪化了，好石头露出来了。”", 夏: "“天热，石头脆。”", 秋: "“秋收要刀，活多。”", 冬: "“手僵。”" },
+  },
 };
 // Two of them near each other with nothing pressing: a few words back and forth. [speaker, line] — a = 陶婶, b = 阿三.
 const CHATS = [
-  { when: () => true, lines: [["a", "“阿三，地里怎么样？”"], ["b", "“还行，苗齐。”"]] },
-  { when: () => true, lines: [["a", "“又空着肚子下地？”"], ["b", "“不饿。”"], ["a", "“不饿也得吃！”"]] },
-  { when: () => true, lines: [["b", "“婶，灶上还有粥吗？”"], ["a", "“给你留着呢。”"]] },
-  { when: (c) => c.weather === "雨", lines: [["a", "“这雨下得，柴都潮了。”"], ["b", "“地里正缺水。”"]] },
-  { when: (c) => c.weather === "晴", lines: [["b", "“这几天晴，好干活。”"], ["a", "“晴也别晒着，晌午歇歇。”"]] },
-  { when: (c) => c.season === "冬", lines: [["a", "“公仓的粟够吃到开春吗？”"], ["b", "“省着点，够。”"]] },
-  { when: (c) => c.season === "秋", lines: [["a", "“收了多少？”"], ["b", "“两块地，十来份。”"], ["a", "“够了够了。”"]] },
-  { when: (c) => c.season === "春", lines: [["b", "“婶，种子还留着吧？”"], ["a", "“留着呢，一块地一份，谁也别动。”"]] },
-  { when: () => true, lines: [["a", "“林子那边别去深了，有老虎。”"], ["b", "“知道。”"]] },
-  { when: () => true, lines: [["b", "“山里那条矿道，石头好挖。”"], ["a", "“挖石头得有石锤，别拿手抠。”"]] },
+  { pair: ["aunt", "san"], when: () => true, lines: [["a", "“阿三，地里怎么样？”"], ["b", "“还行，苗齐。”"]] },
+  { pair: ["aunt", "san"], when: () => true, lines: [["a", "“又空着肚子下地？”"], ["b", "“不饿。”"], ["a", "“不饿也得吃！”"]] },
+  { pair: ["aunt", "san"], when: () => true, lines: [["b", "“婶，灶上还有粥吗？”"], ["a", "“给你留着呢。”"]] },
+  { pair: ["aunt", "san"], when: (c) => c.weather === "雨", lines: [["a", "“这雨下得，柴都潮了。”"], ["b", "“地里正缺水。”"]] },
+  { pair: ["aunt", "san"], when: (c) => c.weather === "晴", lines: [["b", "“这几天晴，好干活。”"], ["a", "“晴也别晒着，晌午歇歇。”"]] },
+  { pair: ["aunt", "san"], when: (c) => c.season === "冬", lines: [["a", "“公仓的粟够吃到开春吗？”"], ["b", "“省着点，够。”"]] },
+  { pair: ["aunt", "san"], when: (c) => c.season === "秋", lines: [["a", "“收了多少？”"], ["b", "“两块地，十来份。”"], ["a", "“够了够了。”"]] },
+  { pair: ["aunt", "san"], when: (c) => c.season === "春", lines: [["b", "“婶，种子还留着吧？”"], ["a", "“留着呢，一块地一份，谁也别动。”"]] },
+  { pair: ["aunt", "san"], when: () => true, lines: [["a", "“林子那边别去深了，有老虎。”"], ["b", "“知道。”"]] },
+  { pair: ["aunt", "san"], when: () => true, lines: [["b", "“山里那条矿道，石头好挖。”"], ["a", "“挖石头得有石锤，别拿手抠。”"]] },
+  // anyone with anyone
+  { when: (c) => c.weather === "雨", lines: [["a", "“又下了。”"], ["b", "“下吧，地里正要水。”"]] },
+  { when: (c) => c.weather === "晴", lines: [["a", "“今天天好。”"], ["b", "“嗯，干活的天。”"]] },
+  { when: (c) => c.season === "冬", lines: [["a", "“这冬天长着呢。”"], ["b", "“熬过去就开春了。”"]] },
+  { when: () => true, lines: [["a", "“吃了没？”"], ["b", "“吃了。你呢？”"], ["a", "“也吃了。”"]] },
+  { when: () => true, lines: [["a", "“林子深处别去，有老虎。”"], ["b", "“晓得。”"]] },
+  // the two who quarrel over the bank
+  { pair: ["wei", "li"], when: () => true, lines: [["a", "“你在山脚一敲石头，芦苇荡的鸟全飞了。”"], ["b", "“鸟飞了还回来，石头不敲不出刃。”"]] },
+  { pair: ["wei", "li"], when: () => true, lines: [["b", "“阿苇又在念叨我了吧。”"], ["a", "“你自己心里有数。”"]] },
 ];
 
-const style = (who) => (who === "aunt" ? "nagging" : "huashao");
+const style = (who) => (who === "aunt" ? "nagging" : "huashao");   // the newcomers are quiet types too
 /** A line on a topic, sometimes dressed in their usual opening and closing words. */
 export function line(who, topic) {
   const L = LINES[who]; if (!L) return null;
@@ -99,7 +126,9 @@ export function thought(who, { hour, weather, hungry, mood }) {
 export function gesture(who) { return pick(GESTURE[style(who)]); }
 /** A short exchange for two people who happen to be together. Returns [[who, line], …] with a/b filled in. */
 export function chat(a, b, ctx) {
-  const ok = CHATS.filter((c) => c.when(ctx));
+  const pair = CHATS.filter((c) => c.pair && c.pair.includes(a) && c.pair.includes(b) && c.when(ctx));
+  const ok = pair.length && Math.random() < 0.75 ? pair : CHATS.filter((c) => !c.pair && c.when(ctx));
+  if (pair.length && ok === pair && pair[0].pair[0] !== a) [a, b] = [b, a];          // "a" is whoever comes first in the pair
   const c = pick(ok);
   return c.lines.map(([k, t]) => [k === "a" ? a : b, t]);
 }
