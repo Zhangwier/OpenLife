@@ -5,6 +5,7 @@ import { generateWorld, walkable, reachAlong, findPath, woodDepth, G } from "./m
 import { paintTerrain, paintTide, paintCover, paintCrop, prewarmBase } from "./terrain.js";
 import { LAND, SITES, LAYOUT, PEOPLE, START, WOOD_LAYOUT, LAKE_LAYOUT, FARM_FIELDS, FIELD_SIZE, PLATEAU_LAYOUT } from "./valley.js";
 import * as VOICE from "./voice.js";
+import { PEOPLE_DATA, TIERS as BONDS, tierOf, dayName } from "./people.js";
 
 const $ = (id) => document.getElementById(id);
 const CARD_W = 112, CARD_H = 148, PEEK = 30;
@@ -171,10 +172,10 @@ const REGROW = { chestnut: [3, 5], lake: [1, 2], reeds: [2, 3], shallows: [2, 3]
 const respawns = [];
 const stacks = () => boards[board];
 const clock = { min: 6 * 60 + (firstDay - 1) * 1440, speed: 1, fast: 0 };
-const me = { food: 70, rest: 90, trust: { aunt: 0, san: 0 }, talkedDay: {}, giftDay: {}, recent: [], auto: true, lastInput: clock.min };
+const me = { food: 70, rest: 90, recent: [], auto: true, lastInput: clock.min };
 // Who you can direct besides yourself: anyone who trusts you enough (熟识 3), and your dog from the start.
 // Each has a mode — auto (lives their own day), work (you pick the job, they do it on their own), manual (you drag them like yourself).
-const TRUST_TO_JOIN = 3, IDLE_MIN = 1440;
+const IDLE_MIN = 1440;
 // Know-how fades: each day you don't use a recipe, it slips a little (gone in about a week); using it brings it back.
 me.known = { axe: { mem: 0.7, day: 1 } };
 me.askedDay = {};
@@ -554,8 +555,9 @@ function build() {
   explore(center(youStack()));
   paintSeason();
 }
-/** The main house is a walled yard on the map: outside you see the roof; through the south gate you see the layout. */
-function setupMainHouse() {
+/** The main house is a walled yard on the map: outside you see the roof; through the south gate you see the layout.
+ *  furnish: put the bed, the hearth and the first grain in (a restored game brings its own). */
+function setupMainHouse(furnish = true) {
   const house = find("taoHouse");
   if (!house) return;
   const s = MAP.sites.home, yd = s.yard;                // the yard's size lives with the site (valley.js), so places keep off its walls
@@ -571,9 +573,11 @@ function setupMainHouse() {
     { x: c.x, y: c.y + c.h - t, w: c.gate.x - c.x, h: t },
     { x: c.gate.x + c.gate.w, y: c.y + c.h - t, w: c.x + c.w - (c.gate.x + c.gate.w), h: t },
   ];
-  newStack([newCard("bed")], c.x + 110, c.y + c.h - 200, "world");
-  newStack([newCard("fire")], c.x + 280, c.y + c.h - 200, "world");
-  newStack([newCard("grain"), newCard("grain")], c.x + 440, c.y + c.h - 200, "world");
+  if (furnish) {
+    newStack([newCard("bed")], c.x + 110, c.y + c.h - 200, "world");
+    newStack([newCard("fire")], c.x + 280, c.y + c.h - 200, "world");
+    newStack([newCard("grain"), newCard("grain")], c.x + 440, c.y + c.h - 200, "world");
+  }
   house.cards[0].el.classList.add("no-card");        // the yard is the house; no label card standing in it
   const roof = document.createElement("div");
   roof.className = "roof";
@@ -834,7 +838,7 @@ table.addEventListener("pointerup", (e) => {
       carryChanged();
       return;
     }
-    if (d.target?.npc && d.lift.cards.every((c) => DEFS[c.key].type === "food")) { giveFood(d.target, d.lift); carryChanged(); return; }
+    if (d.target?.npc && PD(d.target)) { const cards = d.lift.cards; removeStack(d.lift); const rest = giveTo(d.target, cards); if (rest.length) youStack().cards.push(...rest); carryChanged(); return; }
     if (d.target?.cards[0].key === "plot") { handIn(d.target, d.lift); carryChanged(); return; }
     const place = d.target?.cards[0].key, tools = d.lift.cards.filter((c) => DEFS[c.key].type === "tool");
     if (place && DEFS[place].type === "source" && tools.length) {
@@ -1037,29 +1041,224 @@ function arrive(st, target) {
   if (target.npc) target.npc.wait = min + 10;
   if (!r.eat && !r.nap && st.cards[0].key === "you") remember(target.cards[0].key);
 }
-function gainTrust(st) {
-  const k = st.cards[0].key;
-  me.trust[k] = (me.trust[k] ?? 0) + 1;
-  if (me.trust[k] >= TRUST_TO_JOIN && !st.ctl) {
-    st.ctl = { mode: "auto", job: st.npc.job };
-    banner("✦", `${DEFS[k].name}愿意听你安排了`);
-    renderParty();
-  }
+// ---------------------------------------------------------------------------
+// People: how well they know you and how far they trust you (never shown as numbers), what they remember of you,
+// what they ask of you and whether you kept your word, what they like, and what they tell you as you grow closer.
+// ---------------------------------------------------------------------------
+const PD = (st) => PEOPLE_DATA[st?.npc?.key];
+const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
+/** Their side of things with you, created the first time it is needed (older saves too). */
+function soc(n) {
+  n.bond ??= { fam: 0, trust: 0, owe: 0, grudge: 0 }; n.mem ??= []; n.known ??= { loves: [], dislikes: [] }; n.heartSeen ??= [];
+  n.mood ??= 6; n.gifts ??= {}; n.req ??= null;
+  return n;
 }
-/** Hand a villager something to eat: they eat it, and think a little better of you (once a day). */
-function giveFood(target, lift) {
-  const k = target.cards[0].key;
-  lift.cards.forEach((c) => { c.el.classList.add("gone"); setTimeout(() => c.el.remove(), 300); });
-  removeStack(lift);
-  target.npc.hunger = 0;
-  say(target, "“给我的？那我不客气了。”");
-  if (k in me.trust && me.giftDay[k] !== day()) { me.giftDay[k] = day(); gainTrust(target); }
+const hearts = (n) => { const b = soc(n).bond; return b.fam * 0.6 + b.trust * 0.5 - b.grudge * 0.8; };
+const nameOf = (st) => DEFS[st.cards[0].key].name;
+const fillIn = (t, st, item = "") => t.replaceAll("{name}", nameOf(st)).replaceAll("{item}", item);
+/** Something they will remember about you (a few at a time; the oldest fade). good: true, false or undefined. */
+function memo(st, text, good) { const n = soc(st.npc); n.mem.unshift({ day: day(), text, good }); n.mem.length = Math.min(n.mem.length, 10); }
+function bondUp(st, d) {
+  const n = soc(st.npc), before = tierOf(hearts(n)).name;
+  for (const [k, v] of Object.entries(d)) n.bond[k] = clampN(n.bond[k] + v, k === "owe" ? -6 : 0, 12);
+  const after = tierOf(hearts(n));
+  if (after.name !== before && hearts(n) > 0 && BONDS.indexOf(after) > BONDS.findIndex((t) => t.name === before)) banner("✦", `${nameOf(st)}和你成了${after.name === "相识" ? "熟人" : after.name}`);
+  if (hearts(n) >= 3 && !st.ctl) { st.ctl = { mode: "auto", job: st.npc.job }; banner("✦", `${nameOf(st)}愿意听你安排了`); renderParty(); }
 }
+const moodWord = (n) => (n.mood < 3.5 ? "闷闷不乐" : n.mood > 7.5 ? "看着挺高兴" : "");
+const doyNow = () => ((day() - 1) % (DAYS_PER_SEASON * 4)) + 1;
+
+/** You walk up to them (or tap 聊聊): the most pressing thing first — a confidence they've been keeping, a request,
+ *  a favour they owe you, something they remember — else whatever is on their mind today. Talking warms them once a day. */
 function talk(target, st) {
   const k = target.cards[0].key;
-  say(target, target.npc ? VOICE.line(k, "greet") : pick(TALK[k] ?? ["……"]));
-  if (target.npc) { target.npc.wait = 40; face(target, st); }
-  if (k in me.trust && me.talkedDay[k] !== day()) { me.talkedDay[k] = day(); gainTrust(target); }
+  if (!target.npc) { say(target, pick(TALK[k] ?? ["……"])); return; }
+  const n = soc(target.npc), P = PD(target), h = hearts(n);
+  target.npc.wait = Math.max(target.npc.wait, 30); face(target, st); endMuse(target);
+  if (n.talkDay !== day()) { n.talkDay = day(); bondUp(target, { fam: n.bond.grudge >= 2 ? 0.15 : 0.45 }); }
+  const ev = Object.entries(P.heart).find(([th]) => h >= Number(th) && !n.heartSeen.includes(Number(th)));
+  if (ev) {
+    const [th, e] = ev; n.heartSeen.push(Number(th));
+    say(target, fillIn(e.text, target));
+    for (const g of e.give ?? []) addCard(youStack(), g);
+    if (e.rest) me.rest = Math.min(100, me.rest + e.rest);
+    memo(target, "跟你说了心里话"); carryChanged();
+    return;
+  }
+  if (n.req?.state === "asked") return say(target, n.req.text);
+  if (n.bond.owe >= 2) return repay(target);
+  const m = n.mem.find((x) => x.day >= day() - 2 && x.good !== undefined && !x.said);
+  if (m && (m.good === false || Math.random() < 0.7)) { m.said = true;      // a broken promise always comes up
+    return say(target, m.good ? `“${m.text.replace(/^你/, "前两天你")}，我记着呢。”` : `“……${m.text.replace(/^你/, "")}。”`); }
+  if (n.bond.grudge >= 2 && Math.random() < 0.6) return say(target, pick(["“嗯。”", "“忙着呢。”", "（看了你一眼，没接话）"]));
+  const tie = Object.values(P.ties ?? {})[0];
+  const pool = [VOICE.line(k, "greet"), fillIn(pick(P.seasons[season()]), target), ...(h >= 2 && tie ? [fillIn(tie, target)] : []),
+    ...(n.mood < 3.5 ? [fillIn(pick(P.low), target)] : n.mood > 7.5 ? [fillIn(pick(P.happy), target)] : [])];
+  if (doyNow() === P.birthday && h >= 2 && n.birthdayTold !== day()) { n.birthdayTold = day(); return say(target, "“今天……是我生日。”"); }
+  say(target, pick(pool));
+}
+/** Asking how things are: their news — and, as they trust you more, the things you would not know otherwise. */
+function askNews(target) {
+  const n = soc(target.npc), P = PD(target), h = hearts(n);
+  if (n.newsDay === day()) return say(target, "“刚不是问过了？没啥新鲜的。”");
+  n.newsDay = day();
+  const ctx = newsCtx(target);
+  let line = P.news.map((f) => f(ctx)).find(Boolean);
+  if (!n.known.loves.length && h >= 0.5) { line = P.likesTell; n.known.loves.push(P.loves[0]); }
+  else if (!n.known.fear && h >= 1.5) { line = P.fear.tell; n.known.fear = P.fear.name; }
+  else if (!n.known.birthday && h >= 2.5) { line = `“我是${dayName(P.birthday)}生的。小时候那天能多吃一口粟。”`; n.known.birthday = P.birthday; }
+  bondUp(target, { fam: 0.15 });
+  say(target, line);
+}
+const newsCtx = (st) => ({ season: season(), granary: find("granary")?.cards[0].stock ?? 0, stoveFuel: find("stove")?.cards[0].fuel ?? 0,
+  hoe: kitHas(st, "hoe") || boards.world.some((s) => isField(s) && toolAt(s, "hoe")) });
+/** They pay back a favour: something from the stove or the field, or a bit of know-how. */
+function repay(st) {
+  const n = soc(st.npc), you = youStack();
+  n.bond.owe -= 2;
+  if (st.npc.key === "aunt") { addCard(you, find("stove")?.cards[0].stock >= 3 ? "jarFull" : "roastFish"); say(st, "“上回你帮了我，这个拿着，路上吃。”"); }
+  else {
+    const r = CRAFTS.find((x) => x.who.includes(st.npc.key) && !me.known[x.id]);
+    if (r) { me.known[r.id] = { mem: LEARNED_MEM, day: day() }; say(st, `“上回你帮我，我也没啥给的……教你${craftName(r.id)}吧。”`); renderCrafts(); }
+    else { addCard(you, "grain"); addCard(you, "grain"); say(st, "“上回你帮我。两把粟，拿着。”"); }
+  }
+  overflow(you); carryChanged();
+}
+
+/** Now and then, near you and with time on their hands, they ask you for something. */
+function considerAsking(st, minutes) {
+  const n = soc(st.npc), you = youStack();
+  if (n.req || n.inside || st.job || n.askDay === day() || !you || you.board !== "world") return;
+  if (hour() < 8 || hour() > 17 || dist(center(st), center(you)) > 600 || Math.random() > minutes / 90) return;
+  const ctx = newsCtx(st), choices = PD(st).asks.filter((a) => a.when(ctx) && a.id !== n.lastAsk);
+  if (!choices.length) return;
+  const a = pick(choices);
+  n.askDay = day(); n.lastAsk = a.id;
+  n.req = { id: a.id, state: "asked", at: clock.min, text: a.text, need: { ...(a.give ?? {}) } };
+  say(st, a.text);
+}
+const askOf = (st) => PD(st).asks.find((a) => a.id === soc(st.npc).req?.id);
+function acceptReq(st) {
+  const n = soc(st.npc); if (n.req?.state !== "asked") return;
+  n.req.state = "accepted"; n.req.until = day() * 1440 + 360 + 14 * 60;      // tomorrow, by nightfall (20:00)
+  bondUp(st, { trust: 0.2 });
+  say(st, pick(["“那就说定了。”", "“好，我等着。”"]));
+  renderPromises();
+}
+function declineReq(st) {
+  const n = soc(st.npc); if (!n.req) return;
+  const accepted = n.req.state === "accepted";
+  n.req = null;
+  if (accepted) return breakReq(st, true);
+  bondUp(st, { fam: -0.1 });
+  if (PD(st).fear.id === "scorned") { n.mood -= 1.5; say(st, "“……哦。”"); } else say(st, "“那我再想想办法。”");
+}
+/** You hand them things: what they asked for counts towards it; anything else is a gift. */
+function giveTo(target, cards) {
+  const n = soc(target.npc), a = n.req && askOf(target);
+  if (a?.give && n.req) {
+    const took = [];
+    for (const c of cards) if ((n.req.need[c.key] ?? 0) > 0) { n.req.need[c.key]--; took.push(c); }
+    if (took.length) {
+      if (n.req.state === "asked") { n.req.state = "accepted"; n.req.until = day() * 1440 + 1200; }
+      handOver(target, took, a.to);
+      const rest = cards.filter((c) => !took.includes(c));
+      if (Object.values(n.req.need).every((v) => v <= 0)) keepReq(target); else { say(target, `“还差${Object.entries(n.req.need).filter(([, v]) => v > 0).map(([k, v]) => `${DEFS[k].name}${v}`).join("、")}。”`); renderPromises(); }
+      return rest;
+    }
+  }
+  gift(target, cards);
+  return [];
+}
+/** Where things you bring end up: on the stove's fire or in its pot, on the pile in the yard, or in their own hands. */
+function handOver(st, cards, to) {
+  const stove = find("stove")?.cards[0];
+  for (const c of cards) {
+    if (to === "stove" && stove && c.key === "wood") { stove.fuel = Math.min(6, (stove.fuel ?? 0) + 1); c.el.remove(); }
+    else if (to === "stove" && stove && DEFS[c.key].type === "food") { stove.stock += 1; refreshStock(stove); c.el.remove(); }
+    else if (to === "hand") { st.cards.push(c); cardsLayer.append(c.el); }
+    else storeHome([c]);
+  }
+}
+function keepReq(st) {
+  const n = soc(st.npc), a = askOf(st);
+  n.req = null; n.mood = Math.min(10, n.mood + 1);
+  bondUp(st, { trust: 1.2, fam: 0.8, owe: 1 });
+  memo(st, a.kept, true);
+  say(st, a.thanks);
+  me.promisesKept = (me.promisesKept ?? 0) + 1;
+  renderPromises();
+}
+function breakReq(st, said = false) {
+  const n = soc(st.npc), a = askOf(st) ?? PD(st).asks.find((x) => x.id === n.lastAsk);
+  n.req = null; n.mood = Math.max(0, n.mood - 1);
+  bondUp(st, { trust: said ? -0.8 : -1.5, grudge: said ? 0.4 : 1 });
+  memo(st, a.broken, false);
+  if (said) say(st, "“……那算了。”"); else toast(`答应${nameOf(st)}的事没办成，${PD(st).he}记下了`);
+  renderPromises();
+}
+/** A gift: what they think of it depends on what it is, whether you gave the same the other day, and what day it is. */
+function gift(target, cards) {
+  if (!cards.length) return;
+  const n = soc(target.npc), P = PD(target), key = cards[0].key, item = DEFS[key].name;
+  const kind = P.loves.includes(key) ? "love" : P.likes.includes(key) ? "like" : P.dislikes.includes(key) ? "dislike" : "plain";
+  const again = (n.gifts[key] ?? -9) >= day() - 2, bday = doyNow() === P.birthday && n.bdayGift !== day();
+  let k = again ? 0.3 : 1; if (bday) { k *= 2; n.bdayGift = day(); }
+  const gain = { love: { fam: 1.2, trust: 0.3 }, like: { fam: 0.7 }, plain: { fam: 0.3 }, dislike: { fam: -0.2 } }[kind];
+  bondUp(target, Object.fromEntries(Object.entries(gain).map(([x, v]) => [x, v * k])));
+  n.mood = clampN(n.mood + { love: 1.5, like: 0.6, plain: 0.2, dislike: -0.3 }[kind] * k, 0, 10);
+  n.gifts[key] = day();
+  if (kind === "love" && !n.known.loves.includes(key)) n.known.loves.push(key);
+  if (kind === "dislike" && !n.known.dislikes.includes(key)) n.known.dislikes.push(key);
+  say(target, fillIn(bday ? P.gift.birthday : again ? P.gift.again : P.gift[kind], target, item));
+  if (kind !== "dislike" && !again) memo(target, `你送了${item}`, true);
+  // what becomes of it: a hungry person eats, tools go into their hands, the rest onto the pile at home
+  const food = cards.filter((c) => DEFS[c.key].type === "food");
+  if (food.length && target.npc.hunger >= 3) { target.npc.hunger = 0; food.forEach((c) => c.el.remove()); cards = cards.filter((c) => !food.includes(c)); }
+  const tools = cards.filter((c) => DEFS[c.key].type === "tool");
+  tools.forEach((c) => { target.cards.push(c); cardsLayer.append(c.el); });
+  storeHome(cards.filter((c) => !tools.includes(c)));
+}
+/** Once a day, coming close to someone awake and about: a nod, a word — how warm depends on how well you know each other. */
+function encounter(st) {
+  const n = soc(st.npc), h = hearts(n);
+  n.metDay = day();
+  bondUp(st, { fam: 0.15 });
+  if (n.req?.state === "accepted" && clock.min > n.req.until - 360) return say(st, "“答应我的事，别忘了。”");
+  say(st, h < 1 ? "（打量了你一眼，点点头）" : h < 3 ? VOICE.line(st.npc.key, "greet") : fillIn(pick(PD(st).seasons[season()]), st));
+}
+/** Every so often: requests that lapse or fall due, chance meetings, and how their spirits drift. */
+function peopleTick(minutes) {
+  const you = youStack();
+  if (Math.floor(clock.min / 30) !== Math.floor((clock.min - minutes) / 30)) renderPromises();   // the "by nightfall" turns red as it nears
+  for (const st of boards.world.filter((s) => s.npc)) {
+    const n = soc(st.npc);
+    if (n.req?.state === "asked" && clock.min - n.req.at > 180) n.req = null;            // nobody answered: they sort it out themselves
+    if (n.req?.state === "accepted" && clock.min > n.req.until) breakReq(st);
+    if (n.req?.state === "accepted" && n.req.id === "tend" && me.tendedFor === day()) { me.tendedFor = 0; keepReq(st); }
+    considerAsking(st, minutes);
+    if (you && you.board === "world" && !n.inside && n.metDay !== day() && !st.walk && dist(center(st), center(you)) < 260 && hour() >= 7 && hour() < 20) encounter(st);
+  }
+}
+/** At dawn their spirits drift back towards the middle; fears pull them down. */
+function peopleDay() {
+  for (const st of boards.world.filter((s) => s.npc)) {
+    const n = soc(st.npc);
+    n.mood += (6 - n.mood) * 0.3;
+    if (PD(st).fear.id === "hunger" && (find("granary")?.cards[0].stock ?? 0) < 4) { n.mood -= 2; talks.push({ at: clock.min + 90, st, text: VOICE.line("aunt", "lowFood") }); }
+    n.mood = clampN(n.mood, 0, 10);
+    for (const m of n.mem) if (m.day < day() - 8) m.good = undefined;                       // old things are kept, but no longer brought up
+  }
+}
+/** Your promises, by the face: who, what is still missing, and by when. */
+function renderPromises() {
+  const box = $("mePromises"); if (!box) return;
+  const open = boards.world.filter((s) => s.npc && soc(s.npc).req?.state === "accepted");
+  box.innerHTML = open.map((s) => {
+    const r = s.npc.req, left = Object.entries(r.need).filter(([, v]) => v > 0).map(([k, v]) => `${DEFS[k].name}×${v}`).join(" ") || "帮着锄一遍地";
+    const soon = r.until - clock.min < 300, when = day() * 1440 + 360 + 840 === r.until ? "明天天黑前" : "今天天黑前";
+    return `<span class="promise${soon ? " soon" : ""}" title="答应${nameOf(s)}的事">${iconFor(DEFS[s.cards[0].key].icon)}<b>${left}</b><i>${when}</i></span>`;
+  }).join("");
 }
 function finish(st) {
   const { r, target, servings, figuring } = st.job; st.job = null; st.bar?.remove(); st.bar = null;
@@ -1091,7 +1290,7 @@ function finish(st) {
   if (r.jarIn) { t.jars = (t.jars ?? 0) + 1; refreshStock(t); float(`公仓能存 ${granaryCap(t)} 份了`, center(target), "world"); }
   if (r.take && t.key === "shallows" && tide.level < -0.3) { const c = newCard("clam"); layerOf(st.board).append(c.el); st.cards.push(c); float("退潮，多摸到一只", center(st), st.board); }
   if (r.tend) { t.stock = Math.min(3, (t.stock ?? 0) + r.tend); if (r.tend > 1) float("石锄：长势 +2", center(target), target.board); refreshStock(t); t.el.querySelector(".card-art").innerHTML = iconFor(t.stock >= 3 ? "fieldRipe" : "field"); float("锄了一遍", center(target), target.board); }
-  if (r.tend) groundChanged();
+  if (r.tend) { groundChanged(); if (st.cards[0].key === "you") me.tendedFor = day(); }
   if (r.fuel) { t.fuel = Math.min(6, (t.fuel ?? 0) + 1); float("火更旺了", center(target), target.board); }
   if (r.say) say(target, r.say);
   for (const k of r.make) { const c = newCard(k); layerOf(st.board).append(c.el); st.cards.push(c); c.el.classList.add("pop"); float(`+1 ${DEFS[k].name}`, center(st), st.board); }
@@ -1131,7 +1330,7 @@ function overflow(st) {
 function teach(npc) {
   const k = npc.cards[0].key;
   if (me.askedDay[k] === day()) return say(npc, "“今天教过你了，明天再来。”");
-  if ((me.trust[k] ?? 0) < 1) return say(npc, "“你是谁家的？先说说话吧。”");
+  if (hearts(soc(npc.npc)) < 1) return say(npc, "“你是谁家的？先说说话吧。”");
   const theirs = CRAFTS.filter((r) => r.who.includes(k));
   const pickOne = theirs.find((r) => !me.known[r.id]) ?? theirs.filter((r) => me.known[r.id].mem < 0.6).sort((a, b) => me.known[a.id].mem - me.known[b.id].mem)[0];
   if (!pickOne) return say(npc, "“我会的你都会了。”");
@@ -1321,7 +1520,7 @@ function heard(st, r = 1300) {
 }
 const WINDING = new Set(["evening", "drop", "give", "hide", "eat", "wait"]);   // jobs that belong to the end of the day
 const talks = [];                           // lines waiting to be said, in game minutes: a chat goes back and forth
-const moodOf = (n) => (n.hunger >= n.eatAt ? "low" : find("granary")?.cards[0].stock >= 8 ? "happy" : "idle");
+const moodOf = (n) => (n.hunger >= n.eatAt || (n.mood ?? 6) < 3.5 ? "low" : (n.mood ?? 6) > 7.5 ? "happy" : "idle");
 /** Stand still a while, thinking. Sometimes you catch what they're thinking. */
 function muse(st, min) {
   const n = st.npc;
@@ -1604,6 +1803,7 @@ function tick(minutes) {
   const you = youStack();
   me.food = Math.max(0, me.food - minutes * (you?.job && !you.job.r.nap ? 0.03 : 0.016));   // a full belly lasts you about three days
   talks.sort((a, b) => a.at - b.at);
+  peopleTick(minutes);
   while (talks.length && talks[0].at <= clock.min) { const t = talks.shift(); if (boards.world.includes(t.st) && !t.st.npc?.inside && heard(t.st)) say(t.st, t.text); }
   for (const st of [...allStacks()]) {
     if (st.lifted) continue;
@@ -1691,6 +1891,7 @@ function tick(minutes) {
     }
     renderCrafts();
     rollWeather();
+    peopleDay();
     const fire = find("fire")?.cards[0]; if (fire) fire.fuel = Math.max(0, (fire.fuel ?? 0) - 1);
     const stove = find("stove")?.cards[0]; if (stove) stove.fuel = Math.max(0, (stove.fuel ?? 0) - 1);
     for (const t of boards.world.filter((s) => s.cards[0].key === "peach" || s.cards[0].key === "jujube")) {
@@ -1798,6 +1999,15 @@ function render() {
         el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y + i * PEEK)}px)${st.lifted ? " rotate(-2deg) scale(1.05)" : ""}`;
         el.style.zIndex = st.lifted ? 9000 + i : Math.round(y) + i + 10;
       });
+      if (st.bubble) {
+        const bb = st.bubble, gone = performance.now() > bb.until;
+        if (gone && !bb.out) { bb.out = true; bb.el.classList.add("out"); setTimeout(() => bb.el.remove(), 350); }
+        if (gone && performance.now() > bb.until + 400) st.bubble = null;
+        else {
+          bb.el.hidden = !live || (inFog && !unseen) || Boolean(st.indoors);
+          bb.el.style.transform = `translate(${Math.round(x + st.w / 2)}px, ${Math.round(y - 10)}px) translate(-50%, -100%)`;
+        }
+      }
       if (st.job && !unseen && live && !inFog) {
         if (!st.bar) { st.bar = document.createElement("div"); st.bar.className = "bar"; st.bar.innerHTML = "<i></i>"; layerOf(b).append(st.bar); }
         st.bar.style.transform = `translate(${Math.round(x)}px, ${Math.round(y - 18)}px)`;
@@ -2255,7 +2465,7 @@ function showDetail(card) {
   const ghost = card.el.classList.contains("ghost");
   const doing = st.npc ? (ghost ? "不在你眼前，这是你最后见到的地方" : st.npc.inside ? "在铺位上睡着" : st.musing ? "站着出神，想着心事" : st.job ? `正在${DOING[st.job.npcTask] ?? "忙"}` : st.walk ? `要去${DEFS[st.goal]?.name ?? "别处"}${DOING[st.task] ? `（${DOING[st.task]}）` : ""}` : "") : "";
   const mine = st === youStack() && d.type === "food";
-  const trust = card.key in me.trust ? `<p class="doing">熟识：${me.trust[card.key]}/3</p>` : "";
+  const trust = st.npc && PD(st) ? socialBlock(st) : "";
   const inside = d.type === "house" ? allStacks().filter((s) => s.npc?.inside && s.npc.home === card.key).map((s) => DEFS[s.npc.key].name) : [];
   const pile = d.type === "house" ? boards.tao.find((s) => s.store)?.cards ?? [] : [];
   const stored = Object.entries(pile.reduce((n, c) => ({ ...n, [DEFS[c.key].name]: (n[DEFS[c.key].name] ?? 0) + 1 }), {})).map(([k, v]) => `${k} ${v}`);
@@ -2302,6 +2512,37 @@ $("detail").addEventListener("click", (e) => {
   if (hunt) { attackRabbit(cardById(hunt.dataset.hunt)); hideDetail(); return; }
 });
 function hideDetail() { $("detail").hidden = true; }
+/** What you can tell about someone from knowing them: never their numbers — how close you are, what they remember, what you've learned. */
+function socialBlock(st) {
+  const n = soc(st.npc), P = PD(st), you = youStack(), near = st.board === board && you && dist(center(you), center(st)) < 600;
+  const mood = moodWord(n), mems = n.mem.slice(0, 2).map((m) => `<li>${m.text}${m.day === day() ? "（今天）" : `（第 ${m.day} 天）`}</li>`).join("");
+  const K = n.known, facts = [K.fear, K.loves.length && `爱：${K.loves.map((k) => DEFS[k].name).join("、")}`, K.dislikes.length && `不爱要：${K.dislikes.map((k) => DEFS[k].name).join("、")}`, K.birthday && `生日：${dayName(K.birthday)}`].filter(Boolean);
+  const btn = (act, label, ghost) => `<button class="act${ghost ? " ghost" : ""}" data-social="${act}" data-id="${st.id}">${label}</button>`;
+  let req = "";
+  if (n.req?.state === "asked") req = `<div class="req"><p>托你：${askOf(st).why}</p>${near ? btn("accept", "答应") + btn("decline", "这回不行", true) : ""}</div>`;
+  else if (n.req?.state === "accepted") {
+    const left = Object.entries(n.req.need).filter(([, v]) => v > 0), can = left.some(([k]) => loose(you).some((c) => c.key === k));
+    req = `<div class="req"><p>答应了${P.he}：${askOf(st).why}${left.length ? `，还差 ${left.map(([k, v]) => `${DEFS[k].name}×${v}`).join("、")}` : ""}</p>${near ? (can ? btn("deliver", `交给${P.he}`) : "") + btn("decline", "说办不成了", true) : ""}</div>`;
+  }
+  return `<p class="doing">关系：${tierOf(hearts(n)).name}${mood ? ` · ${mood}` : ""}</p>${mems ? `<p class="doing">${P.he}记得：</p><ul class="mems">${mems}</ul>` : ""}`
+    + `${facts.length ? `<p class="doing">你知道的：${facts.join(" · ")}</p>` : ""}${req}`
+    + (near ? `<div class="social-acts">${btn("talk", "聊聊")}${btn("news", "问问近况")}</div>` : `<p class="doing">走近了才能说话</p>`);
+}
+$("detail").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-social]"); if (!b) return;
+  const st = allStacks().find((s) => s.id === Number(b.dataset.id)); if (!st?.npc) return;
+  const act = b.dataset.social, you = youStack();
+  if (act === "talk") talk(st, you);
+  if (act === "news") askNews(st);
+  if (act === "accept") acceptReq(st);
+  if (act === "decline") declineReq(st);
+  if (act === "deliver") {
+    const need = { ...soc(st.npc).req.need }, cards = loose(you).filter((c) => (need[c.key] ?? 0) > 0 && need[c.key]-- > 0);
+    you.cards = you.cards.filter((c) => !cards.includes(c));
+    const rest = giveTo(st, cards); you.cards.push(...rest); carryChanged();
+  }
+  showDetail(st.cards[0]);
+});
 /** One line of know-how: where, what goes in, what comes out, and how well you still remember it. */
 function craftRow(r) {
   const k = me.known[r.id], mem = k ? k.mem : 0;
@@ -2319,18 +2560,14 @@ function renderCrafts() {
   const builds = Object.keys(BUILDS).map((id) => `<div class="build-row">${craftRow(CRAFTS.find((r) => r.id === id))}<button class="act" data-place="${id}">${id === "farm" ? "选块草地开荒" : "选地方打地基"}</button></div>`).join("");
   box.innerHTML = `<b>你会的手艺</b>${mine.filter((r) => !r.build).map(craftRow).join("") || `<p>还什么都不会。</p>`}<b class="sub">盖房子</b>${builds}<p class="doing">没学会的还有 ${CRAFTS.length - mine.length} 样：点开村民按「请教」，或者带齐东西到地方自己琢磨（慢，还不一定成）。不用的手艺一周左右就忘。</p>`;
 }
-/** Someone says something (or thinks it): it pops up in the top right with their face; their card shows a little ✦ while it lasts. */
+/** Someone says something (or thinks it): a bubble over their card that follows them, and fades after a few seconds. */
 function say(st, text, kind = "say") {
   if (!st || !text) return;
-  const k = st.cards[0].key, box = $("chat"), el = document.createElement("div");
-  el.className = `chat-line${kind === "think" ? " think" : ""}`;
-  el.innerHTML = `<span class="chat-face">${iconFor(DEFS[k].icon)}</span><div><b>${DEFS[k].name}${kind === "think" ? "<i>心里想</i>" : ""}</b><p></p></div>`;
-  el.querySelector("p").textContent = text;
-  box.append(el);
-  while (box.children.length > 4) box.firstElementChild.remove();
-  setTimeout(() => el.classList.add("out"), 6500); setTimeout(() => el.remove(), 7100);
-  const c = st.cards[0].el; c.classList.add(kind === "think" ? "thinking" : "talking");
-  clearTimeout(st.talkT); st.talkT = setTimeout(() => c.classList.remove("talking", "thinking"), 3000);
+  st.bubble?.el.remove();
+  const el = document.createElement("div");
+  el.className = `bubble${kind === "think" ? " think" : ""}`; el.textContent = text;
+  layerOf(st.board).append(el);
+  st.bubble = { el, until: performance.now() + Math.min(7500, 2400 + text.length * 120) };   // long lines stay up longer
 }
 function float(text, p, b = board) {
   const f = document.createElement("div");
@@ -2351,6 +2588,18 @@ $("craftBook").onclick = () => { if (placing) { placing = null; table.classList.
 $("crafts").addEventListener("click", (e) => { const b = e.target.closest("[data-place]"); if (b) startPlacing(b.dataset.place); });
 $("nameOk").onclick = () => { const c = naming; if (!c) return; c.name = $("nameInput").value.trim() || DEFS[c.key].name; c.el.querySelector(".card-head span").textContent = c.name; $("namer").hidden = true; naming = null; toast(`就叫「${c.name}」`); };
 $("helpClose").onclick = () => { $("helpbox").hidden = true; };
+$("lifeNew").onclick = () => { if (confirm("从头开始一段新的人生？现在的存档会被清掉。")) location.search = "?new=1"; };
+$("lifeExport").onclick = () => {
+  saveGame();
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([localStorage.getItem(SAVE_KEY) ?? "{}"], { type: "application/json" }));
+  a.download = `openlife-第${day()}天.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$("lifeImport").onclick = () => $("lifeFile").click();
+$("lifeFile").onchange = async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  try { const d = JSON.parse(await f.text()); if (d.v !== SAVE_VERSION) throw new Error("版本不对"); localStorage.setItem(`openlife.cardworld.${d.seed}`, JSON.stringify(d)); location.search = d.seed === LAND.seed ? "" : `?seed=${d.seed}`; }
+  catch (err) { toast(`读不了这个存档：${err.message}`); }
+};
 $("meFace").addEventListener("click", () => repeatRecent(0));
 $("meRecent").addEventListener("click", (e) => { const b = e.target.closest("[data-recent]"); if (b) repeatRecent(Number(b.dataset.recent)); });
 $("autoMe").addEventListener("click", () => { me.auto = !me.auto; me.lastInput = clock.min; renderAutoMe(); toast(me.auto ? "闲着的时候会自己找事做" : "不再自己找事做"); });
@@ -2367,13 +2616,106 @@ $("party").addEventListener("click", (e) => {
 });
 
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Saving: the land comes back from its seed; everything on it — cards, people, the clock, the weather, the season's
+// look, what you have explored and know — is written to the browser every little while and read back on opening.
+// ?new=1 starts a fresh life (and drops the old save); ?day=N is a preview and never touches the save.
+// ---------------------------------------------------------------------------
+const SAVE_KEY = `openlife.cardworld.${seed}`, SAVE_VERSION = 1;
+const preview = params.has("day");
+const CARD_SKIP = new Set(["el", "w", "h"]);
+function cardOut(c) {
+  const o = {};
+  for (const [k, v] of Object.entries(c)) if (!CARD_SKIP.has(k)) o[k] = v;
+  o.tier = Object.keys(TIERS).find((t) => TIERS[t][0] === c.w) ?? "s";
+  return o;
+}
+function cardIn(o, ids) {
+  const c = newCard(o.key, o.stock, o.tier);
+  for (const [k, v] of Object.entries(o)) if (k !== "id" && k !== "tier") c[k] = v;
+  ids.set(o.id, c);
+  if (c.name) c.el.querySelector(".card-head span").textContent = c.name;
+  if (c.key === "plot") refreshPlot(c);
+  if (c.key === "field" || c.key === "field2") c.el.querySelector(".card-art").innerHTML = iconFor(c.stock >= 3 && c.sown !== false ? "fieldRipe" : "field");
+  refreshStock(c);
+  return c;
+}
+const recipeRef = (r) => (r === TORCH_FROM_STOVE ? "torch" : RECIPES.indexOf(r));
+const recipeOf = (i) => (i === "torch" ? TORCH_FROM_STOVE : RECIPES[i]);
+function stackOut(st) {
+  const o = { x: Math.round(st.x), y: Math.round(st.y), cards: st.cards.map(cardOut) };
+  for (const k of ["home", "store", "pet", "ctl", "carry"]) if (st[k] !== undefined) o[k] = st[k];
+  if (st.npc) o.npc = { ...st.npc, kit: (st.npc.kit ?? []).map(cardOut) };
+  if (st.critter) { const { kind, home, hunger, lying, calm, backAt } = st.critter; o.critter = { kind, home, hunger, lying, calm, backAt }; }
+  if (st.plans?.length) o.plans = st.plans.map((p) => (p.deliver ? { deliver: true } : { r: recipeRef(p.r) }));
+  return o;
+}
+function saveGame() {
+  if (preview || drag || !youStack()) return;                 // mid-drag a stack is split in two
+  try {
+    const data = {
+      v: SAVE_VERSION, seed, at: Date.now(), min: clock.min, me: { ...me, marks: [...marks] },
+      boards: Object.fromEntries(Object.entries(boards).map(([b, list]) => [b, list.filter((s) => !s.lifted).map(stackOut)])),
+      respawns, eco, discs, weather: { now: weather.now, events: weather.events, hold: weather.hold },
+      look: { from: look.from, to: look.to, p: look.p },
+      fields: (MAP.extraFields ?? []).map(({ cv, card, ...f }) => ({ ...f, card: card?.id })),
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  } catch (err) { console.warn("没存上", err); }
+}
+function readSave() {
+  if (preview) return null;
+  if (params.has("new")) {                                    // a fresh start once — then drop ?new so a refresh keeps the new life
+    localStorage.removeItem(SAVE_KEY); params.delete("new");
+    history.replaceState(null, "", `${location.pathname}${params.size ? `?${params}` : ""}`);
+    return null;
+  }
+  try { const d = JSON.parse(localStorage.getItem(SAVE_KEY) ?? "null"); return d?.v === SAVE_VERSION ? d : null; } catch { return null; }
+}
+/** Put the saved world back on the regenerated land. */
+function restore(d) {
+  const ids = new Map();
+  clock.min = d.min;
+  const { marks: mk = [], ...m } = d.me; Object.assign(me, m); mk.forEach((x) => marks.add(x));
+  for (const [b, list] of Object.entries(d.boards)) {
+    boards[b] ??= [];
+    for (const o of list) {
+      const st = newStack(o.cards.map((c) => cardIn(c, ids)), o.x, o.y, b);
+      for (const k of ["home", "store", "pet", "ctl", "carry"]) if (o[k] !== undefined) st[k] = o[k];
+      if (o.npc) {
+        st.npc = { ...o.npc, kit: o.npc.kit.map((c) => cardIn(c, ids)), wait: 0, outAt: 0 };
+        st.npc.kit.forEach((c) => { c.el.classList.add("hidden-kit"); cardsLayer.append(c.el); });
+        if (st.npc.inside) st.cards.forEach((c) => c.el.classList.add("sleeping"));
+      }
+      if (o.critter) st.critter = { ...SPECIES[o.critter.kind], ...o.critter };
+      if (o.plans) st.plans = o.plans.map((p) => (p.deliver ? { deliver: true } : { r: recipeOf(p.r) }));
+    }
+  }
+  respawns.push(...d.respawns); eco.push(...d.eco); discs.push(...d.discs);
+  MAP.extraFields = d.fields.map((f) => ({ ...f, card: ids.get(f.card) }));
+  Object.assign(weather, d.weather);
+  setupMainHouse(false);
+  setupMine();
+  look.from = d.look.from; look.to = d.look.to; look.p = d.look.p;
+  if (look.p < 1) { const c = document.createElement("canvas"); c.className = "ground"; c.style.opacity = String(look.p); $("ground").after(c); look.top = c; }
+  lastDay = day(); lastSeason = SEASONS.indexOf(season());
+  setWeather(weather.now);
+  paintFog();
+  paintSeason();
+  toast(`接着上回：${season()}，第 ${day()} 天`);
+}
+setInterval(saveGame, 15000);
+addEventListener("pagehide", saveGame);
+document.addEventListener("visibilitychange", () => { if (document.hidden) saveGame(); });
+
+// ---------------------------------------------------------------------------
 const artFound = await loadArt();
 worldEl.style.width = `${WW}px`; worldEl.style.height = `${WH}px`;
-build();
+{ const saved = readSave(); if (saved) restore(saved); else build(); }
 $("meFace").innerHTML = iconFor("you");
-renderRecent(); renderParty(); renderAutoMe();
+renderRecent(); renderParty(); renderAutoMe(); renderPromises();
 { const r = table.getBoundingClientRect(); cam.z = Math.min(1.05, Math.max(0.7, r.height / 800)); const c = center(youStack()); cam.x = c.x; cam.y = c.y - 30; }
 applyCam(); fitRoom();
 window.addEventListener("resize", () => { applyCam(); fitRoom(); if (sky.cv) skySetup(); });
 requestAnimationFrame(frame);
-window.__mock = { look, weather, skySet, sky, say, startChat, inJungle, SPECIES, spawnAnimal, attackRabbit, BUILDS, startPlacing, placeFoundation, completeBuild, refreshPlot, newStack, WANT, planStep, holds, teach, renderCrafts, setMode, members, gainTrust, party, renderParty, tide, darkness, lights, litAt, boards, clock, cam, me, MAP, youStack, walkTo, find, center, discs, setSpeed, artFound, moveRange, arrive, walkable: (x, y) => walkable(MAP, x, y), explore, paintFog, paintSeason, newCard, eco, attackRabbit, showDetail, findPath: (a, b) => findPath(MAP, a, b) };
+window.__mock = { saveGame, look, weather, skySet, sky, say, startChat, inJungle, SPECIES, spawnAnimal, attackRabbit, BUILDS, startPlacing, placeFoundation, completeBuild, refreshPlot, newStack, WANT, planStep, holds, teach, renderCrafts, setMode, members, soc, hearts, giveTo, talk, askNews, acceptReq, declineReq, party, renderParty, tide, darkness, lights, litAt, boards, clock, cam, me, MAP, youStack, walkTo, find, center, discs, setSpeed, artFound, moveRange, arrive, walkable: (x, y) => walkable(MAP, x, y), explore, paintFog, paintSeason, newCard, eco, attackRabbit, showDetail, findPath: (a, b) => findPath(MAP, a, b) };

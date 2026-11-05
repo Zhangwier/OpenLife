@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta http-equiv="Cache-Control" content="no-store" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>开放人生 · 卡牌世界样稿 v30</title>
-<link rel="stylesheet" href="style.css?v=17" />
+<title>开放人生 · 卡牌世界样稿 v31</title>
+<link rel="stylesheet" href="style.css?v=18" />
 </head>
 <body>
 <main class="table" id="table" aria-label="世界：拖动空白处看地图，拖「你」走过去">
@@ -44,6 +44,7 @@
   <div class="me-gauges"><span class="g" id="barFood"><b></b></span><span class="g" id="barRest"><b></b></span></div>
   <div class="me-carry" id="meCarry"></div>
   <div class="me-recent" id="meRecent"></div>
+  <div class="me-promises" id="mePromises"></div>
   <button class="party-toggle" id="partyToggle" title="听你安排的人和狗：点一下展开" hidden></button>
 </section>
 <div class="party" id="party" hidden></div>
@@ -53,7 +54,6 @@
 <div class="namer" id="namer" hidden><b>给它起个名字</b><input id="nameInput" maxlength="12" /><button class="act" id="nameOk">就叫这个</button></div>
 <div class="banner" id="banner" hidden></div>
 <div class="toast" id="toast"></div>
-<div class="chat" id="chat" aria-live="polite"></div>
 <div class="helpbox" id="helpbox" hidden>
   <b>怎么玩</b>
   <p>直接拖<em>「你」</em>走过去，一次最远走到亮圈的边上；放到一张牌上就和它一起做事。走路要花时间。拖动空白处挪地图，滚轮缩放。迷雾里没去过的地方，走过去才看得见。</p>
@@ -63,11 +63,14 @@
   <p>田：春天带 1 份粟播种，春夏锄草长势（石锄一次 +2），长势满 3 等秋天收，一块 6 份粟；入冬还没收的就烂在地里。开荒：✎ 里点「选块草地开荒」，带着石锄在草地上开 6 小时。</p>
   <p>树给的是木头：带回火塘，带石斧劈成柴。在火塘边打石斧、燧石刀、石锄、石锤、搓麻绳；工具会用坏。工具可以放在干活的地方（石斧放栗子树、渔网放湖边、石锄放田里、石锤放矿道石壁），谁来干活都算有工具。</p>
   <p>手艺要会才做得快：✎ 看你会的手艺和记得多牢，不用的一周左右就忘。不会的点开村民按「请教」（每人每天教一样），也可以带齐东西自己琢磨——慢一倍，还不一定成。</p>
-  <p>跟村民每天说说话、给他们吃的，熟识到 3 就愿意听你安排；左下角小头像点开能给每人选：⟳ 自己安排、⚒ 派活、✋ 我来指挥。阿黄一开始就听你的，派活是搬运。右下角 ⟳ 亮着时，你一整天没动手就会自己找事做。</p>
+  <p>人：点开陶婶或阿三，可以「聊聊」「问问近况」。他们会托你办事（答应了左下角会记着期限，按时把东西拖给他们就算办成；失约他们会记住）。把东西拖到人身上就是送礼：各人有爱的、不爱要的，同样的东西接连送就不稀罕了，生日那天送加倍。熟了以后他们会跟你说心里话、问出他们怕什么、生日是哪天；成了朋友就愿意听你安排。</p>
+  <p>说话时气泡浮在人的牌上方；心里想的是虚线云朵。左下角小头像点开能给每人选：⟳ 自己安排、⚒ 派活、✋ 我来指挥。阿黄一开始就听你的，派活是搬运。右下角 ⟳ 亮着时，你一整天没动手就会自己找事做。</p>
   <p>动物：森林里有野兔、鹿（要石矛）、野猪（空手靠近会撞人，火把能逼退）；湖上有野鸭，芦苇边的鸭窝春夏有蛋。老虎住在森林深处，饿了会扑鹿；你没拿火把靠近它会扑你。村民知道深处危险，绕着走。冬天湖面结冰，能从冰上走过去。</p>
+  <p class="save-row">每隔一会儿自动存档，刷新或关掉页面都能接着玩。
+    <button id="lifeExport">导出存档</button><button id="lifeImport">导入存档</button><button id="lifeNew">重新开始</button><input type="file" id="lifeFile" accept=".json,application/json" hidden></p>
   <button id="helpClose">知道了</button>
 </div>
-<p class="mock-note">样稿 v30 · 数据示意，不连游戏</p>
-<script type="module" src="app.js?v=24"></script>
+<p class="mock-note">样稿 v31 · 数据示意，不连游戏</p>
+<script type="module" src="app.js?v=25"></script>
 </body>
 </html>

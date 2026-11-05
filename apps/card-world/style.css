@@ -288,20 +288,14 @@ button { font-family: inherit; cursor: pointer; }
 .cover { position: absolute; z-index: 8000; pointer-events: auto; transition: opacity .45s ease; }
 .cover.open { opacity: 0; pointer-events: none; }
 
-/* What people say pops up in the top right, with their face; thoughts are quieter. */
-.chat { position: fixed; z-index: 41000; right: calc(10px + env(safe-area-inset-right)); top: calc(62px + env(safe-area-inset-top)); width: min(340px, 70vw); display: grid; gap: 6px; pointer-events: none; }
-.chat-line { display: grid; grid-template-columns: 40px 1fr; gap: 8px; align-items: start; padding: 7px 10px 8px 7px; border-radius: 12px; background: rgba(255, 250, 240, .96); border: 3px solid var(--line); box-shadow: 0 4px 0 rgba(36, 26, 18, .35); animation: chatin .25s ease-out; transition: opacity .5s, transform .5s; }
-.chat-line.out { opacity: 0; transform: translateX(16px); }
-.chat-line .chat-face { width: 40px; height: 40px; border-radius: 8px; overflow: hidden; background: #efe2c8; display: grid; place-items: center; }
-.chat-line .chat-face svg, .chat-line .chat-face img { width: 100%; height: 100%; }
-.chat-line b { font-size: 13px; color: #6a4a2a; }
-.chat-line b i { font-style: normal; font-weight: 600; font-size: 11px; color: #9a8a74; margin-left: 6px; }
-.chat-line p { margin: 2px 0 0; font-family: var(--serif); font-size: 14.5px; line-height: 1.5; color: #2e241a; }
-.chat-line.think { background: rgba(236, 232, 222, .92); border-style: dashed; }
-.chat-line.think p { color: #5e5446; font-style: italic; }
-@keyframes chatin { from { opacity: 0; transform: translateX(20px); } }
-.card.talking::after, .card.thinking::after { content: "💬"; position: absolute; right: -12px; top: -18px; font-size: 20px; filter: drop-shadow(0 1px 0 #3a2c20); pointer-events: none; }
-.card.thinking::after { content: "💭"; }
+/* What people say: a bubble over their card, following them; a thought is a dashed cloud with little rising dots. */
+.bubble { position: absolute; left: 0; top: 0; z-index: 8600; max-width: 230px; width: max-content; padding: 7px 12px 8px; border-radius: 14px; background: #fffaf0; border: 3px solid var(--line);
+  font-family: var(--serif); font-size: 15px; line-height: 1.5; color: #2e241a; pointer-events: none; box-shadow: 0 4px 0 rgba(36, 26, 18, .35); animation: bubblein .22s ease-out; transition: opacity .3s; }
+.bubble::after { content: ""; position: absolute; left: 50%; bottom: -12px; margin-left: -8px; border: 8px solid transparent; border-top-color: var(--line); border-bottom: 0; }
+.bubble.think { background: rgba(244, 240, 230, .96); border-style: dashed; border-radius: 22px; color: #5e5446; font-style: italic; font-size: 14px; }
+.bubble.think::after { border: 0; width: 9px; height: 9px; bottom: -14px; margin-left: -10px; border-radius: 50%; background: rgba(244, 240, 230, .96); box-shadow: 0 0 0 2px var(--line), 9px 10px 0 -2px rgba(244, 240, 230, .96), 9px 10px 0 0 var(--line); }
+.bubble.out { opacity: 0; }
+@keyframes bubblein { from { opacity: 0; } }
 .card.musing { filter: saturate(.85); }
 .card.musing .card-art::after { content: "…"; position: absolute; right: 10px; top: 26px; font-weight: 900; color: #8a7a6a; font-size: 18px; animation: zz 1.8s infinite; }
 .card.hidden-kit { display: none !important; }
@@ -309,3 +303,16 @@ button { font-family: inherit; cursor: pointer; }
 /* Winter: snow lies on the thatch; in rain the thatch darkens with wet. */
 .table[data-season="冬"] .roof { background: radial-gradient(ellipse 30% 22% at 28% 30%, rgba(246, 248, 246, .95), transparent 70%), radial-gradient(ellipse 34% 20% at 70% 64%, rgba(246, 248, 246, .9), transparent 70%), linear-gradient(rgba(240, 242, 240, .78), rgba(226, 230, 230, .7)), repeating-linear-gradient(90deg, #8a6a3c 0 12px, #7c5e34 12px 24px); }
 .table[data-weather="雨"] .roof { filter: brightness(.82) saturate(.9); }
+.save-row button { margin: 4px 6px 0 0; padding: 4px 10px; border-radius: 8px; border: 2px solid #5a4634; background: #f6ecd8; font: inherit; font-size: 13px; }
+/* People: promises by your face, and the social part of someone's card. */
+.me-promises { display: flex; flex-wrap: wrap; gap: 4px; max-width: 320px; }
+.me-promises:empty { display: none; }
+.promise { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 3px; border-radius: 999px; background: #f6ecd8; border: 2px solid #5a4634; font-size: 12px; color: #3a2c20; }
+.promise svg, .promise img { width: 20px; height: 20px; border-radius: 50%; }
+.promise i { font-style: normal; color: #8a7a6a; }
+.promise.soon { border-color: #b8442e; background: #fbe4d8; }
+.detail .mems { margin: 0 0 4px; padding-left: 20px; font-size: 13px; color: #5e5446; }
+.detail .req { margin: 6px 10px; padding: 6px 8px; border-radius: 8px; background: #f3e6c8; border: 2px dashed #b08a4a; }
+.detail .req p { margin: 0 0 4px; font-size: 13.5px; }
+.detail .social-acts { display: flex; gap: 6px; padding: 0 10px; }
+.detail .act.ghost { background: #ece4d4; }
