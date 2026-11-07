@@ -1,0 +1,150 @@
+{
+  "uses": [
+    {
+      "id": "fixture:net-frame-mend",
+      "prototypeId": "prototype:net-frame",
+      "label": "在晾网架下补网",
+      "hint": "网架上挂着的网总有破眼，补上几个，渔寮的人都记着你。",
+      "line": "你一个结一个结地补，阿罟在架子另一头看了一眼，没说话，把他的网梭也递给了你。",
+      "activity": 1,
+      "cooldownDays": 1,
+      "bond": {
+        "trust": 0.3
+      }
+    },
+    {
+      "id": "fixture:net-frame-tale",
+      "prototypeId": "prototype:net-frame",
+      "label": "听阿罟讲那年迷在泽里",
+      "hint": "只有阿罟在网架下的时候才讲。",
+      "line": "阿罟一边理网一边说：“第二天夜里，月亮出来，我看见一行白鹭往东飞。我就跟着它们撑，天亮就看见了河口的记水石。”",
+      "activity": 1,
+      "cooldownDays": 5,
+      "with": "fisher",
+      "bond": {
+        "familiarity": 0.5
+      }
+    },
+    {
+      "id": "fixture:fish-rack-turn",
+      "prototypeId": "prototype:fish-rack",
+      "label": "在晒鱼台挑一条晒透的鱼干",
+      "hint": "晒鱼台上晒透的鱼干，帮工的人可以拿一条。",
+      "line": "你挑了一条晒得发亮的鱼干，阿罟说：“拿去，这条最肥。”",
+      "activity": 1,
+      "cooldownDays": 3,
+      "with": "fisher",
+      "gives": {
+        "prototypeId": "prototype:dried-fish",
+        "name": "晒鱼台上的鱼干"
+      }
+    },
+    {
+      "id": "fixture:tub-row",
+      "prototypeId": "prototype:caltrop-tub",
+      "label": "坐着木盆采一回菱",
+      "hint": "只在秋天菱角熟的时候。",
+      "line": "木盆在菱叶间打转，你翻开一片叶子，底下挂着三颗紫红的菱角。",
+      "activity": 2,
+      "cooldownDays": 2,
+      "seasons": [
+        "秋"
+      ],
+      "gives": {
+        "prototypeId": "prototype:water-chestnut",
+        "name": "木盆里采的菱角",
+        "count": 2
+      }
+    },
+    {
+      "id": "fixture:gear-sort",
+      "prototypeId": "prototype:gear-rack",
+      "label": "把网坠一枚枚挂好",
+      "hint": "渔具棚乱了，整理一遍，阿罟找东西就快了。",
+      "line": "你把网坠、浮子、鱼篓各归各钉。阿罟进来找东西，一伸手就摸到了，愣了一下：“谁收拾的？”",
+      "activity": 1,
+      "cooldownDays": 2,
+      "bond": {
+        "trust": 0.3
+      }
+    },
+    {
+      "id": "fixture:lodge-bed-river",
+      "prototypeId": "prototype:earthen-bed",
+      "label": "在寮里听着河声睡一觉",
+      "hint": "渔寮的土炕挨着河，夜里能听见鱼跳。",
+      "line": "你躺下没多久，就听见河面上扑通一声，又一声。阿罟在黑暗里说：“鲤鱼。明早下网。”",
+      "activity": 1,
+      "cooldownDays": 3,
+      "bond": {
+        "familiarity": 0.3
+      }
+    },
+    {
+      "id": "fixture:stool-sit",
+      "prototypeId": "prototype:consult-stool",
+      "label": "坐上问诊木墩让阿芷看看",
+      "hint": "阿芷在诊棚的时候，她会给你看看舌头、摸摸脉。",
+      "line": "阿芷捏着你的手腕听了半天：“没病，就是累。”她塞给你一片薄荷叶，“回去早点睡。”",
+      "activity": 1,
+      "cooldownDays": 3,
+      "with": "herbalist",
+      "bond": {
+        "trust": 0.4
+      }
+    },
+    {
+      "id": "fixture:stove-salve",
+      "prototypeId": "prototype:herb-stove",
+      "label": "帮阿芷熬一罐金疮膏",
+      "hint": "需要带一份鱼胶来；阿芷在场时才能熬。",
+      "line": "药灶两眼火都旺着，你守着膏锅搅了一下午，阿芷把熬好的第一罐给了你：“你自己熬的，你留着。”",
+      "activity": 2,
+      "cooldownDays": 5,
+      "with": "herbalist",
+      "needs": "resource:glue",
+      "gives": {
+        "prototypeId": "prototype:wound-salve",
+        "name": "自己守着熬的金疮膏"
+      }
+    },
+    {
+      "id": "fixture:cabinet-learn",
+      "prototypeId": "prototype:medicine-cabinet",
+      "label": "跟着阿芷认药柜里的十二格",
+      "hint": "阿芷在的时候，她会一格一格地考你。",
+      "line": "第一格是车前，第二格是艾，第三格……你认到第九格就卡住了。阿芷笑着拉开：“蛇蜕。你不是还帮我捡过吗？”",
+      "activity": 1,
+      "cooldownDays": 4,
+      "with": "herbalist",
+      "bond": {
+        "familiarity": 0.5
+      }
+    },
+    {
+      "id": "fixture:cache-water",
+      "prototypeId": "prototype:water-cache",
+      "label": "给药圃浇一遍水",
+      "hint": "需要带一份水；药圃里的苗最怕旱。",
+      "line": "你把水一瓢一瓢浇在药苗根上，土慢慢变黑。药圃边的蛇窝静悄悄的。",
+      "activity": 1,
+      "cooldownDays": 1,
+      "needs": "resource:water",
+      "bond": {
+        "trust": 0.3
+      }
+    },
+    {
+      "id": "fixture:drum-rain",
+      "prototypeId": "prototype:gator-drum",
+      "label": "在祭台敲一回鼍皮鼓",
+      "hint": "鼓声闷闷的，老人们说像鼍公叫雨。",
+      "line": "你敲了三下，鼓声贴着水面滚出去很远。老祝点点头：“河听见了。”",
+      "activity": 1,
+      "cooldownDays": 7,
+      "bond": {
+        "familiarity": 0.3
+      }
+    }
+  ]
+}

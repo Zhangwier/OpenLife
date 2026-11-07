@@ -1,0 +1,307 @@
+{
+  "formatVersion": 1,
+  "note": "truth 是世界真相与这条道理的吻合度，玩家看不到。错误道理更容易被总结出来。",
+  "theories": [
+    {
+      "id": "theory:flood-follows-stars",
+      "label": "水候",
+      "explains": "phen:river-rise",
+      "claim": "黄昏时大火星出现后二十来天，河就要涨。",
+      "truth": 0.85,
+      "needsObservations": 6,
+      "principleFor": [
+        "invention:flood-marks",
+        "invention:calendar-stick"
+      ],
+      "effects": {
+        "forewarning": 1
+      },
+      "rivals": [
+        "theory:river-god"
+      ],
+      "predicts": "phen:river-rise"
+    },
+    {
+      "id": "theory:river-god",
+      "label": "河神发怒",
+      "explains": "phen:river-rise",
+      "claim": "村里有人做了亏心事，河神就发怒涨水。",
+      "truth": 0.05,
+      "needsObservations": 2,
+      "principleFor": [],
+      "effects": {
+        "cohesion": 0.1
+      },
+      "rivals": [
+        "theory:flood-follows-stars"
+      ],
+      "predicts": "phen:river-rise",
+      "custom": "custom:river-offering"
+    },
+    {
+      "id": "theory:dry-heat-keeps",
+      "label": "湿热则腐",
+      "explains": "phen:food-spoils",
+      "claim": "东西坏是因为又湿又热；干了、腌了、熏了就放得住。",
+      "truth": 0.9,
+      "needsObservations": 5,
+      "principleFor": [
+        "invention:granary-pit",
+        "invention:salt-fish",
+        "invention:smoking"
+      ],
+      "effects": {},
+      "rivals": [
+        "theory:bad-luck-rots"
+      ]
+    },
+    {
+      "id": "theory:bad-luck-rots",
+      "label": "沾了晦气",
+      "explains": "phen:food-spoils",
+      "claim": "东西坏是沾了晦气，得挂符驱邪。",
+      "truth": 0.05,
+      "needsObservations": 2,
+      "principleFor": [],
+      "effects": {},
+      "rivals": [
+        "theory:dry-heat-keeps"
+      ],
+      "custom": "custom:ward-charms"
+    },
+    {
+      "id": "theory:slow-fire",
+      "label": "火候",
+      "explains": "phen:pot-cracks",
+      "claim": "坯要阴干透，火要慢慢升，陶就不裂。",
+      "truth": 0.9,
+      "needsObservations": 5,
+      "principleFor": [
+        "invention:closed-kiln"
+      ],
+      "effects": {
+        "pottery": 1.15
+      },
+      "rivals": [
+        "theory:kiln-spirit"
+      ]
+    },
+    {
+      "id": "theory:kiln-spirit",
+      "label": "窑神不喜",
+      "explains": "phen:pot-cracks",
+      "claim": "窑神不高兴，陶才会裂。",
+      "truth": 0.05,
+      "needsObservations": 2,
+      "principleFor": [],
+      "effects": {},
+      "rivals": [
+        "theory:slow-fire"
+      ],
+      "custom": "custom:kiln-offering"
+    },
+    {
+      "id": "theory:leverage",
+      "label": "撬",
+      "explains": "phen:heavy-things",
+      "claim": "杆子越长、支点越近，越省力。",
+      "truth": 0.95,
+      "needsObservations": 4,
+      "principleFor": [
+        "invention:pry-bar",
+        "invention:rollers",
+        "invention:shadoof",
+        "invention:treadle-pestle",
+        "invention:carry-pole",
+        "invention:wheel"
+      ],
+      "effects": {},
+      "rivals": []
+    },
+    {
+      "id": "theory:foul-water",
+      "label": "脏水致病",
+      "explains": "phen:sickness-water",
+      "claim": "病是喝进去的脏东西闹的，水烧开就好。",
+      "truth": 0.85,
+      "needsObservations": 6,
+      "principleFor": [
+        "invention:boiling-water",
+        "invention:well"
+      ],
+      "effects": {},
+      "rivals": [
+        "theory:possession"
+      ]
+    },
+    {
+      "id": "theory:possession",
+      "label": "中邪",
+      "explains": "phen:sickness-water",
+      "claim": "病是中了邪，要请人驱。",
+      "truth": 0.05,
+      "needsObservations": 2,
+      "principleFor": [],
+      "effects": {},
+      "rivals": [
+        "theory:foul-water"
+      ],
+      "custom": "custom:exorcism"
+    },
+    {
+      "id": "theory:land-rest",
+      "label": "地要歇要喂",
+      "explains": "phen:land-tires",
+      "claim": "地种乏了要歇一年，还要撒草木灰喂它。",
+      "truth": 0.85,
+      "needsObservations": 6,
+      "principleFor": [
+        "invention:fallow-rotation",
+        "invention:ash-manure"
+      ],
+      "effects": {},
+      "rivals": [
+        "theory:land-qi"
+      ]
+    },
+    {
+      "id": "theory:land-qi",
+      "label": "地气被吸",
+      "explains": "phen:land-tires",
+      "claim": "人住多了，把地气吸走了。",
+      "truth": 0.1,
+      "needsObservations": 3,
+      "principleFor": [],
+      "effects": {},
+      "rivals": [
+        "theory:land-rest"
+      ]
+    },
+    {
+      "id": "theory:solar-terms",
+      "label": "节令",
+      "explains": "phen:seasons-turn",
+      "claim": "日影最长最短各有一天，按这两天数日子就知道什么时候该种。",
+      "truth": 0.9,
+      "needsObservations": 8,
+      "principleFor": [
+        "invention:calendar-stick"
+      ],
+      "effects": {
+        "harvest": 1.05
+      },
+      "rivals": []
+    },
+    {
+      "id": "theory:kin-likeness",
+      "label": "种随根",
+      "explains": "phen:child-resembles",
+      "claim": "孩子的长相和本事一半随爹一半随娘，近亲结亲孩子多病。",
+      "truth": 0.8,
+      "needsObservations": 6,
+      "principleFor": [],
+      "effects": {},
+      "rivals": [
+        "theory:womb-sights"
+      ],
+      "custom": "custom:exogamy"
+    },
+    {
+      "id": "theory:womb-sights",
+      "label": "胎中所见",
+      "explains": "phen:child-resembles",
+      "claim": "娘怀孩子时看见什么，孩子就像什么。",
+      "truth": 0.1,
+      "needsObservations": 2,
+      "principleFor": [],
+      "effects": {},
+      "rivals": [
+        "theory:kin-likeness"
+      ]
+    },
+    {
+      "id": "theory:clean-wound",
+      "label": "伤口要净",
+      "explains": "phen:wound-festers",
+      "claim": "伤口进了脏东西才会烂，洗净敷药就好。",
+      "truth": 0.85,
+      "needsObservations": 5,
+      "principleFor": [
+        "invention:wound-washing"
+      ],
+      "effects": {},
+      "rivals": [
+        "theory:frail-fate"
+      ]
+    },
+    {
+      "id": "theory:frail-fate",
+      "label": "命薄",
+      "explains": "phen:wound-festers",
+      "claim": "伤口烂是这人命薄。",
+      "truth": 0.05,
+      "needsObservations": 2,
+      "principleFor": [],
+      "effects": {},
+      "rivals": [
+        "theory:clean-wound"
+      ]
+    },
+    {
+      "id": "theory:fire-transforms",
+      "label": "火能化石",
+      "explains": "phen:metal-in-stone",
+      "claim": "够热的火能把石头里的东西逼出来。",
+      "truth": 0.9,
+      "needsObservations": 6,
+      "principleFor": [
+        "invention:copper-smelting",
+        "invention:bronze",
+        "invention:iron-smelting"
+      ],
+      "effects": {},
+      "rivals": [
+        "theory:mountain-gift"
+      ]
+    },
+    {
+      "id": "theory:mountain-gift",
+      "label": "山神所赐",
+      "explains": "phen:metal-in-stone",
+      "claim": "亮东西是山神赏的，要祭了才给。",
+      "truth": 0.05,
+      "needsObservations": 2,
+      "principleFor": [],
+      "effects": {},
+      "rivals": [
+        "theory:fire-transforms"
+      ]
+    },
+    {
+      "id": "theory:water-force",
+      "label": "水力",
+      "explains": "phen:water-pushes",
+      "claim": "急水有力，接上轮子就能替人干活。",
+      "truth": 0.9,
+      "needsObservations": 6,
+      "principleFor": [
+        "invention:water-wheel"
+      ],
+      "effects": {},
+      "rivals": []
+    },
+    {
+      "id": "theory:steam-force",
+      "label": "汽力",
+      "explains": "phen:lid-rattles",
+      "claim": "水烧成汽有力，关起来就能推东西。",
+      "truth": 0.9,
+      "needsObservations": 8,
+      "principleFor": [
+        "invention:steam-engine"
+      ],
+      "effects": {},
+      "rivals": []
+    }
+  ]
+}

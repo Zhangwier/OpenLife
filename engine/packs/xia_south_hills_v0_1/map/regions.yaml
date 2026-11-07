@@ -1,0 +1,12 @@
+# 三个区域：由北向南，从盆地边缘的缓坡一路走到盐泉。
+# 与 v0.1 规范一致，区域只记录身份；气候、人口、资源属于后续模块。
+regions:
+  - id: S01
+    name: 南丘坡地
+    type: hill_slope
+  - id: S02
+    name: 竹溪谷
+    type: bamboo_valley
+  - id: S03
+    name: 盐泉台地
+    type: salt_spring_terrace

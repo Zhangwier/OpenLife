@@ -3,8 +3,6 @@
 import { CELL, G, rng } from "./mapgen.js";
 
 const lerp = (a, b, t) => a + (b - a) * t;
-/** A #rrggbb colour with less light in it (k < 1), leaning a little towards blue-green shade. */
-const darker = (hex, k) => { const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map((v, i) => Math.round(v * k + [4, 10, 8][i] * (1 - k))); return `rgb(${c.join(",")})`; };
 const sm = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 const COMMON = { slope: [158, 150, 108], scree: [166, 158, 144], rock: [138, 126, 112], snow: [238, 240, 236], wetSand: [178, 162, 122], ford: [170, 182, 150] };
@@ -453,7 +451,8 @@ function shadow(g, it) {
 function drawDeco(g, it, DECO, L) {
   const { x, y, s, v } = it;
   const img = DECO[it.kind === "tree" ? (v < 0.5 ? "tree1" : "tree2") : it.kind === "pine" ? "tree2" : it.kind];
-  if (img && it.kind !== "peak") { const w = { tree: 170, pine: 140, bush: 95, rock: 70, grass_tuft: 55, flowers: 60, reeds_small: 90 }[it.kind] * s; g.drawImage(img, x - w / 2, y - w / 2, w, w); return; }
+  const seasonal = ["tree", "pine", "bush", "reeds_small", "flowers", "grass_tuft"].includes(it.kind);
+  if (img && it.kind !== "peak" && (!seasonal || L === SEASON_LOOK.夏)) { const w = { tree: 170, pine: 140, bush: 95, rock: 70, grass_tuft: 55, flowers: 60, reeds_small: 90 }[it.kind] * s; g.drawImage(img, x - w / 2, y - w / 2, w, w); return; }
   g.save(); g.translate(x, y); g.scale(s, s);
   const blobs = (parts, [dark, mid, light, edge]) => {
     g.lineWidth = 4; g.strokeStyle = edge;
@@ -479,7 +478,7 @@ function drawDeco(g, it, DECO, L) {
     if (!blossom) { g.fillStyle = L.leaves ? "#a8442e" : "#e88a6a"; for (let q = 0; q < 9; q++) { g.beginPath(); g.arc(Math.cos(k + q * 0.7) * (14 + (q % 3) * 8), Math.sin(k + q * 0.7) * (12 + (q % 3) * 6), 5.5, 0, 7); g.fill(); } }
   } else if (it.kind === "jtree") {
     const k = v * 6.28, parts = [[0, 0, 46], ...[0, 1, 2, 3, 4, 5].map((i) => [Math.cos(k + i * 1.05) * 34, Math.sin(k + i * 1.05) * 30, 28 + ((i * 5 + v * 9) % 9)])];
-    blobs(parts, L.canopy[Math.floor(v * L.canopy.length) % L.canopy.length].map((c) => darker(c, L.winter ? 0.85 : 0.62)));   // the same trees, but no light gets in
+    blobs(parts, ["#30513a", "#426747", "#658460", "#263c2c"]);
     if (L.winter) { g.fillStyle = "rgba(240,242,238,.55)"; for (let q = 0; q < 4; q++) { g.beginPath(); g.arc(Math.cos(k + q) * 20 - 6, Math.sin(k + q) * 16 - 8, 7, 0, 7); g.fill(); } }
     g.strokeStyle = "rgba(90,120,60,.7)"; g.lineWidth = 3;                // hanging vines
     for (let q = 0; q < 3; q++) { const x = (q - 1) * 22 + v * 10; g.beginPath(); g.moveTo(x, 20); g.quadraticCurveTo(x + 6, 40, x - 2, 58); g.stroke(); }
@@ -522,6 +521,15 @@ function drawDeco(g, it, DECO, L) {
     g.fillStyle = "rgba(40,40,30,.25)"; g.beginPath(); g.ellipse(6, 6, 24, 15, 0, 0, 7); g.fill();
     g.fillStyle = "#9d968a"; g.strokeStyle = "#6e675c"; g.lineWidth = 3; g.beginPath(); g.ellipse(0, 0, 22, 15, v * 3, 0, 7); g.fill(); g.stroke();
     g.fillStyle = L.winter ? "#f2f2ee" : "#bcb5a6"; g.beginPath(); g.ellipse(-6, -4, 12, 7, 0.3, 0, 7); g.fill();
+  } else if (it.kind === "stump" || it.kind === "snag") {
+    if (it.kind === "snag") {
+      g.strokeStyle = "#75614e"; g.lineWidth = 6;
+      for (const [dx, dy] of [[-31, -22], [18, -34], [25, 12], [-13, 23]]) {
+        g.beginPath(); g.moveTo(0, 0); g.lineTo(dx * 0.45, dy * 0.4); g.lineTo(dx, dy); g.stroke();
+      }
+    }
+    g.fillStyle = "#7f654c"; g.beginPath(); g.ellipse(0, 0, 13, 10, 0, 0, 7); g.fill();
+    g.strokeStyle = "#b39971"; g.lineWidth = 2; g.beginPath(); g.ellipse(0, -2, 7, 4, 0, 0, 7); g.stroke();
   } else if (it.kind === "grass_tuft") {
     g.lineWidth = 3; g.strokeStyle = L.tuft;
     for (const a of [-10, -4, 2, 8]) { g.beginPath(); g.moveTo(a * 0.5, 0); g.lineTo(a, -12); g.stroke(); }
@@ -534,6 +542,27 @@ function drawDeco(g, it, DECO, L) {
     g.fillStyle = "#8a6a3e"; for (const a of [-10, 6]) { g.beginPath(); g.ellipse(a + 1, -34, 3, 7, 0, 0, 7); g.fill(); }
   }
   g.restore();
+}
+
+/** This overlay follows the real gathering site without repainting the whole map. */
+export function paintResourcePatch(canvas, plant, stock, stage, { season, drought }) {
+  const g = canvas.getContext("2d"), K = 0.5;
+  g.setTransform(K, 0, 0, K, 0, 0);
+  g.clearRect(0, 0, canvas.width / K, canvas.height / K);
+  const L = SEASON_LOOK[drought && plant !== "pine" ? "秋" : season];
+  const kind = plant === "herb" ? "reeds" : plant;
+  const dormant = stage === "dormant";
+  const patches = [[68, 100], [232, 95], [71, 176], [231, 170]];
+  let shape = kind, count = Math.min(4, stock);
+  if (kind === "tree" || kind === "pine") {
+    if (!stock) { shape = stage === "frostdead" ? "snag" : "stump"; count = 2; }
+  } else if (kind === "berry" && !stock) { shape = dormant ? "berry" : "bush"; count = 2; }
+  else if (kind === "fruit") { shape = stock ? "otree" : "tree"; count = Math.max(2, count); }
+  else if (kind === "reeds" && (dormant || stage === "flooded")) count = 2;
+  for (let i = 0; i < count; i++) {
+    const [x, y] = patches[i];
+    drawDeco(g, { x, y, kind: shape, s: (i % 2 ? 0.68 : 0.88) * (plant === "herb" ? 0.55 : 1), v: i / 4 + 0.1, bare: dormant, dry: dormant }, {}, L);
+  }
 }
 
 /** The lake breathes with the tide: at high water it creeps over the beach, at low water a band of wet sand shows.

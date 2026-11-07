@@ -1,0 +1,20 @@
+{
+  "name": "@openlife/module-culture",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/life-contracts": "*",
+    "@openlife/module-tech": "*",
+    "@openlife/module-polity": "*",
+    "@openlife/module-office": "*"
+  },
+  "openlife": {
+    "label": "文化与信仰",
+    "summary": "为什么这样做不只靠对错道理：信仰影响制度的正当性、科技会不会被接受，方言影响交流。"
+  }
+}

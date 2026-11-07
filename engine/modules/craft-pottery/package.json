@@ -1,0 +1,19 @@
+{
+  "name": "@openlife/module-craft-pottery",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/module-practice-runtime": "*",
+    "@openlife/module-world-objects": "*",
+    "@openlife/module-world-space": "*"
+  },
+  "openlife": {
+    "label": "制陶手艺",
+    "summary": "辨泥、器形、干燥与烧制，是一项可参与的活动。"
+  }
+}

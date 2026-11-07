@@ -1,0 +1,607 @@
+{
+  "meta": {
+    "id": "voice.neolithic",
+    "era": "neolithic",
+    "name": "新石器时代·河岸台地聚落语料与文法库",
+    "maxRecentLines": 25,
+    "maxCharLength": 100
+  },
+  "forbiddenWords": [
+    "屋檐",
+    "瓦",
+    "青石板",
+    "街",
+    "巷",
+    "路灯",
+    "玻璃",
+    "金属",
+    "铁",
+    "铜",
+    "金灿灿",
+    "银",
+    "工作",
+    "上班",
+    "咖啡",
+    "面包",
+    "耳机",
+    "钱包",
+    "手机",
+    "钟表",
+    "电影",
+    "伞",
+    "傲娇",
+    "毒舌",
+    "社恐",
+    "咸鱼",
+    "躺平",
+    "内卷"
+  ],
+  "forbiddenReplacements": {
+    "屋檐": "草棚沿",
+    "青石板": "河滩卵石路",
+    "街巷": "聚落小径",
+    "街角": "火塘边",
+    "街": "台地小径",
+    "巷": "地窨子间",
+    "工作": "忙活",
+    "上班": "下地",
+    "金属": "磨制石器",
+    "铁": "硬石",
+    "铜": "红陶",
+    "金灿灿": "黄澄澄",
+    "银": "白霜色",
+    "面包": "粟米饼",
+    "咖啡": "热草汤",
+    "伞": "苇叶笠",
+    "玻璃": "清亮水面",
+    "路灯": "火把",
+    "瓦": "草顶",
+    "手机": "骨片",
+    "钱包": "皮囊",
+    "耳机": "草绳",
+    "钟表": "日影",
+    "电影": "旧事"
+  },
+  "styles": {
+    "ximei": {
+      "label": "细美",
+      "description": "心细手巧，爱留意泥坯纹路、草叶露水与火苗成色"
+    },
+    "tongkuai": {
+      "label": "痛快",
+      "description": "爽利直率，嗓门亮堂，干活麻利，说话直奔要害"
+    },
+    "huashao": {
+      "label": "话少",
+      "description": "沉闷踏实，惜字如金，手头活计从不含糊"
+    },
+    "nagging": {
+      "label": "爱唠叨",
+      "description": "热心肠，常念叨窖穴存粟、火塘柴禾与身上冷暖"
+    },
+    "laocheng": {
+      "label": "老成",
+      "description": "稳重记旧，熟悉往年水情、节气更替与老辈规矩"
+    },
+    "jixingzi": {
+      "label": "急性子",
+      "description": "风风火火，脚下生风，见不得手头活计磨蹭"
+    }
+  },
+  "heredityPhrases": {
+    "strength": [
+      "膀子有把子力气",
+      "扛得动粗木柱",
+      "搬大石块不喘粗气"
+    ],
+    "endurance": [
+      "耐得住长路跋涉",
+      "弯腰忙活半日也不见乏",
+      "脚底板皮实耐走"
+    ],
+    "constitution": [
+      "身子骨硬朗扎实",
+      "淋了冷雨也不打蔫",
+      "筋骨跟老柞木一样结实"
+    ],
+    "cold-tolerance": [
+      "抗得住河滩寒风",
+      "冬月里淌浅水也不打颤",
+      "不怕白霜冻手"
+    ],
+    "dexterity": [
+      "手稳当",
+      "捏泥坯分毫不歪",
+      "编苇席指头灵巧"
+    ],
+    "perception": [
+      "眼尖耳灵",
+      "隔着芦苇荡都能听见水响",
+      "老远就能瞅见草丛里的兽迹"
+    ],
+    "insight": [
+      "心里透亮",
+      "看天色水情比谁都准",
+      "一眼能瞧出陶窑火候"
+    ],
+    "memory": [
+      "记性扎实",
+      "几年前的河水涨落都记在心里",
+      "老辈传下的话一句没忘"
+    ]
+  },
+  "symbols": {
+    "opener_ximei": [
+      "你细瞧瞧，",
+      "我方才蹲在火塘边看，",
+      "手头捏着泥坯的时候就在想，",
+      "顺着芦苇叶上的纹路看去，"
+    ],
+    "opener_tongkuai": [
+      "痛快点说吧，",
+      "嗨，照我看，",
+      "别磨蹭了，",
+      "敞亮话摆在前头，"
+    ],
+    "opener_huashao": [
+      "嗯，",
+      "看这天色，",
+      "活计还在手头，",
+      "记着，"
+    ],
+    "opener_nagging": [
+      "我跟你说过多少回了，",
+      "成天操心这操心那，",
+      "趁着还没忙乱起来，你听我念叨一句，",
+      "这一大家子的嚼用都得盘算，"
+    ],
+    "opener_laocheng": [
+      "照老辈传下来的话讲，",
+      "打我记事起，这河湾的脾气就没变过，",
+      "经过几个冬夏就明白了，",
+      "凡事都得看水情天色，"
+    ],
+    "opener_jixingzi": [
+      "赶紧的吧，",
+      "别慢吞吞地晃荡了，",
+      "趁着日头还在，手脚麻利点，",
+      "我这性子可等不及，"
+    ],
+    "tail_ximei": [
+      "这点细微处最经得起琢磨。",
+      "手稳一点，心里才踏实。",
+      "连泥坯上的绳纹看着都顺眼。"
+    ],
+    "tail_tongkuai": [
+      "干脆利落把活干完最痛快！",
+      "出了力气，夜里睡觉才香！",
+      "咱们河岸台地的人从不惜力！"
+    ],
+    "tail_huashao": [
+      "先去忙活了。",
+      "心里有数就行。",
+      "不多说了，看火去。"
+    ],
+    "tail_nagging": [
+      "可别等要用的时候又抓瞎。",
+      "把草帘子拢严实了才不受凉。",
+      "听人劝，吃饱粟米饭。"
+    ],
+    "tail_laocheng": [
+      "顺着四时节气过日子，准没错。",
+      "台地上的根基就是这么一筐土一捆苇子攒出来的。",
+      "往后的日子还长着呢。"
+    ],
+    "tail_jixingzi": [
+      "再磨蹭天都要黑透了！",
+      "一口气干完再去歇脚！",
+      "快着点儿，别落在后头！"
+    ],
+    "weather_mild": [
+      "河湾吹来的风不冷不燥，芦苇穗子轻轻摇晃",
+      "日头暖融融地照着半地穴草顶，泥地干爽好走",
+      "渡口的水波平缓清亮，连水鸟都贴着浅滩慢飞"
+    ],
+    "weather_warm_dry": [
+      "日头晒得台地黄土发烫，晒场上的泥坯干得极快",
+      "河风里带着干草与热土的气息，浅滩露出了大片卵石",
+      "天上连一丝厚云都少见，谷穗晒得直发脆"
+    ],
+    "weather_warm_wet": [
+      "河湾腾起潮热的水汽，芦苇荡里闷得人额头见汗",
+      "温吞的湿气裹着草木味，陶窑边的柴禾都有些返潮",
+      "泥地踩上去软绵绵的，空气里全是水草泡开的味道"
+    ],
+    "weather_cold_dry": [
+      "北风刮过台地干冷刺骨，地窨子口的草帘被吹得啪啪响",
+      "干冷的河风吹裂了手背，土块冻得像石块一样硬",
+      "枯黄的芦苇在寒风里折断了腰，火塘里的火星子直往上蹿"
+    ],
+    "weather_cold_wet": [
+      "阴冷的河雾漫过了渡口浅滩，湿寒气直往麻衣领口里钻",
+      "连绵冷雨淋湿了陶窑边的柴垛，台地小径泥泞湿滑",
+      "潮冷的水雾罩着半地穴草顶，火塘里的湿柴烧得滋滋冒白烟"
+    ],
+    "weather_freezing": [
+      "厚实的白霜封住了河滩草甸，渡口浅水处结了一圈薄冰碴",
+      "寒气重得哈气成霜，大家都缩回地窨子里守着火塘煨火",
+      "漫天飞雪落在芦苇荡上，天地间白茫茫一片静悄悄"
+    ],
+    "weather_scorching": [
+      "毒辣的日头把河滩卵石晒得滚烫，浅滩水位落了一大截",
+      "台地上的黄土晒出了细碎裂纹，连树荫底下的风都是热的",
+      "酷暑蒸得人嗓子眼发干，人人都在盼着河湾飘来一片雨云"
+    ],
+    "time_dawn": [
+      "天边刚泛起鱼肚白，地窨子顶上已飘起了淡青色炊烟",
+      "破晓的晨雾还罩着渡口，草叶尖上挂满了凉露水"
+    ],
+    "time_morning": [
+      "日头渐渐升高，台地晒场上已经摆开了晾晒的陶坯与粟穗",
+      "晨风吹散了河雾，聚落里响起了石斧与骨耜碰撞的声响"
+    ],
+    "time_noon": [
+      "日头悬在头顶正中，火塘边的石板上烘着热腾腾的粟米饼",
+      "正午的光影缩在草棚脚下，忙活了半日的人们聚在树荫下歇脚"
+    ],
+    "time_afternoon": [
+      "日头慢慢西斜，陶窑里透出暗红的火光，芦苇席编得有模有样",
+      "午后的河风带着水腥味吹上台地，采集的人背着藤筐往回走"
+    ],
+    "time_dusk": [
+      "暮色四合，晚霞把河湾染成了红陶一样的颜色",
+      "日头落进远山后头，守渡口的人把独木舟拴紧在木桩上"
+    ],
+    "time_night": [
+      "夜色笼罩了河岸台地，半地穴房屋里透出火塘温暖的微光",
+      "夜深火歇，远处只剩下河水拍打浅滩卵石的哗哗声"
+    ],
+    "thought_happy": [
+      "看着窖穴里堆得扎实的粟米，心里比喝了热汤还熨帖",
+      "手里的活计顺顺当当，连带着看河滩上的乱石都顺眼",
+      "聚落里平平安安，火塘里的火苗旺实，比啥都强"
+    ],
+    "thought_low": [
+      "心里头沉甸甸的，像压了一块没打磨好的粗石板",
+      "手头的草绳怎么拧都不顺手，闷得只想蹲在河边看水发呆",
+      "叹了口气，只盼着这阵子难熬的工夫早点过去"
+    ],
+    "thought_hungry": [
+      "肚肠里空落落地直叫唤，满脑子都是陶釜里熬得稠乎乎的粟米粥",
+      "饿得手脚发软，哪怕有一小块烤熟的根茎垫垫肚子也好",
+      "干了半日重活，闻见别人家火塘飘来的谷香就挪不开步子"
+    ],
+    "gesture_ximei": [
+      "轻轻拂去陶坯上的细灰，",
+      "眯起眼睛对着天光端详手里的草编，",
+      "用指腹摩挲着温润的卵石，"
+    ],
+    "gesture_tongkuai": [
+      "甩了甩手上的泥水，",
+      "把肩头的藤筐往上一颠，",
+      "敞开亮堂的嗓门，"
+    ],
+    "gesture_huashao": [
+      "默默往火塘里添了一根干柴，",
+      "低头紧了紧脚上的草鞋，",
+      "沉稳地握紧手里的石锛，"
+    ],
+    "gesture_nagging": [
+      "一边麻利地收拾着苇席一边念叨，",
+      "拍打着麻衣上的草屑，",
+      "仔细检查着窖穴口的草盖，"
+    ],
+    "gesture_laocheng": [
+      "抬头望了望河湾上空的云脚，",
+      "慢条斯理地捋平手中的麻绳，",
+      "扶着木柱站稳身子，"
+    ],
+    "gesture_jixingzi": [
+      "快步跨上台地土坡，",
+      "飞快地把散落的粟穗拢进筐里，",
+      "擦了一把额头上的汗珠，"
+    ],
+    "speech_fallback": [
+      "#opener##weather_scene#，#thought_clause#。#tail#"
+    ],
+    "narrate_fallback": [
+      "#time_scene#，#weather_scene#。{name}在{workPlace}旁#gesture##heredity_clause#，#thought_clause#。"
+    ]
+  },
+  "candidates": [
+    {
+      "id": "say_hungry_any",
+      "kind": "say",
+      "weight": 18,
+      "conditions": {
+        "hungry": true
+      },
+      "template": "#opener##thought_hungry#。等忙完了手头这阵，定要凑到火塘边盛一碗热粟米羹。#tail#"
+    },
+    {
+      "id": "say_hungry_nagging",
+      "kind": "say",
+      "weight": 20,
+      "conditions": {
+        "hungry": true,
+        "style": "nagging"
+      },
+      "template": "#opener##thought_hungry#。早就念叨着要先煨上一陶釜粟米汤，饿着肚子哪有力气挥骨耜？#tail#"
+    },
+    {
+      "id": "say_freezing_cold_tol",
+      "kind": "say",
+      "weight": 16,
+      "conditions": {
+        "weatherTag": "freezing",
+        "highTrait": "cold-tolerance"
+      },
+      "template": "#opener##weather_freezing#。好在我{heredityPhrase}，这点霜雪还冻不僵手脚，再去渡口巡一回。#tail#"
+    },
+    {
+      "id": "say_freezing_general",
+      "kind": "say",
+      "weight": 13,
+      "conditions": {
+        "weatherTag": "freezing"
+      },
+      "template": "#opener##weather_freezing#。大伙儿都把地窨子的草帘挂严实些，火塘里的炭火可不敢断了。#tail#"
+    },
+    {
+      "id": "say_cold_wet_kiln",
+      "kind": "say",
+      "weight": 15,
+      "conditions": {
+        "weatherTag": "cold_wet",
+        "roleKeyword": "陶"
+      },
+      "template": "#opener##weather_cold_wet#。泥坯阴着干不透，烧陶窑的干柴可得拿苇席盖严实了，不然开窑容易裂纹。#tail#"
+    },
+    {
+      "id": "say_fire_keeper",
+      "kind": "say",
+      "weight": 15,
+      "conditions": {
+        "roleKeyword": "火"
+      },
+      "template": "#opener#火塘里的火种是全聚落的命根子，干柴要架空，灰烬要常拢。只要这簇红火苗不灭，地窨子里就一直暖和。#tail#"
+    },
+    {
+      "id": "say_ferry_keeper",
+      "kind": "say",
+      "weight": 14,
+      "conditions": {
+        "roleKeyword": "渡"
+      },
+      "template": "#opener##weather_scene#。渡口浅滩的水流日日都在变，把独木舟的藤绳拴牢在木桩上，过河的人才稳当。#tail#"
+    },
+    {
+      "id": "say_reed_gatherer",
+      "kind": "say",
+      "weight": 14,
+      "conditions": {
+        "roleKeyword": "苇"
+      },
+      "template": "#opener#河湾浅水处的芦苇秆子最柔韧，割回来趁着天光晒干，编出来的苇席铺在地窨子里最隔潮气。#tail#"
+    },
+    {
+      "id": "say_millet_farmer",
+      "kind": "say",
+      "weight": 14,
+      "conditions": {
+        "roleKeyword": "粟"
+      },
+      "template": "#opener##weather_scene#。台地向阳坡的粟苗长得扎实，等颗粒归了窖穴，全聚落冬月里就都有热粥喝了。#tail#"
+    },
+    {
+      "id": "say_shaman_laocheng",
+      "kind": "say",
+      "weight": 15,
+      "conditions": {
+        "style": "laocheng"
+      },
+      "template": "#opener##weather_scene#。我{heredityPhrase}，瞧这河湾的水势与风向，咱们只要顺着四时节气早做打算，定能安稳度日。#tail#"
+    },
+    {
+      "id": "say_dexterity_ximei",
+      "kind": "say",
+      "weight": 14,
+      "conditions": {
+        "style": "ximei",
+        "highTrait": "dexterity"
+      },
+      "template": "#opener#别人都说我{heredityPhrase}，其实不管是搓麻绳、编苇席还是抹泥坯，全靠心静。心一静，手底下的活计自然周正。#tail#"
+    },
+    {
+      "id": "say_perception_alert",
+      "kind": "say",
+      "weight": 14,
+      "conditions": {
+        "highTrait": "perception"
+      },
+      "template": "#opener#亏得我{heredityPhrase}，方才隔着芦苇荡就察觉风声不对。在台地上讨生活，多留个心眼总不会错。#tail#"
+    },
+    {
+      "id": "say_memory_elder",
+      "kind": "say",
+      "weight": 14,
+      "conditions": {
+        "highTrait": "memory"
+      },
+      "template": "#opener#大伙儿常夸我{heredityPhrase}，其实哪有什么诀窍，不过是把往年河水涨落和节气冷暖都死死刻在脑子里罢了。#tail#"
+    },
+    {
+      "id": "say_strength_tongkuai",
+      "kind": "say",
+      "weight": 14,
+      "conditions": {
+        "highTrait": "strength"
+      },
+      "template": "#opener#既然我{heredityPhrase}，那些抬木柱、搬石磨盘的重活尽管交给我，保准利利索索给大伙办妥！#tail#"
+    },
+    {
+      "id": "say_relation_partner",
+      "kind": "say",
+      "weight": 17,
+      "conditions": {
+        "relationTag": "partner"
+      },
+      "template": "跟{target}作伴这么些年，哪怕坐在火塘边半宿不吭声，只要听见对方拨弄柴火的动静，心里头就踏实得紧。"
+    },
+    {
+      "id": "say_relation_mentor",
+      "kind": "say",
+      "weight": 16,
+      "conditions": {
+        "relationTag": "mentor"
+      },
+      "template": "{target}，把手腕放平些！打磨石锛和捏陶坯是一个理儿，急躁不得，顺着石纹泥性慢慢找准那股劲道。"
+    },
+    {
+      "id": "say_relation_grudge",
+      "kind": "say",
+      "weight": 17,
+      "conditions": {
+        "relationTag": "grudge"
+      },
+      "template": "#opener#瞧见{target}从晒场那边走过来，我干脆扭头去河滩捡卵石。话不投机半句多，省得撞上了心里添堵。"
+    },
+    {
+      "id": "say_relation_close",
+      "kind": "say",
+      "weight": 15,
+      "conditions": {
+        "relationTag": "close"
+      },
+      "template": "{target}，正好你过来了！我火塘里刚煨熟了几捧新收的粟米，快坐到苇席上来，咱们边吃边聊。"
+    },
+    {
+      "id": "say_spring_happy",
+      "kind": "say",
+      "weight": 12,
+      "conditions": {
+        "season": "春",
+        "moodPolar": "happy"
+      },
+      "template": "#opener#春水一涨，河滩边的嫩芦苇芽全顶出来了。#weather_scene#，趁着土质松软，翻地播粟正当时。#tail#"
+    },
+    {
+      "id": "say_summer_general",
+      "kind": "say",
+      "weight": 11,
+      "conditions": {
+        "season": "夏"
+      },
+      "template": "#opener##weather_scene#。地里的粟苗蹿得飞快，就是草也跟着疯长，得抓紧拿骨耜把杂草锄干净了。#tail#"
+    },
+    {
+      "id": "say_autumn_harvest",
+      "kind": "say",
+      "weight": 13,
+      "conditions": {
+        "season": "秋",
+        "moodPolar": "happy"
+      },
+      "template": "#opener#秋风一吹，台地上的粟穗沉甸甸地弯下了腰。把晒干的谷子一筐筐收进干燥的窖穴，今年冬月就不慌了。#tail#"
+    },
+    {
+      "id": "say_winter_low",
+      "kind": "say",
+      "weight": 13,
+      "conditions": {
+        "season": "冬",
+        "moodPolar": "low"
+      },
+      "template": "#opener##weather_scene#。冬日昼短夜长，外头寒风呼啸，只盼着窖穴里的存粮能撑到明年春草发芽。#tail#"
+    },
+    {
+      "id": "say_general_default_a",
+      "kind": "say",
+      "weight": 5,
+      "conditions": {},
+      "template": "#opener##weather_scene#，#thought_clause#。#tail#"
+    },
+    {
+      "id": "say_general_default_b",
+      "kind": "say",
+      "weight": 5,
+      "conditions": {},
+      "template": "#opener##time_scene#。身为聚落里{role}的人，把{workPlace}这一摊子事照看好，日子就能稳稳当当地过下去。#tail#"
+    },
+    {
+      "id": "say_general_default_c",
+      "kind": "say",
+      "weight": 5,
+      "conditions": {},
+      "template": "#opener#在{workPlace}忙活了半日，好在我{heredityPhrase}，这点活计还不算难熬。#thought_clause#。#tail#"
+    },
+    {
+      "id": "narrate_hungry_scene",
+      "kind": "narrate",
+      "weight": 17,
+      "conditions": {
+        "hungry": true
+      },
+      "template": "#time_scene#，#weather_scene#。{name}在{workPlace}旁忙活了许久，腹中早已空空如也，目光不自觉地望向飘起炊烟的火塘。"
+    },
+    {
+      "id": "narrate_relation_grudge",
+      "kind": "narrate",
+      "weight": 16,
+      "conditions": {
+        "relationTag": "grudge"
+      },
+      "template": "#time_scene#，{name}与{target}在{workPlace}附近迎面遇上。两人谁也没搭腔，只各自沉着脸从台地小径两侧错身而过，空气里透着一股僵冷的别扭。"
+    },
+    {
+      "id": "narrate_relation_partner",
+      "kind": "narrate",
+      "weight": 16,
+      "conditions": {
+        "relationTag": "partner"
+      },
+      "template": "#time_scene#，#weather_scene#。{name}与{target}并肩坐在{homeSpace}的苇席上，借着火塘跃动的暖光拾掇手头的家什，神色间满是长久相伴的默契。"
+    },
+    {
+      "id": "narrate_relation_close",
+      "kind": "narrate",
+      "weight": 14,
+      "conditions": {
+        "relationTag": "close"
+      },
+      "template": "{name}在{workPlace}瞧见了走来的{target}，#gesture#熟稔地招手示意。两人就着河湾吹来的风闲叙了几句家常，眉眼间带着难得的松快。"
+    },
+    {
+      "id": "narrate_freezing_weather",
+      "kind": "narrate",
+      "weight": 15,
+      "conditions": {
+        "weatherTag": "freezing"
+      },
+      "template": "#weather_freezing#。{name}裹紧身上的兽皮与麻衣，#gesture#顶着寒气在{workPlace}与{homeSpace}之间往返，脚印深深浅浅地印在冻土上。"
+    },
+    {
+      "id": "narrate_scorching_weather",
+      "kind": "narrate",
+      "weight": 15,
+      "conditions": {
+        "weatherTag": "scorching"
+      },
+      "template": "#weather_scorching#。{name}在{workPlace}旁#gesture#汗水顺着脸颊滑落进泥土里，却依然手稳心定地顾着手头的活计。"
+    },
+    {
+      "id": "narrate_default_a",
+      "kind": "narrate",
+      "weight": 6,
+      "conditions": {},
+      "template": "#time_scene#，#weather_scene#。身为聚落里{role}的{name}#gesture#凭借着{heredityPhrase}的底子，在{workPlace}旁专注地忙碌着。"
+    },
+    {
+      "id": "narrate_default_b",
+      "kind": "narrate",
+      "weight": 6,
+      "conditions": {},
+      "template": "#weather_scene#。{name}立在{workPlace}近旁，#gesture##thought_clause#，身影融进河岸台地古朴而踏实的暮色晨光里。"
+    }
+  ]
+}

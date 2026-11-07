@@ -1,0 +1,17 @@
+{
+  "name": "@openlife/module-world-hazard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/module-world-hydrology": "*"
+  },
+  "openlife": {
+    "label": "水旱与治水",
+    "summary": "河岸的洪水与干旱按 omen/active/aftermath/calm 四段推进，发水时封闭河边场地，筑堤能降低水患。"
+  }
+}

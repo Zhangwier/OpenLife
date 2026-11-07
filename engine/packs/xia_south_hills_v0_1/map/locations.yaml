@@ -1,0 +1,55 @@
+# 十二个地点，每区四个。type 即地形：坡、脊、谷底、溪、泉、台地、洞穴、垭口。
+locations:
+  # S01 南丘坡地：从夏境南部走廊进入的第一片高地
+  - id: S0101
+    name: 北坡入口
+    region_id: S01
+    type: slope
+  - id: S0102
+    name: 栎树坡
+    region_id: S01
+    type: oak_slope
+  - id: S0103
+    name: 望河脊
+    region_id: S01
+    type: ridge
+  - id: S0104
+    name: 石灰岩洞
+    region_id: S01
+    type: cave
+
+  # S02 竹溪谷：湿润的谷底，竹林和溪流
+  - id: S0201
+    name: 竹林口
+    region_id: S02
+    type: bamboo_grove
+  - id: S0202
+    name: 清溪浅滩
+    region_id: S02
+    type: stream_ford
+  - id: S0203
+    name: 谷底台田
+    region_id: S02
+    type: valley_floor
+  - id: S0204
+    name: 瀑下深潭
+    region_id: S02
+    type: waterfall_pool
+
+  # S03 盐泉台地：干燥的台地，地下咸泉涌出
+  - id: S0301
+    name: 盐泉口
+    region_id: S03
+    type: salt_spring
+  - id: S0302
+    name: 晒盐白滩
+    region_id: S03
+    type: salt_flat
+  - id: S0303
+    name: 台地营地
+    region_id: S03
+    type: terrace
+  - id: S0304
+    name: 南垭口
+    region_id: S03
+    type: pass

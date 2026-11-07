@@ -1,0 +1,27 @@
+{
+  "prototypes": [
+    {
+      "id": "prototype:reed_baskets.fish-creel",
+      "name": "苇编鱼篓",
+      "material": "woven-reed",
+      "resourceId": "resource:reed_baskets.creel",
+      "unit": "个",
+      "mass": 0.6,
+      "capacity": 3,
+      "capabilities": ["carryable", "container", "storage"],
+      "durability": 30,
+      "visible": true
+    }
+  ],
+  "resourceLabels": {
+    "resource:reed_baskets.creel": "鱼篓"
+  },
+  "instances": [
+    {
+      "id": "instance:reed_baskets.creel-yu",
+      "prototypeId": "prototype:reed_baskets.fish-creel",
+      "owner": "yu",
+      "inId": "space:main-sleep"
+    }
+  ]
+}

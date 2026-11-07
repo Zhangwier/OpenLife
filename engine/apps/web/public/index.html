@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>OpenLife · 开放人生</title>
+  <link rel="stylesheet" href="/stage.css" />
+  <link rel="stylesheet" href="/theme.css" />
+  <link rel="stylesheet" href="/panels.css" />
+  <link rel="stylesheet" href="/codex.css" />
+  <link rel="stylesheet" href="/stories.css" />
+  <link rel="stylesheet" href="/guide.css">
+  <link rel="stylesheet" href="/scene.css" />
+  <link rel="stylesheet" href="/life-map.css" />
+  <link rel="stylesheet" href="/life-story.css" />
+  <link rel="stylesheet" href="/ui-polish.css" />
+  <link rel="icon" href="/art/map/icon-192.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#f2ece1" />
+  <script>try{var t=localStorage.getItem("openlife-theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t;}catch(e){}</script>
+  <script type="module" src="/pages-ux.js"></script>
+  <script type="module" src="/life-map.js"></script>
+  <script type="module" src="/life-title.js"></script>
+  <script type="module" src="/life-story.js"></script>
+</head>
+<body data-screen="home">
+  <div class="grain"></div>
+  <script type="module" src="/life-ux.js"></script>
+  <main class="game-shell">
+    <section id="homeScreen" class="home-screen" aria-labelledby="homeTitle">
+      <div class="home-landscape" aria-hidden="true"><div class="home-sun"></div><div class="home-hill hill-back"></div><div class="home-hill hill-front"></div><div class="home-river"></div><div class="home-house house-one"></div><div class="home-house house-two"></div><div class="home-reeds"></div><div class="scene-fx home-fx" id="homeFx"></div></div>
+      <div class="home-content">
+        <span class="home-kicker">一个世界，许多种人生</span>
+        <h1 id="homeTitle">开放人生<span>OpenLife</span></h1>
+        <p class="home-intro">在这里生活，与人相遇。<br>时间向前，而你留下的事会继续。</p>
+        <div class="home-menu">
+          <button id="continueLife" class="home-primary" disabled><span>继续人生</span><small id="continueSummary">正在读取人生记录…</small><b aria-hidden="true">↗</b></button>
+          <button id="homeNewLife" class="home-menu-item"><span>开启新的人生</span><small>选择名字与出生聚落</small><b aria-hidden="true">＋</b></button>
+          <button id="homeSaves" class="home-menu-item"><span>人生存档</span><small>找回之前留下的记忆</small><b aria-hidden="true">↗</b></button>
+        </div>
+        <p id="homeStatus" class="home-status" role="status">读取中的世界不会自动推进时间。</p>
+      </div>
+      <div class="home-caption"><span>河岸 · 聚落 · 旷野</span><p>世界在你到来之前存在，<br>也会在你之后继续。</p></div>
+      <button class="icon-button home-sound" id="homeSoundButton" type="button" aria-label="声音" aria-haspopup="dialog"></button>
+      <button class="icon-button home-theme" id="homeThemeButton" type="button" aria-label="切换深色或亮色模式" title="深色 / 亮色"></button>
+      <footer class="home-footer"><span>OPENLIFE / 开放人生</span><span>早期聚落 · 开发中的世界</span></footer>
+    </section>
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">O</div>
+        <div><strong>OpenLife</strong><span>开放人生</span></div>
+      </div>
+      <div class="time-ribbon" id="timeRibbon">
+        <span class="time-year">2000</span><span class="time-dot"></span>
+        <span class="time-copy">时间正在流逝</span>
+      </div>
+      <div class="top-actions">
+        <button class="ghost-button" data-route="home">主菜单</button>
+        <button class="ghost-button memory-button" id="memoryButton" hidden>记忆</button>
+        <button class="icon-button" id="resetButton" hidden aria-label="开始新人生" title="开始新人生">↺</button>
+        <button class="ghost-button" id="autoButton">时间与日程</button>
+        <button class="ghost-button" id="pauseAutoButton" hidden aria-label="暂停持续模拟">暂停生活</button>
+        <button class="icon-button" id="soundButton" type="button" aria-label="声音" aria-haspopup="dialog" aria-expanded="false"></button>
+        <button class="icon-button" id="themeButton" type="button" aria-label="切换深色或亮色模式" title="深色 / 亮色"></button>
+        <button class="ghost-button" id="menuButton" aria-label="打开菜单">☰</button>
+      </div>
+    </header>
+    <div id="applicationLayout" class="application-layout" hidden>
+      <nav id="appNavigation" class="app-navigation" aria-label="主导航">        <div class="nav-caption">我的人生</div>
+        <!--
+          四个主页面，按"玩家来这里解决什么问题"分：
+          此刻=我现在能做什么 / 行囊=我有什么 / 熟人=我认识谁 / 人生=我成了谁。
+          故事仍可进入，但它不是第五个主页面——故事是这四个页面里的内容组织方式，
+          不该让玩家到单独页面去领取本应发生在眼前的事。
+        -->
+        <button data-route="activities">此刻</button>
+        <button data-route="works">行囊</button>
+        <button data-route="people">熟人</button>
+        <button data-route="character">人生</button>
+        <details class="nav-more"><summary>更多资料</summary>
+          <button data-route="stories">故事与约定</button>
+          <button data-route="family">家族谱</button>
+          <button data-route="map">地图与地点</button>
+          <button data-route="world">时代与世界</button>
+          <button data-route="history">记忆与历史</button>
+          <button data-route="codex">图鉴</button>
+        </details>
+      </nav>
+      <div class="page-container"><p id="pageFeedback" class="page-feedback" role="status" aria-live="polite" hidden></p><div class="page-heading"><div><span id="pageEyebrow">我的人生</span><h1 id="pageTitle" tabindex="-1">生活</h1></div><span id="pageIdentity"></span></div><div id="pageScreens"></div></div>
+    </div>
+    <div id="legacyLayout" hidden>
+    <section class="hero-grid">
+      <aside class="life-rail panel">
+        <div class="eyebrow">这一生</div>
+        <div class="portrait"><span id="portraitInitial">启</span><div class="portrait-figure"></div></div>
+        <div class="identity"><h1 id="characterName">启 禾</h1><p id="characterMeta">0 岁 · 北岸聚落</p></div>
+        <div id="originCard" class="origin-card" hidden></div>
+        <div class="life-line">
+          <div class="life-line-track"><div class="life-line-progress" id="lifeProgress"></div></div>
+          <div class="life-line-labels"><span>出生</span><span>此刻</span><span>未知</span></div>
+        </div>
+        <div class="soft-stats">
+          <div><span>身体</span><strong id="healthWord">正在成长</strong></div>
+          <div><span>所学</span><strong id="educationWord">尚未开始系统学习</strong></div>
+          <div><span>生活角色</span><strong id="occupationWord">尚未承担聚落角色</strong></div>
+          <div><span>家庭</span><strong id="familyWord">尚未建立家庭</strong></div>
+          <div><span>历史痕迹</span><strong id="footprintWord">尚未留下可辨认的痕迹</strong></div>
+        </div>
+        <div id="workshopInventory" class="workshop-inventory"></div>
+      </aside>
+
+      <section class="life-stage panel">
+        <div class="stage-header">
+          <div><div class="eyebrow">此刻</div><h2 id="stageTitle">生命刚刚开始</h2></div>
+          <div class="generation-pill" id="generationPill">第一代</div>
+        </div>
+        <div class="memory-scene">
+          <div class="scene-illustration" aria-hidden="true"><div class="scene-mountain far"></div><div class="scene-mountain near"></div><div class="scene-river"></div><div class="scene-hut"></div><div class="scene-kiln"></div><div class="scene-pot pot-one"></div><div class="scene-pot pot-two"></div></div>
+          <div class="sun-orbit"></div>
+          <div class="scene-copy">
+            <span class="scene-kicker" id="sceneKicker">北岸聚落 · 春</span>
+            <p id="sceneText">世界比你先存在，也会在你之后继续。</p>
+          </div>
+          <div class="scene-people" id="scenePeople"></div>
+        </div>
+        <div id="playerSituation" class="player-situation"></div>
+        <section id="settlementScene" class="settlement-scene" hidden aria-labelledby="scenePlaceHeading">
+          <div class="scene-header">
+            <div>
+              <div class="eyebrow">你所在的地方</div>
+              <h3 id="scenePlaceHeading"><span id="scenePlace">开阔处</span> · <span id="sceneSpace">院子里</span></h3>
+            </div>
+            <span class="scene-clock" id="sceneDay"></span>
+          </div>
+          <p class="scene-summary" id="sceneSummary"></p>
+          <div class="scene-theater" id="sceneTheater" aria-label="可互动的聚落生活场景">
+            <svg class="svg-defs" width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+              <filter id="toyLight" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="b"/>
+                <feSpecularLighting in="b" surfaceScale="5" specularConstant=".55" specularExponent="16" lighting-color="#fff4dc" result="spec"><feDistantLight azimuth="225" elevation="42"/></feSpecularLighting>
+                <feComposite in="spec" in2="SourceAlpha" operator="in" result="specIn"/>
+                <feDiffuseLighting in="b" surfaceScale="5" diffuseConstant="1.08" lighting-color="#ffffff" result="diff"><feDistantLight azimuth="225" elevation="62"/></feDiffuseLighting>
+                <feBlend in="SourceGraphic" in2="diff" mode="multiply" result="shaded"/>
+                <feComposite in="shaded" in2="specIn" operator="arithmetic" k1="0" k2="1" k3=".8" k4="0" result="lit"/>
+                <feComposite in="lit" in2="SourceAlpha" operator="in"/>
+              </filter></defs></svg>
+            <img id="sceneBackdrop" class="scene-backdrop" alt="" draggable="false" />
+            <div class="scene-shimmer" aria-hidden="true"></div>
+            <div class="scene-fx" id="sceneFx" aria-hidden="true"></div>
+            <div class="scene-light" aria-hidden="true"></div>
+            <div class="scene-stage-top">
+              <div><span class="scene-stage-kicker">OPENLIFE · 河岸聚落</span>
+                <strong id="sceneStageName">眼前的世界</strong></div>
+              <span class="scene-stage-season" id="sceneStageSeason">时光与生活</span>
+            </div>
+            <div id="sceneHotspots" class="scene-hotspots" aria-label="点击人物、物资或去别的地方"></div>
+            <div class="scene-stage-foot"><span>◈ 这里的一切都会留下真实痕迹</span>
+              <span id="sceneStageHint">点击人物或场景物件互动</span></div>
+          </div>
+          <section id="lifeLog" class="life-log" aria-label="人生纪事" hidden></section>
+          <section id="hopes" class="hopes" aria-label="心里记着的事" hidden></section>
+          <section class="interaction-dock" id="interactionDock" aria-label="当前操作">
+            <p id="actionFeedback" class="action-feedback" role="status" aria-live="polite">轻触人物或物件，看看可以做什么。</p>
+            <div id="sceneQuickActions" class="scene-quick-actions" role="region" aria-label="场景操作" hidden></div>
+            <!--
+              当前能做什么，紧跟在眼前这一幕后面。
+              以前它排在日志、愿望、物资明细之后，玩家要滚过一整页才知道自己
+              能做什么。阅读顺序固定为：处境 → 请求 → 选择 → 成本 → 后果 → 下一步。
+            -->
+            <div class="scene-action-area">
+              <div class="eyebrow">现在可以做什么</div>
+              <div id="sceneActions"></div>
+            </div>
+            <div class="dock-tools" id="dockTools">
+              <button id="sceneMapButton" type="button" aria-label="移动到别的地点"><svg class="ol-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.3"/></svg><span>移动</span><small class="dock-sub">去别处</small></button>
+              <button id="sceneWorkButton" type="button" aria-label="劳动与休息"><svg class="ol-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6 4 4"/><path d="m11.5 8.5 6-6 4 4-6 6Z"/><path d="m13 11-9.5 9.5"/></svg><span>劳动</span><small class="dock-sub">做活与歇息</small></button>
+              <button id="sceneTimeButton" type="button" aria-label="时间安排"><svg class="ol-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>时间</span><small class="dock-sub">日程与过日子</small></button>
+            </div>
+          </section>
+          <section id="communityFeed" class="hearth-story" aria-label="眼前聚落动态"></section>
+          <div class="scene-shortcuts" id="sceneShortcuts"></div>
+          <button id="sceneSheetMask" type="button" class="scene-sheet-mask" hidden aria-label="关闭操作菜单"></button>
+
+          <details class="scene-ledger" id="sceneLedger"><summary>打开物资与人物明细 <span>查看全部可交互对象 ▾</span></summary>
+          <div class="scene-columns">
+            <section class="scene-block">
+              <h4>这里的人</h4>
+              <div class="scene-people" id="sceneNeighbours"></div>
+            </section>
+            <section class="scene-block">
+              <h4>看得见的东西</h4>
+              <div class="scene-objects" id="sceneObjects"></div>
+            </section>
+          </div>
+
+          <div class="scene-columns">
+            <section class="scene-block">
+              <h4>可取用的原料 · 点击查看</h4>
+              <div class="scene-yields" id="sceneYields"></div>
+            </section>
+            <section class="scene-block">
+              <h4>随身物品 · 点击操作</h4>
+              <div class="scene-carried" id="sceneCarried"></div>
+              <div class="scene-loans" id="sceneLoans"></div>
+            </section>
+          </div>
+
+          </details>
+        </section>
+        <div id="playerOutcome" class="player-outcome" role="status" aria-live="polite"></div>
+        <div class="decision-area">
+          <div class="decision-copy"><span class="eyebrow">接下来，你来决定</span><p id="decisionHint">每一段手艺都需要时间。看看条件与代价，再选择自己的做法。</p></div>
+          <div class="action-grid" id="actionGrid"></div>
+        </div>
+      </section>
+
+      <aside class="history-panel panel">
+        <div class="panel-title-row">
+          <div><div class="eyebrow">记忆与历史</div><h3>留下来的事</h3></div>
+          <span class="subtle">最近</span>
+        </div>
+        <div class="history-stream" id="historyStream"></div>
+      </aside>
+    </section>
+
+    <nav class="life-tabs" aria-label="生活资料">
+      <button class="life-tab active" data-view="people" aria-pressed="true">聚落里的人</button>
+      <button class="life-tab" data-view="works" aria-pressed="false">我的作品</button>
+      <button class="life-tab" data-view="family" aria-pressed="false">家族与传承</button>
+      <button class="life-tab" data-view="world" aria-pressed="false">更远的世界</button>
+    </nav>
+    <section class="lower-grid">
+      <section class="relationship-card panel" data-view-panel="people">
+        <div class="panel-title-row"><div><div class="eyebrow">人与人</div><h3>关系</h3></div><span class="subtle" id="relationCount">0 条关系</span></div>
+        <div class="relationship-orbit" id="relationshipOrbit"></div>
+      </section>
+      <section class="office-card panel" data-view-panel="people" id="officePanel">
+        <!-- 职位面板：由 office-panel.js 渲染。没有 office 模块时整块不出现。 -->
+      </section>
+      <section class="works-card panel" data-view-panel="works" hidden>
+        <div class="panel-title-row"><div><div class="eyebrow">手艺与作品</div><h3>亲手留下的东西</h3></div></div>
+        <div id="workshopWorks" class="workshop-works"></div>
+      </section>
+      <section class="lineage-card panel" data-view-panel="family" hidden>
+        <div class="panel-title-row"><div><div class="eyebrow">家族</div><h3>时间不会从你开始</h3></div><span class="subtle" id="lineageLabel">第一代</span></div>
+        <div class="family-tree" id="familyTree"></div>
+        <div id="familyHandoff" class="family-handoff"></div>
+      </section>
+      <section class="world-card panel" data-view-panel="world" hidden>
+        <div class="panel-title-row"><div><div class="eyebrow">世界</div><h3>你之外的生活</h3></div><span class="world-pulse">● 世界仍在运行</span></div>
+        <div class="world-metrics">
+          <div><strong id="worldPeople">0</strong><span>仍在生活的人</span></div>
+          <div><strong id="worldCommunities">0</strong><span>持续存在的聚落</span></div>
+          <div><strong id="worldRecords">0</strong><span>进入历史的事件</span></div>
+        </div>
+        <p class="world-note">你的视野只是世界的一小部分。并不是所有事情，你都会知道。</p>
+        <div class="world-mood">
+          <span>时代脉搏</span>
+          <strong id="worldPulse">聚落缓慢生长</strong>
+          <small id="worldPulseNote">亲族与技艺维系着共同体的日常。</small>
+        </div>
+        <div class="world-era-context">
+          <span>时代环境 · <b id="worldEraLabel">夏</b></span>
+          <div class="era-chips" id="worldEraChips"></div>
+          <small id="worldEraNote">这是此时常见的生活背景，不代表每个人都掌握全部技艺。</small>
+        </div>
+        <div class="world-historical-people">
+          <span>时代人物</span>
+          <div class="historical-people" id="worldHistoricalPeople"></div>
+          <small id="worldHistoricalPeopleNote">人物出现不等于被后世记住；名望仍取决于作品、证据与传播。</small>
+        </div>
+        <div class="world-knowledge">
+          <span>文明认知</span>
+          <div class="knowledge-chips" id="worldKnowledge"></div>
+          <small id="worldKnowledgeNote">这是文明已经理解的世界，不等于世界全部的真相。</small>
+        </div>
+        <div class="world-intellectual">
+          <span>思想与学派</span>
+          <div class="tradition-list" id="worldTraditions"></div>
+          <small id="worldTraditionNote">有些想法会随着人离开，有些会被别人继续讲下去。</small>
+        </div>
+        <div class="world-history-memory">
+          <span>流传中的历史</span>
+          <div class="memory-traces" id="worldHistoryWorks"></div>
+          <small id="worldHistoryNote">没有证据留下时，过去也会变得安静。</small>
+        </div>
+        <div class="world-notables">
+          <span>后世仍记得的人</span>
+          <div class="notable-people" id="worldNotablePeople"></div>
+        </div>
+      </section>
+    </section>
+    </div>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="modal-backdrop" id="menuModal" hidden>
+    <section class="modal menu-modal">
+      <div class="menu-heading"><h2>人生与世界</h2><button id="closeMenu" aria-label="关闭菜单">×</button></div>
+      <div class="menu-links">
+        <button id="memoryButtonMenu" data-control="memoryButton">保存与读取</button>
+        <button id="autoButtonMenu" data-control="autoButton">时间与日程</button>
+        <button data-route="family">家族谱</button>
+        <button data-route="history">记忆与历史</button>
+        <button data-route="world">时代与世界</button>
+        <button data-route="map">地图与地点</button>
+        <button data-route="codex">图鉴</button>
+        <button data-route="modules">模块管理</button>
+        <button type="button" data-coach-reopen>新手引导</button>
+        <button data-route="home">返回主菜单</button>
+        <button data-control="resetButton">开启新人生</button>
+      </div>
+      <div class="menu-settings">
+        <div class="menu-section-title">显示</div>
+        <div class="setting-row">
+          <div><strong>版式</strong><small id="layoutHint">跟随窗口宽度</small></div>
+          <button id="layoutButton" class="segmented" type="button"><span id="layoutLabel">跟随窗口</span></button>
+        </div>
+        <div class="setting-row">
+          <div><strong>玩法</strong><small>文字人生：像读一本自己写的书；地图：在像素村子里走动；经典页面：原来的卡片页。点一下换一种（会刷新）</small></div>
+          <button id="mapModeButton" class="segmented" type="button"><span id="mapModeLabel">文字人生</span></button>
+        </div>
+        <div class="setting-row">
+          <div><strong>画面</strong><small>纯文字更省电、读得更快；画面模式显示场景插画与氛围动效</small></div>
+          <button id="viewModeButton" class="segmented" type="button"><span id="viewModeLabel">文字</span></button>
+        </div>
+        <div class="setting-row">
+          <div><strong>深色</strong><small>夜里看屏幕更舒服；也可跟随系统</small></div>
+          <button id="themeButtonMenu" class="segmented" type="button"><span id="themeLabel">跟随系统</span></button>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="modal-backdrop" id="autoModal" hidden>
+    <section class="modal">
+      <div class="eyebrow">时间前行</div>
+      <h2>把一小段人生交给时间</h2>
+      <p>你可以按日程自动吃饭、劳动、休息，或只让世界时间持续前进。角色仍需真实食物与正确地点，遇到阻碍会暂停；随时可以接管。</p>
+      <div class="daily-plan-editor">
+        <strong>我的日程清单</strong>
+        <p>按顺序执行；村内步行每次花 1 格活动时间。跨村旅行仍按旧规则，制陶重要决定由玩家亲自完成。</p>
+        <div id="planSteps" aria-label="日程步骤"></div>
+        <button type="button" class="ghost-button" id="addPlanStep">＋ 添加活动</button>
+        <label class="plan-check"><input type="checkbox" id="planRepeat" checked /> 每天重复</label>
+        <div class="plan-actions">
+          <button type="button" class="action-button gold" id="saveDailyPlan">保存并启用日程</button>
+          <button type="button" class="action-button quiet" id="disableDailyPlan">暂停日程安排</button>
+        </div>
+        <p id="dailyPlanStatus" role="status" aria-live="polite">未安排日程</p>
+      </div>
+      <label for="autoSpeed">持续运行速度</label>
+      <select id="autoSpeed"><option value="1">慢 · 每批 1 天</option><option value="3" selected>正常 · 每批 3 天</option><option value="5">快 · 每批 5 天</option></select>
+      <p id="autoRunStatus" role="status" aria-live="polite">当前已暂停</p>
+      <div class="modal-actions">
+        <button class="action-button gold" id="startContinuousAuto">▶ 开始持续生活</button>
+        <button class="action-button quiet" data-auto="year">流逝一年</button>
+        <button class="action-button gold" data-auto="milestone">等到孩子成年 · 最多二十年</button>
+        <button class="ghost-button" id="closeAuto">取消</button>
+      </div>
+    </section>
+  </div>
+  <div class="modal-backdrop" id="memoryModal" hidden>
+    <section class="modal memory-modal">
+      <div class="eyebrow">人生记忆</div>
+      <h2>把这一刻留下来</h2>
+      <p>保存的是完整世界、关系与历史。以后回来时，时间会从同一个地方继续。</p>
+      <p class="memory-health" id="memoryHealth" hidden></p>
+      <div class="memory-slots">
+        <article class="memory-slot auto-slot" data-memory-slot="auto">
+          <div>
+            <strong>最近的记忆</strong>
+            <span class="memory-slot-copy">每次选择后自动留下</span>
+            <small class="memory-slot-meta" data-slot-meta="auto">还没有自动记忆</small>
+          </div>
+          <button class="ghost-button compact" data-load-slot="auto" disabled>回到这里</button>
+        </article>
+        <article class="memory-slot" data-memory-slot="manual-1">
+          <div><strong>记忆一</strong><small class="memory-slot-meta" data-slot-meta="manual-1">这里还是空的</small></div>
+          <div class="slot-actions">
+            <button class="ghost-button compact" data-save-slot="manual-1">留住此刻</button>
+            <button class="ghost-button compact" data-load-slot="manual-1" disabled>回到这里</button>
+          </div>
+        </article>
+        <article class="memory-slot" data-memory-slot="manual-2">
+          <div><strong>记忆二</strong><small class="memory-slot-meta" data-slot-meta="manual-2">这里还是空的</small></div>
+          <div class="slot-actions">
+            <button class="ghost-button compact" data-save-slot="manual-2">留住此刻</button>
+            <button class="ghost-button compact" data-load-slot="manual-2" disabled>回到这里</button>
+          </div>
+        </article>
+        <article class="memory-slot" data-memory-slot="manual-3">
+          <div><strong>记忆三</strong><small class="memory-slot-meta" data-slot-meta="manual-3">这里还是空的</small></div>
+          <div class="slot-actions">
+            <button class="ghost-button compact" data-save-slot="manual-3">留住此刻</button>
+            <button class="ghost-button compact" data-load-slot="manual-3" disabled>回到这里</button>
+          </div>
+        </article>
+      </div>
+      <button class="ghost-button memory-close" id="closeMemory">回到此刻</button>
+    </section>
+  </div>
+  <div class="modal-backdrop" id="newLifeModal" hidden>
+    <section class="modal new-life-modal">
+      <div class="eyebrow">新的开始</div>
+      <h2>你的人生，从这里开始</h2>
+      <p>目前可进入早期聚落，在十六岁开始独立生活。手艺、相处与家族是已开放的活动。你可以按自己的顺序探索。</p>
+      <form id="newLifeForm" class="new-life-form">
+        <div class="field-row">
+          <label>
+            <span>名字</span>
+            <input id="newGivenName" name="givenName" maxlength="24" value="启" autocomplete="off" />
+          </label>
+          <label>
+            <span>姓氏</span>
+            <input id="newFamilyName" name="familyName" maxlength="24" value="禾" autocomplete="off" />
+          </label>
+        </div>
+        <label>
+          <span>出生聚落</span>
+          <select id="newCity" name="cityId">
+            <option value="modern:city:north">北岸聚落</option>
+            <option value="modern:city:south">南丘聚落</option>
+          </select>
+        </label>
+        <label>
+          <span>出身</span>
+          <select id="newOrigin" name="originId"><option value="random">随缘（按人生编号抽取出身与天赋）</option></select>
+          <small id="newOriginStory">你从哪里来，决定了手里带着什么、村里谁已经认得你。</small>
+        </label>
+        <fieldset id="newTalents" class="new-talents">
+          <legend>天赋 <small>选一到两个；选「随缘」时由人生编号决定</small></legend>
+          <div id="newTalentList" class="talent-list"></div>
+        </fieldset>
+        <label>
+            <span>这段人生的编号</span>
+          <input id="newSeed" name="seed" type="number" min="0" max="4294967295" value="104" />
+          <small>相同种子与相同选择，会得到可复现的世界。</small>
+        </label>
+        <div class="modal-actions form-actions">
+          <button class="action-button ink" type="submit">开始这段人生</button>
+          <button class="ghost-button" type="button" id="closeNewLife">留在现在</button>
+        </div>
+      </form>
+    </section>
+  </div>
+  <script type="module" src="/app.js"></script>
+  <script type="module" src="/ui-polish.js"></script>
+
+  <div class="sound-panel" id="soundPanel" role="dialog" aria-label="声音设置" hidden>
+    <div class="sound-head"><strong>声音</strong><span id="soundStatus">关闭</span></div>
+    <div class="sound-modes" role="radiogroup" aria-label="声音模式">
+      <button type="button" role="radio" data-sound-mode="music"><span class="sm-icon"></span><b>舒缓音乐</b><small>笛声与当地环境声</small></button>
+      <button type="button" role="radio" data-sound-mode="noise"><span class="sm-icon"></span><b>白噪音</b><small>像远处的细雨</small></button>
+      <button type="button" role="radio" data-sound-mode="off"><span class="sm-icon"></span><b>关闭</b><small>保持安静</small></button>
+    </div>
+    <label class="sound-volume"><span>音量</span><input id="soundVolume" type="range" min="0" max="100" step="1" /></label>
+  </div>
+  <script type="module" src="/outlook-ux.js"></script>
+  <script type="module" src="/scene-ux.js"></script>
+</body></html>

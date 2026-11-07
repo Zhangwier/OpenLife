@@ -525,14 +525,15 @@ function composeWorld(seed, tiles, maps) {
 // Queries used by the game: where you can stand, how far you get in a straight line, how villagers walk.
 // ---------------------------------------------------------------------------
 /** Dry ground — or something built over the water that you can stand on (a pier, a ship's deck): m.decks = [{x, y, w, h}]. */
-export function walkable(m, x, y) {
-  if (m.blocks?.some((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h)) return false;   // house walls
-  if (m.decks?.some((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h)) return true;
-  if (!(x >= 0 && y >= 0 && x < m.W && y < m.H)) return false;
+export function terrainBlock(m, x, y) {
+  if (m.blocks?.some((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h)) return "wall";
+  if (m.decks?.some((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h)) return null;
+  if (!(x >= 0 && y >= 0 && x < m.W && y < m.H)) return "edge";
   const i = m.idx(x, y);
-  if (m.frozen && m.water?.[i] === 1) return true;               // the lake is ice in winter: you can walk across
-  return WALK[m.cls[i]];
+  if (WALK[m.cls[i]] || (m.frozen && m.water?.[i] === 1)) return null;
+  return isRock(m.cls[i]) ? "cliff" : m.cls[i] === G.VOID ? "edge" : "water";
 }
+export const walkable = (m, x, y) => terrainBlock(m, x, y) === null;
 /** Does the segment p→q pass through a wall? (Liang–Barsky against each wall rectangle; walls are thin, so sampling misses them.) */
 function crossesWall(m, p, q) {
   if (!m.blocks?.length) return false;
@@ -553,9 +554,10 @@ export function reachAlong(m, a, b) {
   const d = Math.hypot(b.x - a.x, b.y - a.y), n = Math.ceil(d / 16);
   let last = { x: a.x, y: a.y }, onLand = walkable(m, a.x, a.y);       // starting on a boat: wade ashore first
   for (let k = 1; k <= n; k++) {
-    const p = { x: a.x + ((b.x - a.x) * k) / n, y: a.y + ((b.y - a.y) * k) / n }, ok = walkable(m, p.x, p.y) && !crossesWall(m, last, p);
-    if (!ok && onLand) return { ...last, blocked: true };
-    if (ok) onLand = true;
+    const p = { x: a.x + ((b.x - a.x) * k) / n, y: a.y + ((b.y - a.y) * k) / n };
+    const reason = crossesWall(m, last, p) ? "wall" : terrainBlock(m, p.x, p.y);
+    if (reason === "wall" || (reason && (onLand || k === n))) return { ...last, blocked: true, reason };
+    if (!reason) onLand = true;
     last = p;
   }
   return { ...last, blocked: false };
@@ -564,6 +566,7 @@ const clear = (m, a, b) => !reachAlong(m, a, b).blocked;
 /** A villager's way from a to b: along roads where they can, round water and cliffs. Waypoints in world px. */
 /** opts.wary: someone who knows the jungle is dangerous — goes a long way round rather than through it. */
 export function findPath(m, a, b, opts = {}) {
+  if (!walkable(m, b.x, b.y)) return null;
   const inJungle = (p) => m.jungle?.[m.idx(p.x, p.y)] === 1;
   const wary = opts.wary && !inJungle(a) && !inJungle(b);
   const clear = (p, q) => {
@@ -600,6 +603,11 @@ export function findPath(m, a, b, opts = {}) {
   const pts = p.map((i) => ({ x: m.X(i), y: m.Y(i) }));
   pts[pts.length - 1] = b;
   const out = []; let cur = a, k = 0;                                          // string-pull: skip waypoints you can see past
-  while (k < pts.length) { let far = k; while (far + 1 < pts.length && clear(cur, pts[far + 1]) && far - k < 14) far++; out.push(pts[far]); cur = pts[far]; k = far + 1; }
+  while (k < pts.length) {
+    let far = k;
+    if (!clear(cur, pts[far])) return null;
+    while (far + 1 < pts.length && clear(cur, pts[far + 1]) && far - k < 14) far++;
+    out.push(pts[far]); cur = pts[far]; k = far + 1;
+  }
   return out;
 }

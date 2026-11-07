@@ -1,0 +1,16 @@
+{
+  "name": "@openlife/module-polity-bondage",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*"
+  },
+  "openlife": {
+    "label": "债役",
+    "summary": "可单独关闭。欠债还不上可能沦为债役；会有怨恨、逃亡，最终可能被废除。"
+  }
+}

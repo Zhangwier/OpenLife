@@ -1,0 +1,55 @@
+# 十二个地点，每区四个。type 即地形。
+locations:
+  # N01 栗林北坡：走廊口往北的第一片林子，秋天满地栗子
+  - id: N0101
+    name: 走廊北口
+    region_id: N01
+    type: slope
+  - id: N0102
+    name: 老栗树林
+    region_id: N01
+    type: chestnut_grove
+  - id: N0103
+    name: 鹿饮洼
+    region_id: N01
+    type: waterhole
+  - id: N0104
+    name: 野猪拱地
+    region_id: N01
+    type: rooting_ground
+
+  # N02 上游石滩：河流出山的地方，卵石里藏着燧石
+  - id: N0201
+    name: 卵石滩
+    region_id: N02
+    type: cobble_bar
+  - id: N0202
+    name: 打石崖下
+    region_id: N02
+    type: knapping_cliff
+  - id: N0203
+    name: 鳖潭
+    region_id: N02
+    type: deep_pool
+  - id: N0204
+    name: 獭洲
+    region_id: N02
+    type: river_islet
+
+  # N03 雾岭：常年起雾的高岭，猎人很少独自进去
+  - id: N0301
+    name: 雾岭口
+    region_id: N03
+    type: ridge
+  - id: N0302
+    name: 雷劈树
+    region_id: N03
+    type: lightning_tree
+  - id: N0303
+    name: 狼窝坡
+    region_id: N03
+    type: wolf_den
+  - id: N0304
+    name: 北岭垭口
+    region_id: N03
+    type: pass

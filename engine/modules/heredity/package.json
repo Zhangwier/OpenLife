@@ -1,0 +1,16 @@
+{
+  "name": "@openlife/module-heredity",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*"
+  },
+  "openlife": {
+    "label": "禀赋",
+    "summary": "基因决定力气、手巧、悟性等的上限，实际能到多少看吃饭、练习和师承；近亲通婚有代价。"
+  }
+}

@@ -1,0 +1,43 @@
+# Three boundary anchors, chosen to exercise every Handshake outcome:
+#
+#   WEST_RIVER_IN      west / river_inlet  -> the one that matches Xia's
+#                                             EAST_RIVER_OUT (river_outlet, east).
+#   WEST_LAND_GATE     west / land_corridor -> faces the same edge as the river
+#                                             anchor, but is a different type, so
+#                                             it must be rejected, not guessed.
+#   EAST_HIGHLAND_EDGE east / highland_continuity -> faces away from Xia entirely.
+#
+# `accepts_types` narrows who may meet whom. Xia's EAST_RIVER_OUT accepts
+# river_inlet; our WEST_LAND_GATE accepts land_corridor. The two west anchors
+# are therefore never candidates for the same partner.
+boundary_anchors:
+  - id: WEST_RIVER_IN
+    type: river_inlet
+    location_id: E0101
+    edge: west
+    compatibility_tags:
+      - river
+      - upstream
+    accepts_types:
+      - river_outlet
+
+  - id: WEST_LAND_GATE
+    type: land_corridor
+    location_id: E0104
+    edge: west
+    compatibility_tags:
+      - land
+      - corridor
+      - overland
+    accepts_types:
+      - land_corridor
+
+  - id: EAST_HIGHLAND_EDGE
+    type: highland_continuity
+    location_id: E0202
+    edge: east
+    compatibility_tags:
+      - highland
+      - continuity
+    accepts_types:
+      - highland_continuity

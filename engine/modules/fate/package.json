@@ -1,0 +1,16 @@
+{
+  "name": "@openlife/module-fate",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*"
+  },
+  "openlife": {
+    "label": "天命",
+    "summary": "默认只旁观。可以轻轻拨动概率：降生一个天才、让某个念头更容易冒出来、安排一次见闻；每次拨动都记在日志里，可重放。"
+  }
+}

@@ -1,0 +1,800 @@
+{
+  "formatVersion": 1,
+  "note": "发明图。藏着的发明在条件满足时才可能被想到。grants 是能力，effects 是生产系数（乘法）。",
+  "inventions": [
+    {
+      "id": "invention:pry-bar",
+      "name": "撬棍",
+      "kind": "tool",
+      "era": "village",
+      "blurb": "一根硬木长杆，垫块石头，一个人能撬动三个人搬不动的石头。",
+      "answers": [
+        "need:move-heavy"
+      ],
+      "difficulty": 25,
+      "principles": [
+        "theory:leverage"
+      ],
+      "requires": {
+        "materials": [
+          "resource:timber"
+        ],
+        "inventions": [],
+        "capabilities": [],
+        "institutions": []
+      },
+      "grants": [
+        "cap:lever-tools"
+      ],
+      "effects": {
+        "build": 1.1
+      }
+    },
+    {
+      "id": "invention:rollers",
+      "name": "滚木",
+      "kind": "tool",
+      "era": "village",
+      "blurb": "大石头底下垫几根圆木，推着滚过去。",
+      "answers": [
+        "need:move-heavy"
+      ],
+      "difficulty": 35,
+      "principles": [
+        "theory:leverage"
+      ],
+      "requires": {
+        "materials": [
+          "resource:timber"
+        ],
+        "inventions": [],
+        "capabilities": [],
+        "institutions": []
+      },
+      "grants": [],
+      "effects": {
+        "build": 1.15
+      }
+    },
+    {
+      "id": "invention:shadoof",
+      "name": "桔槔",
+      "kind": "tool",
+      "era": "village",
+      "blurb": "一根长杆架在木桩上，一头绑石一头挂桶，打水省一半力。",
+      "answers": [
+        "need:lift-water"
+      ],
+      "difficulty": 60,
+      "principles": [
+        "theory:leverage"
+      ],
+      "requires": {
+        "materials": [
+          "resource:timber",
+          "resource:rope",
+          "resource:stone"
+        ],
+        "inventions": [],
+        "capabilities": [],
+        "institutions": []
+      },
+      "grants": [],
+      "effects": {
+        "water": 1.5,
+        "harvest": 1.04
+      }
+    },
+    {
+      "id": "invention:treadle-pestle",
+      "name": "踏碓",
+      "kind": "tool",
+      "era": "village",
+      "blurb": "脚踩杆子一头，另一头的杵起落舂米。",
+      "answers": [
+        "need:grind-grain"
+      ],
+      "difficulty": 55,
+      "principles": [
+        "theory:leverage"
+      ],
+      "requires": {
+        "materials": [
+          "resource:timber",
+          "resource:stone"
+        ],
+        "inventions": [
+          "invention:pry-bar"
+        ],
+        "capabilities": [],
+        "institutions": []
+      },
+      "grants": [],
+      "effects": {
+        "harvest": 1.04
+      }
+    },
+    {
+      "id": "invention:carry-pole",
+      "name": "扁担",
+      "kind": "tool",
+      "era": "village",
+      "blurb": "一根削平的竹木，两头挂筐，挑着走。",
+      "answers": [
+        "need:carry-loads"
+      ],
+      "difficulty": 20,
+      "principles": [
+        "theory:leverage"
+      ],
+      "requires": {
+        "materials": [
+          "resource:timber"
+        ],
+        "inventions": [],
+        "capabilities": [],
+        "institutions": []
+      },
+      "grants": [],
+      "effects": {
+        "carry": 1.2,
+        "harvest": 1.02
+      }
+    },
+    {
+      "id": "invention:quern",
+      "name": "石磨盘",
+      "kind": "tool",
+      "era": "village",
+      "blurb": "两块石头，一块凹一块凸，来回推着磨粟。",
+      "answers": [
+        "need:grind-grain"
+      ],
+      "difficulty": 40,
+      "principles": [],
+      "requires": {
+        "materials": [
+          "resource:stone"
+        ],
+        "inventions": [],
+        "capabilities": [],
+        "institutions": []
+      },
+      "grants": [],
+      "effects": {
+        "harvest": 1.03
+      }
+    },
+    {
+      "id": "invention:flood-marks",
+      "name": "刻木记水",
+      "kind": "technique",
+      "era": "village",
+      "blurb": "每次涨水在木桩上刻一道，几年下来就看出了规律。",
+      "answers": [
+        "need:protect-from-flood",
+        "need:know-season"
+      ],
+      "difficulty": 30,
+      "principles": [
+        "theory:flood-follows-stars"
+      ],
+      "requires": {
+        "materials": [
+          "resource:timber"
+        ],
+        "inventions": [],
+        "capabilities": [],
+        "institutions": []
+      },
+      "grants": [
+        "cap:tally-marks"
+      ],
+      "effects": {
+        "observation": 1.5
+      }
+    },
+    {
+      "id": "invention:earth-levee",
+      "name": "土堤",
+      "kind": "structure",
+      "era": "village",
+      "blurb": "在河边挑土夯一道堤，涨水时挡一挡。",
+      "answers": [
+        "need:protect-from-flood"
+      ],
+      "difficulty": 30,
+      "principles": [],
+      "requires": {
+        "materials": [],
+        "inventions": [],
+        "capabilities": [],
+        "institutions": []
+      },
+      "grants": [
+        "cap:earthworks"
+      ],
+      "effects": {
+        "floodDamage": 0.6
+      }
+    },
+    {
+      "id": "invention:granary-pit",
+      "name": "粮窖",
+      "kind": "structure",
+      "era": "village",
+      "blurb": "挖深坑，底下烧干、铺草木灰，粟放进去一冬不坏。",
+      "answers": [
+        "need:preserve-food"
+      ],
+      "difficulty": 45,
+      "principles": [
+        "theory:dry-heat-keeps"
+      ],
+      "requires": {
+        "materials": [],
+        "inventions": [],
+        "capabilities": [],
+        "institutions": []
+      },
+      "grants": [
+        "cap:storage"
+      ],
+      "effects": {
+        "spoilage": 0.35
+      }
+    },
+    {
+      "id": "invention:salt-fish",
+      "name": "盐腌",
+      "kind": "technique",
+      "era": "village",
+      "blurb": "鱼肉抹盐码进罐里，能放到开春。",
+      "answers": [
+        "need:preserve-food"
+      ],
+      "difficulty": 40,
+      "principles": [
+        "theory:dry-heat-keeps"
+      ],
+      "requires": {
+        "materials": [
+          "resource:salt"
+        ],
+        "inventions": [],
+        "capabilities": [],
+        "institutions": []
+      },
+      "grants": [],
+      "effects": {
+        "spoilage": 0.8
+      }
+    },
+    {
+      "id": "invention:smoking",
+      "name": "烟熏",
+      "kind": "technique",
+      "era": "village",
+      "blurb": "肉挂在灶上让烟熏着，又干又香。",
+      "answers": [
+        "need:preserve-food"
+      ],
+      "difficulty": 35,
+      "principles": [
+        "theory:dry-heat-keeps"
+      ],
+      "requires": {
+        "materials": [],
+        "inventions": [],
+        "capabilities": [],
+        "institutions": []
+      },
+      "grants": [],
+      "effects": {
+        "spoilage": 0.85
+      }
+    },
+    {
+      "id": "invention:closed-kiln",
+      "name": "封窑",
+      "kind": "structure",
+      "era": "village",
+      "blurb": "把窑封起来烧，火更旺更匀。",
+      "answers": [
+        "need:better-pots"
+      ],
+      "difficulty": 55,
+      "principles": [
+        "theory:slow-fire"
+      ],
+      "requires": {
+        "materials": [
+          "resource:clay"
+        ],
+        "inventions": [],
+        "capabilities": [
+          "cap:pottery"
+        ],
+        "institutions": []
+      },
+      "grants": [
+        "cap:high-fire"
+      ],
+      "effects": {
+        "pottery": 1.3
+      }
+    },
+    {
+      "id": "invention:boiling-water",
+      "name": "喝开水",
+      "kind": "custom",
+      "era": "village",
+      "blurb": "水烧开了再喝。",
+      "answers": [
+        "need:cure-sickness"
+      ],
+      "difficulty": 30,
+      "principles": [
+        "theory:foul-water"
+      ],
+      "requires": {
+        "materials": [],
+        "inventions": [],
+        "capabilities": [
+          "cap:pottery"
+        ],
+        "institutions": []
+      },
+      "grants": [],
+      "effects": {
+        "illness": 0.65
+      }
+    },
+    {
+      "id": "invention:well",
+      "name": "井",
+      "kind": "structure",
+      "era": "village",
+      "blurb": "挖到地下水，围上木框，水比河水干净。",
+      "answers": [
+        "need:cure-sickness",
+        "need:lift-water"
+      ],
+      "difficulty": 50,
+      "principles": [
+        "theory:foul-water"
+      ],
+      "requires": {
+        "materials": [
+          "resource:timber",
+          "resource:stone"
+        ],
+        "inventions": [],
+        "capabilities": [],
+        "institutions": []
+      },
+      "grants": [],
+      "effects": {
+        "illness": 0.85,
+        "water": 1.2
+      }
+    },
+    {
+      "id": "invention:fallow-rotation",
+      "name": "轮作休耕",
+      "kind": "technique",
+      "era": "village",
+      "blurb": "地分几块轮着种，每年歇一块。",
+      "answers": [
+        "need:more-grain"
+      ],
+      "difficulty": 50,
+      "principles": [
+        "theory:land-rest"
+      ],
+      "requires": {
+        "materials": [],
+        "inventions": [],
+        "capabilities": [],
+        "institutions": []
+      },
+      "grants": [
+        "cap:fallow"
+      ],
+      "effects": {
+        "harvest": 1.12
+      }
+    },
+    {
+      "id": "invention:ash-manure",
+      "name": "草木灰肥田",
+      "kind": "technique",
+      "era": "village",
+      "blurb": "烧荒的灰撒回地里，苗长得旺。",
+      "answers": [
+        "need:more-grain"
+      ],
+      "difficulty": 35,
+      "principles": [
+        "theory:land-rest"
+      ],
+      "requires": {
+        "materials": [],
+        "inventions": [],
+        "capabilities": [],
+        "institutions": []
+      },
+      "grants": [],
+      "effects": {
+        "harvest": 1.08
+      }
+    },
+    {
+      "id": "invention:calendar-stick",
+      "name": "立竿测影",
+      "kind": "technique",
+      "era": "village",
+      "blurb": "立一根竿，量日影，数着日子定农时。",
+      "answers": [
+        "need:know-season"
+      ],
+      "difficulty": 60,
+      "principles": [
+        "theory:solar-terms",
+        "theory:flood-follows-stars"
+      ],
+      "requires": {
+        "materials": [
+          "resource:timber"
+        ],
+        "inventions": [],
+        "capabilities": [
+          "cap:tally-marks"
+        ],
+        "institutions": []
+      },
+      "grants": [
+        "cap:calendar"
+      ],
+      "effects": {
+        "harvest": 1.1
+      }
+    },
+    {
+      "id": "invention:wound-washing",
+      "name": "洗伤敷药",
+      "kind": "custom",
+      "era": "village",
+      "blurb": "伤口先用开水洗净，再敷捣烂的草药。",
+      "answers": [
+        "need:cure-sickness"
+      ],
+      "difficulty": 35,
+      "principles": [
+        "theory:clean-wound"
+      ],
+      "requires": {
+        "materials": [],
+        "inventions": [],
+        "capabilities": [],
+        "institutions": []
+      },
+      "grants": [],
+      "effects": {
+        "illness": 0.85
+      }
+    },
+    {
+      "id": "invention:copper-smelting",
+      "name": "冶铜",
+      "kind": "technique",
+      "era": "chalcolithic",
+      "blurb": "绿石头和炭一起放进封窑猛烧，化出红亮的铜。",
+      "answers": [
+        "need:sharper-blade"
+      ],
+      "difficulty": 75,
+      "principles": [
+        "theory:fire-transforms"
+      ],
+      "requires": {
+        "materials": [
+          "resource:copper-ore"
+        ],
+        "inventions": [],
+        "capabilities": [
+          "cap:high-fire"
+        ],
+        "institutions": [],
+        "community": 80
+      },
+      "grants": [
+        "cap:copper"
+      ],
+      "effects": {
+        "build": 1.1
+      }
+    },
+    {
+      "id": "invention:bronze",
+      "name": "青铜",
+      "kind": "technique",
+      "era": "chalcolithic",
+      "blurb": "铜里掺锡，铸出来又硬又亮。",
+      "answers": [
+        "need:sharper-blade"
+      ],
+      "difficulty": 80,
+      "principles": [
+        "theory:fire-transforms"
+      ],
+      "requires": {
+        "materials": [
+          "resource:tin"
+        ],
+        "inventions": [
+          "invention:copper-smelting"
+        ],
+        "capabilities": [],
+        "institutions": [],
+        "community": 150
+      },
+      "grants": [
+        "cap:bronze"
+      ],
+      "effects": {
+        "harvest": 1.05,
+        "build": 1.1
+      }
+    },
+    {
+      "id": "invention:tally-tokens",
+      "name": "契刻",
+      "kind": "technique",
+      "era": "chalcolithic",
+      "blurb": "借了几斗粟，就在木片上刻几道，劈成两半各拿一半。",
+      "answers": [
+        "need:keep-records"
+      ],
+      "difficulty": 50,
+      "principles": [],
+      "requires": {
+        "materials": [
+          "resource:timber"
+        ],
+        "inventions": [],
+        "capabilities": [
+          "cap:tally-marks"
+        ],
+        "institutions": [],
+        "community": 60
+      },
+      "grants": [
+        "cap:records"
+      ],
+      "effects": {}
+    },
+    {
+      "id": "invention:writing-marks",
+      "name": "刻符记事",
+      "kind": "technique",
+      "era": "chalcolithic",
+      "blurb": "把人名、物名刻成固定的符号，别人也认得。",
+      "answers": [
+        "need:keep-records"
+      ],
+      "difficulty": 85,
+      "principles": [],
+      "requires": {
+        "materials": [],
+        "inventions": [
+          "invention:tally-tokens"
+        ],
+        "capabilities": [],
+        "institutions": [],
+        "community": 300
+      },
+      "grants": [
+        "cap:writing"
+      ],
+      "effects": {
+        "observation": 2
+      }
+    },
+    {
+      "id": "invention:ox-plough",
+      "name": "牛耕",
+      "kind": "technique",
+      "era": "chalcolithic",
+      "blurb": "让牛拉着犁翻地。",
+      "answers": [
+        "need:more-grain"
+      ],
+      "difficulty": 65,
+      "principles": [],
+      "requires": {
+        "materials": [
+          "resource:ox"
+        ],
+        "inventions": [],
+        "capabilities": [
+          "cap:copper"
+        ],
+        "institutions": [],
+        "community": 100
+      },
+      "grants": [
+        "cap:draft-animals"
+      ],
+      "effects": {
+        "harvest": 1.3
+      }
+    },
+    {
+      "id": "invention:wheel",
+      "name": "车轮",
+      "kind": "tool",
+      "era": "chalcolithic",
+      "blurb": "把圆木切成轮子，装上轴，推着走。",
+      "answers": [
+        "need:carry-loads",
+        "need:move-heavy"
+      ],
+      "difficulty": 70,
+      "principles": [
+        "theory:leverage"
+      ],
+      "requires": {
+        "materials": [
+          "resource:timber"
+        ],
+        "inventions": [
+          "invention:rollers"
+        ],
+        "capabilities": [],
+        "institutions": [],
+        "community": 120
+      },
+      "grants": [
+        "cap:wheel"
+      ],
+      "effects": {
+        "carry": 1.3
+      }
+    },
+    {
+      "id": "invention:iron-smelting",
+      "name": "冶铁",
+      "kind": "technique",
+      "era": "iron",
+      "blurb": "铁矿要比铜更猛的火，鼓风才化得开。",
+      "answers": [
+        "need:sharper-blade",
+        "need:more-grain"
+      ],
+      "difficulty": 85,
+      "principles": [
+        "theory:fire-transforms"
+      ],
+      "requires": {
+        "materials": [
+          "resource:iron-ore"
+        ],
+        "inventions": [
+          "invention:bronze"
+        ],
+        "capabilities": [
+          "cap:high-fire"
+        ],
+        "institutions": [],
+        "community": 500
+      },
+      "grants": [
+        "cap:iron"
+      ],
+      "effects": {
+        "harvest": 1.15,
+        "build": 1.2
+      }
+    },
+    {
+      "id": "invention:workshop-division",
+      "name": "作坊分工",
+      "kind": "custom",
+      "era": "iron",
+      "blurb": "几十个工匠在一处，一人只做一道工序。",
+      "answers": [
+        "need:more-power"
+      ],
+      "difficulty": 70,
+      "principles": [],
+      "requires": {
+        "materials": [],
+        "inventions": [],
+        "capabilities": [
+          "cap:writing"
+        ],
+        "institutions": [
+          "institution:specialist-crafts"
+        ],
+        "community": 1500
+      },
+      "grants": [
+        "cap:workshop"
+      ],
+      "effects": {
+        "pottery": 1.3,
+        "build": 1.2
+      }
+    },
+    {
+      "id": "invention:water-wheel",
+      "name": "水轮",
+      "kind": "tool",
+      "era": "iron",
+      "blurb": "急水推着轮子转，带动碓和磨。",
+      "answers": [
+        "need:more-power",
+        "need:grind-grain"
+      ],
+      "difficulty": 80,
+      "principles": [
+        "theory:water-force"
+      ],
+      "requires": {
+        "materials": [
+          "resource:timber"
+        ],
+        "inventions": [
+          "invention:wheel"
+        ],
+        "capabilities": [
+          "cap:iron"
+        ],
+        "institutions": [],
+        "community": 800
+      },
+      "grants": [
+        "cap:water-power"
+      ],
+      "effects": {
+        "harvest": 1.05
+      }
+    },
+    {
+      "id": "invention:steam-engine",
+      "name": "汽机",
+      "kind": "tool",
+      "era": "industrial",
+      "blurb": "烧开的汽推着铁缸里的塞子，一台顶几十个人。",
+      "answers": [
+        "need:more-power"
+      ],
+      "difficulty": 95,
+      "principles": [
+        "theory:steam-force"
+      ],
+      "requires": {
+        "materials": [
+          "resource:coal"
+        ],
+        "inventions": [
+          "invention:water-wheel"
+        ],
+        "capabilities": [
+          "cap:iron",
+          "cap:workshop"
+        ],
+        "institutions": [],
+        "community": 6000
+      },
+      "grants": [
+        "cap:steam"
+      ],
+      "effects": {
+        "build": 2,
+        "pottery": 2
+      }
+    }
+  ]
+}

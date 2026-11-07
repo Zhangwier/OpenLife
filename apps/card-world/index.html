@@ -1,19 +1,21 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
+<base href="/card-world/">
 <meta charset="utf-8" />
 <meta http-equiv="Cache-Control" content="no-store" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>开放人生 · 卡牌世界样稿 v35</title>
-<link rel="stylesheet" href="style.css?v=22" />
+<title>开放人生 · 卡牌世界</title>
+<link rel="stylesheet" href="style.css?v=29" />
 </head>
 <body>
-<main class="table" id="table" aria-label="世界：拖动空白处看地图，拖「你」走过去">
+<main class="table" id="table" aria-label="世界：点空地走过去，拖动空地移动地图">
   <div class="world" id="world">
     <canvas class="ground" id="ground"></canvas>
     <canvas class="tide" id="tide"></canvas>
     <div class="layer" id="cards"></div>
     <canvas class="fog" id="fog"></canvas>
+    <i class="route-pin" id="routePin" hidden aria-hidden="true"></i>
     <svg class="aim" id="aim"><circle id="aimRange" r="0" /><line id="aimLine" x1="0" y1="0" x2="0" y2="0" /></svg>
   </div>
   <div class="room" id="room" hidden><div class="room-world" id="roomWorld"></div></div>
@@ -23,13 +25,14 @@
 </main>
 
 <header class="hud-l">
-  <div class="clock"><i id="sun"></i><b id="season">冬</b><span class="wx" id="weather">晴</span><span id="day">第 1 天</span><em id="time">06:00</em></div>
+  <div class="clock"><i id="sun"></i><b id="season">冬</b><span class="wx" id="weather">晴</span><span id="day">第 1 天</span><em id="time">06:00</em><s class="dayline" id="dayline" aria-hidden="true"></s></div>
   <div class="speed" id="speed">
     <button data-speed="0" title="暂停（空格）">❚❚</button>
     <button data-speed="1" class="on" title="正常">▶</button>
     <button data-speed="2" title="快">▶▶</button>
     <button data-speed="4" title="很快">▶▶▶</button>
   </div>
+  <div class="goal" id="goal" hidden><b id="goalHead">下一步</b><span id="goalText"></span><button id="goalSkip" title="不用引导了" aria-label="跳过引导">✕</button></div>
 </header>
 <nav class="hud-r">
   <button id="zoomOut" title="缩小">－</button>
@@ -37,7 +40,9 @@
   <button id="findMe" title="回到自己身边">◎</button>
   <button id="craftBook" title="你会的手艺">✎</button>
   <button id="villageBtn" title="村子：成长、村里的人、村史">村</button>
-  <button id="help" title="怎么玩">?</button>
+  <button id="logBtn" title="最近发生的事">记</button>
+  <button id="soundBtn" title="声音">♪</button>
+  <button id="help" title="操作与存档">?</button>
 </nav>
 <section class="me" id="me" aria-label="你">
   <button class="me-face" id="meFace" title="点一下：接着做刚才那件事"></button>
@@ -49,34 +54,36 @@
   <button class="party-toggle" id="partyToggle" title="听你安排的人和狗：点一下展开" hidden></button>
 </section>
 <div class="party" id="party" hidden></div>
-<button class="auto-me on" id="autoMe" title="闲着会自己找事做（点一下关掉）">⟳</button>
+<button class="auto-me" id="autoMe" title="立即自动行动" aria-label="自动行动" aria-pressed="false">⟳</button>
 <div class="detail" id="detail" hidden></div>
 <div class="crafts-book" id="crafts" hidden></div>
 <div class="crafts-book village-book" id="villageBook" hidden></div>
 <div class="namer" id="namer" hidden><b>给它起个名字</b><input id="nameInput" maxlength="12" /><button class="act" id="nameOk">就叫这个</button></div>
 <div class="banner" id="banner" hidden></div>
 <div class="toast" id="toast"></div>
+<div class="crafts-book log-book" id="logBook" hidden></div>
+<div class="crafts-book sound-book" id="soundBook" hidden></div>
+<div class="title" id="title" hidden>
+  <div class="title-card">
+    <h1>开放人生</h1>
+    <p class="title-sub">河谷里，一户人家的几代人</p>
+    <p class="title-note" id="titleNote"></p>
+    <button class="title-go" id="titleGo">继续</button>
+    <button id="titleNew">新的一生</button>
+    <button id="titleHelp">怎么玩</button>
+  </div>
+</div>
 <div class="helpbox" id="helpbox" hidden>
-  <b>怎么玩</b>
-  <p>直接拖<em>「你」</em>走过去，一次最远走到亮圈的边上；放到一张牌上就和它一起做事。走路要花时间。拖动空白处挪地图，滚轮缩放。迷雾里没去过的地方，走过去才看得见。</p>
-  <p>一天大约 3 分钟。「饱」一顿能顶三天左右，饿了走不远、干活慢；「力」干活会耗，晚上回院子里的铺位睡一觉就满。点你身上带的吃的可以直接吃。空格暂停。</p>
-  <p>世界由几块地拼成：中间是家（陶家主屋，围墙南边开门，走进院子才看得见里面）；左下是农田；下面是湖；左上是森林，再往里是森林深处——老虎的地盘；上面是高原，崖太陡，得先做出攀爬的工具才上得去（还没定）；右边是大山，山脚有条矿道，走进去才看得见里面，石壁上能挖石头，石缝里有燧石。</p>
-  <p>家里两个人：陶婶管公灶，从公仓取粟煮饭，锅满了就去湖边捞鱼；阿三种地，春天下种、春夏锄草、秋天收粟背去公仓。他们会歇晌、发呆、凑在一起说两句；说的话会在右上角弹出来。晚上回院子坐火塘边，再上铺位睡觉，手上的东西先放下；天亮从院门走出来。</p>
-  <p>田：春天带 1 份粟播种，春夏锄草长势（石锄一次 +2），长势满 3 等秋天收，一块 6 份粟；入冬还没收的就烂在地里。开荒：✎ 里点「选块草地开荒」，带着石锄在草地上开 6 小时。</p>
-  <p>树给的是木头：带回火塘，带石斧劈成柴。在火塘边打石斧、燧石刀、石锄、石锤、搓麻绳；工具会用坏。工具可以放在干活的地方（石斧放栗子树、渔网放湖边、石锄放田里、石锤放矿道石壁），谁来干活都算有工具。</p>
-  <p>手艺要会才做得快：✎ 看你会的手艺和记得多牢，不用的一周左右就忘。不会的点开村民按「请教」（每人每天教一样），也可以带齐东西自己琢磨——慢一倍，还不一定成。</p>
-  <p>人：点开陶婶或阿三，可以「聊聊」「问问近况」。他们会托你办事（答应了左下角会记着期限，按时把东西拖给他们就算办成；失约他们会记住）。把东西拖到人身上就是送礼：各人有爱的、不爱要的，同样的东西接连送就不稀罕了，生日那天送加倍。熟了以后他们会跟你说心里话、问出他们怕什么、生日是哪天；成了朋友就愿意听你安排。</p>
-  <p>村子：右上角「村」看村子长到哪一级、还差什么、村里有谁、村史。收下头一季的粟、跟家里人都熟了，村子就「落脚」，外乡人会陆续来投奔（打鱼的阿罟、割苇的阿苇；安顿以后还有打石头的阿砺）。来人要有地方睡：院里的铺位睡四个，再多就得盖窝棚（✎ 里打地基：木头 4、芦苇 4、麻绳 1）。春天第一天、秋天第三天、冬天第三天是节日，傍晚大家聚到公灶边，你在场就一起过。</p>
-  <p>天和地：雨天庄稼自己长一点；夏天连晴三天就旱了，没锄过的田会掉长势；春天连下两天雨湖水上涨，芦苇荡、鸭窝、黏土坑泡在水里，水退了才能去。鱼、肉、野果放两天就坏（夏天一天），烤过的、装罐的能放久一点，粟不坏；夏天灶上的熟食也会馊。冬夜别在野外待着——离火远、没火把，冻久了会病一天半（在院里火边睡一觉好得快）。动物春夏下崽，打光了就没了，要过很久才有别处的来。老虎惹不起，只能拿火把逼开。</p>
-  <p>知道与发明：东西老放坏、湖水漫岸、地烂在地里、冻病……这些事一多，村里人会琢磨出说法——有的说对了（湿热则腐、水候、日影一年一轮），有的是错的（沾了晦气、湖神发怒），错的会变成规矩（挂符、祭湖）。说对了、又正好发愁，就会有人想到新东西：粮窖（公仓多存 10 份）、烟熏（两条鱼或两块肉加柴，放十来天不坏）、刻木记水（放在湖边，涨水前一天报信）、立竿测影（季节旁显示还有几天换季）。去请教想到它的人就能学。都记在「村」里。</p>
-  <p>一生：游戏里一年人长三岁，你从十六岁开始（左下角写着名字和岁数）。跟年纪相仿、成了知己的人可以「求亲」；成了家可以「想要个孩子」，过一季出生，由你起名。孩子小时候在家附近玩，十二岁帮着割葛麻，十六岁成人下地。上了年纪走得慢、干活慢，六十以后随时可能走。你走了，成年的孩子接着当家：身上的东西、手艺的底子、村里人对你家一半的情分都留给他；也可以在「村」里主动退下来。没有后人，就由一个外乡的年轻人接着过。村里的老人也会走，他们的活会有人接。</p>
-  <p>说话时气泡浮在人的牌上方；心里想的是虚线云朵。左下角小头像点开能给每人选：⟳ 自己安排、⚒ 派活、✋ 我来指挥。阿黄一开始就听你的，派活是搬运。右下角 ⟳ 亮着时，你一整天没动手就会自己找事做。</p>
-  <p>动物：森林里有野兔、鹿（要石矛）、野猪（空手靠近会撞人，火把能逼退）；湖上有野鸭，芦苇边的鸭窝春夏有蛋。老虎住在森林深处，饿了会扑鹿；你没拿火把靠近它会扑你。村民知道深处危险，绕着走。冬天湖面结冰，能从冰上走过去。</p>
+  <b>操作与存档</b>
+  <p>点空地或点一张牌，自己找路走过去。也可以直接拖「你」：放在哪就停在哪，路上的时间照算。近处的东西可以直接拖。</p>
+  <p>村民心里想什么看不到：在旁边能听见他们念叨，熟了以后点「在忙啥」才会跟你说。</p>
+  <p>拖动空地挪地图，滚轮缩放。空格暂停或继续。</p>
+  <p>右下角「⟳」立即开启或停止自动行动。同类叠牌可以整叠拖，点开也能单拿一份。</p>
+  <p>难度：<select id="difficulty"><option>安稳</option><option selected>寻常</option><option>艰难</option></select> 只改意外（耗子、发烧、寒潮、失火、吵架）来得多勤、有多重。</p>
   <p class="save-row">每隔一会儿自动存档，刷新或关掉页面都能接着玩。
-    <button id="lifeExport">导出存档</button><button id="lifeImport">导入存档</button><button id="lifeNew">重新开始</button><input type="file" id="lifeFile" accept=".json,application/json" hidden></p>
+    <button id="lifeExport">导出存档</button><button id="lifeImport">导入存档</button><button id="lifeNew">重新开始</button><button id="lifeBack" hidden>找回上一段人生</button><input type="file" id="lifeFile" accept=".json,application/json" hidden></p>
   <button id="helpClose">知道了</button>
 </div>
-<p class="mock-note">样稿 v35 · 数据示意，不连游戏</p>
-<script type="module" src="app.js?v=29"></script>
+<script type="module" src="app.js?v=35"></script>
 </body>
 </html>

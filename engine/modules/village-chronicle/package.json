@@ -1,0 +1,23 @@
+{
+  "name": "@openlife/module-village-chronicle",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/simulation": "*",
+    "@openlife/module-heredity": "*",
+    "@openlife/module-tech": "*",
+    "@openlife/module-polity": "*",
+    "@openlife/module-polity-bondage": "*",
+    "@openlife/module-fate": "*",
+    "@openlife/module-era-ladder": "*"
+  },
+  "openlife": {
+    "label": "村史",
+    "summary": "以百年为尺度推演一个村子：人口、发明、道理、制度和时代，并写成村史；可以分叉对比，做历史实验。"
+  }
+}

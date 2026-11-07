@@ -3,10 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "OpenLife · 卡牌世界样稿（独立静态页，不连引擎）",
+  "description": "OpenLife · 卡牌世界与引擎人生",
   "scripts": {
     "start": "node server.mjs",
-    "web": "node server.mjs"
+    "web": "node server.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "legacy:catalog": "node scripts/sync-legacy-catalog.mjs",
+    "legacy:check": "node scripts/sync-legacy-catalog.mjs --check",
+    "engine:setup": "npm ci --prefix engine",
+    "engine:test": "npm test --prefix engine",
+    "engine:check": "npm run typecheck --prefix engine",
+    "engine:profiles": "node engine/scripts/runtime-profiles.ts"
   },
   "engines": {
     "node": ">=18"

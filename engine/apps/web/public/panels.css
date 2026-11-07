@@ -1,0 +1,176 @@
+/*
+ * 组件与模式：声音面板、质感与动效、纯文字模式、人生纪事、心事、图标细节。
+ *
+ * 2026-10 从 theme.css 拆出来：那个文件已超过仓库的 1200 行预算
+ * （tests/unit/source-size-budget.test.ts）。这里放"与页面结构无关、
+ * 只关乎某个组件或某种显示模式"的规则；页面骨架仍在 theme.css。
+ * 加载顺序：theme.css → panels.css，后者可覆盖前者。
+ */
+
+/* ================= 声音面板 ================= */
+#soundButton.is-on, #homeSoundButton.is-on, #musicToggle[aria-pressed="true"] { color: var(--primary); border-color: var(--primary); background: var(--primary-soft); }
+#soundButton.is-on .ol-icon path:nth-child(n+2), #homeSoundButton.is-on .ol-icon path:nth-child(n+2) { animation: sound-wave 1.6s ease-in-out infinite; }
+#soundButton.is-on .ol-icon path:nth-child(3), #homeSoundButton.is-on .ol-icon path:nth-child(3) { animation-delay: .25s; }
+@keyframes sound-wave { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.home-sound { position: absolute; top: 20px; left: 68px; z-index: 5; background: var(--glass); }
+@media (min-width: 861px) { .home-sound { left: auto; right: 68px; } }
+.sound-panel {
+  position: fixed; z-index: 80; padding: 16px; display: grid; gap: 14px;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg); animation: pop-in .18s cubic-bezier(.2, .8, .3, 1.1);
+}
+.sound-panel[hidden] { display: none; }
+.sound-head { display: flex; align-items: baseline; justify-content: space-between; }
+.sound-head strong { font-family: var(--serif); font-size: 20px; font-weight: 600; }
+.sound-head span { font-size: 12px; color: var(--muted); }
+.sound-modes { display: grid; gap: 8px; }
+.sound-modes button {
+  display: grid; grid-template-columns: 38px 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: center; text-align: left;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); color: var(--ink);
+  transition: border-color .15s, background .15s;
+}
+.sound-modes button .sm-icon { grid-row: span 2; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-3); color: var(--ink-2); }
+.sound-modes button b { font-size: 14px; font-weight: 600; }
+.sound-modes button small { font-size: 12px; color: var(--muted); }
+.sound-modes button:hover { border-color: var(--line-strong); }
+.sound-modes button[aria-checked="true"] { border-color: var(--primary); background: var(--primary-soft); }
+.sound-modes button[aria-checked="true"] .sm-icon { background: var(--primary); color: var(--primary-ink); }
+.sound-volume { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; font-size: 13px; color: var(--ink-2); }
+.sound-volume input { width: 100%; accent-color: var(--primary); }
+@keyframes pop-in { from { opacity: 0; transform: translateY(-6px) scale(.97); } to { opacity: 1; transform: none; } }
+
+/* ================= 质感与动效 ================= */
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .38 0 0 0 0 .28 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+:root[data-theme="dark"] body::before { opacity: .35; mix-blend-mode: screen; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) body::before { opacity: .35; mix-blend-mode: screen; } }
+.panel, .scene-card, .interaction-dock, .contact-card { position: relative; }
+.panel, .home-menu > button { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background-color .25s; }
+.home-menu > button:not(:disabled):hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.scene-quick-actions:not([hidden]) { animation: rise-in .22s cubic-bezier(.2, .8, .3, 1); }
+.scene-go-tile { animation: rise-in .26s cubic-bezier(.2, .8, .3, 1) backwards; }
+.scene-go-tile:nth-child(2) { animation-delay: .02s; } .scene-go-tile:nth-child(3) { animation-delay: .04s; }
+.scene-go-tile:nth-child(4) { animation-delay: .06s; } .scene-go-tile:nth-child(5) { animation-delay: .08s; }
+.scene-go-tile:nth-child(6) { animation-delay: .1s; } .scene-go-tile:nth-child(n+7) { animation-delay: .12s; }
+.scene-quick-choice { animation: rise-in .22s cubic-bezier(.2, .8, .3, 1) backwards; }
+@keyframes rise-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.view-section:not([hidden]), main > section:not([hidden]) { animation: fade-in .25s ease; }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.primary-button, .scene-quick-choice.is-primary { background-image: linear-gradient(180deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, 0)); }
+button:active:not(:disabled) { transform: scale(.98); }
+.scene-theater { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}
+.home-landscape > .home-fx { display: block; position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+
+/* General exchange form (person in focus) */
+.exchange-box h4 small { font-weight: 400; color: var(--muted, #776); margin-left: .4em; font-size: .8em; }
+.exchange-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem 1rem; margin: .4rem 0; }
+.exchange-label { display: block; font-size: .8rem; color: var(--muted, #776); margin-bottom: .25rem; }
+.exchange-row { display: flex; align-items: center; gap: .4rem; margin: .2rem 0; font-size: .92rem; }
+.exchange-row input[type=number] { width: 3.2rem; padding: .2rem .3rem; }
+.exchange-row select { flex: 1; min-width: 0; padding: .25rem; }
+.exchange-row small { color: var(--muted, #776); }
+.exchange-hint { font-size: .82rem; color: var(--muted, #776); margin: .2rem 0; }
+.exchange-credit { display: flex; gap: .4rem; align-items: center; font-size: .86rem; margin: .3rem 0 .5rem; }
+.exchange-go { width: 100%; }
+@media (max-width: 520px) { .exchange-grid { grid-template-columns: 1fr; } }
+
+/* ================= 纯文字模式（默认，view-mode.js） =================
+   不显示场景插画、氛围层、人物小像和音效按钮；所有动画和过渡关闭；人物/物件/原料清单直接展开。 */
+:root[data-view="text"] #sceneTheater,
+:root[data-view="text"] .memory-scene .scene-illustration,
+:root[data-view="text"] .memory-scene .sun-orbit,
+:root[data-view="text"] #homeFx,
+:root[data-view="text"] #soundButton, :root[data-view="text"] #homeSoundButton, :root[data-view="text"] #soundPanel,
+:root[data-view="text"] .action-fx,
+:root[data-view="text"] .contact-portrait, :root[data-view="text"] .player-portrait { display: none !important; }
+:root[data-view="text"] *, :root[data-view="text"] *::before, :root[data-view="text"] *::after {
+  animation: none !important; transition: none !important; }
+:root[data-view="text"] #sceneLedger > summary { display: none; }
+:root[data-view="text"] .memory-scene { min-height: 0; }
+:root[data-view="text"] #screen-activities .scene-header { display: flex !important; justify-content: space-between; align-items: flex-end; padding: 4px 4px 12px; }
+:root[data-view="text"] #screen-activities .scene-summary { display: block; }
+
+/* ---- 人生纪事：此刻页的主叙事区（ui-research/10 §3.3 的软底）----
+   以前这里是"卡片 + 左边一道赭石条"，与下面「身边的事」又叠一张卡，
+   一屏三张竖条卡片；现在纪事是软底正文，只有它才是"话本"。 */
+.dock-sub { display: none; }
+.life-log {
+  background: linear-gradient(180deg, var(--bg-fade-0) 0%, var(--bg-fade-55) 12%, var(--bg-fade-55) 88%, var(--bg-fade-0) 100%);
+  border: 0; border-radius: 0; box-shadow: none;
+  padding: 18px 4px 14px; margin: 0 0 4px;
+  max-width: var(--measure); margin-inline: auto;
+}
+.life-log-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.life-log-head span { font-family: var(--serif); font-weight: 700; font-size: var(--fs-subhead); color: var(--ink); letter-spacing: var(--ls-title); }
+.life-log-head small { color: var(--muted); font-size: var(--fs-note); }
+.life-log-list { list-style: none; margin: 0; padding: 0 2px 0 0; max-height: min(46vh, 420px); overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.life-log-list li { opacity: .62; }
+.life-log-list li.is-new { opacity: 1; }
+.life-log-list li.is-day p { color: var(--muted); font-style: italic; }
+.life-log-time { display: block; font-size: 12px; color: var(--muted); letter-spacing: .04em; margin-bottom: 2px; }
+.life-log-list p { margin: 0; font-family: var(--serif); font-size: 16px; line-height: 1.75; color: var(--ink); text-indent: 2em; }
+.life-log-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.life-log-chips span { font-size: 12px; padding: 2px 8px; border-radius: var(--r-pill); background: var(--bg-deep); color: var(--muted); border: 1px solid var(--line); }
+.life-log-chips span b { font-weight: 700; }
+.life-log-chips span.up { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+.life-log-chips span.down { color: var(--danger); background: var(--danger-soft); border-color: color-mix(in srgb, var(--danger) 35%, transparent); }
+:root[data-view="text"] #actionFeedback { display: none; }
+/* 底部三个动作：图标为主、文字为辅。
+   以前每个按钮左边一道 3px 赭石——三个按钮就是三处赭石，直接超了「一屏赭石 ≤2」；
+   现在只靠图标颜色与字重区分，边框回到中性线。 */
+:root[data-view="text"] .dock-tools button {
+  min-height: 72px; align-items: flex-start; justify-content: flex-end;
+  padding: 10px 12px; text-align: left; font-size: var(--fs-body); font-weight: 600;
+  border-left: 1px solid var(--line-strong);
+}
+:root[data-view="text"] .dock-tools button:hover:not(:disabled) { border-left-color: var(--primary); }
+:root[data-view="text"] .dock-sub { display: block; font-size: 12px; font-weight: 400; color: var(--muted); }
+:root[data-view="text"] .dock-tools button .ol-icon { width: 20px; height: 20px; color: var(--primary); }
+:root[data-view="text"] #scenePlaceHeading { font-family: var(--serif); }
+:root[data-view="text"] #scenePlace { color: var(--accent-ink, var(--accent)); }
+@media (max-width: 720px) { :root[data-view="text"] #screen-activities .scene-header { padding: 4px 16px 12px; } }
+
+/* 心里记着的事 */
+/* 心里记着的事：同一套软底，不再是一张带绿边的卡片。 */
+.hopes {
+  background: linear-gradient(180deg, var(--bg-fade-0) 0%, var(--bg-fade-55) 14%, var(--bg-fade-55) 86%, var(--bg-fade-0) 100%);
+  border: 0; border-radius: 0; box-shadow: none;
+  padding: 14px 4px 12px; margin: 0 0 4px; max-width: var(--measure); margin-inline: auto;
+}
+.hopes-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.hopes-list li { display: flex; flex-direction: column; gap: 2px; }
+.hopes-list b { font-family: var(--serif); font-weight: 600; font-size: 16px; color: var(--ink); }
+.hopes-list small { color: var(--muted); font-size: 12px; }
+.hopes-list li.is-done b { color: var(--ok); }
+.hopes-list li.is-done b::before { content: "✓ "; }
+
+
+/* 村民找上门的请求 */
+.village-requests { display: grid; gap: .5rem; margin-top: .6rem; }
+.village-request { border-left: 3px solid var(--accent); padding: 8px 10px; background: var(--accent-soft); border-radius: var(--r-sm); }
+.village-request p { margin: 0 0 .35rem; }
+.village-request small { display: block; opacity: .75; }
+.village-request button[disabled] { opacity: .6; cursor: default; }
+
+/* 出身与天赋 */
+.new-talents { border: 1px solid var(--line, rgba(0,0,0,.15)); border-radius: 12px; padding: 10px 12px; display: grid; gap: 8px; }
+.new-talents legend small { opacity: .7; font-weight: normal; }
+.talent-list { display: grid; gap: 6px; }
+.talent-choice { display: grid !important; grid-template-columns: auto auto 1fr; align-items: baseline; gap: 8px !important; }
+.talent-choice small { opacity: .75; }
+.origin-card { grid-column: 1 / -1; min-width: 0; margin: 12px 0; padding: 12px 14px; border-radius: 12px; background: var(--paper-soft, rgba(127,127,127,.08)); display: grid; gap: 6px; }
+.origin-head { display: flex; gap: 8px; align-items: baseline; }
+.origin-head span { font-size: .8em; opacity: .7; }
+.origin-story, .origin-wish { margin: 0; line-height: 1.6; }
+.origin-wish { opacity: .85; }
+.origin-talents { margin: 0; padding-left: 1.1em; display: grid; gap: 4px; }
+
+/* 交情：十颗心 */
+.scene-person-heart .hearts { color: var(--danger); letter-spacing: 1px; }
+.scene-person-heart .hearts-empty { color: color-mix(in srgb, currentColor 30%, transparent); }

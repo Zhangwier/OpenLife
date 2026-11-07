@@ -1,0 +1,17 @@
+{
+  "name": "@openlife/module-basic-autonomy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/life-contracts": "*"
+  },
+  "openlife": {
+    "label": "人物自主行为",
+    "summary": "基于人物状态的基础自动决策。"
+  }
+}

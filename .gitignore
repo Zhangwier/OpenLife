@@ -5,3 +5,8 @@ artifacts/
 .DS_Store
 .edge-test-profile/
 .chrome-test-profile/
+__pycache__/
+*.pyc
+
+# Runtime files produced by the engine, never part of the source migration.
+/engine/apps/web/data/

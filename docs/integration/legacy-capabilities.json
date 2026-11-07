@@ -1,0 +1,1165 @@
+{
+  "schemaVersion": 1,
+  "provenance": "engine/docs/MODULES.md (from archives/openlife-engine-20261102)",
+  "meaning": "Inventory of migrated engine sources. Runtime activation is checked independently by npm run engine:profiles.",
+  "checkoutRoot": "engine",
+  "integrationContract": "docs/integration/README.md",
+  "packages": [
+    {
+      "directory": "packages/autonomy-runtime",
+      "package": "@openlife/autonomy-runtime",
+      "dependencies": [
+        "contracts",
+        "kernel"
+      ]
+    },
+    {
+      "directory": "packages/contracts",
+      "package": "@openlife/contracts",
+      "dependencies": []
+    },
+    {
+      "directory": "packages/history-runtime",
+      "package": "@openlife/history-runtime",
+      "dependencies": [
+        "contracts",
+        "kernel",
+        "world-model"
+      ]
+    },
+    {
+      "directory": "packages/kernel",
+      "package": "@openlife/kernel",
+      "dependencies": [
+        "contracts",
+        "rule-engine",
+        "world-model"
+      ]
+    },
+    {
+      "directory": "packages/life-contracts",
+      "package": "@openlife/life-contracts",
+      "dependencies": []
+    },
+    {
+      "directory": "packages/module-runtime",
+      "package": "@openlife/module-runtime",
+      "dependencies": [
+        "contracts",
+        "kernel",
+        "rule-engine",
+        "world-model"
+      ]
+    },
+    {
+      "directory": "packages/query",
+      "package": "@openlife/query",
+      "dependencies": [
+        "contracts",
+        "history-runtime",
+        "rule-engine",
+        "world-model"
+      ]
+    },
+    {
+      "directory": "packages/rule-engine",
+      "package": "@openlife/rule-engine",
+      "dependencies": [
+        "contracts"
+      ]
+    },
+    {
+      "directory": "packages/save-system",
+      "package": "@openlife/save-system",
+      "dependencies": [
+        "contracts",
+        "history-runtime",
+        "kernel",
+        "world-model"
+      ]
+    },
+    {
+      "directory": "packages/simulation",
+      "package": "@openlife/simulation",
+      "dependencies": [
+        "autonomy-runtime",
+        "contracts",
+        "history-runtime",
+        "kernel",
+        "module-runtime",
+        "query",
+        "rule-engine",
+        "save-system",
+        "world-model"
+      ]
+    },
+    {
+      "directory": "packages/world-model",
+      "package": "@openlife/world-model",
+      "dependencies": [
+        "contracts"
+      ]
+    }
+  ],
+  "modules": [
+    {
+      "id": "magic-test-world",
+      "kind": "world",
+      "source": "modules/magic-test-world",
+      "title": "魔法测试世界",
+      "provides": [
+        "magic.mana_network",
+        "time.cycle",
+        "life.population"
+      ],
+      "requires": [],
+      "exports": [
+        "`magic-test-world` (`magicTestWorldModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "modern-world",
+      "kind": "world",
+      "source": "modules/modern-world",
+      "title": "人物与人生基础",
+      "provides": [
+        "life.population",
+        "time.calendar",
+        "economy.currency"
+      ],
+      "requires": [],
+      "exports": [
+        "`modern-world` (`modernWorldModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "robot-test-world",
+      "kind": "world",
+      "source": "modules/robot-test-world",
+      "title": "机器人测试世界",
+      "provides": [
+        "robot.population",
+        "robot.energy_network",
+        "time.machine_cycle"
+      ],
+      "requires": [],
+      "exports": [
+        "`robot-test-world` (`robotTestWorldModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "world-clock",
+      "kind": "world",
+      "source": "modules/world-clock",
+      "title": "世界时钟",
+      "provides": [
+        "time.life-scale",
+        "time.scale"
+      ],
+      "requires": [
+        "time.calendar"
+      ],
+      "exports": [
+        "`world-clock` (`worldClockModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "basic-autonomy",
+      "kind": "system",
+      "source": "modules/basic-autonomy",
+      "title": "人物自主行为",
+      "provides": [
+        "autonomy.basic"
+      ],
+      "requires": [
+        "time.calendar",
+        "life.population",
+        "education.provider",
+        "career.provider",
+        "family.relationship_provider",
+        "family.heir_provider"
+      ],
+      "exports": [
+        "`basic-autonomy` (`basicAutonomyModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "career",
+      "kind": "system",
+      "source": "modules/career",
+      "title": "职业原型",
+      "provides": [
+        "career.provider"
+      ],
+      "requires": [
+        "time.calendar"
+      ],
+      "exports": [
+        "`career` (`careerModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "civilization",
+      "kind": "system",
+      "source": "modules/civilization",
+      "title": "文明层",
+      "provides": [
+        "world.polities"
+      ],
+      "requires": [],
+      "exports": [
+        "`civilization` (`civilizationModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "culture",
+      "kind": "system",
+      "source": "modules/culture",
+      "title": "文化与信仰",
+      "provides": [
+        "culture.beliefs"
+      ],
+      "requires": [],
+      "exports": [
+        "`culture` (`cultureModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "economy",
+      "kind": "system",
+      "source": "modules/economy",
+      "title": "经济与交换",
+      "provides": [
+        "economy.cycle"
+      ],
+      "requires": [],
+      "exports": [
+        "`economy` (`economyModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "education",
+      "kind": "system",
+      "source": "modules/education",
+      "title": "教育原型",
+      "provides": [
+        "education.provider"
+      ],
+      "requires": [
+        "time.calendar"
+      ],
+      "exports": [
+        "`education` (`educationModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "epistemic-state",
+      "kind": "system",
+      "source": "modules/epistemic-state",
+      "title": "人物认知",
+      "provides": [
+        "cognition.epistemic-state"
+      ],
+      "requires": [],
+      "exports": [
+        "`epistemic-state` (`epistemicStateModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "era-ladder",
+      "kind": "system",
+      "source": "modules/era-ladder",
+      "title": "时代识别",
+      "provides": [
+        "era.current"
+      ],
+      "requires": [],
+      "exports": [
+        "`era-ladder` (`eraLadderModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "family",
+      "kind": "system",
+      "source": "modules/family",
+      "title": "家庭与关系",
+      "provides": [
+        "family.relationship_provider",
+        "family.heir_provider"
+      ],
+      "requires": [
+        "time.calendar",
+        "life.population"
+      ],
+      "exports": [
+        "`family` (`familyModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "fate",
+      "kind": "system",
+      "source": "modules/fate",
+      "title": "天命",
+      "provides": [
+        "fate.perturbation"
+      ],
+      "requires": [],
+      "exports": [
+        "`fate` (`fateModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "fauna-bonds",
+      "kind": "system",
+      "source": "modules/fauna-bonds",
+      "title": "与动物相处",
+      "provides": [
+        "fauna.individuals"
+      ],
+      "requires": [
+        "world.species"
+      ],
+      "exports": [
+        "`fauna-bonds` (`faunaBondsModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "heredity",
+      "kind": "system",
+      "source": "modules/heredity",
+      "title": "禀赋",
+      "provides": [
+        "life.heredity"
+      ],
+      "requires": [],
+      "exports": [
+        "`heredity` (`heredityModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "historical-era",
+      "kind": "system",
+      "source": "modules/historical-era",
+      "title": "时代环境",
+      "provides": [
+        "history.era-context"
+      ],
+      "requires": [
+        "time.calendar"
+      ],
+      "exports": [
+        "`historical-era` (`historicalEraModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "historical-memory",
+      "kind": "system",
+      "source": "modules/historical-memory",
+      "title": "历史留存",
+      "provides": [
+        "history.material-evidence",
+        "history.public-memory"
+      ],
+      "requires": [],
+      "exports": [
+        "`historical-memory` (`historicalMemoryModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "intellectual-history",
+      "kind": "system",
+      "source": "modules/intellectual-history",
+      "title": "思想与学派",
+      "provides": [
+        "culture.intellectual-tradition"
+      ],
+      "requires": [],
+      "exports": [
+        "`intellectual-history` (`intellectualHistoryModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "knowledge-transmission",
+      "kind": "system",
+      "source": "modules/knowledge-transmission",
+      "title": "知识传授",
+      "provides": [
+        "knowledge.transmission-practice"
+      ],
+      "requires": [
+        "practice.runtime",
+        "cognition.epistemic-state"
+      ],
+      "exports": [
+        "`knowledge-transmission` (`knowledgeTransmissionModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "life-stages",
+      "kind": "system",
+      "source": "modules/life-stages",
+      "title": "人生阶段",
+      "provides": [
+        "life.stages"
+      ],
+      "requires": [
+        "life.settlement"
+      ],
+      "exports": [
+        "`life-stages` (`lifeStagesModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "map-pack",
+      "kind": "system",
+      "source": "modules/map-pack",
+      "title": "地图包",
+      "provides": [
+        "world.map-packs"
+      ],
+      "requires": [
+        "world.geography"
+      ],
+      "exports": [
+        "`map-pack` (`mapPackModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "modern-science",
+      "kind": "system",
+      "source": "modules/modern-science",
+      "title": "文明认知",
+      "provides": [
+        "knowledge.modern-science"
+      ],
+      "requires": [
+        "life.population"
+      ],
+      "exports": [
+        "`modern-science` (`modernScienceModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "narrative-voice",
+      "kind": "system",
+      "source": "modules/narrative-voice",
+      "title": "河岸台地叙事与言语",
+      "provides": [
+        "narrative-voice.say",
+        "narrative-voice.narrate"
+      ],
+      "requires": [],
+      "exports": [
+        "`narrative-voice` (`default`)",
+        "`narrative-voice` (`narrativeVoiceModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "office",
+      "kind": "system",
+      "source": "modules/office",
+      "title": "职位与公事",
+      "provides": [
+        "polity.office"
+      ],
+      "requires": [
+        "life.settlement"
+      ],
+      "exports": [
+        "`office` (`officeModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "polity",
+      "kind": "system",
+      "source": "modules/polity",
+      "title": "政治",
+      "provides": [
+        "polity.institutions",
+        "polity.authority"
+      ],
+      "requires": [],
+      "exports": [
+        "`polity` (`polityModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "polity-bondage",
+      "kind": "system",
+      "source": "modules/polity-bondage",
+      "title": "债役",
+      "provides": [
+        "polity.labor"
+      ],
+      "requires": [
+        "polity.institutions"
+      ],
+      "exports": [
+        "`polity-bondage` (`polityBondageModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "practice-autonomy",
+      "kind": "system",
+      "source": "modules/practice-autonomy",
+      "title": "自主参与活动",
+      "provides": [
+        "practice.autonomy"
+      ],
+      "requires": [
+        "practice.runtime"
+      ],
+      "exports": [
+        "`practice-autonomy` (`practiceAutonomyModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "practice-runtime",
+      "kind": "system",
+      "source": "modules/practice-runtime",
+      "title": "持续活动",
+      "provides": [
+        "practice.runtime"
+      ],
+      "requires": [],
+      "exports": [
+        "`practice-runtime` (`practiceRuntimeModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "science-research",
+      "kind": "system",
+      "source": "modules/science-research",
+      "title": "研究活动",
+      "provides": [
+        "science.research-practice"
+      ],
+      "requires": [
+        "practice.runtime"
+      ],
+      "exports": [
+        "`science-research` (`scienceResearchModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "settlement-build",
+      "kind": "system",
+      "source": "modules/settlement-build",
+      "title": "盖房子",
+      "provides": [
+        "settlement.housing"
+      ],
+      "requires": [
+        "life.settlement"
+      ],
+      "exports": [
+        "`settlement-build` (`settlementBuildModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "settlement-goals",
+      "kind": "system",
+      "source": "modules/settlement-goals",
+      "title": "村落成长目标",
+      "provides": [
+        "settlement.goals"
+      ],
+      "requires": [],
+      "exports": [
+        "`settlement-goals` (`settlementGoalsModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "social-conflict",
+      "kind": "system",
+      "source": "modules/social-conflict",
+      "title": "乡邻纠纷",
+      "provides": [
+        "social.conflict"
+      ],
+      "requires": [],
+      "exports": [
+        "`social-conflict` (`socialConflictModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "story-director",
+      "kind": "system",
+      "source": "modules/story-director",
+      "title": "叙事者",
+      "provides": [
+        "story.director"
+      ],
+      "requires": [],
+      "exports": [
+        "`story-director` (`storyDirectorModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "tech",
+      "kind": "system",
+      "source": "modules/tech",
+      "title": "科技",
+      "provides": [
+        "tech.invention",
+        "tech.learning",
+        "tech.need-ledger"
+      ],
+      "requires": [],
+      "exports": [
+        "`tech` (`techModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "travel",
+      "kind": "system",
+      "source": "modules/travel",
+      "title": "远行",
+      "provides": [
+        "world.travel"
+      ],
+      "requires": [],
+      "exports": [
+        "`travel` (`travelModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "village-chronicle",
+      "kind": "system",
+      "source": "modules/village-chronicle",
+      "title": "村史",
+      "provides": [
+        "chronicle.village"
+      ],
+      "requires": [],
+      "exports": [
+        "`village-chronicle` (`villageChronicleModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "village-secrets",
+      "kind": "system",
+      "source": "modules/village-secrets",
+      "title": "村里的事",
+      "provides": [
+        "settlement.secrets"
+      ],
+      "requires": [
+        "cognition.epistemic-state"
+      ],
+      "exports": [
+        "`village-secrets` (`villageSecretsModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "village-wants",
+      "kind": "system",
+      "source": "modules/village-wants",
+      "title": "愿望与恐惧",
+      "provides": [
+        "life.wants"
+      ],
+      "requires": [
+        "life.settlement"
+      ],
+      "exports": [
+        "`village-wants` (`villageWantsModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "world-climate",
+      "kind": "system",
+      "source": "modules/world-climate",
+      "title": "气候",
+      "provides": [
+        "world.climate-profile"
+      ],
+      "requires": [
+        "world.geography",
+        "world.geosphere-profile"
+      ],
+      "exports": [
+        "`world-climate` (`worldClimateModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "world-deposits",
+      "kind": "system",
+      "source": "modules/world-deposits",
+      "title": "矿藏与资源分布",
+      "provides": [
+        "world.deposits"
+      ],
+      "requires": [],
+      "exports": [
+        "`world-deposits` (`worldDepositsModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "world-ecology",
+      "kind": "system",
+      "source": "modules/world-ecology",
+      "title": "生态",
+      "provides": [
+        "world.ecology-state"
+      ],
+      "requires": [
+        "world.geography",
+        "world.climate-profile",
+        "world.hydrology-state"
+      ],
+      "exports": [
+        "`world-ecology` (`worldEcologyModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "boundary-handshake",
+      "kind": "system",
+      "source": "modules/world-geography",
+      "title": "地理与连通",
+      "provides": [
+        "world.boundary-handshake"
+      ],
+      "requires": [
+        "world.geography"
+      ],
+      "exports": [
+        "`boundary-handshake` (`boundaryHandshakeModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "world-geography",
+      "kind": "system",
+      "source": "modules/world-geography",
+      "title": "地理与连通",
+      "provides": [
+        "world.geography"
+      ],
+      "requires": [],
+      "exports": [
+        "`world-geography` (`worldGeographyModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "world-geosphere",
+      "kind": "system",
+      "source": "modules/world-geosphere",
+      "title": "地形与地质",
+      "provides": [
+        "world.geosphere-profile"
+      ],
+      "requires": [
+        "world.geography"
+      ],
+      "exports": [
+        "`world-geosphere` (`worldGeosphereModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "world-grazing",
+      "kind": "system",
+      "source": "modules/world-grazing",
+      "title": "放牧环境",
+      "provides": [
+        "world.grazing-pressure"
+      ],
+      "requires": [
+        "world.geography",
+        "world.vegetation",
+        "world.species"
+      ],
+      "exports": [
+        "`world-grazing` (`worldGrazingModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "world-hazard",
+      "kind": "system",
+      "source": "modules/world-hazard",
+      "title": "水旱与治水",
+      "provides": [
+        "world.hazard-state"
+      ],
+      "requires": [
+        "world.hydrology-state"
+      ],
+      "exports": [
+        "`world-hazard` (`worldHazardModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "world-hydrology",
+      "kind": "system",
+      "source": "modules/world-hydrology",
+      "title": "水文",
+      "provides": [
+        "world.hydrology-state"
+      ],
+      "requires": [
+        "world.geography",
+        "world.geosphere-profile",
+        "world.weather-current"
+      ],
+      "exports": [
+        "`world-hydrology` (`worldHydrologyModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "world-objects",
+      "kind": "system",
+      "source": "modules/world-objects",
+      "title": "物品与容器",
+      "provides": [
+        "world.objects"
+      ],
+      "requires": [
+        "world.space"
+      ],
+      "exports": [
+        "`world-objects` (`worldObjectsModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "world-space",
+      "kind": "system",
+      "source": "modules/world-space",
+      "title": "建筑与空间",
+      "provides": [
+        "world.space"
+      ],
+      "requires": [
+        "time.calendar"
+      ],
+      "exports": [
+        "`world-space` (`worldSpaceModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "world-species",
+      "kind": "system",
+      "source": "modules/world-species",
+      "title": "物种",
+      "provides": [
+        "world.species"
+      ],
+      "requires": [
+        "world.geography",
+        "world.climate-profile",
+        "world.hydrology-state",
+        "world.ecology-state",
+        "world.vegetation"
+      ],
+      "exports": [
+        "`world-species` (`worldSpeciesModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "world-time",
+      "kind": "system",
+      "source": "modules/world-time",
+      "title": "世界时间",
+      "provides": [
+        "world.time-resolution"
+      ],
+      "requires": [
+        "world.geography",
+        "world.weather-current",
+        "world.hydrology-state",
+        "world.ecology-state",
+        "world.vegetation",
+        "world.species",
+        "world.grazing-pressure"
+      ],
+      "exports": [
+        "`world-time` (`worldTimeModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "world-vegetation",
+      "kind": "system",
+      "source": "modules/world-vegetation",
+      "title": "植被",
+      "provides": [
+        "world.vegetation"
+      ],
+      "requires": [
+        "world.geography",
+        "world.climate-profile",
+        "world.hydrology-state",
+        "world.ecology-state"
+      ],
+      "exports": [
+        "`world-vegetation` (`worldVegetationModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "world-weather",
+      "kind": "system",
+      "source": "modules/world-weather",
+      "title": "天气",
+      "provides": [
+        "world.weather-current"
+      ],
+      "requires": [
+        "world.geography",
+        "world.climate-profile"
+      ],
+      "exports": [
+        "`world-weather` (`worldWeatherModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "craft-pottery",
+      "kind": "content",
+      "source": "modules/craft-pottery",
+      "title": "制陶手艺",
+      "provides": [
+        "craft.pottery-practice"
+      ],
+      "requires": [
+        "practice.runtime"
+      ],
+      "exports": [
+        "`craft-pottery` (`craftPotteryModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "early-civilization",
+      "kind": "content",
+      "source": "modules/early-civilization",
+      "title": "早期聚落生活",
+      "provides": [
+        "era.early-civilization",
+        "learning.oral-tradition",
+        "work.settlement-role"
+      ],
+      "requires": [
+        "time.calendar",
+        "life.population"
+      ],
+      "exports": [
+        "`early-civilization` (`earlyCivilizationModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "historical-anchors",
+      "kind": "content",
+      "source": "modules/historical-anchors",
+      "title": "历史人物",
+      "provides": [
+        "history.person-anchors"
+      ],
+      "requires": [
+        "time.calendar",
+        "life.population"
+      ],
+      "exports": [
+        "`historical-anchors` (`historicalAnchorsModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "settlement-life",
+      "kind": "content",
+      "source": "modules/settlement-life",
+      "title": "聚落生活活动",
+      "provides": [
+        "life.settlement-playable"
+      ],
+      "requires": [
+        "life.population",
+        "family.relationship_provider",
+        "practice.runtime",
+        "craft.pottery-practice"
+      ],
+      "exports": [
+        "`settlement-life` (`settlementLifeModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "settlement-locations",
+      "kind": "content",
+      "source": "modules/settlement-locations",
+      "title": "河岸聚落",
+      "provides": [
+        "life.settlement"
+      ],
+      "requires": [
+        "world.space",
+        "world.objects",
+        "time.life-scale"
+      ],
+      "exports": [
+        "`settlement-locations` (`settlementLocationsModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "settlement-nature",
+      "kind": "content",
+      "source": "modules/settlement-nature",
+      "title": "河岸天时",
+      "provides": [
+        "world.hydrology-state",
+        "world.species"
+      ],
+      "requires": [
+        "life.settlement"
+      ],
+      "exports": [
+        "`settlement-nature` (`settlementNatureModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "village-stories",
+      "kind": "content",
+      "source": "modules/village-stories",
+      "title": "村中故事",
+      "provides": [
+        "settlement.stories"
+      ],
+      "requires": [
+        "life.settlement"
+      ],
+      "exports": [
+        "`village-stories` (`villageStoriesModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    },
+    {
+      "id": "xia-fauna",
+      "kind": "content",
+      "source": "modules/world-species",
+      "title": "物种",
+      "provides": [],
+      "requires": [
+        "world.vegetation",
+        "world.species"
+      ],
+      "exports": [
+        "`xia-fauna` (`xiaFaunaModule`)"
+      ],
+      "runtime": "source-migrated",
+      "playerCoverage": "tracked-separately"
+    }
+  ]
+}

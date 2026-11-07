@@ -1,0 +1,20 @@
+{
+  "name": "@openlife/module-settlement-nature",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/module-settlement-locations": "*",
+    "@openlife/module-world-hydrology": "*",
+    "@openlife/module-world-species": "*",
+    "@openlife/module-world-hazard": "*"
+  },
+  "openlife": {
+    "label": "河岸天时",
+    "summary": "把 world-hazard 与 fauna-bonds 的状态翻成玩家看得懂的一句话与几个动作。"
+  }
+}

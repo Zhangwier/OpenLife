@@ -1,0 +1,47 @@
+{
+  "formatVersion": 1,
+  "note": "禀赋位点。数值位点 0-4，只决定上限；外貌位点只是外貌，与任何能力无关。内容包只能新增位点，不能改这里的。",
+  "traits": {
+    "trait:strength": { "label": "力气", "base": 30, "perAllele": 15 },
+    "trait:endurance": { "label": "耐力", "base": 30, "perAllele": 15 },
+    "trait:constitution": { "label": "体质", "base": 30, "perAllele": 15, "expression": "dominant" },
+    "trait:cold-tolerance": { "label": "耐寒", "base": 30, "perAllele": 15 },
+    "trait:dexterity": { "label": "手巧", "base": 30, "perAllele": 15 },
+    "trait:perception": { "label": "眼力", "base": 30, "perAllele": 15 },
+    "trait:insight": { "label": "悟性", "base": 30, "perAllele": 15 },
+    "trait:memory": { "label": "记性", "base": 30, "perAllele": 15 }
+  },
+  "loci": [
+    { "id": "locus:build-a", "trait": "trait:strength" },
+    { "id": "locus:build-b", "trait": "trait:strength" },
+    { "id": "locus:stamina", "trait": "trait:endurance" },
+    { "id": "locus:hardiness-a", "trait": "trait:constitution" },
+    { "id": "locus:hardiness-b", "trait": "trait:constitution" },
+    { "id": "locus:climate", "trait": "trait:cold-tolerance" },
+    { "id": "locus:hand-a", "trait": "trait:dexterity" },
+    { "id": "locus:hand-b", "trait": "trait:dexterity" },
+    { "id": "locus:eye", "trait": "trait:perception" },
+    { "id": "locus:mind-a", "trait": "trait:insight" },
+    { "id": "locus:mind-b", "trait": "trait:insight" },
+    { "id": "locus:recall", "trait": "trait:memory" }
+  ],
+  "appearance": [
+    { "id": "look:hair", "label": "头发", "variants": { "B": "乌黑的头发", "b": "发黄的头发" }, "dominant": "B" },
+    { "id": "look:skin", "label": "肤色", "variants": { "D": "黑红的脸膛", "d": "白净的脸" }, "dominant": "D" },
+    { "id": "look:brow", "label": "眉眼", "variants": { "K": "浓眉", "k": "细眉" }, "dominant": "K" },
+    { "id": "look:face", "label": "脸型", "variants": { "R": "圆脸", "r": "长脸" }, "dominant": "R" },
+    { "id": "look:lid", "label": "眼睛", "variants": { "S": "单眼皮", "s": "双眼皮" }, "dominant": "S" }
+  ],
+  "populations": {
+    "population:river-terrace": { "label": "河岸台地", "alleleMean": 2, "alleleSpread": 1.1, "looks": { "look:hair": 0.9, "look:skin": 0.7, "look:brow": 0.5, "look:face": 0.5, "look:lid": 0.8 } },
+    "population:outsider": { "label": "外乡", "alleleMean": 2, "alleleSpread": 1.3, "looks": { "look:hair": 0.6, "look:skin": 0.4, "look:brow": 0.5, "look:face": 0.4, "look:lid": 0.5 } }
+  },
+  "tuning": {
+    "noise": 5,
+    "mutationRate": 0.003,
+    "inbreedingPenalty": 60,
+    "maxStunting": 0.25,
+    "stuntingDays": 400,
+    "stuntedTraits": ["trait:strength", "trait:endurance", "trait:insight", "trait:memory"]
+  }
+}

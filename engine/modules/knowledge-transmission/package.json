@@ -1,0 +1,18 @@
+{
+  "name": "@openlife/module-knowledge-transmission",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/module-epistemic-state": "*",
+    "@openlife/module-practice-runtime": "*"
+  },
+  "openlife": {
+    "label": "知识传授",
+    "summary": "不同人物之间的知识交流。"
+  }
+}

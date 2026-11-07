@@ -1,0 +1,17 @@
+{
+  "name": "@openlife/module-historical-anchors",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/life-contracts": "*"
+  },
+  "openlife": {
+    "label": "历史人物",
+    "summary": "历史人物及其出现的时间范围。"
+  }
+}

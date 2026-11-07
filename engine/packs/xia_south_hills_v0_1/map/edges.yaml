@@ -1,0 +1,55 @@
+# 无向邻接。distance 为抽象公里；terrain_cost 为地形难度倍率（坡、脊、洞较难，谷底较易）。
+edges:
+  # S01 坡地内部
+  - from: S0101
+    to: S0102
+    distance: 4.5
+    terrain_cost: 1.4
+  - from: S0102
+    to: S0103
+    distance: 3.2
+    terrain_cost: 1.8
+  - from: S0102
+    to: S0104
+    distance: 2.6
+    terrain_cost: 2.1
+  # 坡地 -> 竹溪谷：沿溪下坡
+  - from: S0103
+    to: S0201
+    distance: 5.8
+    terrain_cost: 1.6
+  - from: S0101
+    to: S0201
+    distance: 7.4
+    terrain_cost: 1.2
+  # S02 谷内
+  - from: S0201
+    to: S0202
+    distance: 2.1
+    terrain_cost: 1.1
+  - from: S0202
+    to: S0203
+    distance: 2.8
+    terrain_cost: 1.0
+  - from: S0202
+    to: S0204
+    distance: 3.5
+    terrain_cost: 1.5
+  # 竹溪谷 -> 盐泉台地：出谷上台地
+  - from: S0203
+    to: S0303
+    distance: 6.9
+    terrain_cost: 1.7
+  # S03 台地内部
+  - from: S0303
+    to: S0301
+    distance: 2.4
+    terrain_cost: 1.1
+  - from: S0301
+    to: S0302
+    distance: 1.6
+    terrain_cost: 1.0
+  - from: S0303
+    to: S0304
+    distance: 4.8
+    terrain_cost: 1.9

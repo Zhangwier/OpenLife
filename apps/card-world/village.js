@@ -14,11 +14,11 @@ export const LADDER = [
     { text: "能住的地方", value: (v) => v.beds, need: 6 },
     { text: "公仓存粮", value: (v) => v.granary, need: 15 },
   ] },
-  { name: "添丁", unlock: "（以后）远行", conds: [
+  { name: "添丁", unlock: "东南边的人会来换东西", conds: [
     { text: "村里的人", value: (v) => v.people, need: 6 },
     { text: "种着的田", value: (v) => v.fields, need: 3 },
   ] },
-  { name: "有名", unlock: "（以后）", conds: [{ text: "有外乡人来换东西（还没有）", test: () => false }] },
+  { name: "有名", unlock: "（以后）远行", conds: [{ text: "跟东南边来的人换过东西", test: (v) => v.traded >= 1 }] },
   { name: "兴旺", unlock: "（以后）", conds: [{ text: "村里的人", value: (v) => v.people, need: 12 }, { text: "三代同堂（你家有长辈、也有孩子）", test: (v) => v.threeGen }] },
   { name: "传承", unlock: "这一家人在这片地上扎下了根", conds: [{ text: "传到第二代", test: (v) => v.generations >= 2 }] },
 ];

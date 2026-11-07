@@ -1,0 +1,20 @@
+{
+  "name": "@openlife/module-office",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/life-contracts": "*",
+    "@openlife/module-polity": "*",
+    "@openlife/module-settlement-locations": "*",
+    "@openlife/module-world-objects": "*"
+  },
+  "openlife": {
+    "label": "职位与公事",
+    "summary": "求票、当选、断事：村子里谁说话算数，以及他说了算之后要管的事。"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@openlife/module-world-geosphere",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/module-world-geography": "*"
+  },
+  "openlife": {
+    "label": "地形与地质",
+    "summary": "自然地表与地质条件。"
+  }
+}

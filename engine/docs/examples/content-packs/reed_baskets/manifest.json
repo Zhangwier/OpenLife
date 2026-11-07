@@ -1,0 +1,12 @@
+{
+  "id": "reed_baskets",
+  "type": "settlement_extension",
+  "formatVersion": 1,
+  "name": "苇编小篓",
+  "version": "0.1.0",
+  "target": "river-terrace",
+  "description": "示例内容包：给河岸聚落加一种苇编鱼篓和它的做法。复制到 content-packs/ 下即可生效。",
+  "author": "OpenLife",
+  "requiresModules": ["settlement-locations"],
+  "files": { "items": "items.json", "recipes": "recipes.json" }
+}

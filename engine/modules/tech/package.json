@@ -1,0 +1,16 @@
+{
+  "name": "@openlife/module-tech",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*"
+  },
+  "openlife": {
+    "label": "科技",
+    "summary": "需要簿、发明与学问：因需要而想出新东西，道理有对有错，靠传授传开，没人会了就失传。"
+  }
+}

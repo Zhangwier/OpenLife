@@ -84,21 +84,22 @@ const LINES = {
 };
 // Two of them near each other with nothing pressing: a few words back and forth. [speaker, line] — a = 陶婶, b = 阿三.
 const CHATS = [
-  { pair: ["aunt", "san"], when: () => true, lines: [["a", "“阿三，地里怎么样？”"], ["b", "“还行，苗齐。”"]] },
-  { pair: ["aunt", "san"], when: () => true, lines: [["a", "“又空着肚子下地？”"], ["b", "“不饿。”"], ["a", "“不饿也得吃！”"]] },
-  { pair: ["aunt", "san"], when: () => true, lines: [["b", "“婶，灶上还有粥吗？”"], ["a", "“给你留着呢。”"]] },
+  { pair: ["aunt", "san"], when: (c) => c.sownFields > 0, lines: [["a", "“阿三，地里怎么样？”"], ["b", "“苗长出来了，还得接着照看。”"]] },
+  { pair: ["aunt", "san"], when: () => true, lines: [["a", "“又忙得不肯歇了？”"], ["b", "“还有些活。”"], ["a", "“活也有干完的时候。”"]] },
+  { pair: ["aunt", "san"], when: (c) => c.cooked > 0, lines: [["b", "“婶，灶上还有粥吗？”"], ["a", "“锅里有，你先吃。”"]] },
   { pair: ["aunt", "san"], when: (c) => c.weather === "雨", lines: [["a", "“这雨下得，柴都潮了。”"], ["b", "“地里正缺水。”"]] },
   { pair: ["aunt", "san"], when: (c) => c.weather === "晴", lines: [["b", "“这几天晴，好干活。”"], ["a", "“晴也别晒着，晌午歇歇。”"]] },
-  { pair: ["aunt", "san"], when: (c) => c.season === "冬", lines: [["a", "“公仓的粟够吃到开春吗？”"], ["b", "“省着点，够。”"]] },
-  { pair: ["aunt", "san"], when: (c) => c.season === "秋", lines: [["a", "“收了多少？”"], ["b", "“两块地，十来份。”"], ["a", "“够了够了。”"]] },
-  { pair: ["aunt", "san"], when: (c) => c.season === "春", lines: [["b", "“婶，种子还留着吧？”"], ["a", "“留着呢，一块地一份，谁也别动。”"]] },
+  { pair: ["aunt", "san"], when: (c) => c.season === "冬" && c.grain >= 8, lines: [["a", "“公仓的粟够吃到开春吗？”"], ["b", "“只要省着些，眼下还有粮。”"]] },
+  { pair: ["aunt", "san"], when: (c) => c.season === "冬" && c.grain < 8, lines: [["a", "“公仓的粟够吃到开春吗？”"], ["b", "“不多了，我得再想想法子。”"]] },
+  { pair: ["aunt", "san"], when: (c) => c.season === "秋", lines: [["a", "“今年收成怎么样？”"], ["b", "“还得一份份数，不能先夸口。”"]] },
+  { pair: ["aunt", "san"], when: (c) => c.season === "春" && c.bareFields > 0 && c.grain >= c.bareFields, lines: [["b", "“婶，种子还留着吧？”"], ["a", "“公仓里够下种的份数，谁也别动。”"]] },
   { pair: ["aunt", "san"], when: () => true, lines: [["a", "“林子那边别去深了，有老虎。”"], ["b", "“知道。”"]] },
   { pair: ["aunt", "san"], when: () => true, lines: [["b", "“山里那条矿道，石头好挖。”"], ["a", "“挖石头得有石锤，别拿手抠。”"]] },
   // anyone with anyone
   { when: (c) => c.weather === "雨", lines: [["a", "“又下了。”"], ["b", "“下吧，地里正要水。”"]] },
   { when: (c) => c.weather === "晴", lines: [["a", "“今天天好。”"], ["b", "“嗯，干活的天。”"]] },
   { when: (c) => c.season === "冬", lines: [["a", "“这冬天长着呢。”"], ["b", "“熬过去就开春了。”"]] },
-  { when: () => true, lines: [["a", "“吃了没？”"], ["b", "“吃了。你呢？”"], ["a", "“也吃了。”"]] },
+  { when: () => true, lines: [["a", "“今天还顺当吗？”"], ["b", "“有忙的，也有歇的时候。”"]] },
   { when: () => true, lines: [["a", "“林子深处别去，有老虎。”"], ["b", "“晓得。”"]] },
   // the two who quarrel over the bank
   { pair: ["wei", "li"], when: () => true, lines: [["a", "“你在山脚一敲石头，芦苇荡的鸟全飞了。”"], ["b", "“鸟飞了还回来，石头不敲不出刃。”"]] },
@@ -125,10 +126,10 @@ export function thought(who, { hour, weather, hungry, mood }) {
 }
 export function gesture(who) { return pick(GESTURE[style(who)]); }
 /** A short exchange for two people who happen to be together. Returns [[who, line], …] with a/b filled in. */
-export function chat(a, b, ctx) {
+export function chat(a, b, ctx, random = Math.random) {
   const pair = CHATS.filter((c) => c.pair && c.pair.includes(a) && c.pair.includes(b) && c.when(ctx));
-  const ok = pair.length && Math.random() < 0.75 ? pair : CHATS.filter((c) => !c.pair && c.when(ctx));
+  const ok = pair.length && random() < 0.75 ? pair : CHATS.filter((c) => !c.pair && c.when(ctx));
   if (pair.length && ok === pair && pair[0].pair[0] !== a) [a, b] = [b, a];          // "a" is whoever comes first in the pair
-  const c = pick(ok);
+  const c = ok[Math.floor(random() * ok.length)];
   return c.lines.map(([k, t]) => [k === "a" ? a : b, t]);
 }

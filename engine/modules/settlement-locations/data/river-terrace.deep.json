@@ -1,0 +1,435 @@
+{
+  "resourceLabels": {
+    "resource:arrow": "箭",
+    "resource:caltrop-cake": "菱粉糕",
+    "resource:wrap": "衣",
+    "resource:bow": "弓"
+  },
+  "prototypes": [
+    {
+      "id": "prototype:medicine-cabinet",
+      "name": "百格药柜",
+      "material": "joined-wood",
+      "resourceId": "resource:furniture",
+      "unit": "架",
+      "mass": 40,
+      "capacity": 12,
+      "capabilities": [
+        "fixture",
+        "container",
+        "storage"
+      ],
+      "durability": 220,
+      "visible": true
+    },
+    {
+      "id": "prototype:herb-stove",
+      "name": "双眼药灶",
+      "material": "fired-clay",
+      "resourceId": "resource:furniture",
+      "unit": "座",
+      "mass": 45,
+      "capacity": 0,
+      "capabilities": [
+        "fixture",
+        "workstation"
+      ],
+      "durability": 260,
+      "visible": true
+    },
+    {
+      "id": "prototype:net-frame",
+      "name": "晾网架",
+      "material": "lashed-poles",
+      "resourceId": "resource:furniture",
+      "unit": "架",
+      "mass": 25,
+      "capacity": 0,
+      "capabilities": [
+        "fixture",
+        "workstation"
+      ],
+      "durability": 140,
+      "visible": true
+    },
+    {
+      "id": "prototype:awning-raft",
+      "name": "蒲篷筏",
+      "material": "logs-and-cattail",
+      "resourceId": "resource:raft",
+      "unit": "张",
+      "mass": 150,
+      "capacity": 8,
+      "capabilities": [
+        "container",
+        "vessel",
+        "storage"
+      ],
+      "durability": 180,
+      "visible": true
+    },
+    {
+      "id": "prototype:gator-drum",
+      "name": "鼍皮鼓",
+      "material": "gator-hide-on-log",
+      "resourceId": "resource:furniture",
+      "unit": "面",
+      "mass": 28,
+      "capacity": 0,
+      "capabilities": [
+        "fixture",
+        "workstation"
+      ],
+      "durability": 200,
+      "visible": true
+    },
+    {
+      "id": "prototype:caltrop-tub",
+      "name": "采菱木盆",
+      "material": "hollowed-wood",
+      "resourceId": "resource:furniture",
+      "unit": "只",
+      "mass": 9,
+      "capacity": 2,
+      "capabilities": [
+        "fixture",
+        "vessel"
+      ],
+      "durability": 90,
+      "visible": true
+    },
+    {
+      "id": "prototype:gear-rack",
+      "name": "渔具挂架",
+      "material": "bamboo-pegs",
+      "resourceId": "resource:furniture",
+      "unit": "架",
+      "mass": 12,
+      "capacity": 6,
+      "capabilities": [
+        "fixture",
+        "storage"
+      ],
+      "durability": 100,
+      "visible": true
+    },
+    {
+      "id": "prototype:consult-stool",
+      "name": "问诊木墩",
+      "material": "oak-stump",
+      "resourceId": "resource:furniture",
+      "unit": "个",
+      "mass": 18,
+      "capacity": 0,
+      "capabilities": [
+        "fixture",
+        "rest"
+      ],
+      "durability": 300,
+      "visible": true
+    },
+    {
+      "id": "prototype:cattail-down",
+      "name": "蒲绒",
+      "material": "cattail-fluff",
+      "resourceId": "resource:cattail",
+      "unit": "团",
+      "mass": 0.1,
+      "capacity": 0,
+      "capabilities": [
+        "carryable",
+        "workable"
+      ],
+      "durability": 0
+    },
+    {
+      "id": "prototype:padded-coat",
+      "name": "蒲绒夹衣",
+      "material": "hemp-and-down",
+      "resourceId": "resource:wrap",
+      "unit": "件",
+      "mass": 1.0,
+      "capacity": 0,
+      "capabilities": [
+        "carryable",
+        "wearable",
+        "warm"
+      ],
+      "durability": 70
+    },
+    {
+      "id": "prototype:horn-bow",
+      "name": "胶角弓",
+      "material": "wood-horn-glue",
+      "resourceId": "resource:bow",
+      "unit": "张",
+      "mass": 1.2,
+      "capacity": 0,
+      "capabilities": [
+        "carryable",
+        "tool"
+      ],
+      "durability": 140
+    },
+    {
+      "id": "prototype:feather-arrow",
+      "name": "鹭羽箭",
+      "material": "flint-reed-plume",
+      "resourceId": "resource:arrow",
+      "unit": "束",
+      "mass": 0.4,
+      "capacity": 0,
+      "capabilities": [
+        "carryable",
+        "tool"
+      ],
+      "durability": 30
+    },
+    {
+      "id": "prototype:wound-salve",
+      "name": "金疮膏",
+      "material": "herb-and-glue",
+      "resourceId": "resource:medicine",
+      "unit": "罐",
+      "mass": 0.2,
+      "capacity": 0,
+      "capabilities": [
+        "carryable",
+        "storage"
+      ],
+      "durability": 0
+    },
+    {
+      "id": "prototype:eye-powder",
+      "name": "明目散",
+      "material": "herb-and-slough",
+      "resourceId": "resource:medicine",
+      "unit": "包",
+      "mass": 0.05,
+      "capacity": 0,
+      "capabilities": [
+        "carryable",
+        "storage"
+      ],
+      "durability": 0
+    },
+    {
+      "id": "prototype:caltrop-flour",
+      "name": "菱粉",
+      "material": "ground-water-chestnut",
+      "resourceId": "resource:water-chestnut",
+      "unit": "包",
+      "mass": 0.5,
+      "capacity": 0,
+      "capabilities": [
+        "carryable",
+        "storage"
+      ],
+      "durability": 0
+    },
+    {
+      "id": "prototype:caltrop-cake",
+      "name": "菱粉糕",
+      "material": "steamed-caltrop",
+      "resourceId": "resource:caltrop-cake",
+      "unit": "块",
+      "mass": 0.3,
+      "capacity": 0,
+      "capabilities": [
+        "carryable",
+        "edible"
+      ],
+      "durability": 0
+    },
+    {
+      "id": "prototype:gator-hide",
+      "name": "鼍皮",
+      "material": "gator-skin",
+      "resourceId": "resource:hide",
+      "unit": "张",
+      "mass": 3.2,
+      "capacity": 0,
+      "capabilities": [
+        "carryable",
+        "workable"
+      ],
+      "durability": 80
+    }
+  ],
+  "instances": [
+    {
+      "id": "instance:lodge:net-frame",
+      "prototypeId": "prototype:net-frame",
+      "owner": "fisher",
+      "inId": "space:lodge-netloft"
+    },
+    {
+      "id": "instance:lodge:fish-rack",
+      "prototypeId": "prototype:fish-rack",
+      "owner": "fisher",
+      "inId": "space:lodge-drying"
+    },
+    {
+      "id": "instance:lodge:tub",
+      "prototypeId": "prototype:caltrop-tub",
+      "owner": "fisher",
+      "inId": "space:lodge-bank"
+    },
+    {
+      "id": "instance:lodge:gear-rack",
+      "prototypeId": "prototype:gear-rack",
+      "owner": "fisher",
+      "inId": "space:lodge-gear"
+    },
+    {
+      "id": "instance:lodge:bed",
+      "prototypeId": "prototype:earthen-bed",
+      "owner": "fisher",
+      "inId": "space:lodge-sleep"
+    },
+    {
+      "id": "instance:herb:stool",
+      "prototypeId": "prototype:consult-stool",
+      "owner": "herbalist",
+      "inId": "space:herb-porch"
+    },
+    {
+      "id": "instance:herb:stove",
+      "prototypeId": "prototype:herb-stove",
+      "owner": "herbalist",
+      "inId": "space:herb-kitchen"
+    },
+    {
+      "id": "instance:herb:cabinet",
+      "prototypeId": "prototype:medicine-cabinet",
+      "owner": "herbalist",
+      "inId": "space:herb-store"
+    },
+    {
+      "id": "instance:herb:cache",
+      "prototypeId": "prototype:water-cache",
+      "owner": "herbalist",
+      "inId": "space:herb-garden"
+    }
+  ],
+  "food": {
+    "resource:caltrop-cake": 4
+  },
+  "recipes": [
+    {
+      "id": "recipe:raft-herbs",
+      "label": "撑篷筏进芦荡采药",
+      "hint": "撑着蒲篷筏钻进芦荡深处，采回两束岸上没有的水草药。要渔寮岸边停着一张蒲篷筏。",
+      "spaceId": "space:lodge-bank",
+      "inputs": [],
+      "tool": "prototype:awning-raft",
+      "activity": 4,
+      "seasons": [
+        "夏",
+        "秋"
+      ],
+      "output": {
+        "prototypeId": "prototype:herb-bundle",
+        "name": "芦荡深处的水草药",
+        "durability": 0,
+        "condition": "fresh",
+        "count": 2
+      }
+    },
+    {
+      "id": "recipe:raft-sunken-log",
+      "label": "撑筏去沉木林捞沉木",
+      "hint": "枯水的秋天撑篷筏到沉木林，绳子拴住一截沉木拖回来。沉木不烂不蛀。",
+      "spaceId": "space:lodge-bank",
+      "inputs": [],
+      "tool": "prototype:awning-raft",
+      "activity": 5,
+      "seasons": [
+        "秋"
+      ],
+      "output": {
+        "prototypeId": "prototype:log",
+        "name": "沉木林捞回的沉木",
+        "durability": 0,
+        "condition": "fresh",
+        "count": 1
+      }
+    },
+    {
+      "id": "recipe:gather-down",
+      "label": "捋一把蒲绒",
+      "hint": "深秋蒲棒炸了絮，顺手一捋就是一团，塞枕头、塞夹衣都暖。",
+      "spaceId": "space:lodge-bank",
+      "inputs": [],
+      "activity": 1,
+      "seasons": [
+        "秋",
+        "冬"
+      ],
+      "output": {
+        "prototypeId": "prototype:cattail-down",
+        "name": "刚捋的蒲绒",
+        "durability": 0,
+        "condition": "fresh",
+        "count": 1
+      }
+    },
+    {
+      "id": "recipe:shoot-ducks",
+      "label": "蹲芦荡射野鸭",
+      "hint": "黄昏绿头鸭飞回芦荡，蹲在苇丛里拉胶角弓，一束鹭羽箭射完，能带回两只。要手上有胶角弓，并带一束鹭羽箭。",
+      "spaceId": "space:lodge-bank",
+      "inputs": [
+        {
+          "resourceId": "resource:arrow",
+          "count": 1
+        }
+      ],
+      "tool": "prototype:horn-bow",
+      "activity": 4,
+      "seasons": [
+        "秋",
+        "冬"
+      ],
+      "output": {
+        "prototypeId": "prototype:game",
+        "name": "芦荡里射的野鸭",
+        "durability": 0,
+        "condition": "fresh",
+        "count": 2
+      }
+    }
+  ],
+  "worksites": {
+    "space:lodge-gear": {
+      "label": "帮阿罟整理渔具",
+      "hint": "把网坠、浮子、鱼篓分门别类挂上挂架；阿罟在场时算帮了他。",
+      "helps": true
+    },
+    "space:herb-kitchen": {
+      "label": "守着药灶看火",
+      "hint": "药要文火慢煎，火大了药就苦焦；阿芷在场时算帮了她。",
+      "helps": true
+    }
+  },
+  "exchange": {
+    "wants": {
+      "fisher": [
+        "resource:glue"
+      ],
+      "herbalist": [
+        "resource:medicine"
+      ]
+    }
+  },
+  "residentLines": {
+    "fisher": [
+      "阿罟把晾网架上的网抖了抖：“网要晾透，湿着收起来，一冬就烂。”",
+      "阿罟敲了敲蒲篷筏的篷顶：“有了这个，下雨也能在泽里待一夜。”"
+    ],
+    "herbalist": [
+      "阿芷踮着脚在百格药柜前找药：“第三排第七格……你帮我记着点。”",
+      "阿芷吹着药灶的火：“两眼灶，一眼煎药，一眼熬膏，谁也不耽误谁。”"
+    ]
+  }
+}

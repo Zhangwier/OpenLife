@@ -1,0 +1,55 @@
+# 十二个地点，每区四个。type 即地形。
+locations:
+  # W01 西来河湾：河从这里流进夏境，两岸蒲草齐腰，水缓，能下网
+  - id: W0101
+    name: 入夏河口
+    region_id: W01
+    type: river_mouth
+  - id: W0102
+    name: 蒲草湾
+    region_id: W01
+    type: cattail_bank
+  - id: W0103
+    name: 鱼梁滩
+    region_id: W01
+    type: weir_shallows
+  - id: W0104
+    name: 旧渡口
+    region_id: W01
+    type: old_ferry
+
+  # W02 大泽芦荡：一眼望不到边的芦苇和水面，只有撑筏才走得通
+  - id: W0201
+    name: 芦荡水道
+    region_id: W02
+    type: reed_channel
+  - id: W0202
+    name: 浮草甸
+    region_id: W02
+    type: floating_mat
+  - id: W0203
+    name: 菱角塘
+    region_id: W02
+    type: water_chestnut_pond
+  - id: W0204
+    name: 麋鹿洲
+    region_id: W02
+    type: milu_islet
+
+  # W03 鹭岛与沉木林：大泽西头的几座小岛，水下是一片泡了不知多少年的老树
+  - id: W0301
+    name: 白鹭岛
+    region_id: W03
+    type: heronry
+  - id: W0302
+    name: 沉木林
+    region_id: W03
+    type: drowned_forest
+  - id: W0303
+    name: 鼍窟
+    region_id: W03
+    type: gator_den
+  - id: W0304
+    name: 西头泉眼
+    region_id: W03
+    type: spring_head

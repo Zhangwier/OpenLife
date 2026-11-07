@@ -1,0 +1,18 @@
+{
+  "name": "@openlife/module-world-deposits",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/life-contracts": "*",
+    "@openlife/module-tech": "*"
+  },
+  "openlife": {
+    "label": "矿藏与资源分布",
+    "summary": "铜、锡、铁、煤、盐、燧石、好陶土长在哪里，决定谁先进入哪个时代，也决定贸易路线。"
+  }
+}

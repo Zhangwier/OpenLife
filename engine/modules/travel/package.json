@@ -1,0 +1,19 @@
+{
+  "name": "@openlife/module-travel",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*",
+    "@openlife/life-contracts": "*",
+    "@openlife/module-map-pack": "*",
+    "@openlife/module-settlement-locations": "*"
+  },
+  "openlife": {
+    "label": "远行",
+    "summary": "离开聚落去别的地方：出发、路上、到达、回来。"
+  }
+}

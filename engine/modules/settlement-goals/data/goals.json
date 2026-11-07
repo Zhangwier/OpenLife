@@ -1,0 +1,73 @@
+{
+  "id": "goals:river-terrace",
+  "formatVersion": 1,
+  "note": "村子活下去并长大：六级阶梯 + 失败结局。文案里不出现任何人名（认知层底线）。",
+  "maxToday": 3,
+  "failure": {
+    "populationBelow": 3,
+    "consecutiveBadWinters": 2,
+    "line": "村子散了。剩下的人收拾了能带走的东西，往别处去了。",
+    "aftermath": "后代在别处重新落脚——手艺、交情和名字还留着，日子从另一块地上重新开始。"
+  },
+  "ladders": [
+    {
+      "index": 1,
+      "id": "goal:footing",
+      "name": "落脚",
+      "unlock": "第二季的目标",
+      "conditions": [
+        { "id": "winter", "kind": "wintersLivedAtLeast", "value": 1, "text": "熬过第一个冬天" },
+        { "id": "nobody-starved", "kind": "noStarvationDeaths", "text": "无人饿死" }
+      ]
+    },
+    {
+      "index": 2,
+      "id": "goal:settled",
+      "name": "安顿",
+      "unlock": "外乡人开始来投奔",
+      "conditions": [
+        { "id": "homes", "kind": "homesAtLeast", "value": 4, "text": "盖起能住人的屋子", "unit": " 间" },
+        { "id": "roofs", "kind": "roofsSound", "text": "每户屋顶完好" },
+        { "id": "food", "kind": "foodDaysAtLeast", "value": 60, "text": "存粮够全村吃够天数", "unit": " 天" }
+      ]
+    },
+    {
+      "index": 3,
+      "id": "goal:more-hands",
+      "name": "添丁",
+      "unlock": "新地点开垦",
+      "conditions": [
+        { "id": "people", "kind": "populationAtLeast", "value": 15, "text": "村里的人丁", "unit": " 人" },
+        { "id": "births", "kind": "birthsAtLeast", "value": 2, "text": "在村里出生的孩子", "unit": " 个" }
+      ]
+    },
+    {
+      "index": 4,
+      "id": "goal:known",
+      "name": "有名",
+      "unlock": "远行",
+      "conditions": [
+        { "id": "market", "kind": "marketArrivalsAtLeast", "value": 1, "text": "渡口集市主动来人", "unit": " 次" }
+      ]
+    },
+    {
+      "index": 5,
+      "id": "goal:thriving",
+      "name": "兴旺",
+      "unlock": "村史篇章",
+      "conditions": [
+        { "id": "people", "kind": "populationAtLeast", "value": 30, "text": "村里的人丁", "unit": " 人" },
+        { "id": "three-gen", "kind": "threeGenHomesAtLeast", "value": 2, "text": "三代同堂的人家", "unit": " 家" }
+      ]
+    },
+    {
+      "index": 6,
+      "id": "goal:legacy",
+      "name": "传承",
+      "unlock": "结局评语",
+      "conditions": [
+        { "id": "generations", "kind": "lineageGenerationsAtLeast", "value": 5, "text": "家族传下的代数", "unit": " 代" }
+      ]
+    }
+  ]
+}

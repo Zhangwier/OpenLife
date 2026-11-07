@@ -1,0 +1,40 @@
+{
+  "routines": {
+    "fisher": {
+      "晨": "space:lodge-bank",
+      "午": "space:lodge-netloft",
+      "encounters": {
+        "晨": "天刚亮，阿罟蹚在蒲草岸的浅水里起篓，一边起一边数：“七条，八条……”",
+        "午": "晌午阿罟坐在网架廊下补网，网梭在指缝间飞，嘴里叼着一根苇秆。"
+      }
+    },
+    "herbalist": {
+      "晨": "space:herb-garden",
+      "午": "space:herb-porch",
+      "encounters": {
+        "晨": "清晨阿芷在药圃里掐着露水还没干的嫩叶，裙边湿了一大片。",
+        "午": "晌午诊棚前排了两三个人，阿芷让他们一个个坐上问诊木墩，挨个看舌头。"
+      }
+    }
+  },
+  "tierEvents": [
+    {
+      "npc": "fisher",
+      "tier": "bosom",
+      "text": "阿罟把那枚刻着鱼的旧网坠拴在你的网上：“我师父说，网坠认主。现在它认你了。”"
+    },
+    {
+      "npc": "herbalist",
+      "tier": "bosom",
+      "text": "阿芷把百格药柜的第十二格清空，贴上你的记号：“这一格不放药，放你从泽里给我带回来的草。”"
+    }
+  ],
+  "network": [
+    {
+      "a": "fisher",
+      "b": "herbalist",
+      "type": "friend",
+      "label": "那年把木盆捞上岸的人"
+    }
+  ]
+}

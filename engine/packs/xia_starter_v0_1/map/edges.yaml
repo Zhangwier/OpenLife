@@ -1,0 +1,240 @@
+# Undirected location adjacencies. The loader registers each edge in both
+# directions, exactly like world-geography.connect_locations does, so a pack
+# never needs to author the reverse row and can never create an asymmetric map.
+#
+# distance is abstract kilometres; terrain_cost is a positive multiplier that
+# later travel and logistics modules may consume. Nothing reads it yet.
+edges:
+  # Central plain chain: river crosses the region west to east
+  - from: L0101
+    to: L0102
+    distance: 8.4
+    terrain_cost: 1.0
+  - from: L0102
+    to: L0103
+    distance: 5.2
+    terrain_cost: 1.0
+  - from: L0103
+    to: L0104
+    distance: 6.8
+    terrain_cost: 1.2
+  - from: L0101
+    to: L0103
+    distance: 11.0
+    terrain_cost: 1.1
+  - from: L0102
+    to: L0104
+    distance: 9.6
+    terrain_cost: 1.1
+
+  # Western highlands
+  - from: L0201
+    to: L0202
+    distance: 7.5
+    terrain_cost: 1.6
+  - from: L0202
+    to: L0203
+    distance: 12.3
+    terrain_cost: 1.7
+  - from: L0203
+    to: L0204
+    distance: 6.1
+    terrain_cost: 1.5
+  - from: L0201
+    to: L0203
+    distance: 14.0
+    terrain_cost: 1.9
+
+  # Eastern wetland
+  - from: L0301
+    to: L0302
+    distance: 9.1
+    terrain_cost: 1.8
+  - from: L0302
+    to: L0303
+    distance: 6.4
+    terrain_cost: 1.6
+  - from: L0303
+    to: L0304
+    distance: 8.7
+    terrain_cost: 1.4
+  - from: L0301
+    to: L0303
+    distance: 13.2
+    terrain_cost: 2.0
+
+  # Northern corridor
+  - from: L0401
+    to: L0402
+    distance: 15.0
+    terrain_cost: 1.0
+  - from: L0402
+    to: L0403
+    distance: 15.5
+    terrain_cost: 1.0
+  - from: L0403
+    to: L0404
+    distance: 16.2
+    terrain_cost: 1.1
+
+  # Southern basin
+  - from: L0501
+    to: L0502
+    distance: 10.5
+    terrain_cost: 1.3
+  - from: L0502
+    to: L0503
+    distance: 8.8
+    terrain_cost: 1.5
+  - from: L0503
+    to: L0504
+    distance: 11.4
+    terrain_cost: 1.2
+  - from: L0501
+    to: L0504
+    distance: 16.0
+    terrain_cost: 1.4
+
+  # East river delta
+  - from: L0601
+    to: L0602
+    distance: 5.6
+    terrain_cost: 1.4
+  - from: L0602
+    to: L0603
+    distance: 6.2
+    terrain_cost: 1.3
+  - from: L0603
+    to: L0604
+    distance: 5.9
+    terrain_cost: 1.3
+  - from: L0601
+    to: L0604
+    distance: 10.8
+    terrain_cost: 1.6
+
+  # Northwest loess terrace
+  - from: L0701
+    to: L0702
+    distance: 4.9
+    terrain_cost: 1.5
+  - from: L0702
+    to: L0703
+    distance: 5.3
+    terrain_cost: 1.6
+  - from: L0703
+    to: L0704
+    distance: 7.7
+    terrain_cost: 1.8
+  - from: L0701
+    to: L0704
+    distance: 12.6
+    terrain_cost: 1.7
+
+  # Southeast lake shore
+  - from: L0801
+    to: L0802
+    distance: 6.7
+    terrain_cost: 1.1
+  - from: L0802
+    to: L0803
+    distance: 7.1
+    terrain_cost: 1.1
+  - from: L0803
+    to: L0804
+    distance: 8.0
+    terrain_cost: 1.2
+  - from: L0801
+    to: L0804
+    distance: 13.4
+    terrain_cost: 1.3
+
+  # Southwest dry plain
+  - from: L0901
+    to: L0902
+    distance: 12.8
+    terrain_cost: 1.6
+  - from: L0902
+    to: L0903
+    distance: 13.5
+    terrain_cost: 1.6
+  - from: L0903
+    to: L0904
+    distance: 14.1
+    terrain_cost: 1.5
+  - from: L0901
+    to: L0904
+    distance: 20.3
+    terrain_cost: 1.8
+
+  # Far north frontier
+  - from: L1001
+    to: L1002
+    distance: 9.8
+    terrain_cost: 1.2
+  - from: L1002
+    to: L1003
+    distance: 11.6
+    terrain_cost: 1.2
+  - from: L1003
+    to: L1004
+    distance: 10.2
+    terrain_cost: 1.3
+
+  # Inter-region seams
+  - from: L0203
+    to: L0101
+    distance: 18.4
+    terrain_cost: 1.5
+  - from: L0204
+    to: L0701
+    distance: 22.1
+    terrain_cost: 1.6
+  - from: L0401
+    to: L0104
+    distance: 19.7
+    terrain_cost: 1.1
+  - from: L0404
+    to: L1001
+    distance: 17.3
+    terrain_cost: 1.1
+  - from: L0501
+    to: L0103
+    distance: 21.5
+    terrain_cost: 1.3
+  - from: L0102
+    to: L0601
+    distance: 24.6
+    terrain_cost: 1.2
+  - from: L0603
+    to: L0301
+    distance: 15.9
+    terrain_cost: 1.4
+  - from: L0504
+    to: L0804
+    distance: 20.8
+    terrain_cost: 1.3
+  - from: L0304
+    to: L0802
+    distance: 26.4
+    terrain_cost: 1.5
+  - from: L0903
+    to: L0503
+    distance: 25.2
+    terrain_cost: 1.4
+  - from: L0901
+    to: L0203
+    distance: 23.9
+    terrain_cost: 1.6
+  - from: L0704
+    to: L0902
+    distance: 21.0
+    terrain_cost: 1.5
+  - from: L1003
+    to: L0404
+    distance: 14.8
+    terrain_cost: 1.2
+  - from: L0803
+    to: L0604
+    distance: 18.9
+    terrain_cost: 1.3

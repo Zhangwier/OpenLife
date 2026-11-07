@@ -17,6 +17,7 @@ export const LAND = { key: "grass", name: "家", seed: 20261101,
     { key: "deep", kind: "deep", x: 0, y: 0, w: 1800, h: 1600, priority: 5 },
     { key: "plateau", kind: "plateau", x: 4000, y: 1000, w: 2000, h: 1900, priority: 6, door: [0.3, 1.06] },
     { key: "mountain", kind: "mountain", x: 6000, y: 1000, w: 1800, h: 3400, priority: 7, tunnelY: 3500 },
+    { key: "blackReef", kind: "plain", x: 6520, y: 5920, w: 1080, h: 760, priority: 8 },
   ] };
 
 // Places on the home plain (coordinates local to its tile, 2400×1500). The forest covers its west 200px down to
@@ -44,8 +45,9 @@ export const FIELD_SIZE = { w: 560, h: 320 };
 export const WOOD_LAYOUT = [["chestnut", 0.3, 0.42], ["chestnut", 0.55, 0.62], ["chestnut", 0.78, 0.38], ["berries", 0.88, 0.86]];
 // The lake fills most of its tile: fish and clay on the north shore, the marsh on the west, clams to the east.
 export const LAKE_LAYOUT = [["lake", 0.5, 0.09], ["pit", 0.28, 0.11], ["shallows", 0.76, 0.12], ["reeds", 0.06, 0.48], ["nest", 0.07, 0.6]];
-// At the foot of the plateau's cliff.
-export const PLATEAU_LAYOUT = [["cliffFoot", 0.3, 1.06]];
+// At the foot of the plateau's cliff, and up on top: where the rope comes up, herbs, a green-stained outcrop, and a
+// lookout from which you can see smoke far to the south-east.
+export const PLATEAU_LAYOUT = [["cliffFoot", 0.3, 1.06], ["cliffTop", 0.3, 0.86], ["herbs", 0.45, 0.5], ["copperRock", 0.72, 0.3], ["lookout", 0.88, 0.62]];
 
 // Two people for now: 陶婶 keeps the stove, 阿三 the fields. Both sleep in 陶家主屋.
 export const PEOPLE = {

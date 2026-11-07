@@ -1,0 +1,22 @@
+{
+  "formatVersion": 1,
+  "note": "时代是认出来的，不是解锁的。按 rank 从高到低找第一个条件持续成立 sustain 次检查的时代；条件不再成立同样次数会倒退。features 是与时代并存的社会特征。",
+  "sustain": 3,
+  "eras": [
+    { "id": "era:settled-village", "label": "定居村落", "rank": 0, "when": {} },
+    { "id": "era:plenty-village", "label": "丰年村落", "rank": 1, "when": { "capabilities": ["cap:storage"], "surplusYears": 5 } },
+    { "id": "era:allied-villages", "label": "联村", "rank": 2, "when": { "contacts": 2, "population": 20, "institutions": ["institution:headship"] } },
+    { "id": "era:chalcolithic", "label": "铜石并用", "rank": 3, "when": { "capabilities": ["cap:copper"] } },
+    { "id": "era:ranked-society", "label": "等级社会", "rank": 4, "when": { "institutions": ["institution:ranked-lineages"], "capabilities": ["cap:copper"] } },
+    { "id": "era:walled-town", "label": "城邑", "rank": 5, "when": { "largestSettlement": 500, "capabilities": ["cap:earthworks", "cap:bronze"] } },
+    { "id": "era:marks-and-law", "label": "文字与法度", "rank": 6, "when": { "capabilities": ["cap:writing"], "institutions": ["institution:written-law"] } },
+    { "id": "era:iron-realm", "label": "铁器与王国", "rank": 7, "when": { "capabilities": ["cap:iron"], "institutions": ["institution:tribute"], "largestSettlement": 2000 } },
+    { "id": "era:workshops", "label": "手工工场", "rank": 8, "when": { "capabilities": ["cap:workshop", "cap:water-power"], "largestSettlement": 5000 } },
+    { "id": "era:industrial", "label": "工业", "rank": 9, "when": { "capabilities": ["cap:steam"], "largestSettlement": 20000 } }
+  ],
+  "features": [
+    { "id": "feature:bondage", "label": "有人为奴", "when": { "bonded": 2 } },
+    { "id": "feature:wrong-river-faith", "label": "信河神", "when": { "customs": ["custom:river-offering"] } },
+    { "id": "feature:exogamy", "label": "近亲不婚", "when": { "institutions": ["institution:exogamy"] } }
+  ]
+}

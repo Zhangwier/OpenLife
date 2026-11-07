@@ -1,0 +1,67 @@
+# 无向邻接。distance 为抽象公里；terrain_cost 为地形难度倍率（河湾好走，芦荡和沉木林要撑筏、难走）。
+edges:
+  # W01 河湾内部
+  - from: W0101
+    to: W0102
+    distance: 2.4
+    terrain_cost: 1.1
+  - from: W0102
+    to: W0103
+    distance: 1.8
+    terrain_cost: 1.2
+  - from: W0101
+    to: W0104
+    distance: 3.1
+    terrain_cost: 1.0
+  - from: W0103
+    to: W0104
+    distance: 2.0
+    terrain_cost: 1.2
+  # 河湾进大泽
+  - from: W0104
+    to: W0201
+    distance: 4.5
+    terrain_cost: 1.6
+  - from: W0103
+    to: W0203
+    distance: 3.6
+    terrain_cost: 1.7
+  # W02 芦荡内部
+  - from: W0201
+    to: W0202
+    distance: 2.7
+    terrain_cost: 1.9
+  - from: W0201
+    to: W0203
+    distance: 2.2
+    terrain_cost: 1.5
+  - from: W0202
+    to: W0204
+    distance: 3.3
+    terrain_cost: 2.0
+  - from: W0203
+    to: W0204
+    distance: 2.9
+    terrain_cost: 1.6
+  # 大泽到西头诸岛
+  - from: W0204
+    to: W0301
+    distance: 3.8
+    terrain_cost: 1.8
+  - from: W0202
+    to: W0302
+    distance: 4.2
+    terrain_cost: 2.3
+  # W03 内部
+  - from: W0301
+    to: W0302
+    distance: 2.1
+    terrain_cost: 2.1
+  - from: W0302
+    to: W0303
+    distance: 1.6
+    terrain_cost: 2.4
+  - from: W0301
+    to: W0304
+    distance: 2.8
+    terrain_cost: 1.4

@@ -1,0 +1,16 @@
+{
+  "name": "@openlife/module-intellectual-history",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openlife/contracts": "*"
+  },
+  "openlife": {
+    "label": "思想与学派",
+    "summary": "想法的传播、分支和共同体影响。"
+  }
+}

@@ -1,0 +1,59 @@
+# 无向邻接。distance 为抽象公里；terrain_cost 为地形难度倍率（林下与雾岭较难，河滩较易）。
+edges:
+  # N01 坡地内部
+  - from: N0101
+    to: N0102
+    distance: 3.8
+    terrain_cost: 1.3
+  - from: N0102
+    to: N0103
+    distance: 2.2
+    terrain_cost: 1.4
+  - from: N0102
+    to: N0104
+    distance: 2.9
+    terrain_cost: 1.7
+  # 北坡 -> 上游石滩：沿鹿走的小道下到河边
+  - from: N0103
+    to: N0201
+    distance: 4.6
+    terrain_cost: 1.2
+  # N02 河滩内部
+  - from: N0201
+    to: N0202
+    distance: 1.8
+    terrain_cost: 1.5
+  - from: N0201
+    to: N0203
+    distance: 2.4
+    terrain_cost: 1.1
+  - from: N0203
+    to: N0204
+    distance: 1.6
+    terrain_cost: 2.0
+  # 北坡/石滩 -> 雾岭：两条上岭的路，都陡
+  - from: N0104
+    to: N0301
+    distance: 5.2
+    terrain_cost: 2.2
+  - from: N0202
+    to: N0301
+    distance: 4.4
+    terrain_cost: 2.4
+  # N03 雾岭内部
+  - from: N0301
+    to: N0302
+    distance: 3.1
+    terrain_cost: 2.3
+  - from: N0302
+    to: N0303
+    distance: 2.7
+    terrain_cost: 2.6
+  - from: N0302
+    to: N0304
+    distance: 4.9
+    terrain_cost: 2.8
+  - from: N0303
+    to: N0304
+    distance: 3.3
+    terrain_cost: 2.5

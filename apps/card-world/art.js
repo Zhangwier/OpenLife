@@ -2,14 +2,7 @@
 // Whatever is missing keeps the built-in vector stand-ins (see art/ART_BRIEF.md).
 import { ICONS } from "./icons.js";
 
-export const ICON_KEYS = ["you", "aunt", "yu", "cook", "digger", "dog", "house", "hut", "rack", "crackedJar", "jar", "greenware", "stove", "granary", "kiln",
-  "field", "fieldRipe", "pit", "reeds", "river", "chestnut", "clay", "reed", "grain", "fish", "wood", "cooked", "door", "bed", "fire",
-  "boatman", "anvil", "scree", "stone", "flint", "hemp", "fiber", "rope", "berries", "berry", "axe", "knife", "dock", "boat", "canoe",
-  "torch", "roastFish", "roastMeat", "basket", "sandals", "net",
-  "clams", "clam", "hammer", "plot", "bighouse", "barn",
-  "deer", "boar", "duck", "nest", "egg", "spear",
-  "tiger", "jungle", "mushroom", "pelt",
-  "peachTree", "jujubeTree", "peach", "jujube"];
+export const ICON_KEYS = Object.keys(ICONS);   // every built-in icon can be replaced by a drawn one
 export const GROUND_KEYS = ["grass", "dirt", "water", "field"];
 export const DECO_KEYS = ["tree1", "tree2", "bush", "rock", "grass_tuft", "flowers", "reeds_small"];
 
