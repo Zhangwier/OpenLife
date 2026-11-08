@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox='0 0 64 64' aria-hidden='true'>
+  <path d='M4 55 H60' fill='none' stroke='#3a2c20' stroke-width='2.5' stroke-linecap='round'/>
+  <path d='M14 55 L16 41 H48 L50 55 Z' fill='#e8d6b0' stroke='#3a2c20' stroke-width='2.5' stroke-linejoin='round'/>
+  <path d='M26 55 V47 Q32 41.5 38 47 V55 Z' fill='#6b4a2f' stroke='#3a2c20' stroke-width='2.5' stroke-linejoin='round'/>
+  <path d='M29.5 46 V54 M32 45 V54 M34.5 46 V54' fill='none' stroke='#8a6a3e' stroke-width='1.2' stroke-linecap='round'/>
+  <path d='M32 7 L57 41 H7 Z' fill='#c9a96a' stroke='#3a2c20' stroke-width='2.5' stroke-linejoin='round'/>
+  <path d='M32 12 L20 39 M32 12 L26 39 M32 12 V39 M32 12 L38 39 M32 12 L44 39 M23 30 Q32 27 41 30 M19 36 Q32 33 45 36' fill='none' stroke='#8a6a3e' stroke-width='1.1' stroke-linecap='round' opacity='0.8'/>
+  <rect x='6' y='39' width='52' height='5' rx='1.5' fill='#8a6a3e' stroke='#3a2c20' stroke-width='2.5'/>
+  <path d='M28 3 L36 12 M36 3 L28 12' fill='none' stroke='#3a2c20' stroke-width='2.5' stroke-linecap='round'/>
+</svg>

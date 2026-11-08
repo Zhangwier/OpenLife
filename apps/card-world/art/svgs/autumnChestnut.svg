@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="ac_canopy" cx="38%" cy="32%" r="68%">
+          <stop offset="0%" stop-color="#e89d48"/>
+          <stop offset="50%" stop-color="#c47429"/>
+          <stop offset="85%" stop-color="#944813"/>
+          <stop offset="100%" stop-color="#612a08"/>
+        </radialGradient>
+      </defs>
+      <!-- 阴影 -->
+      <ellipse cx="128" cy="222" rx="84" ry="18" fill="#2d1c14" opacity="0.45"/>
+      <!-- 树干 -->
+      <path d="M 114,165 L 142,165 L 148,220 L 108,220 Z" fill="#6d4726" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <path d="M 124,175 L 126,212 M 134,172 L 136,210" stroke="#482e16" stroke-width="3" stroke-linecap="round"/>
+      <!-- 丰硕秋日云团树冠 -->
+      <path d="M 85,178 C 50,174 38,136 52,106 C 36,80 58,46 92,44 C 112,24 150,22 174,42 C 206,36 226,68 214,100 C 230,128 216,166 182,176 C 158,190 108,190 85,178 Z" fill="url(#ac_canopy)" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <!-- 树冠叶团光影起伏线条 -->
+      <path d="M 72,118 C 92,102 128,110 142,130" fill="none" stroke="#e89d48" stroke-width="4" stroke-linecap="round" opacity="0.75"/>
+      <path d="M 116,56 C 142,48 174,62 182,88" fill="none" stroke="#f2b568" stroke-width="4.5" stroke-linecap="round" opacity="0.8"/>
+      <!-- 栗子苞 1：左侧成熟炸开，露出红亮板栗 -->
+      <circle cx="86" cy="138" r="18" fill="#587834" stroke="#3a2c20" stroke-width="3.5"/>
+      <path d="M 72,138 L 100,138 M 86,124 L 86,152 M 76,128 L 96,148 M 76,148 L 96,128" stroke="#3b5420" stroke-width="2.5"/>
+      <ellipse cx="86" cy="139" rx="10" ry="11" fill="#6e2d14" stroke="#3a2c20" stroke-width="2.5"/>
+      <circle cx="83" cy="135" r="2.5" fill="#e07d50"/>
+      <!-- 栗子苞 2：右侧饱满成熟带刺 -->
+      <circle cx="168" cy="122" r="19" fill="#587834" stroke="#3a2c20" stroke-width="3.5"/>
+      <path d="M 153,122 L 183,122 M 168,107 L 168,137 M 157,111 L 179,133 M 157,133 L 179,111" stroke="#3b5420" stroke-width="2.5"/>
+      <ellipse cx="168" cy="123" rx="11" ry="12" fill="#6e2d14" stroke="#3a2c20" stroke-width="2.5"/>
+      <circle cx="165" cy="119" r="3" fill="#e07d50"/>
+      <!-- 栗子苞 3：上方小幼苞 -->
+      <circle cx="132" cy="74" r="14" fill="#6c8c3e" stroke="#3a2c20" stroke-width="3"/>
+      <path d="M 121,74 L 143,74 M 132,63 L 132,85" stroke="#4a6624" stroke-width="2.5"/>
+    </svg>

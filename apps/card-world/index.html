@@ -6,7 +6,8 @@
 <meta http-equiv="Cache-Control" content="no-store" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>开放人生 · 卡牌世界</title>
-<link rel="stylesheet" href="style.css?v=29" />
+<link rel="stylesheet" href="style.css?v=40" />
+<link rel="stylesheet" href="walls.css?v=2" />
 </head>
 <body>
 <main class="table" id="table" aria-label="世界：点空地走过去，拖动空地移动地图">
@@ -15,6 +16,7 @@
     <canvas class="tide" id="tide"></canvas>
     <div class="layer" id="cards"></div>
     <canvas class="fog" id="fog"></canvas>
+    <canvas class="layer fx-layer" id="fxLayer"></canvas>
     <i class="route-pin" id="routePin" hidden aria-hidden="true"></i>
     <svg class="aim" id="aim"><circle id="aimRange" r="0" /><line id="aimLine" x1="0" y1="0" x2="0" y2="0" /></svg>
   </div>
@@ -25,7 +27,7 @@
 </main>
 
 <header class="hud-l">
-  <div class="clock"><i id="sun"></i><b id="season">冬</b><span class="wx" id="weather">晴</span><span id="day">第 1 天</span><em id="time">06:00</em><s class="dayline" id="dayline" aria-hidden="true"></s></div>
+  <div class="clock"><i id="sun"></i><em id="time">清早</em><span class="wx" id="weather">晴</span><s class="dayline" id="dayline" aria-hidden="true"></s></div>
   <div class="speed" id="speed">
     <button data-speed="0" title="暂停（空格）">❚❚</button>
     <button data-speed="1" class="on" title="正常">▶</button>
@@ -35,25 +37,24 @@
   <div class="goal" id="goal" hidden><b id="goalHead">下一步</b><span id="goalText"></span><button id="goalSkip" title="不用引导了" aria-label="跳过引导">✕</button></div>
 </header>
 <nav class="hud-r">
-  <button id="zoomOut" title="缩小">－</button>
-  <button id="zoomIn" title="放大">＋</button>
   <button id="findMe" title="回到自己身边">◎</button>
-  <button id="craftBook" title="你会的手艺">✎</button>
-  <button id="villageBtn" title="村子：成长、村里的人、村史">村</button>
-  <button id="logBtn" title="最近发生的事">记</button>
-  <button id="soundBtn" title="声音">♪</button>
-  <button id="help" title="操作与存档">?</button>
+  <button id="menuBtn" title="菜单" aria-haspopup="true" aria-expanded="false">☰</button>
+  <div class="menu" id="menu" hidden>
+    <button id="villageBtn"><i>村</i>村子</button>
+    <button id="logBtn"><i>记</i>最近的事</button>
+    <button id="soundBtn"><i id="soundIcon">♪</i>声音</button>
+    <div class="menu-zoom"><button id="zoomOut" title="缩小">－</button><button id="zoomIn" title="放大">＋</button></div>
+    <button id="help"><i>?</i>操作与存档</button>
+  </div>
 </nav>
 <section class="me" id="me" aria-label="你">
   <button class="me-face" id="meFace" title="点一下：接着做刚才那件事"></button>
-  <span class="me-name" id="meName"></span>
   <div class="me-gauges"><span class="g" id="barFood"><b></b></span><span class="g" id="barRest"><b></b></span></div>
-  <div class="me-carry" id="meCarry"></div>
-  <div class="me-recent" id="meRecent"></div>
   <div class="me-promises" id="mePromises"></div>
   <button class="party-toggle" id="partyToggle" title="听你安排的人和狗：点一下展开" hidden></button>
 </section>
 <div class="party" id="party" hidden></div>
+<div class="inv" id="inv" aria-label="身上带的：装备、兜里和背篓里" hidden></div>
 <button class="auto-me" id="autoMe" title="立即自动行动" aria-label="自动行动" aria-pressed="false">⟳</button>
 <div class="detail" id="detail" hidden></div>
 <div class="crafts-book" id="crafts" hidden></div>
@@ -77,13 +78,15 @@
   <b>操作与存档</b>
   <p>点空地或点一张牌，自己找路走过去。也可以直接拖「你」：放在哪就停在哪，路上的时间照算。近处的东西可以直接拖。</p>
   <p>村民心里想什么看不到：在旁边能听见他们念叨，熟了以后点「在忙啥」才会跟你说。</p>
+  <p>点开东西只看眼前：名称、一两句看得见的状态、能做的事。地基没学过、又看不出下一步要什么时，走到会盖的人旁边，点开地基按「请教这一步」；跟着他们动手也会知道这一步要什么。</p>
   <p>拖动空地挪地图，滚轮缩放。空格暂停或继续。</p>
-  <p>右下角「⟳」立即开启或停止自动行动。同类叠牌可以整叠拖，点开也能单拿一份。</p>
+  <p>拿在手上的东西叠在你的牌下面；穿戴的、揣在兜里和背篓里的在下方那一排格子里。把东西拖到格子上就收起来，从格子拖到地图上就放下或拿去用，拖到你自己身上就拿在手上。干活时用的工具会自己拿到手上。</p>
+  <p>右下角「⟳」立即开启或停止自动行动。一摞牌拖最上面那张会整摞带走（混装也行）；拖下面某一种只拿那一种，点开也能单拿一份。把材料和火/灶/桌堆成一摞，把人拖到这摞上就会开始做。</p>
   <p>难度：<select id="difficulty"><option>安稳</option><option selected>寻常</option><option>艰难</option></select> 只改意外（耗子、发烧、寒潮、失火、吵架）来得多勤、有多重。</p>
   <p class="save-row">每隔一会儿自动存档，刷新或关掉页面都能接着玩。
     <button id="lifeExport">导出存档</button><button id="lifeImport">导入存档</button><button id="lifeNew">重新开始</button><button id="lifeBack" hidden>找回上一段人生</button><input type="file" id="lifeFile" accept=".json,application/json" hidden></p>
   <button id="helpClose">知道了</button>
 </div>
-<script type="module" src="app.js?v=35"></script>
+<script type="module" src="app.js?v=77"></script>
 </body>
 </html>

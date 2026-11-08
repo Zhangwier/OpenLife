@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <!-- 阴影 -->
+      <ellipse cx="132" cy="134" rx="72" ry="58" fill="#2d1c14" opacity="0.18"/>
+      <!-- 辐射展开的多簇草叶 -->
+      <path d="M 128,128 Q 105,72 82,42 Q 112,68 128,128 Z" fill="#98ba6e" stroke="#4a3a2e" stroke-width="3.5" stroke-linejoin="round"/>
+      <path d="M 128,128 Q 148,68 178,46 Q 148,78 128,128 Z" fill="#88aa5e" stroke="#4a3a2e" stroke-width="3.5" stroke-linejoin="round"/>
+      <path d="M 128,128 Q 185,92 216,92 Q 178,112 128,128 Z" fill="#9ec074" stroke="#4a3a2e" stroke-width="3.5" stroke-linejoin="round"/>
+      <path d="M 128,128 Q 186,155 212,182 Q 172,158 128,128 Z" fill="#789a4e" stroke="#4a3a2e" stroke-width="3.5" stroke-linejoin="round"/>
+      <path d="M 128,128 Q 132,192 126,218 Q 118,185 128,128 Z" fill="#8cb062" stroke="#4a3a2e" stroke-width="3.5" stroke-linejoin="round"/>
+      <path d="M 128,128 Q 82,185 48,198 Q 78,168 128,128 Z" fill="#9ec074" stroke="#4a3a2e" stroke-width="3.5" stroke-linejoin="round"/>
+      <path d="M 128,128 Q 68,135 38,122 Q 78,118 128,128 Z" fill="#789a4e" stroke="#4a3a2e" stroke-width="3.5" stroke-linejoin="round"/>
+      <path d="M 128,128 Q 72,88 46,62 Q 86,92 128,128 Z" fill="#a8ca7e" stroke="#4a3a2e" stroke-width="3.5" stroke-linejoin="round"/>
+      <!-- 中心草根汇聚圈 -->
+      <circle cx="128" cy="128" r="8" fill="#587634" stroke="#4a3a2e" stroke-width="2.5"/>
+    </svg>

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <!-- 阴影 -->
+      <ellipse cx="128" cy="218" rx="88" ry="16" fill="#2d1c14" opacity="0.45"/>
+      <!-- 散落碎石与土块 -->
+      <ellipse cx="68" cy="216" rx="8" ry="5" fill="#8a7c68" stroke="#3a2c20" stroke-width="2.5"/>
+      <ellipse cx="188" cy="218" rx="7" ry="4" fill="#8a7c68" stroke="#3a2c20" stroke-width="2.5"/>
+      <!-- 丛生主根系基部 -->
+      <ellipse cx="128" cy="212" rx="22" ry="9" fill="#5c4028" stroke="#3a2c20" stroke-width="4.5"/>
+      <!-- 虬曲交错的枝桠网络 -->
+      <!-- 1. 中央主枝干 -->
+      <path d="M 128,212 L 126,160 L 115,115 L 122,60 L 116,40 M 122,60 L 136,44" fill="none" stroke="#3a2c20" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M 126,160 L 138,125 L 152,85 L 164,55 M 152,85 L 140,65" fill="none" stroke="#3a2c20" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- 2. 左侧分枝干 -->
+      <path d="M 124,185 L 98,145 L 75,110 L 52,82 M 75,110 L 68,90 M 98,145 L 82,125 L 88,98" fill="none" stroke="#3a2c20" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- 3. 右侧分枝干 -->
+      <path d="M 132,185 L 158,150 L 185,115 L 208,86 M 185,115 L 192,92 M 158,150 L 174,130 L 170,105" fill="none" stroke="#3a2c20" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- 木质色泽衬线（双色体积感） -->
+      <path d="M 125,205 L 124,162 L 114,118 L 120,65" fill="none" stroke="#966e4a" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 100,146 L 78,112 L 56,86" fill="none" stroke="#966e4a" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M 156,152 L 182,118 L 204,90" fill="none" stroke="#966e4a" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- 枝头残存的两颗坚硬小干果 -->
+      <circle cx="50" cy="80" r="4.5" fill="#8a442e" stroke="#3a2c20" stroke-width="2"/>
+      <circle cx="210" cy="84" r="4.5" fill="#8a442e" stroke="#3a2c20" stroke-width="2"/>
+    </svg>

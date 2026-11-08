@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="fl_base" cx="30%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#5a6875"/>
+          <stop offset="50%" stop-color="#343d46"/>
+          <stop offset="90%" stop-color="#1f242a"/>
+          <stop offset="100%" stop-color="#121518"/>
+        </radialGradient>
+        <linearGradient id="fl_facet1" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#7e91a0"/>
+          <stop offset="100%" stop-color="#3b4854"/>
+        </linearGradient>
+        <linearGradient id="fl_facet2" x1="1" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#465460"/>
+          <stop offset="100%" stop-color="#21272c"/>
+        </linearGradient>
+      </defs>
+      <!-- 投影 -->
+      <ellipse cx="128" cy="216" rx="85" ry="22" fill="#1b2126" opacity="0.45"/>
+      <!-- 燧石整体大轮廓 -->
+      <path d="M 65,175 L 45,120 L 92,55 L 175,48 L 215,105 L 205,178 L 140,212 L 85,205 Z" fill="url(#fl_base)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 锋利的贝壳状剥离多面晶格 -->
+      <!-- 面 1: 顶部迎光面 -->
+      <polygon points="92,55 175,48 152,105 108,102" fill="url(#fl_facet1)" stroke="#3a2c20" stroke-width="4.5" stroke-linejoin="round"/>
+      <!-- 面 2: 左侧锋刃斜面 -->
+      <polygon points="45,120 92,55 108,102 78,145" fill="url(#fl_facet2)" stroke="#3a2c20" stroke-width="4" stroke-linejoin="round"/>
+      <!-- 面 3: 中心主断裂槽 -->
+      <polygon points="108,102 152,105 178,155 125,170 78,145" fill="url(#fl_base)" stroke="#3a2c20" stroke-width="4.5" stroke-linejoin="round"/>
+      <!-- 面 4: 右侧暗背光面 -->
+      <polygon points="175,48 215,105 205,178 178,155 152,105" fill="#1e252a" stroke="#3a2c20" stroke-width="4.5" stroke-linejoin="round"/>
+      <!-- 面 5: 底部基岩沉降面 -->
+      <polygon points="78,145 125,170 140,212 85,205 65,175" fill="#252c33" stroke="#3a2c20" stroke-width="4" stroke-linejoin="round"/>
+      <polygon points="125,170 178,155 205,178 140,212" fill="#181d22" stroke="#3a2c20" stroke-width="4" stroke-linejoin="round"/>
+      <!-- 锋利棱角高光白线 -->
+      <line x1="92" y1="55" x2="108" y2="102" stroke="#b6cacf" stroke-width="3" stroke-linecap="round"/>
+      <line x1="108" y1="102" x2="152" y2="105" stroke="#b6cacf" stroke-width="3.5" stroke-linecap="round"/>
+      <line x1="152" y1="105" x2="178" y2="155" stroke="#9bb1b8" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- 碰击溅出的闪亮金黄火星 -->
+      <path d="M 45,95 Q 40,85 30,80 Q 40,82 48,70 Q 46,80 55,85 Q 46,87 45,95 Z" fill="#ffd438" stroke="#3a2c20" stroke-width="1.5"/>
+      <circle cx="28" cy="102" r="2.5" fill="#ffec73"/>
+      <circle cx="38" cy="62" r="2" fill="#ff7824"/>
+    </svg>

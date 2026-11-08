@@ -239,7 +239,17 @@ const SFX = {
   toast: (t) => pluck(84, t, 0.12, bus.sfx, 0.2),
   blocked: (t) => { tone(110, t, 0.1, 0.005, 0.12, "square", 90); },
   omen: (t) => { tone(65, t, 0.22, 0.02, 0.6, "sine", 55); tone(65, t + 0.45, 0.16, 0.02, 0.5, "sine", 55); },
+  roar: (t) => {                                                    // a tiger, far off in the trees: a low swell and a rasp
+    const o = ctx.createOscillator(), g = ctx.createGain(), lp = ctx.createBiquadFilter(), v = ctx.createGain();
+    o.type = "sawtooth"; o.frequency.setValueAtTime(90, t); o.frequency.linearRampToValueAtTime(135, t + 0.4); o.frequency.exponentialRampToValueAtTime(58, t + 1.7);
+    lp.type = "lowpass"; lp.frequency.value = 380; v.gain.value = 0.5;
+    o.connect(lp).connect(g); g.connect(bus.sfx); g.connect(v).connect(bus.verb);
+    env(g, t, 0.24, 0.3, 1.5); o.start(t); o.stop(t + 1.9);
+    hiss(t, "bandpass", 280, 0.9, 0.1, 0.35, 1.3);
+  },
   drum: (t) => { for (const [dt, v] of [[0, 0.3], [0.32, 0.18], [0.48, 0.22], [0.8, 0.3]]) { tone(80, t + dt, v, 0.004, 0.22, "sine", 50); hiss(t + dt, "lowpass", 300, 0.7, v * 0.4, 0.003, 0.1); } },
+  bark: (t) => { for (const [dt, f] of [[0, 290], [0.14, 220]]) { tone(f, t + dt, 0.11, 0.003, 0.11, "sawtooth", f * 0.62); hiss(t + dt, "lowpass", 900, 0.8, 0.05, 0.002, 0.06); } },
+  howl: (t) => { tone(180, t, 0.1, 0.25, 1.6, "sawtooth", 310); tone(240, t + 0.15, 0.06, 0.35, 1.4, "sine", 360); hiss(t, "bandpass", 700, 1.2, 0.025, 0.3, 1.2); },
 };
 /** Play an effect by name; the same one at most once every 70 ms. */
 export function sfx(name) {

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="t2_grad" cx="45%" cy="45%" r="55%">
+          <stop offset="0%" stop-color="#90b88e"/>
+          <stop offset="60%" stop-color="#5a8258"/>
+          <stop offset="100%" stop-color="#335632"/>
+        </radialGradient>
+      </defs>
+      <!-- 俯视微阴影 -->
+      <ellipse cx="134" cy="136" rx="92" ry="92" fill="#2d1c14" opacity="0.22"/>
+      <!-- 底层大星形针叶轮廓（最外圈） -->
+      <polygon points="128,32 148,78 196,52 178,98 224,124 178,148 202,194 152,180 134,226 112,182 62,204 78,154 32,132 76,104 54,62 104,74" fill="#3d623b" stroke="#4a3a2e" stroke-width="4.5" stroke-linejoin="round"/>
+      <!-- 中层较亮星形针叶轮廓 -->
+      <polygon points="128,58 144,92 182,75 166,108 202,128 168,146 186,180 148,168 132,204 116,168 78,184 92,148 58,130 90,110 74,78 110,88" fill="url(#t2_grad)" stroke="#4a3a2e" stroke-width="4" stroke-linejoin="round"/>
+      <!-- 顶层中心尖芽层叠 -->
+      <polygon points="128,88 138,110 162,100 150,122 172,134 150,146 160,168 138,158 128,180 118,158 96,166 106,144 84,134 104,122 94,102 118,110" fill="#a4cca2" stroke="#4a3a2e" stroke-width="3.5" stroke-linejoin="round"/>
+      <!-- 中心尖顶小圆芽 -->
+      <circle cx="128" cy="132" r="7" fill="#d2ecd0" stroke="#4a3a2e" stroke-width="2.5"/>
+    </svg>

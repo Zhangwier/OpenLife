@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="kl_wall" cx="40%" cy="40%" r="65%">
+          <stop offset="0%" stop-color="#c96a4b"/>
+          <stop offset="50%" stop-color="#9e472a"/>
+          <stop offset="85%" stop-color="#692b16"/>
+          <stop offset="100%" stop-color="#3d1508"/>
+        </radialGradient>
+        <radialGradient id="kl_fire" cx="50%" cy="65%" r="60%">
+          <stop offset="0%" stop-color="#ffffff"/>
+          <stop offset="30%" stop-color="#ffea6c"/>
+          <stop offset="70%" stop-color="#ff7b1a"/>
+          <stop offset="100%" stop-color="#bd2c00"/>
+        </radialGradient>
+      </defs>
+      <!-- 投影 -->
+      <ellipse cx="128" cy="225" rx="88" ry="20" fill="#2d1c14" opacity="0.45"/>
+      <!-- 顶部出烟口的袅袅热气青烟 -->
+      <path d="M 124,52 C 115,35 135,25 125,12" fill="none" stroke="#cfc5b8" stroke-width="5" stroke-linecap="round" opacity="0.6"/>
+      <path d="M 134,50 C 145,38 135,28 142,15" fill="none" stroke="#cfc5b8" stroke-width="3.5" stroke-linecap="round" opacity="0.45"/>
+      <!-- 拱形陶窑大穹顶 -->
+      <path d="M 45,215 C 40,135 72,62 128,60 C 184,62 216,135 211,215 Z" fill="url(#kl_wall)" stroke="#3a2c20" stroke-width="6.5" stroke-linejoin="round"/>
+      <!-- 顶部出烟口砌环 -->
+      <ellipse cx="128" cy="62" rx="22" ry="7" fill="#4d1b0d" stroke="#3a2c20" stroke-width="4.5"/>
+      <ellipse cx="128" cy="62" rx="15" ry="4" fill="#1b0803"/>
+      <!-- 环形耐火砖砌筑缝线与高温斑块 -->
+      <path d="M 58,160 Q 128,172 198,160" fill="none" stroke="#3a2c20" stroke-width="4"/>
+      <path d="M 72,118 Q 128,128 184,118" fill="none" stroke="#3a2c20" stroke-width="4"/>
+      <!-- 纵向交错砖纹 -->
+      <line x1="100" y1="120" x2="96" y2="162" stroke="#3a2c20" stroke-width="3"/>
+      <line x1="156" y1="120" x2="160" y2="162" stroke="#3a2c20" stroke-width="3"/>
+      <line x1="128" y1="70" x2="128" y2="120" stroke="#3a2c20" stroke-width="3"/>
+      <line x1="75" y1="162" x2="72" y2="215" stroke="#3a2c20" stroke-width="3.5"/>
+      <line x1="181" y1="162" x2="184" y2="215" stroke="#3a2c20" stroke-width="3.5"/>
+      <!-- 窑口大拱门 (外拱圈) -->
+      <path d="M 85,216 C 85,148 171,148 171,216 Z" fill="#2d0d04" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 窑膛内部炽热烈火 -->
+      <path d="M 92,216 C 92,158 164,158 164,216 Z" fill="url(#kl_fire)"/>
+      <!-- 火焰内舌跳动 -->
+      <path d="M 110,216 Q 120,175 128,168 Q 138,180 146,216 Z" fill="#ffffff" opacity="0.95"/>
+      <path d="M 120,216 Q 128,185 136,216 Z" fill="#fffcda"/>
+      <!-- 炉前红炽散落的炭块与陶片 -->
+      <circle cx="70" cy="222" r="4.5" fill="#e84c17" stroke="#3a2c20" stroke-width="2"/>
+      <circle cx="188" cy="224" r="5" fill="#b03b12" stroke="#3a2c20" stroke-width="2.5"/>
+    </svg>

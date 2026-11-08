@@ -16,6 +16,7 @@ button { font-family: inherit; cursor: pointer; }
 .ground { position: absolute; inset: 0; width: 100%; height: 100%; }
 .layer { position: absolute; inset: 0; }
 .fog { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20000; }
+.fx-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 7900; }
 /* While you drag yourself: how far one stretch of walking reaches, and the way you came. */
 .aim { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 8999; opacity: 0; transition: opacity .15s; overflow: visible; }
 .aim.on { opacity: 1; }
@@ -52,8 +53,6 @@ button { font-family: inherit; cursor: pointer; }
 .card.bundled { display: none; }
 .card-head[data-count]::after { content: "×" attr(data-count); flex: none; padding: 0 4px; border-radius: 4px; background: #241a1288; white-space: nowrap; }
 .card-head[data-count] span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.me-carry span { position: relative; }
-.me-carry small { position: absolute; right: -3px; bottom: -4px; background: #4e3824; color: #fff2ce; border-radius: 4px; padding: 0 2px; }
 .card.speaker-motion { transition-property: opacity, filter; transition-duration: .3s; }
 .card.no-card { display: none !important; }
 .card-head { flex: 0 0 26px; display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 0 7px; border-radius: 6px 6px 0 0;
@@ -65,8 +64,8 @@ button { font-family: inherit; cursor: pointer; }
 .card.size-m .card-head { flex-basis: 30px; font-size: 14px; }
 .card.size-m .card-art svg { width: 132px; height: 132px; }
 .card-art svg { width: 80px; height: 80px; filter: drop-shadow(0 3px 0 rgba(58, 44, 32, .18)); }
-.card-art img.art, .intent img.art, .me-face img.art, .me-carry img.art, .detail-head img.art { width: 96px; height: 96px; object-fit: contain; pointer-events: none; }
-.intent img.art { width: 32px; height: 32px; } .me-face img.art, .me-carry img.art { width: 100%; height: 100%; }
+.card-art img.art, .intent img.art, .me-face img.art, .detail-head img.art { width: 96px; height: 96px; object-fit: contain; pointer-events: none; }
+.intent img.art { width: 32px; height: 32px; } .me-face img.art { width: 100%; height: 100%; }
 .detail-head img.art { width: 34px; height: 34px; background: var(--paper); border-radius: 6px; border: 2px solid var(--line); }
 .t-you { --c: var(--you); } .t-person { --c: var(--person); } .t-animal { --c: var(--animal); } .t-source { --c: var(--source); }
 .t-material { --c: var(--material); } .t-item { --c: var(--item); } .t-food { --c: var(--food); } .t-structure { --c: var(--structure); }
@@ -130,14 +129,6 @@ button { font-family: inherit; cursor: pointer; }
 .g#barRest b { background: #8fb0c8; }
 .g.low b { background: #e0704a; animation: pulse 1s infinite; }
 @keyframes pulse { 50% { opacity: .5; } }
-.me-carry { display: flex; gap: 3px; }
-.me-carry span { width: 26px; height: 26px; border-radius: 7px; background: var(--paper); border: 2px solid #241a12; display: grid; place-items: center; }
-.me-carry svg, .me-carry img.art { width: 100%; height: 100%; }
-.me-recent { display: flex; gap: 4px; }
-.me-recent button { width: 38px; height: 38px; padding: 2px; border-radius: 9px; border: 2px solid #241a12; background: var(--paper); box-shadow: 0 2px 0 #241a12; display: grid; place-items: center; }
-.me-recent button:active { transform: translateY(2px); box-shadow: none; }
-.me-recent svg, .me-recent img.art { width: 100%; height: 100%; }
-.me-recent:empty { display: none; }
 
 .detail { position: fixed; z-index: 45000; width: 260px; padding: 0 0 8px; border-radius: 12px; background: var(--paper); border: 3px solid var(--line); box-shadow: 0 10px 30px rgba(0, 0, 0, .35); animation: fadein .15s ease-out; }
 .detail[hidden] { display: none; }
@@ -166,13 +157,11 @@ button { font-family: inherit; cursor: pointer; }
   .speed button, .hud-r button { min-width: 38px; height: 34px; }
   .me-face { width: 38px; height: 38px; }
   .g { width: 40px; }
-  .me-carry { display: none; }
-  .me-recent button { width: 34px; height: 34px; }
 }
-
+/* People: the whole little figure on the card, head and all, rather than a big head cropped at the chest. */
 /* People are shown as a bust: the drawn figure is enlarged and cropped at the chest. */
 .card-art { overflow: hidden; }
-.t-you .card-art img.art, .t-person .card-art img.art { position: absolute; left: 50%; top: -8px; width: 206px; height: 206px; margin-left: -103px; max-width: none; }
+.t-you .card-art img.art, .t-person .card-art img.art { position: absolute; left: 50%; top: -6px; width: 144px; height: 144px; margin-left: -72px; max-width: none; }   /* the whole figure, not just the head */
 .t-you .card-art svg, .t-person .card-art svg { width: 104px; height: 104px; margin-top: 14px; }
 .me-face { overflow: hidden; position: relative; }
 .me-face img.art { position: absolute; left: 50%; top: -4%; width: 180% !important; height: 180% !important; margin-left: -90%; max-width: none; }
@@ -304,6 +293,18 @@ button { font-family: inherit; cursor: pointer; }
 .card.musing .card-art::after { content: "…"; position: absolute; right: 10px; top: 26px; font-weight: 900; color: #8a7a6a; font-size: 18px; animation: zz 1.8s infinite; }
 .card.hidden-kit { display: none !important; }
 .crop { position: absolute; z-index: 1; pointer-events: none; }
+.walls-layer { position: absolute; z-index: 1; pointer-events: none; }
+/* The villager you are playing: ringed like your own card; the corner face is theirs. */
+.card.played { box-shadow: 0 0 0 4px rgba(255, 250, 240, .85), 0 0 0 7px #e0b25a, 0 6px 14px rgba(36, 26, 18, .4); }
+.me.playing .me-face { outline: 3px solid #e0b25a; outline-offset: 2px; }
+/* The tiger: low in the grass you barely see it; in the rush it stretches out; lying up it sinks down. */
+.card[data-look="crouch"] { opacity: .32; filter: saturate(.6) brightness(.8); transition: opacity .6s; }
+.card[data-look="crouch"] .card-art { transform: scaleY(.8) translateY(12%); }
+.card[data-look="charge"] { opacity: 1; transition: opacity .1s; box-shadow: 0 0 0 3px #b8402a, 0 10px 22px rgba(120, 30, 10, .45); }
+.card[data-look="charge"] .card-art { transform: scaleX(1.12) skewX(-6deg); }
+.card[data-look="rest"] { opacity: .96; }
+.card[data-look="rest"] .card-art { transform: scaleY(.86) translateY(9%); filter: brightness(.9) saturate(.92); }
+.craft .craft-name { font-style: normal; font-size: 12px; color: #5e5446; margin-left: 2px; white-space: nowrap; }
 .resource-patch { position: absolute; z-index: 1; width: 300px; height: 240px; pointer-events: none; }
 .card[data-source-stage="sparse"] .card-art > :first-child { opacity: .7; scale: .86; }
 .card[data-source-stage="wet"] .card-art { background-color: #a0bbb5; }
@@ -343,7 +344,6 @@ button { font-family: inherit; cursor: pointer; }
 .village-book .lore b { margin-right: 6px; color: #6a4a2a; }
 .village-book .lore i { display: block; font-style: normal; font-size: 11px; color: #9a8a74; }
 #season small { margin-left: 6px; font-size: 11px; font-weight: 600; opacity: .8; }
-.me-name { align-self: center; font-size: 12px; font-weight: 700; color: #f6ecd8; white-space: nowrap; text-shadow: 0 1px 0 #241a12; }
 .detail .trades { display: grid; gap: 4px; padding: 0 10px; }
 .detail .trades .act { font-size: 12.5px; text-align: left; }
 .detail .trades .act:disabled { opacity: .55; }
@@ -365,7 +365,9 @@ button { font-family: inherit; cursor: pointer; }
 .card.lifted { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .55), 0 24px 30px rgba(36, 26, 18, .45); }
 .card-head { background: linear-gradient(rgba(255, 255, 255, .2), rgba(255, 255, 255, 0) 55%, rgba(0, 0, 0, .1)), var(--c); text-shadow: 0 1px 0 rgba(36, 26, 18, .45); letter-spacing: .02em; }
 .card-art { margin: 4px; border-radius: 6px; box-shadow: inset 0 0 0 1.5px rgba(58, 44, 32, .1), inset 0 8px 12px -10px rgba(58, 44, 32, .45); }
-.card { transition: transform .12s linear, translate .15s ease-out, opacity .3s, filter .3s; }
+.card { transition: transform var(--step-time, .2s) linear, translate .15s ease-out, opacity .3s, filter .3s; }
+/* Wild animals take slightly smaller, more frequent steps; a hair more glide keeps them from looking stop-motion. */
+.card.t-animal { transition-duration: calc(var(--step-time, .2s) + .03s), .15s, .3s, .3s; }
 @media (hover: hover) {
   .card:not(.lifted):not(.ghost):hover { translate: 0 -3px; filter: brightness(1.04); }
 }
@@ -376,8 +378,9 @@ button { font-family: inherit; cursor: pointer; }
 .dayline::after { content: ""; position: absolute; top: 50%; left: calc(var(--t, .25) * 100%); width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%;
   background: #fffaf0; box-shadow: 0 0 0 2px #241a12; }
 
+@media (max-width: 470px) { .hud-r { top: calc(68px + env(safe-area-inset-top)); } }
 @media (max-width: 760px) {
-  .hud-r { top: calc(68px + env(safe-area-inset-top)); gap: 3px; }
+  .hud-r { gap: 3px; }
   .hud-r button, .speed button { min-width: 36px; height: 36px; padding: 0 5px; }
   .speed { gap: 3px; }
   .crafts-book { top: calc(112px + env(safe-area-inset-top)); }
@@ -422,3 +425,39 @@ button { font-family: inherit; cursor: pointer; }
 .sound-book .vol input[type="range"] { flex: 1; accent-color: #b5653e; }
 .sound-book .mute { gap: 6px; }
 @media (max-width: 760px) { .sound-book { top: calc(112px + env(safe-area-inset-top)); } }
+/* What's in hand is stacked under someone's card; what's worn or put away isn't on the board at all. */
+.card.packed { display: none !important; }
+/* The bottom bar: worn and held on the left, pockets and the basket on the right. */
+.inv { position: fixed; z-index: 40000; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; gap: 8px; padding: 5px; border-radius: 14px; background: #3a2c20; border: 3px solid #241a12; box-shadow: 0 3px 0 #241a12; }
+.inv[hidden] { display: none; }
+.inv-equip, .inv-pack { display: flex; gap: 4px; }
+.inv-equip { padding-right: 8px; border-right: 2px solid #5a4634; }
+.inv .slot { position: relative; width: 40px; height: 40px; border-radius: 9px; background: var(--paper); border: 2px solid #241a12; display: grid; place-items: center; cursor: grab; touch-action: none; }
+.inv .slot svg, .inv .slot img.art { width: 100%; height: 100%; pointer-events: none; }
+.inv .slot.empty { background: #4a3828; border-color: #2c2017; cursor: default; }
+.inv .slot.empty i { font-style: normal; font-size: 13px; font-weight: 800; color: #8a7458; pointer-events: none; }
+.inv .slot small { position: absolute; right: -4px; bottom: -5px; min-width: 15px; padding: 0 3px; border-radius: 6px; background: #4e3824; color: #fff2ce; font-size: 11px; font-weight: 800; text-align: center; pointer-events: none; }
+.inv .wear { position: absolute; left: 5px; right: 5px; bottom: 3px; height: 3px; border-radius: 2px; background: rgba(36, 26, 18, .25); pointer-events: none; }
+.inv .wear::after { content: ""; display: block; width: var(--w); height: 100%; border-radius: 2px; background: #7aa25a; }
+@media (max-width: 760px) {
+  .inv { left: calc(10px + env(safe-area-inset-left)); bottom: calc(74px + env(safe-area-inset-bottom)); transform: none; gap: 6px; padding: 4px; }
+  .inv .slot { width: 34px; height: 34px; }
+  .inv-equip { padding-right: 6px; }
+  .party { bottom: calc(126px + env(safe-area-inset-bottom)); }
+}
+/* The ☰ menu, under it. */
+.menu { position: absolute; right: 0; top: calc(100% + 6px); display: grid; gap: 4px; min-width: 156px; padding: 6px; border-radius: 12px; background: #3a2c20; border: 3px solid #241a12; box-shadow: 0 6px 18px rgba(0, 0, 0, .35); }
+.menu[hidden] { display: none; }
+.hud-r .menu button { display: flex; align-items: center; gap: 8px; width: 100%; height: 38px; font-size: 14px; }
+.menu button i { width: 22px; font-style: normal; font-size: 16px; text-align: center; }
+.menu-zoom { display: flex; gap: 4px; }
+.hud-r .menu-zoom button { justify-content: center; font-size: 18px; }
+/* Food a day from going off. */
+.card.stale .card-art { filter: sepia(.55) saturate(.75) brightness(.95); }
+
+/* People change with age: the small get smaller portraits, the old grey a little. */
+.card[data-age="baby"] .card-art { transform: scale(.72); }
+.card[data-age="child"] .card-art { transform: scale(.88); }
+.card[data-age="teen"] .card-art { transform: scale(.95); }
+.card[data-age="middle"] .card-art { filter: saturate(.88) brightness(.98); }
+.card[data-age="elder"] .card-art { filter: grayscale(.32) sepia(.12) brightness(.96); }

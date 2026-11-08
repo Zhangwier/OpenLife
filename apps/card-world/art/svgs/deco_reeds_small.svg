@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <!-- 阴影 -->
+      <ellipse cx="132" cy="134" rx="76" ry="60" fill="#2d1c14" opacity="0.18"/>
+      <!-- 水绿水草基部 -->
+      <ellipse cx="128" cy="132" rx="34" ry="24" fill="#6a948c" stroke="#4a3a2e" stroke-width="3" opacity="0.6"/>
+      <!-- 辐射展开的窄长芦苇叶片 -->
+      <path d="M 128,128 Q 112,65 92,34 Q 118,65 128,128 Z" fill="#7a9e78" stroke="#4a3a2e" stroke-width="3.2"/>
+      <path d="M 128,128 Q 152,65 174,38 Q 146,72 128,128 Z" fill="#6e926c" stroke="#4a3a2e" stroke-width="3.2"/>
+      <path d="M 128,128 Q 188,88 222,78 Q 178,105 128,128 Z" fill="#84a882" stroke="#4a3a2e" stroke-width="3.2"/>
+      <path d="M 128,128 Q 182,158 206,188 Q 166,160 128,128 Z" fill="#6e926c" stroke="#4a3a2e" stroke-width="3.2"/>
+      <path d="M 128,128 Q 120,188 108,222 Q 106,182 128,128 Z" fill="#7a9e78" stroke="#4a3a2e" stroke-width="3.2"/>
+      <path d="M 128,128 Q 72,176 42,192 Q 74,160 128,128 Z" fill="#84a882" stroke="#4a3a2e" stroke-width="3.2"/>
+      <path d="M 128,128 Q 64,124 32,108 Q 74,112 128,128 Z" fill="#6e926c" stroke="#4a3a2e" stroke-width="3.2"/>
+      <!-- 几簇毛茸茸的芦花穗（亚麻色/浅赭灰） -->
+      <ellipse cx="108" cy="62" rx="7" ry="14" fill="#dfd4bc" stroke="#4a3a2e" stroke-width="2.5" transform="rotate(-15 108 62)"/>
+      <ellipse cx="158" cy="68" rx="7" ry="14" fill="#d4c8ae" stroke="#4a3a2e" stroke-width="2.5" transform="rotate(20 158 68)"/>
+      <ellipse cx="178" cy="142" rx="6" ry="12" fill="#dfd4bc" stroke="#4a3a2e" stroke-width="2.5" transform="rotate(45 178 142)"/>
+      <ellipse cx="68" cy="148" rx="6" ry="12" fill="#d4c8ae" stroke="#4a3a2e" stroke-width="2.5" transform="rotate(-40 68 148)"/>
+    </svg>

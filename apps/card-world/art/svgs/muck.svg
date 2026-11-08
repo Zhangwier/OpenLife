@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="mk_heap" cx="38%" cy="32%" r="68%">
+          <stop offset="0%" stop-color="#7a5a3a"/>
+          <stop offset="50%" stop-color="#543c24"/>
+          <stop offset="85%" stop-color="#382514"/>
+          <stop offset="100%" stop-color="#24160a"/>
+        </radialGradient>
+      </defs>
+      <!-- 阴影 -->
+      <ellipse cx="128" cy="216" rx="95" ry="20" fill="#2d1c14" opacity="0.45"/>
+      <!-- 底层固定沤肥堆的粗糙木桩护栏 -->
+      <path d="M 42,210 L 46,160 L 58,160 L 54,212 Z" fill="#6d4826" stroke="#3a2c20" stroke-width="4.5" stroke-linejoin="round"/>
+      <path d="M 200,210 L 196,160 L 208,160 L 212,212 Z" fill="#6d4826" stroke="#3a2c20" stroke-width="4.5" stroke-linejoin="round"/>
+      <path d="M 38,185 Q 128,205 218,185" fill="none" stroke="#543418" stroke-width="6" stroke-linecap="round"/>
+      <!-- 饱满隆起的高耸有机沤肥堆主体（高度从 65 到 214，占据画面80%） -->
+      <path d="M 48,208 C 42,165 65,92 110,72 C 145,58 190,88 206,145 C 215,182 198,208 178,214 C 138,218 85,218 48,208 Z" fill="url(#mk_heap)" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <!-- 肥堆起伏泥层与混杂的发酵深草 -->
+      <path d="M 75,135 C 98,118 142,125 168,148 C 140,165 98,160 75,135 Z" fill="#442e1a" stroke="#3a2c20" stroke-width="3.5" opacity="0.8"/>
+      <path d="M 98,88 C 122,80 155,88 168,108 C 148,115 120,112 98,88 Z" fill="#63452b" opacity="0.85"/>
+      <!-- 混杂其间的发酵草茎与枯黄碎叶 -->
+      <path d="M 92,105 Q 112,120 102,142" fill="none" stroke="#6f8a42" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 148,98 Q 162,118 152,138" fill="none" stroke="#7a9648" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 125,148 Q 145,162 135,185" fill="none" stroke="#6f8a42" stroke-width="3" stroke-linecap="round"/>
+      <!-- 发酵产生的微弱温热气雾线 -->
+      <path d="M 105,62 C 98,48 108,36 102,24" fill="none" stroke="#c2b6a4" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+      <path d="M 135,55 C 128,42 138,30 132,18" fill="none" stroke="#c2b6a4" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
+      <path d="M 162,65 C 156,52 165,40 159,28" fill="none" stroke="#c2b6a4" stroke-width="3" stroke-linecap="round" opacity="0.55"/>
+      <!-- 底部压堆的大石块 -->
+      <ellipse cx="62" cy="208" rx="16" ry="10" fill="#9e9384" stroke="#3a2c20" stroke-width="4"/>
+      <ellipse cx="188" cy="210" rx="18" ry="11" fill="#8a8072" stroke="#3a2c20" stroke-width="4"/>
+      <ellipse cx="128" cy="214" rx="14" ry="8" fill="#9e9384" stroke="#3a2c20" stroke-width="3.5"/>
+    </svg>

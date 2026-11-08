@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <linearGradient id="dk_wood" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#aa794c"/>
+          <stop offset="60%" stop-color="#7a4e28"/>
+          <stop offset="100%" stop-color="#4a2c11"/>
+        </linearGradient>
+      </defs>
+      <!-- 栈桥下方清澈江水波纹 -->
+      <ellipse cx="128" cy="200" rx="98" ry="30" fill="#4d8c94" opacity="0.5"/>
+      <path d="M 30,210 Q 75,220 120,212 Q 180,225 226,208" fill="none" stroke="#8fd6de" stroke-width="4.5" stroke-linecap="round"/>
+      <path d="M 45,190 Q 85,200 135,192 Q 185,202 215,192" fill="none" stroke="#8fd6de" stroke-width="3.5" stroke-linecap="round"/>
+      <!-- 浸入水中的粗大立桩 (4根) -->
+      <!-- 后排立桩 -->
+      <rect x="58" y="118" width="16" height="85" rx="3" fill="#3b200b" stroke="#3a2c20" stroke-width="4"/>
+      <rect x="182" y="105" width="16" height="85" rx="3" fill="#3b200b" stroke="#3a2c20" stroke-width="4"/>
+      <!-- 前排两根大主柱 -->
+      <rect x="42" y="132" width="22" height="88" rx="4" fill="url(#dk_wood)" stroke="#3a2c20" stroke-width="5.5"/>
+      <rect x="192" y="118" width="22" height="88" rx="4" fill="url(#dk_wood)" stroke="#3a2c20" stroke-width="5.5"/>
+      <!-- 水线浸湿深色渐变 -->
+      <rect x="42" y="185" width="22" height="35" rx="2" fill="#201105" opacity="0.6"/>
+      <rect x="192" y="172" width="22" height="34" rx="2" fill="#201105" opacity="0.6"/>
+      <!-- 延伸木质栈桥桥面板 (透视斜面) -->
+      <polygon points="30,138 185,95 228,122 75,165" fill="url(#dk_wood)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 栈板横木条缝隙 -->
+      <line x1="52" y1="132" x2="95" y2="160" stroke="#3a2c20" stroke-width="3.5"/>
+      <line x1="78" y1="125" x2="121" y2="153" stroke="#3a2c20" stroke-width="3.5"/>
+      <line x1="105" y1="118" x2="148" y2="146" stroke="#3a2c20" stroke-width="3.5"/>
+      <line x1="132" y1="110" x2="175" y2="138" stroke="#3a2c20" stroke-width="3.5"/>
+      <line x1="158" y1="103" x2="201" y2="131" stroke="#3a2c20" stroke-width="3.5"/>
+      <!-- 前侧系缆桩与粗麻绳圈 (Mooring post) -->
+      <rect x="46" y="105" width="16" height="38" rx="3" fill="#69411d" stroke="#3a2c20" stroke-width="4.5"/>
+      <ellipse cx="54" cy="105" rx="8" ry="4" fill="#a16b39" stroke="#3a2c20" stroke-width="3"/>
+      <!-- 盘绕系缆粗麻绳 -->
+      <ellipse cx="54" cy="122" rx="13" ry="6" fill="none" stroke="#3a2c20" stroke-width="6"/>
+      <ellipse cx="54" cy="122" rx="13" ry="6" fill="none" stroke="#e8c892" stroke-width="3.5"/>
+      <!-- 垂入水中的绳头 -->
+      <path d="M 65,124 Q 72,142 66,160" fill="none" stroke="#3a2c20" stroke-width="5" stroke-linecap="round"/>
+      <path d="M 65,124 Q 72,142 66,160" fill="none" stroke="#e8c892" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- 水花拍击白浪 -->
+      <path d="M 34,215 Q 44,208 54,217" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 185,200 Q 195,192 205,202" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+    </svg>

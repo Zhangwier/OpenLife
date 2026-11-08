@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="sd_straw" cx="45%" cy="40%" r="65%">
+          <stop offset="0%" stop-color="#fae2a0"/>
+          <stop offset="65%" stop-color="#ce9f4d"/>
+          <stop offset="100%" stop-color="#8f6320"/>
+        </radialGradient>
+      </defs>
+      <!-- 阴影 -->
+      <ellipse cx="128" cy="222" rx="88" ry="18" fill="#2d1c14" opacity="0.45"/>
+      <!-- 左草鞋 (稍侧倾) -->
+      <!-- 鞋底轮廓 -->
+      <path d="M 75,70 C 95,70 106,95 104,130 C 102,160 108,185 95,208 C 82,216 68,216 58,205 C 46,182 50,155 52,125 C 54,95 62,70 75,70 Z" fill="url(#sd_straw)" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <!-- 鞋面人字编织条纹 -->
+      <path d="M 58,95 Q 76,105 98,95 M 56,120 Q 76,132 100,120 M 54,145 Q 76,158 100,145 M 56,170 Q 76,182 98,170 M 60,192 Q 76,202 92,192" fill="none" stroke="#3a2c20" stroke-width="3.5" stroke-linecap="round"/>
+      <!-- 绑带与鼻梁鼻绳 (Toe strap) -->
+      <path d="M 75,85 L 75,108 M 75,108 L 56,125 M 75,108 L 98,125" fill="none" stroke="#543719" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M 75,85 L 75,108 M 75,108 L 56,125 M 75,108 L 98,125" fill="none" stroke="#f6eccd" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="75" cy="86" r="4.5" fill="#543719" stroke="#3a2c20" stroke-width="2"/>
+
+      <!-- 右草鞋 -->
+      <!-- 鞋底轮廓 -->
+      <path d="M 181,70 C 194,70 202,95 204,125 C 206,155 210,182 198,205 C 188,216 174,216 161,208 C 148,185 154,160 152,130 C 150,95 161,70 181,70 Z" fill="url(#sd_straw)" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <!-- 鞋面人字编织条纹 -->
+      <path d="M 158,95 Q 180,105 198,95 M 156,120 Q 180,132 200,120 M 156,145 Q 180,158 202,145 M 158,170 Q 180,182 200,170 M 164,192 Q 180,202 196,192" fill="none" stroke="#3a2c20" stroke-width="3.5" stroke-linecap="round"/>
+      <!-- 绑带与鼻梁鼻绳 -->
+      <path d="M 181,85 L 181,108 M 181,108 L 158,125 M 181,108 L 200,125" fill="none" stroke="#543719" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M 181,85 L 181,108 M 181,108 L 158,125 M 181,108 L 200,125" fill="none" stroke="#f6eccd" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="181" cy="86" r="4.5" fill="#543719" stroke="#3a2c20" stroke-width="2"/>
+      <!-- 缠绕脚踝的修长麻绳带 -->
+      <path d="M 58,155 C 38,135 60,110 80,125 C 110,145 130,120 155,145" fill="none" stroke="#543719" stroke-width="4.5" stroke-linecap="round"/>
+      <path d="M 58,155 C 38,135 60,110 80,125 C 110,145 130,120 155,145" fill="none" stroke="#f6eccd" stroke-width="2" stroke-linecap="round"/>
+    </svg>

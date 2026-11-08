@@ -315,7 +315,7 @@ export function paintTerrain(canvas, m, { DECO = {}, keepClear = [], season = "æ
     const c = m.cls[i], x = m.X(i), y = m.Y(i), r1 = R(), r2 = R();
     if (m.road[i] || c === G.CAVE) continue;
     const j = () => ({ x: x + (R() - 0.5) * CELL * 2.3, y: y + (R() - 0.5) * CELL * 2.3 });
-    if ((c === G.ROCK || c === G.SNOW) && r1 < 0.1) { items.push({ x: x + (r2 - 0.5) * CELL, y: y + (R() - 0.5) * CELL, kind: "peak", s: 0.6 + R() * 0.35 + (m.elev[i] - 0.76), v: R(), snow: m.elev[i] > L.snowLine - 0.06 }); continue; }
+    if ((c === G.ROCK || c === G.SNOW) && r1 < 0.1 && !nearCave(m, i)) { items.push({ x: x + (r2 - 0.5) * CELL, y: y + (R() - 0.5) * CELL, kind: "peak", s: 0.6 + R() * 0.35 + (m.elev[i] - 0.76), v: R(), snow: m.elev[i] > L.snowLine - 0.06 }); continue; }
     if (m.orchard?.[i]) {                                             // trees set out in rows, grass between
       const cc = i % m.cols, rr = Math.floor(i / m.cols);
       if (cc % 3 === 0 && rr % 3 === 0) { const p = { x: x + (r1 - 0.5) * 10, y: y + (r2 - 0.5) * 10 }; if (clearOf(p.x, p.y, 150) && plant(p, 108)) items.push({ ...p, kind: "otree", s: 1.15 + R() * 0.2, v: R() }); }
@@ -346,7 +346,7 @@ export function paintTerrain(canvas, m, { DECO = {}, keepClear = [], season = "æ
   for (const it of grows) if (it.kind === "tree" || it.kind === "berry") shadow(g, it);
   for (const it of grows) drawDeco(g, it, DECO, L);
   if (m.tunnel) mouth(g, m.tunnel);
-  if (house) paintFence(g, house, L);
+  for (const h of [].concat(house ?? [])) paintFence(g, h, L);           // the house's yard, the granary
 }
 
 /** The crop on one field, on its own small canvas: it changes with sowing, weeding and harvest, the ground doesn't. */
@@ -553,15 +553,19 @@ export function paintResourcePatch(canvas, plant, stock, stage, { season, drough
   const kind = plant === "herb" ? "reeds" : plant;
   const dormant = stage === "dormant";
   const patches = [[68, 100], [232, 95], [71, 176], [231, 170]];
-  let shape = kind, count = Math.min(4, stock);
+  let shape = kind, count = Math.min(4, stock), scale = 1;
   if (kind === "tree" || kind === "pine") {
     if (!stock) { shape = stage === "frostdead" ? "snag" : "stump"; count = 2; }
+    else {
+      count = stage === "sapling" ? 1 : stage === "young" ? 2 : stage === "mature" ? 3 : 4;
+      scale = stage === "sapling" ? 0.5 : stage === "young" ? 0.72 : stage === "old" ? 1.08 : 1;
+    }
   } else if (kind === "berry" && !stock) { shape = dormant ? "berry" : "bush"; count = 2; }
   else if (kind === "fruit") { shape = stock ? "otree" : "tree"; count = Math.max(2, count); }
   else if (kind === "reeds" && (dormant || stage === "flooded")) count = 2;
   for (let i = 0; i < count; i++) {
     const [x, y] = patches[i];
-    drawDeco(g, { x, y, kind: shape, s: (i % 2 ? 0.68 : 0.88) * (plant === "herb" ? 0.55 : 1), v: i / 4 + 0.1, bare: dormant, dry: dormant }, {}, L);
+    drawDeco(g, { x, y, kind: shape, s: (i % 2 ? 0.68 : 0.88) * (plant === "herb" ? 0.55 : 1) * scale, v: i / 4 + 0.1, bare: dormant, dry: dormant }, {}, L);
   }
 }
 
@@ -624,3 +628,11 @@ export function paintTide(canvas, m, level, season = "æ˜¥") {
   }
   g.putImageData(img, 0, 0);
 }
+
+/** Close by a tunnel (within three cells): no peak drawn there, or it would stand over the passage. */
+const nearCave = (m, i) => {
+  if (!m.cave) return false;
+  const c0 = i % m.cols, r0 = Math.floor(i / m.cols);
+  for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) { const r = r0 + dy, c = c0 + dx; if (r >= 0 && c >= 0 && r < m.rows && c < m.cols && m.cave[r * m.cols + c]) return true; }
+  return false;
+};

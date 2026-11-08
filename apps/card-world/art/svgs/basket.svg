@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="bs_body" cx="40%" cy="40%" r="65%">
+          <stop offset="0%" stop-color="#dfb77e"/>
+          <stop offset="70%" stop-color="#b6894c"/>
+          <stop offset="100%" stop-color="#7c5525"/>
+        </radialGradient>
+      </defs>
+      <!-- 投影 -->
+      <ellipse cx="128" cy="222" rx="75" ry="20" fill="#2d1c14" opacity="0.45"/>
+      <!-- 拱形坚固提梁 (后半段) -->
+      <path d="M 68,135 C 68,40 188,40 188,135" fill="none" stroke="#3a2c20" stroke-width="14" stroke-linecap="round"/>
+      <path d="M 68,135 C 68,40 188,40 188,135" fill="none" stroke="#9e7239" stroke-width="7" stroke-linecap="round"/>
+      <!-- 篮内盛装物: 几抹清新的绿叶与红果 -->
+      <ellipse cx="128" cy="130" rx="65" ry="22" fill="#4a3118"/>
+      <!-- 绿叶 -->
+      <path d="M 95,128 C 80,115 90,95 110,105 C 108,120 95,128 95,128 Z" fill="#6da848" stroke="#3a2c20" stroke-width="3"/>
+      <path d="M 145,125 C 165,110 175,125 160,135 C 150,135 145,125 145,125 Z" fill="#8bc34a" stroke="#3a2c20" stroke-width="3"/>
+      <!-- 红果 -->
+      <circle cx="115" cy="120" r="9" fill="#d94141" stroke="#3a2c20" stroke-width="3"/>
+      <circle cx="132" cy="115" r="10" fill="#bf2626" stroke="#3a2c20" stroke-width="3"/>
+      <circle cx="145" cy="124" r="8" fill="#e85858" stroke="#3a2c20" stroke-width="3"/>
+      <circle cx="113" cy="118" r="2.5" fill="#fff" opacity="0.8"/>
+      <circle cx="130" cy="113" r="2.8" fill="#fff" opacity="0.8"/>
+      <!-- 篮身外廓 -->
+      <path d="M 52,130 C 56,175 75,212 105,215 L 151,215 C 181,212 200,175 204,130 C 204,118 52,118 52,130 Z" fill="url(#bs_body)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 篮口加固厚圈 -->
+      <ellipse cx="128" cy="128" rx="76" ry="14" fill="none" stroke="#3a2c20" stroke-width="6"/>
+      <ellipse cx="128" cy="128" rx="74" ry="12" fill="none" stroke="#dfb77e" stroke-width="4"/>
+      <!-- 柳条纵横编织纹理 (多层交错) -->
+      <path d="M 62,150 Q 128,168 194,150 M 68,172 Q 128,190 188,172 M 82,194 Q 128,208 174,194" fill="none" stroke="#3a2c20" stroke-width="4.5" stroke-linecap="round"/>
+      <path d="M 62,148 Q 128,166 194,148 M 68,170 Q 128,188 188,170 M 82,192 Q 128,206 174,192" fill="none" stroke="#f0cf9c" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- 纵向交错条索 -->
+      <line x1="88" y1="130" x2="102" y2="215" stroke="#3a2c20" stroke-width="3.5"/>
+      <line x1="112" y1="132" x2="118" y2="215" stroke="#3a2c20" stroke-width="3.5"/>
+      <line x1="144" y1="132" x2="138" y2="215" stroke="#3a2c20" stroke-width="3.5"/>
+      <line x1="168" y1="130" x2="154" y2="215" stroke="#3a2c20" stroke-width="3.5"/>
+      <!-- 提梁前半段缠绳细节 -->
+      <path d="M 115,50 L 125,58 M 128,48 L 138,56 M 140,52 L 150,60" stroke="#f6ebd9" stroke-width="3.5" stroke-linecap="round"/>
+    </svg>

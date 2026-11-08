@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="cj_body" cx="36%" cy="32%" r="68%">
+          <stop offset="0%" stop-color="#d67850"/>
+          <stop offset="50%" stop-color="#b5653e"/>
+          <stop offset="85%" stop-color="#833e20"/>
+          <stop offset="100%" stop-color="#54220f"/>
+        </radialGradient>
+        <linearGradient id="cj_rim" x1="20%" y1="0%" x2="80%" y2="100%">
+          <stop offset="0%" stop-color="#d67850"/>
+          <stop offset="100%" stop-color="#833e20"/>
+        </linearGradient>
+      </defs>
+      <!-- 阴影 -->
+      <ellipse cx="128" cy="218" rx="82" ry="18" fill="#2d1c14" opacity="0.42"/>
+      <!-- 大肚陶罐主体 -->
+      <path d="M 86,54 L 170,54 C 176,80 212,112 210,158 C 207,198 172,214 128,214 C 84,214 49,198 46,158 C 44,112 80,80 86,54 Z" fill="url(#cj_body)" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <!-- 罐口沿 -->
+      <ellipse cx="128" cy="54" rx="44" ry="15" fill="url(#cj_rim)" stroke="#3a2c20" stroke-width="5.5"/>
+      <ellipse cx="128" cy="54" rx="32" ry="9" fill="#3a1b0d" stroke="#3a2c20" stroke-width="3"/>
+      <!-- 新石器经典绳纹刻划带 -->
+      <path d="M 76,112 Q 128,128 180,112" fill="none" stroke="#df8d68" stroke-width="3.5" stroke-linecap="round"/>
+      <!-- 明显裂缝：从口沿向腹下蔓延贯穿折裂 -->
+      <path d="M 112,56 L 106,78 L 122,108 L 110,138 L 128,168 L 118,206" fill="none" stroke="#3a2c20" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/>
+      <!-- 裂口错位与暗影 -->
+      <path d="M 110,106 L 122,108 L 115,118" fill="none" stroke="#2a1208" stroke-width="2"/>
+      <path d="M 126,166 L 128,168 L 134,175" fill="none" stroke="#2a1208" stroke-width="2"/>
+      <!-- 裂缝微弱亮边崩口 -->
+      <path d="M 114,58 L 108,78 L 124,107" fill="none" stroke="#f0a582" stroke-width="2" opacity="0.75"/>
+      <!-- 漏落的几粒粟米 -->
+      <ellipse cx="120" cy="216" rx="4" ry="3" fill="#e8c040" stroke="#3a2c20" stroke-width="1.8"/>
+      <ellipse cx="132" cy="218" rx="4.5" ry="3" fill="#e8c040" stroke="#3a2c20" stroke-width="1.8"/>
+      <ellipse cx="142" cy="214" rx="3.5" ry="2.5" fill="#e8c040" stroke="#3a2c20" stroke-width="1.8"/>
+      <!-- 左上高光 -->
+      <path d="M 78,135 C 72,155 76,175 88,185" fill="none" stroke="#f0a582" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+    </svg>

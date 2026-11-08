@@ -1,0 +1,23 @@
+<svg viewBox="0 0 256 256" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <g stroke="#3a2c20" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+    <!-- 清澈水波 -->
+    <path d="M24 204 C64 192 104 212 148 200 C192 188 224 208 244 200" stroke="#4f7a78" stroke-width="7" fill="none"/>
+    <!-- 丰满鸭身（浅灰褐腹毛） -->
+    <path d="M52 168 C44 136 78 122 124 122 C168 122 186 142 180 178 C174 208 136 216 94 212 C66 210 52 196 52 168 Z" fill="#8c7860"/>
+    <!-- 暖棕栗色胸脯 -->
+    <path d="M142 126 C166 128 184 148 178 178 C158 184 144 156 142 126 Z" fill="#9e5230"/>
+    <!-- 翅膀羽毛分层与蓝紫色翼镜 -->
+    <path d="M68 162 C78 140 114 136 138 152 C120 182 86 186 68 162 Z" fill="#6d5c48"/>
+    <rect x="88" y="156" width="28" height="8" rx="3" transform="rotate(-15 88 156)" fill="#364e8c"/>
+    <path d="M54 164 C42 160 38 150 44 144 C52 144 54 154 54 164 Z" fill="#2a1f18"/>
+    <!-- 纯白颈环 -->
+    <ellipse cx="172" cy="116" rx="14" ry="7" fill="#fffaf0"/>
+    <!-- 墨绿光泽圆头 -->
+    <circle cx="180" cy="88" r="28" fill="#1e5c3e"/>
+    <!-- 灵动黑眼睛与白高光 -->
+    <circle cx="184" cy="80" r="5" fill="#2a1f18"/>
+    <circle cx="186" cy="78" r="1.5" fill="#fff" stroke="none"/>
+    <!-- 黄色扁扁鸭嘴 -->
+    <path d="M204 88 C224 86 244 94 240 104 C228 108 206 104 200 96 Z" fill="#f2a828"/>
+  </g>
+</svg>

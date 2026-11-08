@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <linearGradient id="gr_thatch" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#fae398"/>
+          <stop offset="70%" stop-color="#cf9f3e"/>
+          <stop offset="100%" stop-color="#8a5f1a"/>
+        </linearGradient>
+        <linearGradient id="gr_wall" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#ba8e59"/>
+          <stop offset="50%" stop-color="#dfb77e"/>
+          <stop offset="100%" stop-color="#8f6432"/>
+        </linearGradient>
+      </defs>
+      <!-- 阴影 -->
+      <ellipse cx="128" cy="225" rx="85" ry="18" fill="#2d1c14" opacity="0.45"/>
+      <!-- 四根高架柱脚与防鼠盘 (Rat-guard) -->
+      <!-- 后两柱 -->
+      <rect x="75" y="160" width="10" height="55" fill="#4d3016" stroke="#3a2c20" stroke-width="3.5"/>
+      <rect x="170" y="160" width="10" height="55" fill="#4d3016" stroke="#3a2c20" stroke-width="3.5"/>
+      <!-- 前左柱 -->
+      <rect x="62" y="155" width="14" height="65" rx="3" fill="#69411e" stroke="#3a2c20" stroke-width="4.5"/>
+      <ellipse cx="69" cy="180" rx="14" ry="5" fill="#45270e" stroke="#3a2c20" stroke-width="3.5"/>
+      <!-- 前右柱 -->
+      <rect x="180" y="155" width="14" height="65" rx="3" fill="#69411e" stroke="#3a2c20" stroke-width="4.5"/>
+      <ellipse cx="187" cy="180" rx="14" ry="5" fill="#45270e" stroke="#3a2c20" stroke-width="3.5"/>
+      <!-- 悬空大木平台托梁 -->
+      <polygon points="46,162 210,162 216,148 40,148" fill="#543317" stroke="#3a2c20" stroke-width="5" stroke-linejoin="round"/>
+      <!-- 仓房主箱体 -->
+      <rect x="52" y="98" width="152" height="52" fill="url(#gr_wall)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 编织板壁木栅纹 -->
+      <line x1="52" y1="115" x2="204" y2="115" stroke="#3a2c20" stroke-width="3.5"/>
+      <line x1="52" y1="132" x2="204" y2="132" stroke="#3a2c20" stroke-width="3.5"/>
+      <line x1="88" y1="98" x2="88" y2="150" stroke="#3a2c20" stroke-width="3"/>
+      <line x1="128" y1="98" x2="128" y2="150" stroke="#3a2c20" stroke-width="3"/>
+      <line x1="168" y1="98" x2="168" y2="150" stroke="#3a2c20" stroke-width="3"/>
+      <!-- 仓板中心小通风窗口与满溢金黄谷穗 -->
+      <rect x="114" y="108" width="28" height="26" fill="#301c0d" stroke="#3a2c20" stroke-width="3.5"/>
+      <circle cx="128" cy="120" r="7" fill="#fcd34d"/>
+      <circle cx="124" cy="122" r="5" fill="#eaad1a"/>
+      <!-- 巨大的双坡厚茅草防雨大屋顶 -->
+      <polygon points="128,32 228,102 218,108 128,52 38,108 28,102" fill="url(#gr_thatch)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 茅草屋檐流苏 -->
+      <path d="M 28,102 L 36,112 L 48,102 L 60,112 L 74,102 L 90,112 L 108,102 L 128,114 L 148,102 L 166,112 L 182,102 L 198,112 L 212,102 L 222,112 L 228,102" fill="none" stroke="#3a2c20" stroke-width="4.5" stroke-linejoin="round"/>
+      <!-- 屋脊横梁压木 -->
+      <line x1="112" y1="30" x2="144" y2="30" stroke="#543317" stroke-width="8" stroke-linecap="round"/>
+      <!-- 靠在仓门前的小木梯 -->
+      <line x1="135" y1="148" x2="148" y2="220" stroke="#3a2c20" stroke-width="5" stroke-linecap="round"/>
+      <line x1="150" y1="148" x2="163" y2="220" stroke="#3a2c20" stroke-width="5" stroke-linecap="round"/>
+      <line x1="138" y1="165" x2="153" y2="165" stroke="#3a2c20" stroke-width="3.5"/>
+      <line x1="142" y1="184" x2="157" y2="184" stroke="#3a2c20" stroke-width="3.5"/>
+      <line x1="146" y1="203" x2="161" y2="203" stroke="#3a2c20" stroke-width="3.5"/>
+    </svg>

@@ -1,0 +1,24 @@
+<svg viewBox="0 0 256 256" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <g stroke="#3a2c20" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+    <!-- 苍劲树干与树根 -->
+    <path d="M104 236 C112 180 108 148 116 116 H140 C148 148 144 180 152 236 Z" fill="#7a4e28"/>
+    <path d="M120 148 L96 124 M136 138 L160 118" stroke="#5a3618" stroke-width="5" fill="none"/>
+    <!-- 丰茂的层次树冠（多重重叠与不同绿色） -->
+    <path d="M64 136 C42 120 44 84 72 70 C88 42 132 32 160 48 C192 34 224 58 220 92 C236 118 214 154 184 152 C168 168 130 170 112 156 C88 168 68 156 64 136 Z" fill="#3f6a2c"/>
+    <path d="M80 120 C64 108 66 82 86 70 C100 48 136 40 158 54 C184 42 208 62 204 88 C216 108 200 136 176 134 C162 146 132 148 118 136 C98 146 84 136 80 120 Z" fill="#588a3e" stroke="none"/>
+    <path d="M104 96 C94 88 96 72 108 64 C118 48 142 44 156 54 C172 46 188 60 186 78 C194 92 184 110 168 108 C158 116 138 118 128 110 C114 116 106 110 104 96 Z" fill="#78aa4c" stroke="none"/>
+    <!-- 刺刺的栗苞与露出的油亮红栗子 -->
+    <!-- 栗苞 1 -->
+    <circle cx="88" cy="118" r="18" fill="#8aa844" stroke="#3a2c20" stroke-width="4"/>
+    <path d="M72 118 H104 M88 102 V134 M76 106 L100 130 M76 130 L100 106" stroke="#5c7a28" stroke-width="3"/>
+    <circle cx="88" cy="118" r="8" fill="#6e2d14" stroke="#3a2c20" stroke-width="3"/>
+    <circle cx="86" cy="115" r="2" fill="#d98a5a" stroke="none"/>
+    <!-- 栗苞 2 -->
+    <circle cx="178" cy="106" r="20" fill="#8aa844" stroke="#3a2c20" stroke-width="4"/>
+    <path d="M160 106 H196 M178 88 V124 M164 92 L192 120 M164 120 L192 92" stroke="#5c7a28" stroke-width="3"/>
+    <circle cx="178" cy="106" r="9" fill="#6e2d14" stroke="#3a2c20" stroke-width="3"/>
+    <!-- 栗苞 3 -->
+    <circle cx="136" cy="74" r="16" fill="#8aa844" stroke="#3a2c20" stroke-width="4"/>
+    <circle cx="136" cy="74" r="7" fill="#6e2d14" stroke="#3a2c20" stroke-width="3"/>
+  </g>
+</svg>

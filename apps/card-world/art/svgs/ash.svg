@@ -1,0 +1,18 @@
+<svg viewBox="0 0 256 256" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <g stroke="#3a2c20" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+    <!-- 底部宽大灰白灰烬堆 -->
+    <path d="M38 214 C32 178 72 136 128 136 C184 136 224 178 218 214 C190 226 66 226 38 214 Z" fill="#cfcac2"/>
+    <path d="M64 204 C78 174 104 152 142 152 C178 152 200 178 196 204 Z" fill="#e6e2dc" stroke="none"/>
+    <!-- 烧焦的黑木炭块 -->
+    <polygon points="86,182 108,172 118,188 94,198" fill="#2d2a28"/>
+    <polygon points="144,178 172,168 182,184 154,196" fill="#383432"/>
+    <polygon points="116,198 142,192 138,210 114,212" fill="#242120"/>
+    <!-- 隐现的赤热微炭火星 -->
+    <circle cx="126" cy="184" r="5" fill="#f05424" stroke="none"/>
+    <circle cx="138" cy="188" r="3.5" fill="#f8a432" stroke="none"/>
+    <circle cx="106" cy="190" r="3" fill="#f05424" stroke="none"/>
+    <!-- 袅袅飘散的极淡白烟弧线 -->
+    <path d="M124 130 Q116 98 130 76 Q144 54 136 28" stroke="#a09a92" stroke-width="4" stroke-dasharray="8 6" fill="none" opacity="0.6"/>
+    <path d="M148 136 Q156 108 148 88" stroke="#b0aaa2" stroke-width="3" stroke-dasharray="6 6" fill="none" opacity="0.5"/>
+  </g>
+</svg>

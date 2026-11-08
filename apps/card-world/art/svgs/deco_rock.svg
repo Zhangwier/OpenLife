@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="rk_grad1" cx="38%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#d4ccc0"/>
+          <stop offset="50%" stop-color="#aaa092"/>
+          <stop offset="100%" stop-color="#6e6558"/>
+        </radialGradient>
+        <radialGradient id="rk_grad2" cx="38%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#c5bcb0"/>
+          <stop offset="55%" stop-color="#948b7e"/>
+          <stop offset="100%" stop-color="#5a5246"/>
+        </radialGradient>
+      </defs>
+      <!-- 阴影 -->
+      <ellipse cx="134" cy="138" rx="86" ry="68" fill="#2d1c14" opacity="0.22"/>
+      <!-- 主大圆石 -->
+      <path d="M 68,138 C 64,96 95,68 142,72 C 185,76 206,108 202,150 C 196,186 162,204 118,200 C 78,196 72,172 68,138 Z" fill="url(#rk_grad1)" stroke="#4a3a2e" stroke-width="4.5" stroke-linejoin="round"/>
+      <!-- 表面天然石纹微裂 -->
+      <path d="M 108,98 Q 135,115 152,142" fill="none" stroke="#7a7064" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M 96,112 Q 132,96 166,110" fill="none" stroke="#dfd8ce" stroke-width="3" stroke-linecap="round" opacity="0.75"/>
+      <!-- 紧挨的小圆石 1 -->
+      <ellipse cx="68" cy="168" rx="28" ry="24" fill="url(#rk_grad2)" stroke="#4a3a2e" stroke-width="3.8"/>
+      <circle cx="64" cy="162" r="6" fill="#ded7cd" opacity="0.7"/>
+      <!-- 紧挨的小圆石 2 -->
+      <ellipse cx="188" cy="98" rx="24" ry="20" fill="url(#rk_grad2)" stroke="#4a3a2e" stroke-width="3.8"/>
+    </svg>

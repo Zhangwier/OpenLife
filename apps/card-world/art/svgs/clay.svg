@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="cl_grad1" cx="35%" cy="30%" r="65%">
+          <stop offset="0%" stop-color="#df8962"/>
+          <stop offset="50%" stop-color="#b85f39"/>
+          <stop offset="85%" stop-color="#8a3c1e"/>
+          <stop offset="100%" stop-color="#5a220e"/>
+        </radialGradient>
+        <radialGradient id="cl_grad2" cx="30%" cy="35%" r="60%">
+          <stop offset="0%" stop-color="#e89e78"/>
+          <stop offset="70%" stop-color="#a65430"/>
+          <stop offset="100%" stop-color="#692911"/>
+        </radialGradient>
+      </defs>
+      <!-- 阴影 -->
+      <ellipse cx="128" cy="216" rx="95" ry="24" fill="#2d1c14" opacity="0.4"/>
+      <!-- 后方次级小泥团 -->
+      <path d="M 60,165 C 45,140 70,110 100,118 C 125,125 125,160 105,178 C 85,190 65,185 60,165 Z" fill="url(#cl_grad2)" stroke="#3a2c20" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M 155,160 C 145,130 180,105 205,120 C 225,135 220,175 195,185 C 170,195 155,180 155,160 Z" fill="url(#cl_grad2)" stroke="#3a2c20" stroke-width="5" stroke-linejoin="round"/>
+      <!-- 主黏土泥团 -->
+      <path d="M 75,175 C 60,135 90,85 135,82 C 185,80 210,120 200,165 C 192,205 150,215 115,212 C 85,210 75,195 75,175 Z" fill="url(#cl_grad1)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 捏泥按压凹槽与起伏层叠 -->
+      <path d="M 105,115 C 120,108 148,112 165,125 C 150,135 125,130 105,115 Z" fill="#8f3e1f" opacity="0.7"/>
+      <path d="M 90,150 C 110,140 145,145 160,165 C 140,178 110,175 90,150 Z" fill="#692911" opacity="0.65"/>
+      <!-- 湿润高光 -->
+      <path d="M 115,95 Q 138,90 155,100" fill="none" stroke="#ffd2bc" stroke-width="4.5" stroke-linecap="round" opacity="0.85"/>
+      <circle cx="108" cy="125" r="4" fill="#ffe3d4" opacity="0.9"/>
+      <circle cx="168" cy="148" r="3.5" fill="#ffe3d4" opacity="0.8"/>
+      <!-- 散落的小湿泥屑 -->
+      <circle cx="48" cy="202" r="7" fill="url(#cl_grad2)" stroke="#3a2c20" stroke-width="3.5"/>
+      <circle cx="215" cy="198" r="6" fill="url(#cl_grad2)" stroke="#3a2c20" stroke-width="3"/>
+    </svg>

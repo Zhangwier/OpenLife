@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <ellipse cx="128" cy="225" rx="88" ry="16" fill="#2d1c14" opacity="0.45"/>
+      <!-- 横梁木条 (两条) -->
+      <rect x="25" y="115" width="206" height="14" rx="3" fill="#80532c" stroke="#3a2c20" stroke-width="4.5"/>
+      <rect x="25" y="165" width="206" height="14" rx="3" fill="#80532c" stroke="#3a2c20" stroke-width="4.5"/>
+      <!-- 4 根削尖的竖立原木桩 -->
+      <polygon points="52,65 64,45 76,65 76,220 52,220" fill="#a8743e" stroke="#3a2c20" stroke-width="5" stroke-linejoin="round"/>
+      <polygon points="98,65 110,45 122,65 122,220 98,220" fill="#a8743e" stroke="#3a2c20" stroke-width="5" stroke-linejoin="round"/>
+      <polygon points="144,65 156,45 168,65 168,220 144,220" fill="#a8743e" stroke="#3a2c20" stroke-width="5" stroke-linejoin="round"/>
+      <polygon points="190,65 202,45 214,65 214,220 190,220" fill="#a8743e" stroke="#3a2c20" stroke-width="5" stroke-linejoin="round"/>
+    </svg>

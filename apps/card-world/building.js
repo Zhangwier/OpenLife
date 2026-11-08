@@ -2,6 +2,7 @@
 
 /** Each building goes up in steps. A step takes its own materials, then its own work (game minutes). */
 export const BUILD_STAGES = {
+  wall: [{ name: "砌墙", needs: { wattle: 1, clay: 1 }, work: 60, thaw: true }],   // one length of wall (walls.js SEG_COST)
   bighouse: [
     { name: "打地基", needs: { stone: 6, clay: 2 }, work: 360 },
     { name: "砌墙", needs: { log: 8, clay: 2 }, work: 600 },
@@ -40,6 +41,11 @@ export const BUILD_STAGES = {
     { name: "砌石", needs: { stone: 4 }, work: 120 },
     { name: "盖顶", needs: { log: 2, reed: 2 }, work: 60 },
   ],
+  boat: [                                                                     // a dugout: one big log, hollowed with axe and fire
+    { name: "选一根粗木头", needs: { log: 3 }, work: 120 },
+    { name: "烧掏船膛", needs: { wood: 2 }, work: 300, tool: "axe" },
+    { name: "削桨、补缝", needs: { log: 1, reed: 2 }, work: 120 },
+  ],
 };
 
 /** Everything a building takes, all steps together. */
@@ -53,6 +59,10 @@ export const totalWork = (stages) => stages.reduce((n, s) => n + s.work, 0);
 /** The steps a foundation follows: its own (an old single-step save) or the kind's. */
 export const stagesOf = (plot) => plot.stages ?? BUILD_STAGES[plot.build];
 export const stageOf = (plot) => stagesOf(plot)[plot.stage ?? 0];
+/** Whether you can tell what the current step wants: you know the craft, or someone talked you through this step.
+ *  hints: what you were told, by foundation id — the craft itself stays unknown. */
+export const stepKnown = (c, known, hints) => c.build === "farm" || Boolean(known?.[c.build])
+  || (hints?.[c.id]?.kind === c.build && hints[c.id]?.stage === (c.stage ?? 0));
 
 /** Put work into the current step. Returns what happened: still going, a step finished, or the whole thing done. */
 export function addWork(plot, minutes) {

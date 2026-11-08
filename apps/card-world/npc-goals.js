@@ -31,7 +31,7 @@ export function planNpcFood({ hunger, cooked = 0, granary = 0, reserve = 0, berr
     { id: "use-grain", steps: ["cook", "eat"], possible: carry === "grain" && reachable("stove"), utility: 7 + hunger - cost("stove"), because: "手上有粟，可以煮一锅" },
     { id: "use-fish", steps: ["give", "eat"], possible: carry === "fish" && reachable("stove"), utility: 7 + hunger - cost("stove"), because: "手上有鱼，可以送上灶" },
     { id: "fetch-grain", steps: ["fetch", "cook", "eat"], possible: !carry && granary > reserve && reachable("granary") && reachable("stove"), utility: 4 + hunger - cost("granary", "stove"), because: "公仓留种后还有粮，可以取来煮" },
-    { id: "fetch-fish", steps: ["fish", "give", "eat"], possible: !carry && fish > 0 && reachable("lake") && reachable("stove"), utility: 3 + hunger - cost("lake", "stove"), because: "公灶缺食，能去湖边捞鱼" },
+    { id: "fetch-fish", steps: ["fish", "give", "eat"], possible: !carry && fish > 0 && reachable("lake") && reachable("stove"), utility: 3 + hunger - cost("lake", "stove"), because: "锅里缺吃的，能去湖边捞鱼" },
   ];
   return chooseNpcIntent(plans.filter((plan) => plan.id !== blocked), previous);
 }

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="bn_pod" cx="40%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#99c259"/>
+          <stop offset="60%" stop-color="#6e9c32"/>
+          <stop offset="100%" stop-color="#46691c"/>
+        </radialGradient>
+        <radialGradient id="bn_seed" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#fff0aa"/>
+          <stop offset="65%" stop-color="#e8be48"/>
+          <stop offset="100%" stop-color="#ab821f"/>
+        </radialGradient>
+      </defs>
+      <!-- 投影 -->
+      <ellipse cx="128" cy="220" rx="85" ry="18" fill="#2d1c14" opacity="0.45"/>
+      <!-- 后方大豆叶片 (三出复叶感) -->
+      <path d="M 128,95 C 90,45 135,25 155,55 C 165,75 145,95 128,95 Z" fill="#58852a" stroke="#3a2c20" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M 128,95 C 65,75 75,125 105,128 C 122,125 125,108 128,95 Z" fill="#6d9e36" stroke="#3a2c20" stroke-width="5" stroke-linejoin="round"/>
+      <!-- 主大豆荚 (弯曲饱满、节节分明) -->
+      <path d="M 45,185 C 55,135 110,88 198,68 C 215,85 185,148 118,188 C 82,208 48,205 45,185 Z" fill="url(#bn_pod)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 豆荚边缘厚韧凸脊 -->
+      <path d="M 45,185 C 55,135 110,88 198,68" fill="none" stroke="#b4e070" stroke-width="4" stroke-linecap="round"/>
+      <!-- 荚节隆起处的阴影凹陷 -->
+      <path d="M 92,165 Q 105,135 118,152" fill="none" stroke="#365215" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M 135,132 Q 150,105 162,120" fill="none" stroke="#365215" stroke-width="3.5" stroke-linecap="round"/>
+      <!-- 散落前方圆润金黄的大豆粒 (3粒) -->
+      <ellipse cx="82" cy="195" rx="18" ry="14" transform="rotate(-15 82 195)" fill="url(#bn_seed)" stroke="#3a2c20" stroke-width="4.5"/>
+      <path d="M 82,192 C 84,195 86,198 88,197" stroke="#75560e" stroke-width="2.5" stroke-linecap="round"/>
+      
+      <ellipse cx="125" cy="202" rx="20" ry="15" transform="rotate(10 125 202)" fill="url(#bn_seed)" stroke="#3a2c20" stroke-width="4.5"/>
+      <path d="M 124,198 C 127,202 129,204 132,203" stroke="#75560e" stroke-width="2.5" stroke-linecap="round"/>
+      
+      <ellipse cx="168" cy="192" rx="17" ry="13" transform="rotate(-25 168 192)" fill="url(#bn_seed)" stroke="#3a2c20" stroke-width="4.5"/>
+      <path d="M 167,189 C 170,192 172,194 174,193" stroke="#75560e" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>

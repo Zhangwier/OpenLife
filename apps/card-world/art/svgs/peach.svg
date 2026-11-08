@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="pc_grad" cx="40%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#ffb8b8"/>
+          <stop offset="60%" stop-color="#ff6969"/>
+          <stop offset="100%" stop-color="#c92a2a"/>
+        </radialGradient>
+      </defs>
+      <ellipse cx="128" cy="216" rx="70" ry="16" fill="#2d1c14" opacity="0.45"/>
+      <path d="M 128,65 C 65,65 52,140 52,175 C 52,215 128,218 128,218 C 128,218 204,215 204,175 C 204,140 191,65 128,65 Z" fill="url(#pc_grad)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <path d="M 128,65 Q 120,135 128,215" stroke="#a31818" stroke-width="3.5" fill="none"/>
+      <!-- 青翠桃叶 -->
+      <path d="M 128,65 C 145,35 178,35 190,45 C 180,65 155,68 128,65 Z" fill="#699e38" stroke="#3a2c20" stroke-width="4"/>
+    </svg>

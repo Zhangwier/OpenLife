@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="an_body" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#b5aca0"/>
+          <stop offset="50%" stop-color="#8d8478"/>
+          <stop offset="85%" stop-color="#645c52"/>
+          <stop offset="100%" stop-color="#423b32"/>
+        </radialGradient>
+        <linearGradient id="an_top" x1="20%" y1="0%" x2="80%" y2="100%">
+          <stop offset="0%" stop-color="#cfc7bc"/>
+          <stop offset="100%" stop-color="#9a9184"/>
+        </linearGradient>
+      </defs>
+      <!-- 阴影 -->
+      <ellipse cx="128" cy="216" rx="95" ry="20" fill="#2d1c14" opacity="0.45"/>
+      <!-- 平顶琢制大石砧体 -->
+      <path d="M 44,118 L 174,118 C 182,148 184,186 172,208 C 158,214 62,214 46,208 C 36,186 36,148 44,118 Z" fill="url(#an_body)" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <!-- 磨平的人工打制砧台顶面 -->
+      <polygon points="44,118 72,92 198,92 174,118" fill="url(#an_top)" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <!-- 砧顶平面的敲击与使用磨损坑斑 -->
+      <ellipse cx="118" cy="105" rx="38" ry="8" fill="#b0a79a" stroke="#7a7266" stroke-width="2" stroke-dasharray="4 3"/>
+      <circle cx="102" cy="104" r="3" fill="#665f54"/>
+      <circle cx="125" cy="106" r="3.5" fill="#665f54"/>
+      <circle cx="140" cy="103" r="2.5" fill="#665f54"/>
+      <!-- 石砧侧面粗粝解理裂纹 -->
+      <path d="M 88,122 L 94,152 L 86,182 L 92,208" fill="none" stroke="#3a2c20" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M 136,120 L 142,145 L 138,175" fill="none" stroke="#544c42" stroke-width="2.5" stroke-linejoin="round"/>
+      <!-- 顶面受光高光边线 -->
+      <line x1="74" y1="94" x2="195" y2="94" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.65"/>
+      <!-- 右侧敲打用的手持大圆卵石锤 -->
+      <ellipse cx="196" cy="180" rx="34" ry="28" fill="#9e9486" stroke="#3a2c20" stroke-width="5"/>
+      <ellipse cx="190" cy="172" rx="18" ry="12" fill="#bfb5a6" opacity="0.8"/>
+      <path d="M 194,166 Q 206,164 212,172" fill="none" stroke="#ded5c6" stroke-width="3" stroke-linecap="round"/>
+      <!-- 敲击崩落的细碎小石屑 -->
+      <polygon points="34,212 40,208 42,214" fill="#8d8478" stroke="#3a2c20" stroke-width="1.8"/>
+      <polygon points="172,214 178,210 180,215" fill="#8d8478" stroke="#3a2c20" stroke-width="1.8"/>
+    </svg>

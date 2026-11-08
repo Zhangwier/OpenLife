@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <linearGradient id="ps_snow" x1="30%" y1="0%" x2="70%" y2="100%">
+          <stop offset="0%" stop-color="#ffffff"/>
+          <stop offset="60%" stop-color="#e2eef0"/>
+          <stop offset="100%" stop-color="#b0c8cc"/>
+        </linearGradient>
+      </defs>
+      <!-- 阴影 -->
+      <ellipse cx="128" cy="222" rx="84" ry="16" fill="#2d1c14" opacity="0.45"/>
+      <!-- 粗壮木质树干 -->
+      <path d="M 115,175 L 141,175 L 146,220 L 110,220 Z" fill="#684a2e" stroke="#3a2c20" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M 124,185 L 126,215 M 134,182 L 136,212" stroke="#4a321e" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- 第三层松冠（最下层） -->
+      <path d="M 46,182 L 128,118 L 210,182 L 175,185 L 195,198 L 128,198 L 61,198 L 81,185 Z" fill="#2d4a2a" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <path d="M 56,180 Q 92,168 128,170 Q 164,168 200,180 C 185,194 155,192 128,194 C 101,192 71,194 56,180 Z" fill="url(#ps_snow)" stroke="#3a2c20" stroke-width="4.5" stroke-linejoin="round"/>
+      <!-- 第二层松冠（中层） -->
+      <path d="M 64,136 L 128,78 L 192,136 L 165,138 L 180,148 L 128,148 L 76,148 L 91,138 Z" fill="#365932" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <path d="M 72,134 Q 100,122 128,124 Q 156,122 184,134 C 172,145 148,144 128,145 C 108,144 84,145 72,134 Z" fill="url(#ps_snow)" stroke="#3a2c20" stroke-width="4.5" stroke-linejoin="round"/>
+      <!-- 第一层松冠（顶层尖冠） -->
+      <path d="M 85,88 L 128,32 L 171,88 L 148,90 L 160,98 L 128,98 L 96,98 L 108,90 Z" fill="#446e3e" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <path d="M 128,34 L 112,70 Q 128,66 144,70 Z" fill="url(#ps_snow)" stroke="#3a2c20" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M 94,88 Q 111,80 128,82 Q 145,80 162,88 C 150,96 138,95 128,96 C 118,95 106,96 94,88 Z" fill="url(#ps_snow)" stroke="#3a2c20" stroke-width="4" stroke-linejoin="round"/>
+      <!-- 树下两小撮雪团 -->
+      <ellipse cx="92" cy="220" rx="14" ry="6" fill="url(#ps_snow)" stroke="#3a2c20" stroke-width="3"/>
+      <ellipse cx="164" cy="222" rx="12" ry="5" fill="url(#ps_snow)" stroke="#3a2c20" stroke-width="3"/>
+    </svg>

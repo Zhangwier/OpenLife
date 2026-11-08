@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <linearGradient id="pg_trunk" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#7a4e28"/>
+          <stop offset="50%" stop-color="#543419"/>
+          <stop offset="100%" stop-color="#38210e"/>
+        </linearGradient>
+        <radialGradient id="pg_foliage" cx="50%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#467c48"/>
+          <stop offset="60%" stop-color="#2a5230"/>
+          <stop offset="100%" stop-color="#16331b"/>
+        </radialGradient>
+      </defs>
+      <!-- 树下松针腐殖土阴影 -->
+      <ellipse cx="128" cy="225" rx="85" ry="18" fill="#2d1c14" opacity="0.45"/>
+      <!-- 主树干 -->
+      <path d="M 116,140 L 112,224 L 144,224 L 140,140 Z" fill="url(#pg_trunk)" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <!-- 树皮粗糙横裂纹与松脂 -->
+      <line x1="115" y1="175" x2="138" y2="175" stroke="#3a2c20" stroke-width="3"/>
+      <line x1="113" y1="200" x2="142" y2="200" stroke="#3a2c20" stroke-width="3"/>
+      <ellipse cx="134" cy="188" rx="3.5" ry="6" fill="#e8b038" opacity="0.85"/>
+      <!-- 底层大松塔针叶层 -->
+      <path d="M 45,178 L 128,110 L 211,178 C 185,188 150,182 128,192 C 106,182 71,188 45,178 Z" fill="url(#pg_foliage)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <path d="M 58,172 L 72,185 L 90,172 L 108,185 L 128,170 L 148,185 L 166,172 L 184,185 L 198,172" fill="none" stroke="#3a2c20" stroke-width="4" stroke-linejoin="round"/>
+      <!-- 中层针叶层 -->
+      <path d="M 60,132 L 128,72 L 196,132 C 172,142 145,136 128,145 C 111,136 84,142 60,132 Z" fill="url(#pg_foliage)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <path d="M 72,126 L 86,138 L 106,126 L 128,140 L 150,126 L 170,138 L 184,126" fill="none" stroke="#3a2c20" stroke-width="4" stroke-linejoin="round"/>
+      <!-- 顶层尖峰针叶层 -->
+      <path d="M 78,85 L 128,24 L 178,85 C 158,95 140,90 128,98 C 116,90 98,95 78,85 Z" fill="url(#pg_foliage)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <path d="M 90,82 L 105,92 L 128,80 L 151,92 L 166,82" fill="none" stroke="#3a2c20" stroke-width="3.5" stroke-linejoin="round"/>
+      <!-- 枝头高光亮绿点缀 -->
+      <path d="M 128,34 L 115,55 M 128,34 L 141,55" stroke="#7bbd68" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 128,78 L 108,105 M 128,78 L 148,105" stroke="#7bbd68" stroke-width="3" stroke-linecap="round"/>
+      <!-- 垂挂的小松塔 -->
+      <ellipse cx="95" cy="185" rx="7" ry="11" fill="#754721" stroke="#3a2c20" stroke-width="3"/>
+      <ellipse cx="160" cy="186" rx="7" ry="11" fill="#754721" stroke="#3a2c20" stroke-width="3"/>
+    </svg>

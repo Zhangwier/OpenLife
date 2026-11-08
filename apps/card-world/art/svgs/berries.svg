@@ -1,0 +1,29 @@
+<svg viewBox="0 0 256 256" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <g stroke="#3a2c20" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+    <!-- 灌木枝叶背景底座 -->
+    <path d="M52 176 C32 144 48 102 82 94 C100 68 144 60 172 78 C204 66 234 94 226 130 C238 162 210 200 176 196 C152 214 104 212 84 196 C64 204 48 194 52 176 Z" fill="#4d7436"/>
+    <!-- 错落穿插的绿叶 -->
+    <path d="M72 130 C64 108 92 96 104 116 Z" fill="#6c9c48"/>
+    <path d="M168 110 C186 92 208 116 190 132 Z" fill="#6c9c48"/>
+    <path d="M120 74 C138 56 160 80 144 94 Z" fill="#6c9c48"/>
+    <!-- 一簇簇鲜亮诱人的红浆果（主大果+高光点） -->
+    <circle cx="94" cy="154" r="22" fill="#c43226"/>
+    <circle cx="88" cy="148" r="6" fill="#f48274" stroke="none"/>
+    <circle cx="100" cy="160" r="2" fill="#3a2c20" stroke="none"/>
+
+    <circle cx="136" cy="132" r="24" fill="#d83c2e"/>
+    <circle cx="130" cy="124" r="7" fill="#f48274" stroke="none"/>
+
+    <circle cx="166" cy="162" r="20" fill="#b82a20"/>
+    <circle cx="162" cy="156" r="5" fill="#f48274" stroke="none"/>
+
+    <circle cx="126" cy="174" r="20" fill="#c43226"/>
+    <circle cx="122" cy="168" r="5" fill="#f48274" stroke="none"/>
+
+    <circle cx="188" cy="134" r="18" fill="#d83c2e"/>
+    <circle cx="184" cy="128" r="4.5" fill="#f48274" stroke="none"/>
+
+    <circle cx="76" cy="120" r="16" fill="#b82a20"/>
+    <circle cx="72" cy="116" r="4" fill="#f48274" stroke="none"/>
+  </g>
+</svg>

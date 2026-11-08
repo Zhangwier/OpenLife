@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <linearGradient id="rd_earth" x1="30%" y1="10%" x2="70%" y2="90%">
+          <stop offset="0%" stop-color="#cca06e"/>
+          <stop offset="50%" stop-color="#b87e4c"/>
+          <stop offset="100%" stop-color="#8f572c"/>
+        </linearGradient>
+      </defs>
+      <!-- 阴影底衬 -->
+      <ellipse cx="128" cy="216" rx="94" ry="22" fill="#2d1c14" opacity="0.4"/>
+      <!-- 主路面块体：蜿蜒穿行的黄土大径 -->
+      <path d="M 108,36 C 114,65 72,110 52,156 C 40,184 48,212 90,214 C 150,216 216,192 214,152 C 212,115 168,75 146,36 Z" fill="url(#rd_earth)" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <!-- 两侧低缓草甸地被 -->
+      <path d="M 44,162 C 34,188 48,210 82,212 C 60,195 55,178 44,162 Z" fill="#7a9a5a" stroke="#3a2c20" stroke-width="4"/>
+      <path d="M 216,140 C 224,175 198,198 170,208 C 196,195 210,165 216,140 Z" fill="#7a9a5a" stroke="#3a2c20" stroke-width="4"/>
+      <!-- 踩踏磨平的中心路面与车辙/足迹浅槽 -->
+      <path d="M 124,46 C 130,80 92,125 76,168 C 88,185 130,192 165,182 C 185,152 152,98 135,46 Z" fill="#d9b685" opacity="0.6"/>
+      <!-- 嵌在土路上的打制/河滩垫脚石 -->
+      <path d="M 118,72 C 128,70 134,78 126,84 C 118,88 112,80 118,72 Z" fill="#9e9484" stroke="#3a2c20" stroke-width="3"/>
+      <path d="M 96,112 C 112,110 118,122 108,128 C 96,134 88,124 96,112 Z" fill="#b5ab9a" stroke="#3a2c20" stroke-width="3.5"/>
+      <path d="M 132,130 C 146,128 152,140 142,148 C 130,154 122,142 132,130 Z" fill="#8c8273" stroke="#3a2c20" stroke-width="3"/>
+      <path d="M 105,166 C 125,162 135,178 122,188 C 108,195 96,180 105,166 Z" fill="#b5ab9a" stroke="#3a2c20" stroke-width="4"/>
+      <path d="M 152,168 C 166,165 174,176 165,184 C 154,190 144,180 152,168 Z" fill="#9e9484" stroke="#3a2c20" stroke-width="3"/>
+      <!-- 路边点缀的小草丛 -->
+      <path d="M 58,145 L 52,135 M 58,145 L 60,132 M 58,145 L 66,136" stroke="#3a2c20" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M 198,128 L 194,118 M 198,128 L 204,116 M 198,128 L 206,122" stroke="#3a2c20" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>

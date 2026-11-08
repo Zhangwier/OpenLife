@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { bundleLayout, playerStride, walkEffort } from "../apps/card-world/board-play.js";
+import { bundleLayout, dragRange, playerStride, walkEffort } from "../apps/card-world/board-play.js";
 import { nextSourcePulse } from "../apps/card-world/resource-ecology.js";
 
 test("walking stays responsive while exhausted, and costs little outside work", () => {
@@ -16,6 +16,15 @@ test("identical supplies share a display slot without merging their identities",
   assert.deepEqual(groups.map(({ start, end }) => [start, end]), [[0, 1], [1, 11], [11, 12]]);
   assert.equal(groups[1].card.id, 0);
   assert.equal(cards.length, 12);
+});
+
+test("dragging the top of a mixed pile takes the pile; a lower bundle takes only itself", () => {
+  const groups = [{ start: 0, end: 1 }, { start: 1, end: 3 }, { start: 3, end: 4 }];
+  assert.deepEqual(dragRange(groups, 0, { allCarry: true, total: 4 }), { start: 0, end: 4, whole: true });
+  assert.deepEqual(dragRange(groups, 1, { allCarry: true, total: 4 }), { start: 1, end: 3, whole: false });
+  assert.deepEqual(dragRange(groups, 0, { person: true, allCarry: true, total: 4 }), { start: 0, end: 1, whole: false });
+  assert.deepEqual(dragRange(groups, 0, { allCarry: false, total: 4 }), { start: 0, end: 1, whole: false });
+  assert.deepEqual(dragRange([{ start: 0, end: 3 }], 0, { allCarry: true, total: 3 }), { start: 0, end: 3, whole: false });
 });
 
 test("resource clocks are staggered and continue on the next day", () => {

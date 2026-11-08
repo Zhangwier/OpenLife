@@ -1,9 +1,23 @@
-// Keep the north–south aisle through the courtyard gate free of fixtures.
+// Keep the north–south aisle through the courtyard gate free of fixtures — but for the table in the middle of the yard,
+// where everyone sits down to eat. The stove is in the north-east corner, where the grain used to stand.
 const YARD_FIXTURES = {
-  bed: [44, 130], fire: [404, 205], grain: [404, 34], store: [44, 340], chest: [404, 420],
+  bed: [44, 130], fire: [404, 205], stove: [404, 34], table: [224, 250], store: [44, 340], chest: [404, 420],
 };
+/** Inside the granary's walls: the grain bin, and the heap of materials beside it. */
+const BARN_FIXTURES = { granary: [28, 30], store: [170, 30] };
+export const BARN_SIZE = { w: 400, h: 320 };
+export function barnFurnishing(key, barn) {
+  const [x, y] = BARN_FIXTURES[key];
+  return { x: barn.x + x, y: barn.y + y };
+}
+
+/** Where the beds go: a row under the north wall (the house end of the yard), and one more down the west side —
+ *  clear of the grain, the hearth, the heap and the chest. One bed, one card, one sleeper. */
+export const BED_SLOTS = [[30, 24], [150, 24], [270, 24], [30, 184]];
+export const bedSlot = (i, yard) => ({ x: yard.x + BED_SLOTS[i][0], y: yard.y + BED_SLOTS[i][1] });
 
 export function yardFurnishing(key, yard) {
+  if (!YARD_FIXTURES[key]) return null;                     // grain no longer has a place in the yard: it goes to the granary
   const [x, y] = YARD_FIXTURES[key];
   return { x: yard.x + x, y: yard.y + y };
 }

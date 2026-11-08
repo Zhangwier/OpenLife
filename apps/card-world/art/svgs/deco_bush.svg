@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="bs_grad" cx="42%" cy="40%" r="60%">
+          <stop offset="0%" stop-color="#b8d68c"/>
+          <stop offset="55%" stop-color="#8fae64"/>
+          <stop offset="100%" stop-color="#557032"/>
+        </radialGradient>
+      </defs>
+      <!-- 阴影 -->
+      <ellipse cx="134" cy="136" rx="88" ry="76" fill="#2d1c14" opacity="0.2"/>
+      <!-- 组合小灌木丛 -->
+      <!-- 团 1 -->
+      <ellipse cx="98" cy="112" rx="52" ry="46" fill="url(#bs_grad)" stroke="#4a3a2e" stroke-width="4.2"/>
+      <!-- 团 2 -->
+      <ellipse cx="162" cy="120" rx="48" ry="44" fill="url(#bs_grad)" stroke="#4a3a2e" stroke-width="4.2"/>
+      <!-- 团 3 -->
+      <ellipse cx="126" cy="154" rx="58" ry="48" fill="url(#bs_grad)" stroke="#4a3a2e" stroke-width="4.2"/>
+      <!-- 顶部受光小高光圈 -->
+      <circle cx="94" cy="102" r="14" fill="#d4edb0" opacity="0.6"/>
+      <circle cx="158" cy="112" r="12" fill="#d4edb0" opacity="0.6"/>
+      <circle cx="124" cy="146" r="16" fill="#d4edb0" opacity="0.6"/>
+    </svg>

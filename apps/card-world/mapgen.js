@@ -382,8 +382,9 @@ export function makeMountain(seed, W, H, ty = H * 0.7) {
   const nA = fbm(seed), nB = fbm(seed + 1), nC = fbm(seed + 2);
   const X = (i) => ((i % cols) + 0.5) * CELL, Y = (i) => (Math.floor(i / cols) + 0.5) * CELL;
   const cls = new Uint8Array(N), elev = new Float32Array(N), mo = new Float32Array(N), cave = new Uint8Array(N);
-  const line = [[0, ty], [W * 0.16, ty + 34], [W * 0.3, ty - 26], [W * 0.42, ty]];
-  const ch = { x: W * 0.52, y: ty, rx: 300, ry: 230 };
+  const B = Math.min(W, 1800);                                       // the tunnel was laid out on the old, narrower mountain: keep it where it was
+  const line = [[0, ty], [B * 0.16, ty + 34], [B * 0.3, ty - 26], [B * 0.42, ty]];
+  const ch = { x: B * 0.52, y: ty, rx: 300, ry: 230 };
   const toLine = (x, y) => {
     let best = 1e9;
     for (let k = 0; k < line.length - 1; k++) {
@@ -442,8 +443,8 @@ export function generateWorld(seed, tiles, specs) {
 
 function composeWorld(seed, tiles, maps) {
   const gd = tiles.find((t) => t.kind === "valley");
-  const WW = Math.max(...tiles.map((t) => t.x + t.w));
-  const WH = Math.max(...tiles.map((t) => t.y + t.h));
+  const WW = Math.max(...tiles.map((t) => t.x + t.w)) + 2600;   // open sea east of the old coast
+  const WH = Math.max(...tiles.map((t) => t.y + t.h)) + 1800;   // and south of the reef
   const cols = Math.ceil(WW / CELL), rows = Math.ceil(WH / CELL), N = cols * rows;
   const X = (i) => ((i % cols) + 0.5) * CELL, Y = (i) => (Math.floor(i / cols) + 0.5) * CELL;
   const idx = (x, y) => Math.min(rows - 1, Math.max(0, Math.floor(y / CELL))) * cols + Math.min(cols - 1, Math.max(0, Math.floor(x / CELL)));
@@ -564,13 +565,20 @@ export function reachAlong(m, a, b) {
 }
 const clear = (m, a, b) => !reachAlong(m, a, b).blocked;
 /** A villager's way from a to b: along roads where they can, round water and cliffs. Waypoints in world px. */
-/** opts.wary: someone who knows the jungle is dangerous — goes a long way round rather than through it. */
+/** opts.wary: someone who knows the jungle is dangerous — goes a long way round rather than through it.
+ *  opts.avoid: { x, y, r } — somewhere to keep clear of (a tiger): the way goes round it. */
 export function findPath(m, a, b, opts = {}) {
   if (!walkable(m, b.x, b.y)) return null;
   const inJungle = (p) => m.jungle?.[m.idx(p.x, p.y)] === 1;
   const wary = opts.wary && !inJungle(a) && !inJungle(b);
+  const av = opts.avoid, nearAvoid = (x, y) => Boolean(av && Math.hypot(x - av.x, y - av.y) < av.r);
+  const passesAvoid = (p, q) => {
+    if (!av) return false;
+    const dx = q.x - p.x, dy = q.y - p.y, t = Math.max(0, Math.min(1, ((av.x - p.x) * dx + (av.y - p.y) * dy) / (dx * dx + dy * dy || 1)));
+    return Math.hypot(p.x + dx * t - av.x, p.y + dy * t - av.y) < av.r;
+  };
   const clear = (p, q) => {
-    if (reachAlong(m, p, q).blocked) return false;
+    if (reachAlong(m, p, q).blocked || passesAvoid(p, q)) return false;
     if (!wary) return true;
     const n = Math.ceil(Math.hypot(q.x - p.x, q.y - p.y) / 30);
     for (let k = 1; k < n; k++) if (inJungle({ x: p.x + ((q.x - p.x) * k) / n, y: p.y + ((q.y - p.y) * k) / n })) return false;
@@ -594,6 +602,7 @@ export function findPath(m, a, b, opts = {}) {
   const start = snap(a), goal = snap(b);
   const cost = (j) => {
     if (walled(j)) return Infinity;                                                     // any cell a wall touches
+    if (nearAvoid(m.X(j), m.Y(j)) && j !== start) return Infinity;                      // keep clear of the danger
     if (m.frozen && m.water?.[j] === 1) return 2.2;                                 // frozen lake: worth crossing, a little slow
     return wary && m.jungle?.[j] ? Infinity : COST[m.cls[j]] * (m.road[j] ? 0.45 : 1);   // the wary never set foot in it
   };

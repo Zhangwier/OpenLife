@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="rm_meat" cx="40%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#df6d43"/>
+          <stop offset="60%" stop-color="#a83918"/>
+          <stop offset="100%" stop-color="#591907"/>
+        </radialGradient>
+      </defs>
+      <ellipse cx="128" cy="222" rx="85" ry="16" fill="#2d1c14" opacity="0.45"/>
+      <line x1="32" y1="218" x2="224" y2="38" stroke="#3a2c20" stroke-width="9" stroke-linecap="round"/>
+      <line x1="32" y1="218" x2="224" y2="38" stroke="#a8743e" stroke-width="5" stroke-linecap="round"/>
+      <!-- 烤肉块 1 -->
+      <rect x="75" y="132" width="45" height="38" rx="8" transform="rotate(-45 97 151)" fill="url(#rm_meat)" stroke="#3a2c20" stroke-width="5.5"/>
+      <!-- 烤肉块 2 (大肉排) -->
+      <rect x="125" y="82" width="55" height="46" rx="10" transform="rotate(-45 152 105)" fill="url(#rm_meat)" stroke="#3a2c20" stroke-width="6"/>
+      <!-- 焦痕与油脂反光 -->
+      <line x1="135" y1="92" x2="162" y2="118" stroke="#2e0a02" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="145" cy="100" r="3.5" fill="#ffd4a3"/>
+    </svg>

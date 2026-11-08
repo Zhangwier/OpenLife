@@ -30,8 +30,8 @@ export const soilAtWinter = (field) => (field.cropped ? soilOf(field) : Math.min
 export const droughtDays = (field) => (field.crop === "bean" ? 6 : 4);
 
 // ---- Rabbits ----
-/** As many rabbits as the berries and standing crops can feed. */
-export const rabbitCap = (forage) => Math.max(1, Math.min(6, 2 + Math.floor(forage / 5)));
+/** As many rabbits as the meadow holds, more with berries and standing crops to raid. */
+export const rabbitCap = (forage) => Math.max(4, Math.min(10, 4 + Math.floor(forage / 4)));
 
 /** Which fields lose a step of growth to rabbits tonight. A dog about the place keeps most of them off;
  *  a field's own scarecrow or fence (f.guard, a multiplier) keeps off more. */
@@ -45,8 +45,14 @@ export const FIELD_GUARD = { scarecrow: 0.4, fence: 0.15 };
 export const fieldGuard = (kit) => Math.min(1, ...kit.map((k) => FIELD_GUARD[k] ?? 1));
 
 // ---- The tiger ----
-export const TIGER_PROWL = 12;                         // hunger at which it leaves the deep wood
+export const TIGER_PROWL = 7;                          // hunger at which it leaves the deep wood
 export const PROWL_PREY = ["boar", "goat", "rabbit", "dog"];
+/** How hungry the tiger must be before it hunts, by how much prey is about: plenty, it hunts sooner. */
+export const tigerHuntAt = (prey) => (prey >= 10 ? 5.5 : prey >= 6 ? 7 : 9);
+/** What a kill gives back: hunger taken off, and how long it lies up by the carcass. */
+export const tigerFeed = (kind, grown) => ["deer", "boar", "goat"].includes(kind)
+  ? (grown ? { hunger: 5.5, rest: 360 } : { hunger: 2.5, rest: 150 })
+  : { hunger: 2.5, rest: 120 };
 
 // ---- Hillsides ----
 export const BARE_HILLS = 5;

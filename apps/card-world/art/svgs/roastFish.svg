@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="rf_body" cx="45%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#f5b867"/>
+          <stop offset="60%" stop-color="#c9772c"/>
+          <stop offset="100%" stop-color="#80410f"/>
+        </radialGradient>
+      </defs>
+      <ellipse cx="128" cy="222" rx="85" ry="16" fill="#2d1c14" opacity="0.45"/>
+      <!-- 穿鱼长木签 -->
+      <line x1="32" y1="218" x2="224" y2="38" stroke="#3a2c20" stroke-width="9" stroke-linecap="round"/>
+      <line x1="32" y1="218" x2="224" y2="38" stroke="#a8743e" stroke-width="5" stroke-linecap="round"/>
+      <!-- 烤鱼鱼身 -->
+      <path d="M 68,172 C 60,118 165,65 198,82 C 205,128 125,198 68,172 Z" fill="url(#rf_body)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 鱼尾 -->
+      <polygon points="68,172 45,198 52,160" fill="#a8591d" stroke="#3a2c20" stroke-width="4" stroke-linejoin="round"/>
+      <!-- 焦痕黑横线与白汽 -->
+      <line x1="102" y1="135" x2="125" y2="155" stroke="#3d1d06" stroke-width="4.5" stroke-linecap="round"/>
+      <line x1="135" y1="112" x2="158" y2="132" stroke="#3d1d06" stroke-width="4.5" stroke-linecap="round"/>
+      <line x1="162" y1="92" x2="178" y2="108" stroke="#3d1d06" stroke-width="4.5" stroke-linecap="round"/>
+      <circle cx="185" cy="98" r="3" fill="#3a2c20"/>
+      <!-- 滋滋热气 -->
+      <path d="M 125,105 C 120,85 132,75 125,60" stroke="#f6ecd8" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    </svg>

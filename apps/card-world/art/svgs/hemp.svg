@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="hm_leaf" cx="40%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#76af3c"/>
+          <stop offset="60%" stop-color="#4e8022"/>
+          <stop offset="100%" stop-color="#2d5212"/>
+        </radialGradient>
+      </defs>
+      <!-- 阴影 -->
+      <ellipse cx="128" cy="225" rx="80" ry="16" fill="#2d1c14" opacity="0.45"/>
+      <!-- 后方细副茎 -->
+      <line x1="78" y1="220" x2="72" y2="75" stroke="#3a2c20" stroke-width="7" stroke-linecap="round"/>
+      <line x1="78" y1="220" x2="72" y2="75" stroke="#5c8a2b" stroke-width="4" stroke-linecap="round"/>
+      <line x1="182" y1="220" x2="188" y2="80" stroke="#3a2c20" stroke-width="7" stroke-linecap="round"/>
+      <line x1="182" y1="220" x2="188" y2="80" stroke="#5c8a2b" stroke-width="4" stroke-linecap="round"/>
+      <!-- 主中茎秆 -->
+      <line x1="128" y1="224" x2="128" y2="35" stroke="#3a2c20" stroke-width="9" stroke-linecap="round"/>
+      <line x1="128" y1="224" x2="128" y2="35" stroke="#6da333" stroke-width="5" stroke-linecap="round"/>
+      <!-- 掌状大复叶 (多组由下至上轮生) -->
+      <!-- 下组大叶片 (左右伸展) -->
+      <g fill="url(#hm_leaf)" stroke="#3a2c20" stroke-width="4" stroke-linejoin="round">
+        <path d="M 128,165 C 80,180 50,175 35,160 C 65,150 100,155 128,165 Z"/>
+        <path d="M 128,165 C 176,180 206,175 221,160 C 191,150 156,155 128,165 Z"/>
+        <!-- 中组叶片 -->
+        <path d="M 128,115 C 75,120 45,100 32,85 C 65,85 105,100 128,115 Z"/>
+        <path d="M 128,115 C 181,120 211,100 224,85 C 191,85 151,100 128,115 Z"/>
+        <path d="M 128,115 C 105,75 110,45 128,30 C 146,45 151,75 128,115 Z"/>
+        <!-- 上梢嫩叶 -->
+        <path d="M 128,65 C 95,50 85,32 80,22 C 102,28 120,45 128,65 Z"/>
+        <path d="M 128,65 C 161,50 171,32 176,22 C 154,28 136,45 128,65 Z"/>
+      </g>
+      <!-- 叶脉细纹 -->
+      <line x1="128" y1="165" x2="48" y2="162" stroke="#a4db5a" stroke-width="2.5"/>
+      <line x1="128" y1="165" x2="208" y2="162" stroke="#a4db5a" stroke-width="2.5"/>
+      <line x1="128" y1="115" x2="45" y2="92" stroke="#a4db5a" stroke-width="2.5"/>
+      <line x1="128" y1="115" x2="211" y2="92" stroke="#a4db5a" stroke-width="2.5"/>
+    </svg>

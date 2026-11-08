@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="sc_rock1" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#b0a596"/>
+          <stop offset="65%" stop-color="#736758"/>
+          <stop offset="100%" stop-color="#42392e"/>
+        </radialGradient>
+        <radialGradient id="sc_rock2" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#918778"/>
+          <stop offset="65%" stop-color="#595145"/>
+          <stop offset="100%" stop-color="#2e2821"/>
+        </radialGradient>
+      </defs>
+      <!-- 阴影 -->
+      <ellipse cx="128" cy="222" rx="90" ry="20" fill="#2d1c14" opacity="0.45"/>
+      <!-- 后方大基石 -->
+      <polygon points="45,150 95,85 178,92 215,165 185,212 65,210" fill="url(#sc_rock2)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <line x1="95" y1="85" x2="128" y2="145" stroke="#3a2c20" stroke-width="4.5"/>
+      <line x1="178" y1="92" x2="128" y2="145" stroke="#3a2c20" stroke-width="4.5"/>
+      <!-- 前方交错堆叠的中石块 -->
+      <polygon points="35,195 62,135 125,128 145,198 85,216" fill="url(#sc_rock1)" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <line x1="62" y1="135" x2="95" y2="185" stroke="#3a2c20" stroke-width="4"/>
+      <!-- 右侧尖锐石块 -->
+      <polygon points="125,185 165,125 220,155 208,215 145,218" fill="url(#sc_rock1)" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <line x1="165" y1="125" x2="175" y2="185" stroke="#3a2c20" stroke-width="4"/>
+      <!-- 散落的小碎砾石 -->
+      <polygon points="75,210 92,202 102,216 82,222" fill="#756959" stroke="#3a2c20" stroke-width="3"/>
+      <polygon points="185,208 198,200 205,214 190,220" fill="#756959" stroke="#3a2c20" stroke-width="3"/>
+      <!-- 石面青苔斑块 -->
+      <path d="M 80,105 Q 95,95 105,108" stroke="#728c46" stroke-width="4" stroke-linecap="round"/>
+      <path d="M 145,108 Q 160,102 168,115" stroke="#728c46" stroke-width="4" stroke-linecap="round"/>
+    </svg>

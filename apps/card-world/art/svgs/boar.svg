@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="b_body" cx="45%" cy="40%" r="60%">
+          <stop offset="0%" stop-color="#69513e"/>
+          <stop offset="60%" stop-color="#4a3628"/>
+          <stop offset="100%" stop-color="#2d1f15"/>
+        </radialGradient>
+        <linearGradient id="b_tusk" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stop-color="#d4c8b2"/>
+          <stop offset="100%" stop-color="#ffffff"/>
+        </linearGradient>
+      </defs>
+      <!-- 脚底微泥土 -->
+      <path d="M 45,225 C 80,218 180,218 215,225 C 160,230 90,230 45,225 Z" fill="#694a33" opacity="0.6" stroke="#3a2c20" stroke-width="3" stroke-linecap="round"/>
+      <!-- 远侧后腿 -->
+      <path d="M 172,175 L 180,216 L 168,217 L 160,185 Z" fill="#36251b" stroke="#3a2c20" stroke-width="4.5"/>
+      <!-- 远侧前腿 -->
+      <path d="M 98,175 L 94,216 L 82,217 L 86,182 Z" fill="#36251b" stroke="#3a2c20" stroke-width="4.5"/>
+      <!-- 躯体 (高高耸立的背部驼峰) -->
+      <path d="M 68,140 C 60,110 95,85 130,88 C 175,92 205,115 195,155 C 190,182 155,188 115,185 C 80,182 66,165 68,140 Z" fill="url(#b_body)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 背脊刚毛鬃毛 -->
+      <path d="M 85,115 Q 80,95 90,92 Q 95,100 102,94 Q 115,80 125,85 Q 135,78 145,86 Q 160,82 170,95 Q 180,98 185,112" fill="none" stroke="#2a1c13" stroke-width="5" stroke-linecap="round"/>
+      <path d="M 88,110 Q 95,95 105,92 Q 118,84 130,88 Q 145,82 158,90 Q 172,94 180,108" fill="none" stroke="#8c6d54" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- 近侧粗壮后腿 -->
+      <path d="M 155,158 Q 180,170 170,222 L 156,223 Q 148,198 142,178 Z" fill="url(#b_body)" stroke="#3a2c20" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M 158,214 L 168,223 L 155,223 Z" fill="#3a2c20"/>
+      <!-- 近侧粗壮前腿 -->
+      <path d="M 108,162 Q 115,185 110,222 L 98,223 Q 95,195 95,178 Z" fill="url(#b_body)" stroke="#3a2c20" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M 100,214 L 110,223 L 97,223 Z" fill="#3a2c20"/>
+      <!-- 小蜷曲野猪尾 -->
+      <path d="M 195,142 Q 212,145 208,155 Q 202,158 200,150" fill="none" stroke="#3a2c20" stroke-width="4.5" stroke-linecap="round"/>
+      <!-- 粗大头颅 -->
+      <path d="M 105,118 Q 80,122 56,142 C 45,152 48,168 62,170 C 80,172 105,160 115,145 Z" fill="url(#b_body)" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <!-- 拱土扁圆大鼻吻 -->
+      <ellipse cx="50" cy="155" rx="10" ry="14" fill="#543e30" stroke="#3a2c20" stroke-width="4.5"/>
+      <ellipse cx="48" cy="152" rx="2.5" ry="4" fill="#3a2c20"/>
+      <ellipse cx="52" cy="155" rx="2.5" ry="4" fill="#3a2c20"/>
+      <!-- 锋利白色獠牙 -->
+      <path d="M 62,165 Q 60,140 70,132 Q 68,150 72,164 Z" fill="url(#b_tusk)" stroke="#3a2c20" stroke-width="3.5" stroke-linejoin="round"/>
+      <!-- 凶猛小眼与皱纹 -->
+      <path d="M 72,130 Q 82,126 90,132" fill="none" stroke="#3a2c20" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="82" cy="133" r="3" fill="#e66025"/>
+      <circle cx="82" cy="133" r="1.5" fill="#3a2c20"/>
+      <!-- 野猪粗耳 -->
+      <path d="M 105,118 Q 112,98 120,105 Q 115,122 105,125 Z" fill="url(#b_body)" stroke="#3a2c20" stroke-width="4"/>
+    </svg>

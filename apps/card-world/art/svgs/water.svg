@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="wt_grad" cx="35%" cy="32%" r="68%">
+          <stop offset="0%" stop-color="#bce8e2"/>
+          <stop offset="45%" stop-color="#6f9a92"/>
+          <stop offset="85%" stop-color="#437069"/>
+          <stop offset="100%" stop-color="#284e49"/>
+        </radialGradient>
+      </defs>
+      <!-- 阴影与底层水波圈 -->
+      <ellipse cx="128" cy="216" rx="88" ry="18" fill="#2d1c14" opacity="0.32"/>
+      <ellipse cx="128" cy="198" rx="78" ry="24" fill="#5a8b83" stroke="#3a2c20" stroke-width="4.5" opacity="0.7"/>
+      <ellipse cx="128" cy="198" rx="58" ry="16" fill="#81aba3" stroke="#3a2c20" stroke-width="3" opacity="0.6"/>
+      <!-- 主大水滴 -->
+      <path d="M 128,32 C 128,32 62,122 62,164 C 62,204 92,224 128,224 C 164,224 194,204 194,164 C 194,122 128,32 128,32 Z" fill="url(#wt_grad)" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <!-- 左上清透水光大高光 -->
+      <path d="M 102,88 C 84,124 82,158 92,185 C 84,170 82,142 96,105 C 104,85 116,65 120,58 C 115,68 108,78 102,88 Z" fill="#eafaf8" opacity="0.85"/>
+      <circle cx="112" cy="98" r="6" fill="#ffffff" opacity="0.95"/>
+      <circle cx="138" cy="195" r="4" fill="#ffffff" opacity="0.7"/>
+      <!-- 飞溅灵动的小水珠 -->
+      <ellipse cx="64" cy="116" rx="9" ry="12" fill="url(#wt_grad)" stroke="#3a2c20" stroke-width="3.5"/>
+      <circle cx="62" cy="113" r="3" fill="#ffffff" opacity="0.9"/>
+      <circle cx="198" cy="136" r="8" fill="url(#wt_grad)" stroke="#3a2c20" stroke-width="3"/>
+      <circle cx="196" cy="134" r="2.5" fill="#ffffff" opacity="0.9"/>
+    </svg>

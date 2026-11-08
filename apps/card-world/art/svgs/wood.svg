@@ -1,0 +1,27 @@
+<svg viewBox="0 0 256 256" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <g stroke="#3a2c20" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+    <!-- 下层左侧原木 -->
+    <rect x="42" y="142" width="168" height="54" rx="27" fill="#7a4e28"/>
+    <ellipse cx="64" cy="169" rx="20" ry="26" fill="#d8b88a"/>
+    <ellipse cx="64" cy="169" rx="12" ry="16" fill="none" stroke="#9e7244" stroke-width="3"/>
+    <circle cx="64" cy="169" r="4" fill="#5a3618"/>
+    <line x1="64" y1="169" x2="78" y2="178" stroke="#5a3618" stroke-width="3"/>
+
+    <!-- 下层右侧原木 -->
+    <rect x="72" y="98" width="154" height="50" rx="25" fill="#8c5a32"/>
+    <ellipse cx="94" cy="123" rx="18" ry="24" fill="#e2c498"/>
+    <ellipse cx="94" cy="123" rx="10" ry="14" fill="none" stroke="#9e7244" stroke-width="3"/>
+    <circle cx="94" cy="123" r="3.5" fill="#5a3618"/>
+
+    <!-- 上层顶木 -->
+    <rect x="36" y="62" width="160" height="52" rx="26" fill="#6e4220"/>
+    <ellipse cx="58" cy="88" rx="19" ry="25" fill="#d8b88a"/>
+    <ellipse cx="58" cy="88" rx="11" ry="15" fill="none" stroke="#9e7244" stroke-width="3"/>
+    <circle cx="58" cy="88" r="4" fill="#5a3618"/>
+
+    <!-- 紧紧捆扎的粗麻绳与绑结 -->
+    <rect x="144" y="56" width="22" height="146" rx="8" fill="#d8c8a0"/>
+    <line x1="148" y1="58" x2="162" y2="200" stroke="#a88a52" stroke-width="4"/>
+    <ellipse cx="155" cy="56" rx="14" ry="8" fill="#c9a96a"/>
+  </g>
+</svg>

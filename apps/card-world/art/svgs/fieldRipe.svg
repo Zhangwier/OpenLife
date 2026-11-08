@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <linearGradient id="fr_gold" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ffe67a"/>
+          <stop offset="60%" stop-color="#dfa82e"/>
+          <stop offset="100%" stop-color="#996e14"/>
+        </linearGradient>
+      </defs>
+      <!-- 田块轮廓 -->
+      <polygon points="25,212 52,65 204,65 231,212" fill="#7a5430" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 金黄饱满的密实稻谷丛 -->
+      <!-- 后层小谷穗 -->
+      <path d="M 45,105 Q 128,85 211,105 L 204,65 L 52,65 Z" fill="#d9a838" stroke="#3a2c20" stroke-width="4"/>
+      <!-- 中层沉甸谷浪 -->
+      <path d="M 35,155 Q 128,135 221,155 L 211,105 Q 128,85 45,105 Z" fill="#ebba42" stroke="#3a2c20" stroke-width="4.5"/>
+      <!-- 前层饱满垂坠的大麦穗/大粟穗 -->
+      <g stroke="#3a2c20" stroke-width="4" stroke-linejoin="round">
+        <!-- 穗 1 -->
+        <path d="M 55,212 Q 50,165 40,145" fill="none" stroke-width="5"/>
+        <ellipse cx="38" cy="142" rx="12" ry="24" transform="rotate(-25 38 142)" fill="url(#fr_gold)"/>
+        <!-- 穗 2 -->
+        <path d="M 92,212 Q 95,165 85,138" fill="none" stroke-width="5"/>
+        <ellipse cx="82" cy="135" rx="14" ry="26" transform="rotate(-18 82 135)" fill="url(#fr_gold)"/>
+        <!-- 穗 3 (中心主穗) -->
+        <path d="M 132,212 Q 130,160 125,130" fill="none" stroke-width="5.5"/>
+        <ellipse cx="124" cy="125" rx="15" ry="28" transform="rotate(-8 124 125)" fill="url(#fr_gold)"/>
+        <!-- 穗 4 -->
+        <path d="M 172,212 Q 170,165 178,138" fill="none" stroke-width="5"/>
+        <ellipse cx="182" cy="135" rx="14" ry="26" transform="rotate(18 182 135)" fill="url(#fr_gold)"/>
+        <!-- 穗 5 -->
+        <path d="M 208,212 Q 212,165 222,145" fill="none" stroke-width="5"/>
+        <ellipse cx="225" cy="142" rx="12" ry="24" transform="rotate(25 225 142)" fill="url(#fr_gold)"/>
+      </g>
+      <!-- 谷芒白细光芒 -->
+      <line x1="32" y1="125" x2="22" y2="108" stroke="#fff4b8" stroke-width="3" stroke-linecap="round"/>
+      <line x1="75" y1="118" x2="68" y2="100" stroke="#fff4b8" stroke-width="3" stroke-linecap="round"/>
+      <line x1="120" y1="108" x2="116" y2="88" stroke="#fff4b8" stroke-width="3" stroke-linecap="round"/>
+      <line x1="188" y1="118" x2="198" y2="100" stroke="#fff4b8" stroke-width="3" stroke-linecap="round"/>
+    </svg>

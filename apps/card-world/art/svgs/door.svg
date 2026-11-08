@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <ellipse cx="128" cy="225" rx="75" ry="16" fill="#2d1c14" opacity="0.45"/>
+      <!-- 门框 -->
+      <rect x="52" y="38" width="152" height="184" fill="#543317" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 门板 -->
+      <rect x="68" y="52" width="120" height="170" fill="#9e693b" stroke="#3a2c20" stroke-width="5"/>
+      <!-- 门板木纹与横木穿带 -->
+      <rect x="68" y="85" width="120" height="16" fill="#69401e" stroke="#3a2c20" stroke-width="3.5"/>
+      <rect x="68" y="165" width="120" height="16" fill="#69401e" stroke="#3a2c20" stroke-width="3.5"/>
+      <!-- 门环 -->
+      <circle cx="160" cy="135" r="9" fill="none" stroke="#f6d365" stroke-width="4"/>
+      <circle cx="160" cy="126" r="3.5" fill="#3a2c20"/>
+    </svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <ellipse cx="128" cy="225" rx="80" ry="18" fill="#2d1c14" opacity="0.45"/>
+      <path d="M 115,140 L 110,224 L 146,224 L 141,140 Z" fill="#694321" stroke="#3a2c20" stroke-width="5.5"/>
+      <circle cx="128" cy="100" r="66" fill="#5b8235" stroke="#3a2c20" stroke-width="6"/>
+      <!-- 枝头小红枣 -->
+      <ellipse cx="98" cy="90" rx="8" ry="11" fill="#b82a21" stroke="#3a2c20" stroke-width="2.5"/>
+      <ellipse cx="145" cy="85" rx="8" ry="11" fill="#b82a21" stroke="#3a2c20" stroke-width="2.5"/>
+      <ellipse cx="120" cy="125" rx="8" ry="11" fill="#b82a21" stroke="#3a2c20" stroke-width="2.5"/>
+      <ellipse cx="160" cy="120" rx="8" ry="11" fill="#b82a21" stroke="#3a2c20" stroke-width="2.5"/>
+    </svg>

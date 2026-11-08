@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <ellipse cx="128" cy="225" rx="95" ry="20" fill="#2d1c14" opacity="0.45"/>
+      <!-- 厚实矮土石墙基 -->
+      <rect x="38" y="115" width="180" height="102" fill="#dfcfb2" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <rect x="112" y="148" width="32" height="69" fill="#543317" stroke="#3a2c20" stroke-width="4.5"/>
+      <rect x="58" y="140" width="28" height="28" fill="#543317" stroke="#3a2c20" stroke-width="3.5"/>
+      <rect x="170" y="140" width="28" height="28" fill="#543317" stroke="#3a2c20" stroke-width="3.5"/>
+      <!-- 宏大厚重双坡茅草顶 -->
+      <polygon points="128,30 238,122 18,122" fill="#d99f43" stroke="#3a2c20" stroke-width="6.5" stroke-linejoin="round"/>
+    </svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="cls_shallows" cx="50%" cy="40%" r="60%">
+          <stop offset="0%" stop-color="#73c0cc"/>
+          <stop offset="60%" stop-color="#4a9aa6"/>
+          <stop offset="100%" stop-color="#2a6670"/>
+        </radialGradient>
+      </defs>
+      <ellipse cx="128" cy="180" rx="98" ry="45" fill="url(#cls_shallows)" stroke="#3a2c20" stroke-width="5"/>
+      <path d="M 40,195 Q 128,215 216,195" stroke="#bfe8f0" stroke-width="4" fill="none"/>
+      <!-- 散落半埋在浅水沙石中的贝蚌 -->
+      <path d="M 68,172 C 65,145 105,145 115,172 C 105,185 75,185 68,172 Z" fill="#b9a690" stroke="#3a2c20" stroke-width="4.5"/>
+      <path d="M 135,160 C 130,130 185,130 192,160 C 180,178 145,178 135,160 Z" fill="#cfc2b2" stroke="#3a2c20" stroke-width="4.5"/>
+      <path d="M 102,185 C 98,165 145,165 152,185 C 142,198 110,198 102,185 Z" fill="#9e8b74" stroke="#3a2c20" stroke-width="4"/>
+      <!-- 水波与卵石 -->
+      <ellipse cx="178" cy="190" rx="8" ry="5" fill="#756b5e" stroke="#3a2c20" stroke-width="2.5"/>
+      <ellipse cx="62" cy="190" rx="6" ry="4" fill="#756b5e" stroke="#3a2c20" stroke-width="2.5"/>
+    </svg>

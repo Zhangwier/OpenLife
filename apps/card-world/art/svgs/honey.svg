@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="hn_pot" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#d99962"/>
+          <stop offset="65%" stop-color="#a6632c"/>
+          <stop offset="100%" stop-color="#693712"/>
+        </radialGradient>
+        <radialGradient id="hn_gold" cx="45%" cy="40%" r="60%">
+          <stop offset="0%" stop-color="#fff073"/>
+          <stop offset="70%" stop-color="#e6a817"/>
+          <stop offset="100%" stop-color="#996a05"/>
+        </radialGradient>
+      </defs>
+      <ellipse cx="128" cy="220" rx="75" ry="18" fill="#2d1c14" opacity="0.45"/>
+      <!-- 陶蜜罐 -->
+      <path d="M 68,110 L 60,195 C 60,218 196,218 196,195 L 188,110 Z" fill="url(#hn_pot)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <ellipse cx="128" cy="110" rx="60" ry="18" fill="url(#hn_gold)" stroke="#3a2c20" stroke-width="5"/>
+      <!-- 浓厚流溢在罐沿的金黄蜂蜜 -->
+      <path d="M 105,115 C 105,155 125,155 125,115 Z" fill="url(#hn_gold)" stroke="#3a2c20" stroke-width="3"/>
+    </svg>

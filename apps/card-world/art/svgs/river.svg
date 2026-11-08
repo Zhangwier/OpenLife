@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <linearGradient id="rv_water" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#73c0cc"/>
+          <stop offset="50%" stop-color="#4a9aa6"/>
+          <stop offset="100%" stop-color="#2a6670"/>
+        </linearGradient>
+      </defs>
+      <!-- 岸边两则水岸沙石地 -->
+      <path d="M 0,0 L 85,0 C 70,85 110,175 60,256 L 0,256 Z" fill="#8f7659" stroke="#3a2c20" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M 256,0 L 175,0 C 190,75 160,165 210,256 L 256,256 Z" fill="#8f7659" stroke="#3a2c20" stroke-width="5" stroke-linejoin="round"/>
+      <!-- 澄澈蜿蜒的流水主河道 -->
+      <path d="M 85,0 C 70,85 110,175 60,256 L 210,256 C 160,165 190,75 175,0 Z" fill="url(#rv_water)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 水波流线 (白色水丝与高光) -->
+      <path d="M 125,18 C 112,65 142,120 115,185" fill="none" stroke="#bfe8f0" stroke-width="5" stroke-linecap="round"/>
+      <path d="M 148,45 C 135,92 165,150 142,225" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+      <path d="M 98,90 C 90,130 118,175 95,235" fill="none" stroke="#bfe8f0" stroke-width="4" stroke-linecap="round"/>
+      <!-- 河心与岸边圆润光滑的鹅卵石 (3颗) -->
+      <ellipse cx="68" cy="185" rx="14" ry="10" fill="#a39686" stroke="#3a2c20" stroke-width="3.5"/>
+      <ellipse cx="178" cy="115" rx="16" ry="11" fill="#756b5e" stroke="#3a2c20" stroke-width="3.5"/>
+      <ellipse cx="145" cy="148" rx="10" ry="7" fill="#c2b6a5" stroke="#3a2c20" stroke-width="3"/>
+      <!-- 水边一丛小青水草 -->
+      <path d="M 68,175 C 55,150 62,125 72,110 C 70,135 78,155 76,175 Z" fill="#4d8733" stroke="#3a2c20" stroke-width="2.5"/>
+    </svg>

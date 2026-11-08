@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <polygon points="35,190 70,85 186,85 221,190" fill="#ba9f79" opacity="0.3" stroke="#3a2c20" stroke-width="4" stroke-dasharray="8 6"/>
+      <!-- 四角立木桩与系绳 -->
+      <rect x="66" y="70" width="10" height="28" fill="#754a24" stroke="#3a2c20" stroke-width="3"/>
+      <rect x="180" y="70" width="10" height="28" fill="#754a24" stroke="#3a2c20" stroke-width="3"/>
+      <rect x="30" y="175" width="12" height="34" fill="#754a24" stroke="#3a2c20" stroke-width="3.5"/>
+      <rect x="214" y="175" width="12" height="34" fill="#754a24" stroke="#3a2c20" stroke-width="3.5"/>
+    </svg>

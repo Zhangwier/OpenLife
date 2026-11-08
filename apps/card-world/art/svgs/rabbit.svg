@@ -1,0 +1,30 @@
+<svg viewBox="0 0 256 256" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <g stroke="#3a2c20" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+    <!-- 圆滚滚雪白毛球尾巴 -->
+    <circle cx="52" cy="172" r="18" fill="#fffaf0"/>
+    <!-- 结实圆润的后腿 -->
+    <ellipse cx="104" cy="178" rx="36" ry="28" fill="#baa692"/>
+    <ellipse cx="118" cy="216" rx="28" ry="12" fill="#baa692"/>
+    <!-- 胖嘟嘟身躯 -->
+    <path d="M84 162 C74 126 108 106 148 112 C184 118 198 146 186 182 C174 212 126 218 84 196 Z" fill="#cbbaa8"/>
+    <!-- 软白肚皮毛 -->
+    <path d="M130 198 C160 200 178 184 176 166 C158 166 140 176 130 198 Z" fill="#fffaf0" stroke="none"/>
+    <!-- 前爪爪 -->
+    <ellipse cx="166" cy="214" rx="16" ry="10" fill="#cbbaa8"/>
+    <!-- 兔脑袋 -->
+    <circle cx="178" cy="116" r="32" fill="#cbbaa8"/>
+    <!-- 直立微倾的长耳朵与粉嫩内耳 -->
+    <!-- 后耳 -->
+    <path d="M152 94 C132 46 142 18 160 20 C176 22 174 54 166 90 Z" fill="#baa692"/>
+    <path d="M152 82 C142 48 148 30 158 32 C168 34 164 58 160 80 Z" fill="#e8a8a4" stroke="none"/>
+    <!-- 前耳 -->
+    <path d="M178 92 C166 38 182 14 200 16 C216 18 206 52 192 90 Z" fill="#cbbaa8"/>
+    <path d="M182 82 C174 44 186 26 196 28 C204 30 200 56 190 80 Z" fill="#e8a8a4" stroke="none"/>
+    <!-- 黑色大萌眼与纯净反光 -->
+    <ellipse cx="186" cy="112" rx="7" ry="9" fill="#3a2c20"/>
+    <circle cx="188" cy="108" r="2.5" fill="#fff" stroke="none"/>
+    <!-- 粉红三瓣小嘴与白腮颊 -->
+    <circle cx="206" cy="126" r="10" fill="#fffaf0" stroke="none"/>
+    <path d="M210 122 C214 122 216 126 212 128 Z" fill="#e8a8a4"/>
+  </g>
+</svg>

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <linearGradient id="ht_thatch" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#fae398"/>
+          <stop offset="60%" stop-color="#d4a84d"/>
+          <stop offset="100%" stop-color="#997022"/>
+        </linearGradient>
+        <radialGradient id="ht_wall" cx="40%" cy="40%" r="60%">
+          <stop offset="0%" stop-color="#b09b82"/>
+          <stop offset="80%" stop-color="#7d6c56"/>
+          <stop offset="100%" stop-color="#4d4132"/>
+        </radialGradient>
+      </defs>
+      <!-- 投影 -->
+      <ellipse cx="128" cy="225" rx="85" ry="20" fill="#2d1c14" opacity="0.45"/>
+      <!-- 圆弧矮石墙 -->
+      <path d="M 60,150 L 52,212 C 52,220 204,220 204,212 L 196,150 Z" fill="url(#ht_wall)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 石块拼缝 -->
+      <path d="M 60,185 Q 128,195 196,185" fill="none" stroke="#3a2c20" stroke-width="4"/>
+      <line x1="95" y1="152" x2="92" y2="185" stroke="#3a2c20" stroke-width="3.5"/>
+      <line x1="165" y1="152" x2="168" y2="185" stroke="#3a2c20" stroke-width="3.5"/>
+      <line x1="128" y1="186" x2="128" y2="216" stroke="#3a2c20" stroke-width="3.5"/>
+      <!-- 拱形木门与室内温暖橘光 -->
+      <path d="M 110,216 L 110,172 C 110,160 146,160 146,172 L 146,216 Z" fill="#2b180d" stroke="#3a2c20" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M 115,214 L 115,176 C 115,166 141,166 141,176 L 141,214 Z" fill="#f58e2a" opacity="0.9"/>
+      <ellipse cx="128" cy="188" rx="8" ry="12" fill="#fff4a3" opacity="0.95"/>
+      <!-- 两侧支撑木柱 -->
+      <line x1="58" y1="145" x2="54" y2="216" stroke="#3a2c20" stroke-width="5" stroke-linecap="round"/>
+      <line x1="198" y1="145" x2="202" y2="216" stroke="#3a2c20" stroke-width="5" stroke-linecap="round"/>
+      <!-- 厚实多层茅草尖屋顶 -->
+      <!-- 下层大茅草顶 -->
+      <path d="M 32,156 Q 128,140 224,156 L 195,108 Q 128,95 61,108 Z" fill="url(#ht_thatch)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 下檐茅草锯齿流苏 -->
+      <path d="M 32,156 L 40,166 L 52,154 L 64,166 L 78,154 L 92,166 L 108,153 L 124,166 L 140,154 L 156,166 L 172,154 L 188,166 L 202,154 L 214,166 L 224,156" fill="none" stroke="#3a2c20" stroke-width="4.5" stroke-linejoin="round"/>
+      <!-- 上层尖顶茅草 -->
+      <path d="M 52,115 Q 128,102 204,115 L 128,42 Z" fill="url(#ht_thatch)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 茅草上檐锯齿流苏 -->
+      <path d="M 52,115 L 64,124 L 78,113 L 94,124 L 112,112 L 128,124 L 146,112 L 164,124 L 182,113 L 196,124 L 204,115" fill="none" stroke="#3a2c20" stroke-width="4" stroke-linejoin="round"/>
+      <!-- 顶冠捆扎压顶木 -->
+      <line x1="110" y1="38" x2="146" y2="52" stroke="#66441e" stroke-width="7" stroke-linecap="round"/>
+      <line x1="146" y1="38" x2="110" y2="52" stroke="#66441e" stroke-width="7" stroke-linecap="round"/>
+      <line x1="110" y1="38" x2="146" y2="52" stroke="#3a2c20" stroke-width="2"/>
+      <line x1="146" y1="38" x2="110" y2="52" stroke="#3a2c20" stroke-width="2"/>
+    </svg>

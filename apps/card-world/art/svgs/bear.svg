@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="br_body" cx="45%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#4d4038"/>
+          <stop offset="65%" stop-color="#2a221d"/>
+          <stop offset="100%" stop-color="#140f0c"/>
+        </radialGradient>
+      </defs>
+      <!-- 脚下林地阴影 -->
+      <ellipse cx="128" cy="225" rx="88" ry="20" fill="#2d1c14" opacity="0.45"/>
+      <!-- 远侧粗腿 -->
+      <rect x="75" y="165" width="26" height="56" rx="8" fill="#1b1613" stroke="#3a2c20" stroke-width="5"/>
+      <rect x="165" y="165" width="26" height="56" rx="8" fill="#1b1613" stroke="#3a2c20" stroke-width="5"/>
+      <!-- 雄壮厚实的庞大躯体 -->
+      <path d="M 62,148 C 55,108 92,78 142,82 C 195,85 215,122 208,168 C 200,198 165,202 125,200 C 82,198 65,182 62,148 Z" fill="url(#br_body)" stroke="#3a2c20" stroke-width="6.5" stroke-linejoin="round"/>
+      <!-- 近侧厚重前掌与后肢 -->
+      <path d="M 88,145 Q 98,185 92,222 L 72,222 Q 68,175 75,145 Z" fill="url(#br_body)" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <path d="M 165,145 Q 178,185 172,222 L 150,222 Q 146,175 152,145 Z" fill="url(#br_body)" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <!-- 尖利足爪 -->
+      <line x1="72" y1="222" x2="68" y2="226" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+      <line x1="78" y1="222" x2="76" y2="227" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+      <line x1="84" y1="222" x2="84" y2="227" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+      <!-- 魁梧头颅与圆耳 -->
+      <circle cx="58" cy="112" r="30" fill="url(#br_body)" stroke="#3a2c20" stroke-width="6"/>
+      <!-- 圆熊耳 -->
+      <circle cx="45" cy="85" r="10" fill="url(#br_body)" stroke="#3a2c20" stroke-width="4.5"/>
+      <circle cx="72" cy="85" r="10" fill="url(#br_body)" stroke="#3a2c20" stroke-width="4.5"/>
+      <circle cx="45" cy="85" r="4.5" fill="#69564b"/>
+      <!-- 浅褐大鼻吻 -->
+      <ellipse cx="46" cy="122" rx="14" ry="11" fill="#755a47" stroke="#3a2c20" stroke-width="3.5"/>
+      <ellipse cx="42" cy="118" rx="5" ry="4" fill="#3a2c20"/>
+      <!-- 沉稳小兽眼 -->
+      <circle cx="62" cy="108" r="3" fill="#000000"/>
+      <circle cx="61" cy="107" r="1" fill="#ffffff"/>
+      <!-- 胸前经典亚洲黑熊月牙浅白斑纹 (Moon bear mark) -->
+      <path d="M 88,142 C 96,165 115,172 125,172 C 112,168 102,155 98,142 Z" fill="#fff8ed" stroke="#3a2c20" stroke-width="3"/>
+    </svg>

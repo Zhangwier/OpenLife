@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="ms_cap_red" cx="40%" cy="30%" r="65%">
+          <stop offset="0%" stop-color="#ff6052"/>
+          <stop offset="65%" stop-color="#d62b20"/>
+          <stop offset="100%" stop-color="#8a130a"/>
+        </radialGradient>
+        <radialGradient id="ms_cap_brown" cx="40%" cy="30%" r="65%">
+          <stop offset="0%" stop-color="#e0a369"/>
+          <stop offset="65%" stop-color="#b07038"/>
+          <stop offset="100%" stop-color="#6e3f16"/>
+        </radialGradient>
+        <linearGradient id="ms_stem" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#fff8ed"/>
+          <stop offset="60%" stop-color="#ebd8bf"/>
+          <stop offset="100%" stop-color="#c9b091"/>
+        </linearGradient>
+      </defs>
+      <!-- 潮湿落叶与泥土投影 -->
+      <ellipse cx="128" cy="225" rx="88" ry="20" fill="#2d1c14" opacity="0.45"/>
+      <path d="M 55,220 C 75,212 180,212 205,220 C 170,228 90,228 55,220 Z" fill="#5c6e3b" opacity="0.7"/>
+      <!-- 次级棕黄色圆顶牛肝菌 (左侧) -->
+      <path d="M 85,150 L 78,216 L 98,216 L 95,150 Z" fill="url(#ms_stem)" stroke="#3a2c20" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M 48,155 C 45,110 125,110 122,155 C 105,162 65,162 48,155 Z" fill="url(#ms_cap_brown)" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <ellipse cx="85" cy="155" rx="36" ry="8" fill="#593210" opacity="0.7"/>
+      <!-- 次级小幼菌 (右侧) -->
+      <path d="M 175,175 L 172,218 L 186,218 L 184,175 Z" fill="url(#ms_stem)" stroke="#3a2c20" stroke-width="4"/>
+      <ellipse cx="180" cy="172" rx="18" ry="14" fill="url(#ms_cap_brown)" stroke="#3a2c20" stroke-width="4.5"/>
+      <!-- 主大红蘑菇 (中央挺立) -->
+      <path d="M 125,115 L 115,222 C 115,226 150,226 150,222 L 142,115 Z" fill="url(#ms_stem)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 菌环 (Annulus) -->
+      <path d="M 118,162 Q 133,168 148,162 Q 146,172 133,174 Q 120,172 118,162 Z" fill="#fff8ed" stroke="#3a2c20" stroke-width="3"/>
+      <!-- 伞盖下菌褶阴影 -->
+      <path d="M 72,122 C 85,134 175,134 188,122 Z" fill="#521510"/>
+      <!-- 华丽的大红伞盖 -->
+      <path d="M 62,120 C 58,45 202,45 198,120 C 168,135 92,135 62,120 Z" fill="url(#ms_cap_red)" stroke="#3a2c20" stroke-width="6.5" stroke-linejoin="round"/>
+      <!-- 伞盖白斑 (多层大小斑块) -->
+      <ellipse cx="102" cy="78" rx="10" ry="8" fill="#ffffff" stroke="#3a2c20" stroke-width="2.5"/>
+      <ellipse cx="145" cy="72" rx="12" ry="9" fill="#ffffff" stroke="#3a2c20" stroke-width="2.5"/>
+      <ellipse cx="126" cy="94" rx="8" ry="6" fill="#ffffff" stroke="#3a2c20" stroke-width="2"/>
+      <ellipse cx="80" cy="98" rx="6" ry="5" fill="#ffffff" stroke="#3a2c20" stroke-width="2"/>
+      <ellipse cx="172" cy="92" rx="7" ry="6" fill="#ffffff" stroke="#3a2c20" stroke-width="2"/>
+      <circle cx="155" cy="105" r="4.5" fill="#ffffff"/>
+      <!-- 湿润高光 -->
+      <path d="M 98,62 Q 130,52 162,62" fill="none" stroke="#ffb8b3" stroke-width="4" stroke-linecap="round"/>
+    </svg>

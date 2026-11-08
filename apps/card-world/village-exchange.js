@@ -3,7 +3,7 @@
 export const TRADE_WORTH = Object.freeze({
   grain: 2, cooked: 3, wood: 1, reed: 1, clay: 1, fiber: 2, rope: 2, jar: 6,
   cloth: 5, fish: 2, net: 5, basket: 4, log: 2, stone: 2, chestnut: 2, meat: 3,
-  hide: 4, smokedMeat: 4,
+  hide: 4, smokedMeat: 4, salt: 4, shell: 3, shellBeads: 6, saltedFish: 5, saltedMeat: 6, malachite: 4,
 });
 const FOOD = new Set(["grain", "cooked", "fish"]);
 const TOLERANCE = { 陌生: 1, 见过: 0.9, 相识: 0.75 };

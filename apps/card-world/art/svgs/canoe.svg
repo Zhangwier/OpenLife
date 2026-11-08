@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="cn_wood_out" cx="30%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#b67a4c"/>
+          <stop offset="60%" stop-color="#804e29"/>
+          <stop offset="100%" stop-color="#4e2b11"/>
+        </radialGradient>
+        <linearGradient id="cn_wood_in" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#452711"/>
+          <stop offset="100%" stop-color="#693e1f"/>
+        </linearGradient>
+      </defs>
+      <!-- 清澈碧蓝水波倒影与水纹 -->
+      <ellipse cx="128" cy="188" rx="100" ry="24" fill="#589ea6" opacity="0.35"/>
+      <path d="M 22,185 C 60,195 196,195 234,185" fill="none" stroke="#77bec7" stroke-width="4.5" stroke-linecap="round"/>
+      <path d="M 45,200 C 85,208 170,208 210,200" fill="none" stroke="#77bec7" stroke-width="3" stroke-linecap="round" opacity="0.75"/>
+      <!-- 独木舟外侧船壳 -->
+      <path d="M 22,125 C 50,175 206,175 234,125 C 200,165 56,165 22,125 Z" fill="url(#cn_wood_out)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 舟舱内部凹陷 -->
+      <path d="M 22,125 C 60,145 196,145 234,125 C 196,112 60,112 22,125 Z" fill="url(#cn_wood_in)" stroke="#3a2c20" stroke-width="5" stroke-linejoin="round"/>
+      <!-- 船沿加固厚边框 -->
+      <path d="M 22,125 C 60,145 196,145 234,125" fill="none" stroke="#dfb282" stroke-width="3.5" stroke-linecap="round"/>
+      <!-- 船舱横向支撑木档 -->
+      <rect x="85" y="125" width="8" height="15" rx="2" fill="#8f572e" stroke="#3a2c20" stroke-width="3"/>
+      <rect x="163" y="125" width="8" height="15" rx="2" fill="#8f572e" stroke="#3a2c20" stroke-width="3"/>
+      <!-- 船舱中横置的一柄轻盈木桨 (Paddle) -->
+      <line x1="68" y1="85" x2="185" y2="162" stroke="#3a2c20" stroke-width="6" stroke-linecap="round"/>
+      <line x1="68" y1="85" x2="185" y2="162" stroke="#d6a674" stroke-width="3" stroke-linecap="round"/>
+      <!-- 桨叶 (左上宽扁卵形) -->
+      <path d="M 68,85 C 52,74 58,58 75,68 C 88,78 78,92 68,85 Z" fill="#b87b46" stroke="#3a2c20" stroke-width="4" stroke-linejoin="round"/>
+      <line x1="65" y1="72" x2="76" y2="82" stroke="#f6ebd9" stroke-width="2"/>
+      <!-- 桨柄末端抓握小把手 -->
+      <rect x="180" y="158" width="12" height="6" rx="2" transform="rotate(33 186 161)" fill="#7a471f" stroke="#3a2c20" stroke-width="2.5"/>
+    </svg>

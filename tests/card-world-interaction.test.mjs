@@ -17,10 +17,13 @@ test("only furniture still at the old default coordinates moves to the sides of 
   const old = { x: 1280, y: 940, cards: [{ key: "fire" }] };
   assert.equal(oldYardFurnishing(old, yard), "fire");
   assert.equal(oldYardFurnishing({ ...old, x: old.x + 1 }, yard), null);
-  for (const key of ["bed", "fire", "grain", "store"]) {
+  for (const key of ["bed", "fire", "stove", "store", "chest"]) {
     const { x } = yardFurnishing(key, yard);
     assert.ok(x + 112 <= yard.gate.x - 20 || x >= yard.gate.x + yard.gate.w + 20, key);
   }
+  const table = yardFurnishing("table", yard);                       // the one thing in the middle: where everyone eats
+  assert.ok(table.x < yard.gate.x + yard.gate.w && table.x + 112 > yard.gate.x && table.y + 148 < yard.y + yard.h - 100);
+  assert.equal(yardFurnishing("grain", yard), null, "grain is kept in the granary now");
 });
 
 test("village barter uses the exact cards and refuses a stale or unfair proposal", () => {

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="jg_leaf1" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#5fa042"/>
+          <stop offset="50%" stop-color="#3b7326"/>
+          <stop offset="85%" stop-color="#234e15"/>
+          <stop offset="100%" stop-color="#14300a"/>
+        </radialGradient>
+        <radialGradient id="jg_leaf2" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#82b84e"/>
+          <stop offset="55%" stop-color="#558a30"/>
+          <stop offset="100%" stop-color="#2c5414"/>
+        </radialGradient>
+      </defs>
+      <!-- 阴影 -->
+      <ellipse cx="128" cy="220" rx="92" ry="18" fill="#2d1c14" opacity="0.45"/>
+      <!-- 后排深邃浓密巨木树冠与阔叶 -->
+      <circle cx="68" cy="98" r="46" fill="#1b3b12" stroke="#3a2c20" stroke-width="5"/>
+      <circle cx="188" cy="98" r="46" fill="#1b3b12" stroke="#3a2c20" stroke-width="5"/>
+      <circle cx="128" cy="72" r="52" fill="#254d19" stroke="#3a2c20" stroke-width="5.5"/>
+      <!-- 中排交叠大阔叶（海芋/芭蕉巨叶形状） -->
+      <path d="M 38,172 C 32,122 75,95 118,122 C 105,155 78,178 38,172 Z" fill="url(#jg_leaf1)" stroke="#3a2c20" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M 218,172 C 224,122 181,95 138,122 C 151,155 178,178 218,172 Z" fill="url(#jg_leaf1)" stroke="#3a2c20" stroke-width="5" stroke-linejoin="round"/>
+      <!-- 前排中央丰盛阔叶与高挺叶片 -->
+      <path d="M 62,208 C 65,155 128,118 128,118 C 128,118 191,155 194,208 C 158,216 98,216 62,208 Z" fill="url(#jg_leaf2)" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <!-- 叶脉纹理与透光线 -->
+      <path d="M 128,124 L 128,212" stroke="#3a2c20" stroke-width="4"/>
+      <path d="M 128,145 L 102,165 M 128,145 L 154,165" stroke="#3a2c20" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 128,172 L 95,192 M 128,172 L 161,192" stroke="#3a2c20" stroke-width="3" stroke-linecap="round"/>
+      <!-- 缠绕其间的苍老藤蔓 -->
+      <path d="M 48,72 Q 95,120 72,185" fill="none" stroke="#7a5430" stroke-width="4.5" stroke-linecap="round"/>
+      <path d="M 208,72 Q 161,120 184,185" fill="none" stroke="#7a5430" stroke-width="4.5" stroke-linecap="round"/>
+      <!-- 露珠与受光高光 -->
+      <circle cx="118" cy="138" r="3.5" fill="#ffffff" opacity="0.85"/>
+      <path d="M 108,62 Q 128,52 148,62" fill="none" stroke="#9ed468" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+    </svg>

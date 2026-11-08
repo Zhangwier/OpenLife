@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="cm_shell" cx="50%" cy="80%" r="75%">
+          <stop offset="0%" stop-color="#e8ded1"/>
+          <stop offset="60%" stop-color="#b8a692"/>
+          <stop offset="100%" stop-color="#6e5d4a"/>
+        </radialGradient>
+      </defs>
+      <ellipse cx="128" cy="216" rx="80" ry="18" fill="#2d1c14" opacity="0.45"/>
+      <path d="M 48,185 C 40,88 216,88 208,185 C 175,212 80,212 48,185 Z" fill="url(#cm_shell)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 放射状贝壳生长肋纹 -->
+      <path d="M 128,198 L 72,112 M 128,198 L 98,95 M 128,198 L 128,88 M 128,198 L 158,95 M 128,198 L 184,112" stroke="#3a2c20" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M 68,145 Q 128,135 188,145" stroke="#fdfbf7" stroke-width="3" fill="none"/>
+    </svg>

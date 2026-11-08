@@ -1,0 +1,20 @@
+<svg viewBox="0 0 256 256" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <g stroke="#3a2c20" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+    <!-- 浅滩湿泥与清波 -->
+    <path d="M28 226 C72 216 148 232 228 220" stroke="#6f9a92" stroke-width="12" fill="none"/>
+    <path d="M38 236 C98 228 168 238 218 232" stroke="#8a5a34" stroke-width="8" fill="none"/>
+    <!-- 三根坚韧挺拔的长芦苇秆 -->
+    <path d="M78 230 C82 170 68 110 84 46" stroke="#6a8a44" stroke-width="8" fill="none"/>
+    <path d="M128 232 C126 160 134 94 126 32" stroke="#7a9a4c" stroke-width="9" fill="none"/>
+    <path d="M178 230 C172 168 184 116 174 48" stroke="#6a8a44" stroke-width="8" fill="none"/>
+    <!-- 狭长翻卷的芦苇叶片 -->
+    <path d="M82 160 C52 144 38 126 24 132 C46 148 68 168 82 180" fill="#7a9a4c"/>
+    <path d="M130 148 C164 132 188 116 208 122 C184 138 156 156 128 166" fill="#8aa854"/>
+    <path d="M126 102 C96 86 78 72 64 78 C86 94 108 110 126 120" fill="#7a9a4c"/>
+    <path d="M176 138 C204 126 226 112 242 118 C220 132 198 148 174 156" fill="#8aa854"/>
+    <!-- 顶端柔软蓬松的深金褐芦花/香蒲棒 -->
+    <ellipse cx="84" cy="56" rx="9" ry="24" transform="rotate(5 84 56)" fill="#8c6a38"/>
+    <ellipse cx="126" cy="42" rx="10" ry="26" transform="rotate(-3 126 42)" fill="#9e7a44"/>
+    <ellipse cx="174" cy="58" rx="9" ry="24" transform="rotate(-6 174 58)" fill="#8c6a38"/>
+  </g>
+</svg>

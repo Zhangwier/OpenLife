@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="gw_body" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#ede7db"/>
+          <stop offset="45%" stop-color="#cfc4b2"/>
+          <stop offset="80%" stop-color="#ab9f8c"/>
+          <stop offset="100%" stop-color="#7e7260"/>
+        </radialGradient>
+        <linearGradient id="gw_rim" x1="20%" y1="0%" x2="80%" y2="100%">
+          <stop offset="0%" stop-color="#e8e1d2"/>
+          <stop offset="100%" stop-color="#a89b87"/>
+        </linearGradient>
+      </defs>
+      <!-- 阴影 -->
+      <ellipse cx="128" cy="216" rx="76" ry="18" fill="#2d1c14" opacity="0.4"/>
+      <!-- 双耳 -->
+      <path d="M 68,110 C 46,110 46,145 70,150" fill="none" stroke="#3a2c20" stroke-width="7" stroke-linecap="round"/>
+      <path d="M 188,110 C 210,110 210,145 186,150" fill="none" stroke="#3a2c20" stroke-width="7" stroke-linecap="round"/>
+      <path d="M 68,110 C 49,110 49,145 70,150" fill="none" stroke="#cfc4b2" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 188,110 C 207,110 207,145 186,150" fill="none" stroke="#cfc4b2" stroke-width="3" stroke-linecap="round"/>
+      <!-- 大肚陶坯主体 -->
+      <path d="M 88,58 L 168,58 C 172,82 206,115 204,158 C 202,196 168,212 128,212 C 88,212 54,196 52,158 C 50,115 84,82 88,58 Z" fill="url(#gw_body)" stroke="#3a2c20" stroke-width="5.5" stroke-linejoin="round"/>
+      <!-- 口沿 -->
+      <ellipse cx="128" cy="58" rx="42" ry="14" fill="url(#gw_rim)" stroke="#3a2c20" stroke-width="5.5"/>
+      <ellipse cx="128" cy="58" rx="30" ry="8" fill="#6e6252" stroke="#3a2c20" stroke-width="3"/>
+      <!-- 陶坯表面手工拍打纹与泥条圈痕迹 -->
+      <path d="M 80,125 Q 128,142 176,125" fill="none" stroke="#b5a794" stroke-width="3" stroke-dasharray="6 4" opacity="0.8"/>
+      <path d="M 72,152 Q 128,172 184,152" fill="none" stroke="#9a8c79" stroke-width="3" stroke-dasharray="6 4" opacity="0.85"/>
+      <path d="M 85,178 Q 128,194 171,178" fill="none" stroke="#7e7260" stroke-width="2.5" opacity="0.7"/>
+      <!-- 左上受光高光 -->
+      <path d="M 96,95 Q 120,90 142,96" fill="none" stroke="#f7f3ec" stroke-width="4" stroke-linecap="round" opacity="0.75"/>
+      <!-- 散落的一两点生泥屑 -->
+      <circle cx="56" cy="214" r="5" fill="#ab9f8c" stroke="#3a2c20" stroke-width="2.5"/>
+      <circle cx="198" cy="210" r="4.5" fill="#ab9f8c" stroke="#3a2c20" stroke-width="2.5"/>
+    </svg>

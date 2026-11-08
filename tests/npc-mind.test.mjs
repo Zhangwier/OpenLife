@@ -34,6 +34,7 @@ test("gatherers feed foundations and the fire before the pile, and stop piling w
   assert.equal(gathererProject(base).id, "stockpile");
   assert.equal(gathererProject({ ...base, pile: 8 }).id, "rest");
   assert.equal(gathererProject({ ...base, pile: 8, fireFuel: 0, wood: 2 }).id, "feed-fire");
+  assert.equal(gathererProject({ ...base, pile: 8, fireFuel: 0, wood: 2, tending: false }).id, "rest");
   assert.equal(gathererProject({ material: "log", season: "秋", pile: 8, grain: 10 }).id, "stockpile");   // winter is coming: more wood
   assert.equal(gathererProject({ material: "log", season: "夏", pile: 8, felled: 4, stumps: 1, grain: 10 }).id, "replant");
 });
@@ -67,6 +68,10 @@ test("anyone with time on their hands keeps the fires in; the cook won't cook on
   const { cookProject, farmerProject } = await import("../apps/card-world/npc-mind.js");
   const winter = { season: "冬", people: 2, fields: [{ id: 1, soil: 3, sown: false }, { id: 2, soil: 3, sown: false }], grain: 10, cooked: 6 };
   assert.equal(farmerProject({ ...winter, fireFuel: 0 }).id, "firewood");
+  assert.equal(farmerProject({ ...winter, season: "秋", build: true }).id, "rest");                 // autumn: the harvest first, building waits
+  assert.equal(farmerProject({ ...winter, season: "秋", build: true, crowded: true }).id, "build");  // unless someone has nowhere to sleep
+  assert.notEqual(farmerProject({ ...winter, fireFuel: 0, tending: false }).id, "firewood");   // someone else is on it
+  assert.equal(farmerProject({ ...winter, fireFuel: 0, stoveFuel: 0, tending: false }).id, "rest");     // the stove is the cook's
   assert.equal(farmerProject(winter).id, "rest");
   assert.equal(farmerProject({ ...winter, season: "秋", logs: 1 }).id, "winter-wood");
   assert.equal(cookProject({ season: "夏", stove: 1, stoveFuel: 0, grain: 10, reserve: 2 }).id, "fuel-stove");

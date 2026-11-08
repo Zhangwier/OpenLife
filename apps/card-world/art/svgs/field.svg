@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <linearGradient id="fd_earth" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#966d47"/>
+          <stop offset="60%" stop-color="#694627"/>
+          <stop offset="100%" stop-color="#422913"/>
+        </linearGradient>
+      </defs>
+      <!-- 透视大田块轮廓 -->
+      <polygon points="25,212 52,65 204,65 231,212" fill="url(#fd_earth)" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 起伏隆起的田垄 (4条深沟大垄) -->
+      <path d="M 52,65 L 25,212" stroke="#3a2c20" stroke-width="5"/>
+      <path d="M 90,65 L 76,212" stroke="#3a2c20" stroke-width="4.5"/>
+      <path d="M 128,65 L 128,212" stroke="#3a2c20" stroke-width="5"/>
+      <path d="M 166,65 L 180,212" stroke="#3a2c20" stroke-width="4.5"/>
+      <path d="M 204,65 L 231,212" stroke="#3a2c20" stroke-width="5"/>
+      <!-- 垄背向阳亮土色 -->
+      <polygon points="56,65 86,65 72,212 32,212" fill="#aa7f55" opacity="0.35"/>
+      <polygon points="132,65 162,65 176,212 132,212" fill="#aa7f55" opacity="0.35"/>
+      <!-- 垄上生机勃勃的嫩绿禾苗 (小二叶/三叶草芽) -->
+      <!-- 远排 -->
+      <path d="M 72,75 L 68,68 M 72,75 L 76,68 M 110,75 L 106,68 M 110,75 L 114,68 M 148,75 L 144,68 M 148,75 L 152,68 M 185,75 L 181,68 M 185,75 L 189,68" stroke="#84cc37" stroke-width="3" stroke-linecap="round"/>
+      <!-- 中排 -->
+      <path d="M 62,125 L 56,115 M 62,125 L 68,115 M 106,125 L 100,115 M 106,125 L 112,115 M 150,125 L 144,115 M 150,125 L 156,115 M 195,125 L 189,115 M 195,125 L 201,115" stroke="#70b329" stroke-width="4.5" stroke-linecap="round"/>
+      <!-- 近排粗壮大禾苗 -->
+      <path d="M 52,185 L 42,170 M 52,185 L 62,170 M 52,185 L 52,166" stroke="#5fa11f" stroke-width="5.5" stroke-linecap="round"/>
+      <path d="M 102,185 L 92,170 M 102,185 L 112,170 M 102,185 L 102,166" stroke="#5fa11f" stroke-width="5.5" stroke-linecap="round"/>
+      <path d="M 154,185 L 144,170 M 154,185 L 164,170 M 154,185 L 154,166" stroke="#5fa11f" stroke-width="5.5" stroke-linecap="round"/>
+      <path d="M 206,185 L 196,170 M 206,185 L 216,170 M 206,185 L 206,166" stroke="#5fa11f" stroke-width="5.5" stroke-linecap="round"/>
+    </svg>

@@ -40,13 +40,25 @@ export const THEORIES = [
 ];
 /** What can be thought of. principle: the theory it rests on; need: which need, and how strong, before anyone thinks of it. */
 export const INVENTIONS = [
-  { id: "granary-pit", name: "粮窖", principle: "dry-heat-keeps", need: ["more-grain", 2], idea: "“在地上挖个窖，底下铺石头、上头盖木头，粟就不受潮，公仓也能多存。”" },
   { id: "smoking", name: "烟熏", principle: "dry-heat-keeps", need: ["preserve-food", 3], idea: "“鱼肉吊在火塘上熏干了，就放得住。”" },
   { id: "flood-marks", name: "刻木记水", principle: "water-marks", need: ["flood", 1], idea: "“在湖边立根木头刻上道道，水涨一道就看得见，明天漫不漫岸心里有数。”" },
   { id: "scarecrow", name: "稻草人", principle: "rabbits-fear-people", need: ["rabbits", 2], idea: "“拿芦苇扎个草人，插在田里，兔子远远看着就当是人。”" },
   { id: "fence", name: "篱笆", principle: "fence-keeps-out", need: ["rabbits", 4], idea: "“砍些木桩，拿绳子编成篱笆，把地围起来。”" },
   { id: "compost", name: "堆肥坑", principle: "soil-tired", need: ["tired-soil", 1], idea: "“挖个坑，把烂菜叶、坏了的吃食倒进去，沤上几天就是肥。”" },
-  { id: "cellar", name: "地窖", principle: "cool-keeps", need: ["preserve-food", 2], idea: "“在院里挖个窖，吃的放进去，热天也坏得慢。”" },
-  { id: "chest", name: "木箱", principle: null, need: ["clutter", 3], idea: "“院里的东西堆得满地都是。钉个木箱，材料都收进去。”" },
+  { id: "chest", name: "木柜", principle: null, need: ["clutter", 3], idea: "“家里的东西摊了一地。钉个木柜，放得住的都收进去。”" },
   { id: "calendar-stick", name: "立竿测影", principle: "shadow-year", need: ["know-season", 1], idea: "“在田边立根竿子，量影子长短，就知道还有几天换季。”" },
 ];
+/** Whose work brings them up against what. Only they mull it over: a fisher doesn't puzzle out tired soil, a farmer
+ *  doesn't think up a way to keep fish. Phenomena and needs alike. */
+const ANYONE = ["cook", "farm", "fish", "reed", "wood", "stone", "build"];
+export const MINDFUL = {
+  "food-spoils": ["cook", "fish"], "preserve-food": ["cook", "fish"],
+  "river-rise": ["fish", "reed"], "flood": ["fish", "reed"],
+  "seasons-turn": ["farm"], "know-season": ["farm"],
+  "rabbits-eat-crop": ["farm"], "rabbits": ["farm"],
+  "soil-tires": ["farm"], "tired-soil": ["farm"],
+  "more-grain": ["farm", "cook"],
+  "cold-sick": ANYONE, "cold": ANYONE,
+  "clutter": ["cook", "build", "wood", "stone"],
+};
+export const mindful = (topic, job) => (MINDFUL[topic] ?? ANYONE).includes(job);

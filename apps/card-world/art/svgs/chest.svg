@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <ellipse cx="128" cy="222" rx="85" ry="18" fill="#2d1c14" opacity="0.45"/>
+      <!-- 箱身 -->
+      <rect x="45" y="112" width="166" height="102" rx="6" fill="#945f32" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 拱形箱盖 -->
+      <path d="M 40,115 C 40,75 216,75 216,115 Z" fill="#ba7f4a" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 加固青铜/铁皮包边 -->
+      <line x1="82" y1="85" x2="82" y2="214" stroke="#3a2c20" stroke-width="5"/>
+      <line x1="174" y1="85" x2="174" y2="214" stroke="#3a2c20" stroke-width="5"/>
+      <rect x="116" y="105" width="24" height="28" rx="3" fill="#fcd34d" stroke="#3a2c20" stroke-width="3.5"/>
+    </svg>

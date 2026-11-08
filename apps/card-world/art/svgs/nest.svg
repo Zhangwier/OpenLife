@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="ns_twigs" cx="45%" cy="40%" r="65%">
+          <stop offset="0%" stop-color="#d6ab67"/>
+          <stop offset="65%" stop-color="#9e7333"/>
+          <stop offset="100%" stop-color="#593c14"/>
+        </radialGradient>
+        <radialGradient id="ns_egg" cx="35%" cy="30%" r="65%">
+          <stop offset="0%" stop-color="#ffffff"/>
+          <stop offset="70%" stop-color="#e8ede1"/>
+          <stop offset="100%" stop-color="#bed1bf"/>
+        </radialGradient>
+      </defs>
+      <!-- 阴影 -->
+      <ellipse cx="128" cy="222" rx="90" ry="20" fill="#2d1c14" opacity="0.45"/>
+      <!-- 外围交叉伸出的干枝草茎 -->
+      <g stroke="#3a2c20" stroke-width="5" stroke-linecap="round">
+        <line x1="38" y1="165" x2="68" y2="185"/>
+        <line x1="32" y1="185" x2="72" y2="175"/>
+        <line x1="185" y1="175" x2="225" y2="185"/>
+        <line x1="188" y1="190" x2="218" y2="168"/>
+        <line x1="110" y1="215" x2="148" y2="228"/>
+      </g>
+      <!-- 鸟巢外圈大碗状轮廓 -->
+      <path d="M 35,160 C 32,215 224,215 221,160 C 185,178 72,178 35,160 Z" fill="url(#ns_twigs)" stroke="#3a2c20" stroke-width="6.5" stroke-linejoin="round"/>
+      <!-- 巢穴内部凹陷柔软羽毛衬垫 -->
+      <ellipse cx="128" cy="155" rx="78" ry="32" fill="#4a3116" stroke="#3a2c20" stroke-width="5"/>
+      <ellipse cx="128" cy="158" rx="68" ry="24" fill="#694b28"/>
+      <!-- 巢内两枚圆润光滑的野鸭蛋 -->
+      <!-- 左蛋 (稍斜卧) -->
+      <ellipse cx="108" cy="152" rx="22" ry="28" transform="rotate(-20 108 152)" fill="url(#ns_egg)" stroke="#3a2c20" stroke-width="4.5"/>
+      <ellipse cx="104" cy="145" rx="6" ry="10" transform="rotate(-20 104 145)" fill="#ffffff" opacity="0.8"/>
+      <!-- 右蛋 (依偎) -->
+      <ellipse cx="148" cy="154" rx="22" ry="28" transform="rotate(22 148 154)" fill="url(#ns_egg)" stroke="#3a2c20" stroke-width="4.5"/>
+      <ellipse cx="145" cy="146" rx="6" ry="10" transform="rotate(22 145 146)" fill="#ffffff" opacity="0.8"/>
+      <!-- 前沿编结草茎纹理 -->
+      <path d="M 45,172 Q 128,198 211,172" fill="none" stroke="#f2cf8a" stroke-width="4" stroke-linecap="round"/>
+      <path d="M 62,188 Q 128,212 194,188" fill="none" stroke="#ba893a" stroke-width="4" stroke-linecap="round"/>
+    </svg>

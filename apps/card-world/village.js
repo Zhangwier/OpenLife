@@ -21,6 +21,7 @@ export const LADDER = [
   { name: "有名", unlock: "（以后）远行", conds: [{ text: "跟东南边来的人换过东西", test: (v) => v.traded >= 1 }] },
   { name: "兴旺", unlock: "（以后）", conds: [{ text: "村里的人", value: (v) => v.people, need: 12 }, { text: "三代同堂（你家有长辈、也有孩子）", test: (v) => v.threeGen }] },
   { name: "传承", unlock: "这一家人在这片地上扎下了根", conds: [{ text: "传到第二代", test: (v) => v.generations >= 2 }] },
+  { name: "远行", unlock: "海那边的路还长", conds: [{ text: "烧掉或凿沉黑帆船", test: (v) => v.piratesDone }, { text: "从岛上带回盐", value: (v) => v.salt, need: 1 }] },
 ];
 export const condDone = (c, v) => (c.test ? c.test(v) : c.value(v) >= c.need);
 export const rungDone = (r, v) => r.conds.every((c) => condDone(c, v));
@@ -43,7 +44,7 @@ export const NEWCOMERS = [
 
 /** The days the village keeps. day: day of the season (1–4); they gather at the stove at dusk. cost: what it takes. */
 export const FESTIVALS = [
-  { id: "spring", season: "春", day: 1, name: "春祭", line: "大家围着公灶，你学着老人的样子把一把粟撒向田那边。大伙一起喊：“雨匀！”", cost: { granary: 1 } },
+  { id: "spring", season: "春", day: 1, name: "春祭", line: "大家围着饭桌，你学着老人的样子把一把粟撒向田那边。大伙一起喊：“雨匀！”", cost: { granary: 1 } },
   { id: "harvest", season: "秋", day: 3, name: "秋收共餐", line: "新粟煮了满满一锅，第一碗端给了年纪最大的人。灶边一直闹到天黑透。", cost: { granary: 2 }, feast: 6 },
-  { id: "solstice", season: "冬", day: 3, name: "冬至守火", line: "这一夜公灶的火不能灭。大家轮流添柴，讲着各自老家的事，一直坐到后半夜。", cost: { fuel: 1 } },
+  { id: "solstice", season: "冬", day: 3, name: "冬至守火", line: "这一夜灶里的火不能灭。大家轮流添柴，讲着各自老家的事，一直坐到后半夜。", cost: { fuel: 1 } },
 ];

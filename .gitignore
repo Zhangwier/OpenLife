@@ -10,3 +10,6 @@ __pycache__/
 
 # Runtime files produced by the engine, never part of the source migration.
 /engine/apps/web/data/
+
+# Art backups
+apps/card-world/art/backup/

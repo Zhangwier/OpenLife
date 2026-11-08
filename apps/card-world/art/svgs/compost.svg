@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="cp_pit" cx="42%" cy="38%" r="65%">
+          <stop offset="0%" stop-color="#5e7a3a"/>
+          <stop offset="45%" stop-color="#465e28"/>
+          <stop offset="80%" stop-color="#343e1c"/>
+          <stop offset="100%" stop-color="#242812"/>
+        </radialGradient>
+      </defs>
+      <!-- 阴影 -->
+      <ellipse cx="128" cy="216" rx="98" ry="22" fill="#2d1c14" opacity="0.45"/>
+      <!-- 堆肥坑基底黄土坎 -->
+      <ellipse cx="128" cy="155" rx="96" ry="58" fill="#8c6238" stroke="#3a2c20" stroke-width="5.5"/>
+      <!-- 坑内层叠发酵深厚的碎烂草料与肥土核心 -->
+      <ellipse cx="128" cy="150" rx="84" ry="48" fill="url(#cp_pit)" stroke="#3a2c20" stroke-width="4.5"/>
+      <!-- 堆积的烂草与枝叶层 -->
+      <path d="M 72,145 C 92,125 132,130 152,148 C 132,160 92,158 72,145 Z" fill="#7a9648" stroke="#3a2c20" stroke-width="2.5" opacity="0.8"/>
+      <path d="M 118,132 C 142,120 178,135 184,152 C 162,162 135,152 118,132 Z" fill="#658036" opacity="0.85"/>
+      <path d="M 85,160 Q 128,142 165,162" fill="none" stroke="#48321d" stroke-width="4" stroke-linecap="round"/>
+      <!-- 烂草茎线 -->
+      <path d="M 95,135 L 115,148 M 135,138 L 155,152 M 105,155 L 128,162" stroke="#a0bc5e" stroke-width="3" stroke-linecap="round"/>
+      <!-- 坑边严密围砌的天然圆卵石圈（新石器护坑工艺） -->
+      <!-- 后排石 -->
+      <ellipse cx="64" cy="116" rx="16" ry="12" fill="#b0a596" stroke="#3a2c20" stroke-width="4"/>
+      <ellipse cx="98" cy="102" rx="19" ry="13" fill="#9e9384" stroke="#3a2c20" stroke-width="4"/>
+      <ellipse cx="134" cy="98" rx="20" ry="14" fill="#b5aa9b" stroke="#3a2c20" stroke-width="4.5"/>
+      <ellipse cx="168" cy="104" rx="18" ry="13" fill="#8e8374" stroke="#3a2c20" stroke-width="4"/>
+      <ellipse cx="196" cy="118" rx="16" ry="12" fill="#9e9384" stroke="#3a2c20" stroke-width="4"/>
+      <!-- 前排石 -->
+      <ellipse cx="44" cy="162" rx="17" ry="14" fill="#aba091" stroke="#3a2c20" stroke-width="4"/>
+      <ellipse cx="65" cy="195" rx="20" ry="15" fill="#8e8374" stroke="#3a2c20" stroke-width="4.5"/>
+      <ellipse cx="106" cy="205" rx="23" ry="16" fill="#b8ad9e" stroke="#3a2c20" stroke-width="5"/>
+      <ellipse cx="152" cy="204" rx="24" ry="16" fill="#9e9384" stroke="#3a2c20" stroke-width="5"/>
+      <ellipse cx="194" cy="192" rx="20" ry="15" fill="#aba091" stroke="#3a2c20" stroke-width="4.5"/>
+      <ellipse cx="212" cy="158" rx="16" ry="13" fill="#8e8374" stroke="#3a2c20" stroke-width="4"/>
+      <!-- 前石高光 -->
+      <path d="M 98,198 Q 112,192 122,198" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.6"/>
+      <path d="M 142,196 Q 156,190 166,196" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.6"/>
+    </svg>

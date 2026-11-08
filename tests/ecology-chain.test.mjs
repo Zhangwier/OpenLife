@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { droughtDays, fellingNext, floodAfter, harvestYield, rabbitCap, rabbitRaid, soilAfterHarvest, soilAtWinter } from "../apps/card-world/ecology-chain.js";
+import { droughtDays, fellingNext, floodAfter, harvestYield, rabbitCap, rabbitRaid, soilAfterHarvest, soilAtWinter, tigerFeed, tigerHuntAt } from "../apps/card-world/ecology-chain.js";
 import { cropWeather, planProduction } from "../apps/card-world/production.js";
 
 test("millet tires the ground year on year; beans and a fallow year bring it back", () => {
@@ -22,6 +22,15 @@ test("millet tires the ground year on year; beans and a fallow year bring it bac
   assert.equal(harvestYield({ stock: 3, soil: 4 }), 9);
 });
 
+test("a tiger hunts sooner where prey is plentiful, and a big kill rests it longer", () => {
+  assert.equal(tigerHuntAt(10), 5.5);
+  assert.equal(tigerHuntAt(6), 7);
+  assert.equal(tigerHuntAt(1), 9);
+  assert.deepEqual(tigerFeed("deer", true), { hunger: 5.5, rest: 360 });
+  assert.deepEqual(tigerFeed("deer", false), { hunger: 2.5, rest: 150 });
+  assert.deepEqual(tigerFeed("rabbit", true), { hunger: 2.5, rest: 120 });
+});
+
 test("beans are sown from a bean, and stand a longer dry spell than millet", () => {
   const bean = { key: "bean" };
   const plan = planProduction({ kind: "sow", source: { key: "field2", stock: 0, sown: false }, season: "春", cards: [bean], use: ["bean"] });
@@ -34,9 +43,9 @@ test("beans are sown from a bean, and stand a longer dry spell than millet", () 
 });
 
 test("rabbits multiply with the food and a dog keeps them off the crop", () => {
-  assert.equal(rabbitCap(0), 2);
-  assert.equal(rabbitCap(14), 4);
-  assert.equal(rabbitCap(100), 6);
+  assert.equal(rabbitCap(0), 4);
+  assert.equal(rabbitCap(14), 7);
+  assert.equal(rabbitCap(100), 10);
   const fields = [{ stock: 2 }, { stock: 0 }, { stock: 1, sown: false }];
   const at = (v) => () => v;
   assert.equal(rabbitRaid({ rabbits: 4, guarded: false, season: "夏" }, fields, at(0.2)).length, 1);

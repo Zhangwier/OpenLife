@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <linearGradient id="rk_wood" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#966940"/>
+          <stop offset="100%" stop-color="#54371b"/>
+        </linearGradient>
+      </defs>
+      <!-- 投影 -->
+      <ellipse cx="128" cy="225" rx="88" ry="16" fill="#2d1c14" opacity="0.45"/>
+      <!-- 左右交叉木脚架 (A-frame) -->
+      <!-- 左 A 架后腿 -->
+      <line x1="68" y1="62" x2="42" y2="218" stroke="#3a2c20" stroke-width="9" stroke-linecap="round"/>
+      <line x1="68" y1="62" x2="42" y2="218" stroke="url(#rk_wood)" stroke-width="5" stroke-linecap="round"/>
+      <!-- 右 A 架后腿 -->
+      <line x1="188" y1="62" x2="162" y2="218" stroke="#3a2c20" stroke-width="9" stroke-linecap="round"/>
+      <line x1="188" y1="62" x2="162" y2="218" stroke="url(#rk_wood)" stroke-width="5" stroke-linecap="round"/>
+      <!-- 横置的长顶晾杆 -->
+      <line x1="38" y1="72" x2="218" y2="72" stroke="#3a2c20" stroke-width="10" stroke-linecap="round"/>
+      <line x1="38" y1="72" x2="218" y2="72" stroke="#b08151" stroke-width="5.5" stroke-linecap="round"/>
+      <!-- 左 A 架前腿 -->
+      <line x1="60" y1="62" x2="86" y2="218" stroke="#3a2c20" stroke-width="9" stroke-linecap="round"/>
+      <line x1="60" y1="62" x2="86" y2="218" stroke="url(#rk_wood)" stroke-width="5" stroke-linecap="round"/>
+      <!-- 右 A 架前腿 -->
+      <line x1="180" y1="62" x2="206" y2="218" stroke="#3a2c20" stroke-width="9" stroke-linecap="round"/>
+      <line x1="180" y1="62" x2="206" y2="218" stroke="url(#rk_wood)" stroke-width="5" stroke-linecap="round"/>
+      <!-- 交叉处麻绳捆扎圈 -->
+      <ellipse cx="64" cy="68" rx="8" ry="8" fill="#e2c490" stroke="#3a2c20" stroke-width="3"/>
+      <ellipse cx="184" cy="68" rx="8" ry="8" fill="#e2c490" stroke="#3a2c20" stroke-width="3"/>
+      <!-- 悬挂的晾晒食品 -->
+      <!-- 1. 吊挂腊肉条 -->
+      <line x1="88" y1="74" x2="88" y2="92" stroke="#3a2c20" stroke-width="3"/>
+      <path d="M 82,92 C 82,92 94,92 94,92 C 96,120 96,155 88,162 C 80,155 80,120 82,92 Z" fill="#992b24" stroke="#3a2c20" stroke-width="4.5" stroke-linejoin="round"/>
+      <path d="M 85,102 Q 88,135 91,152" stroke="#df7c70" stroke-width="3" stroke-linecap="round"/>
+      <!-- 2. 吊挂银光风干鱼 1 -->
+      <line x1="116" y1="74" x2="116" y2="95" stroke="#3a2c20" stroke-width="3"/>
+      <path d="M 116,95 C 104,115 106,145 116,165 C 126,145 128,115 116,95 Z" fill="#b0c8d1" stroke="#3a2c20" stroke-width="4.5" stroke-linejoin="round"/>
+      <!-- 鱼尾巴 -->
+      <polygon points="116,164 108,178 124,178" fill="#7a97a3" stroke="#3a2c20" stroke-width="3.5" stroke-linejoin="round"/>
+      <circle cx="116" cy="105" r="2.5" fill="#3a2c20"/>
+      <!-- 3. 吊挂银光风干鱼 2 (稍高) -->
+      <line x1="144" y1="74" x2="144" y2="88" stroke="#3a2c20" stroke-width="3"/>
+      <path d="M 144,88 C 132,108 134,136 144,154 C 154,136 156,108 144,88 Z" fill="#cfdee3" stroke="#3a2c20" stroke-width="4.5" stroke-linejoin="round"/>
+      <polygon points="144,153 136,166 152,166" fill="#7a97a3" stroke="#3a2c20" stroke-width="3.5" stroke-linejoin="round"/>
+      <circle cx="144" cy="98" r="2.5" fill="#3a2c20"/>
+      <!-- 4. 香草串/蒜串 -->
+      <line x1="168" y1="74" x2="168" y2="96" stroke="#3a2c20" stroke-width="3"/>
+      <circle cx="168" cy="102" r="7" fill="#eed9be" stroke="#3a2c20" stroke-width="3"/>
+      <circle cx="168" cy="116" r="7.5" fill="#f5e6d3" stroke="#3a2c20" stroke-width="3"/>
+      <circle cx="168" cy="130" r="7" fill="#e0caa8" stroke="#3a2c20" stroke-width="3"/>
+    </svg>

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <ellipse cx="128" cy="225" rx="88" ry="18" fill="#2d1c14" opacity="0.45"/>
+      <!-- 仓房主木体 -->
+      <rect x="48" y="105" width="160" height="110" fill="#a67746" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 双开大仓门与十字斜撑 -->
+      <rect x="92" y="132" width="72" height="83" fill="#69431f" stroke="#3a2c20" stroke-width="4.5"/>
+      <line x1="92" y1="132" x2="164" y2="215" stroke="#3a2c20" stroke-width="3"/>
+      <line x1="164" y1="132" x2="92" y2="215" stroke="#3a2c20" stroke-width="3"/>
+      <!-- 人字厚茅草大顶 -->
+      <polygon points="128,35 228,112 28,112" fill="#e8ba58" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+    </svg>

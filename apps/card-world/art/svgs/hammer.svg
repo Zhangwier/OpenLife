@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <ellipse cx="128" cy="222" rx="80" ry="16" fill="#2d1c14" opacity="0.45"/>
+      <!-- 木柄 -->
+      <line x1="72" y1="215" x2="162" y2="65" stroke="#3a2c20" stroke-width="12" stroke-linecap="round"/>
+      <line x1="72" y1="215" x2="162" y2="65" stroke="#8a5a34" stroke-width="7" stroke-linecap="round"/>
+      <!-- 粗重横置石锤头 -->
+      <polygon points="120,40 195,85 178,115 102,70" fill="#7a7063" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 交叉缠绕的加固麻绳 -->
+      <line x1="128" y1="62" x2="152" y2="95" stroke="#eedbb2" stroke-width="5"/>
+      <line x1="145" y1="65" x2="135" y2="92" stroke="#eedbb2" stroke-width="5"/>
+      <line x1="128" y1="62" x2="152" y2="95" stroke="#3a2c20" stroke-width="1"/>
+    </svg>

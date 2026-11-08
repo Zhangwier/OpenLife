@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <ellipse cx="128" cy="180" rx="90" ry="40" fill="#543821" stroke="#3a2c20" stroke-width="6"/>
+      <ellipse cx="128" cy="180" rx="72" ry="28" fill="#1f1207"/>
+      <!-- 掀开的厚木地窖门 -->
+      <polygon points="75,175 145,95 195,125 125,195" fill="#8f5b2f" stroke="#3a2c20" stroke-width="5" stroke-linejoin="round"/>
+    </svg>

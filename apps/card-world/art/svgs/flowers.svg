@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <!-- 阴影 -->
+      <ellipse cx="132" cy="134" rx="82" ry="72" fill="#2d1c14" opacity="0.18"/>
+      <!-- 底层绿叶托衬 -->
+      <ellipse cx="102" cy="112" rx="42" ry="34" fill="#88aa60" stroke="#4a3a2e" stroke-width="3.5"/>
+      <ellipse cx="156" cy="116" rx="38" ry="32" fill="#789a50" stroke="#4a3a2e" stroke-width="3.5"/>
+      <ellipse cx="128" cy="156" rx="46" ry="36" fill="#88aa60" stroke="#4a3a2e" stroke-width="3.5"/>
+      <!-- 小花 1：奶白色（偏左上） -->
+      <g transform="translate(98, 106)">
+        <circle cx="0" cy="-12" r="8" fill="#faf6ed" stroke="#4a3a2e" stroke-width="2.5"/>
+        <circle cx="11" cy="-4" r="8" fill="#faf6ed" stroke="#4a3a2e" stroke-width="2.5"/>
+        <circle cx="7" cy="10" r="8" fill="#faf6ed" stroke="#4a3a2e" stroke-width="2.5"/>
+        <circle cx="-7" cy="10" r="8" fill="#faf6ed" stroke="#4a3a2e" stroke-width="2.5"/>
+        <circle cx="-11" cy="-4" r="8" fill="#faf6ed" stroke="#4a3a2e" stroke-width="2.5"/>
+        <circle cx="0" cy="0" r="5" fill="#f2c846" stroke="#4a3a2e" stroke-width="2"/>
+      </g>
+      <!-- 小花 2：浅粉橙色（偏右侧） -->
+      <g transform="translate(162, 122)">
+        <circle cx="0" cy="-11" r="7.5" fill="#f7d4c8" stroke="#4a3a2e" stroke-width="2.5"/>
+        <circle cx="10" cy="-3" r="7.5" fill="#f7d4c8" stroke="#4a3a2e" stroke-width="2.5"/>
+        <circle cx="6" cy="9" r="7.5" fill="#f7d4c8" stroke="#4a3a2e" stroke-width="2.5"/>
+        <circle cx="-6" cy="9" r="7.5" fill="#f7d4c8" stroke="#4a3a2e" stroke-width="2.5"/>
+        <circle cx="-10" cy="-3" r="7.5" fill="#f7d4c8" stroke="#4a3a2e" stroke-width="2.5"/>
+        <circle cx="0" cy="0" r="4.5" fill="#e8983e" stroke="#4a3a2e" stroke-width="2"/>
+      </g>
+      <!-- 小花 3：嫩黄色（偏下方） -->
+      <g transform="translate(126, 162)">
+        <circle cx="0" cy="-10" r="7" fill="#fdf0b8" stroke="#4a3a2e" stroke-width="2.5"/>
+        <circle cx="9" cy="-3" r="7" fill="#fdf0b8" stroke="#4a3a2e" stroke-width="2.5"/>
+        <circle cx="6" cy="8" r="7" fill="#fdf0b8" stroke="#4a3a2e" stroke-width="2.5"/>
+        <circle cx="-6" cy="8" r="7" fill="#fdf0b8" stroke="#4a3a2e" stroke-width="2.5"/>
+        <circle cx="-9" cy="-3" r="7" fill="#fdf0b8" stroke="#4a3a2e" stroke-width="2.5"/>
+        <circle cx="0" cy="0" r="4" fill="#d8842c" stroke="#4a3a2e" stroke-width="2"/>
+      </g>
+    </svg>

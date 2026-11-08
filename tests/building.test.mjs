@@ -30,3 +30,15 @@ test("only someone who knows how can lead; a new hand sometimes has to start a s
   assert.equal(fresh.failed, true);
   assert.ok(fresh.minutes < 240);
 });
+
+test("you can see a step's materials only if you know the craft or were told this very step", async () => {
+  const { stepKnown } = await import("../apps/card-world/building.js");
+  const plot = { id: 41, build: "hut", stage: 0 };
+  assert.equal(stepKnown(plot, {}, {}), false);                                     // never seen it: no shopping list
+  assert.equal(stepKnown(plot, { hut: { mem: 1 } }, {}), true);                     // you know how
+  assert.equal(stepKnown(plot, {}, { 41: { kind: "hut", stage: 0 } }), true);       // someone talked you through this step
+  assert.equal(stepKnown(plot, {}, { 41: { kind: "hut", stage: 1 } }), false);      // a different step: back to not knowing
+  assert.equal(stepKnown({ ...plot, stage: 1 }, {}, { 41: { kind: "hut", stage: 0 } }), false);
+  assert.equal(stepKnown(plot, {}, { 42: { kind: "hut", stage: 0 } }), false);      // another foundation's explanation
+  assert.equal(stepKnown({ ...plot, build: "farm" }, {}, {}), true);                // clearing ground is plain work
+});

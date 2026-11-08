@@ -1,0 +1,29 @@
+<svg viewBox="0 0 256 256" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <g stroke="#3a2c20" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+    <!-- 蓬松大尾巴与白尾尖 -->
+    <path d="M72 152 C32 144 16 92 48 64 C80 36 116 72 96 140 Z" fill="#d45e28"/>
+    <path d="M48 64 C62 48 88 56 96 82 C82 88 64 80 48 64 Z" fill="#fffaf0"/>
+    <!-- 后肢与黑足 -->
+    <path d="M84 164 C76 182 72 206 80 222 H102 C104 204 108 184 102 164 Z" fill="#b24818"/>
+    <path d="M80 206 H102 V222 H80 Z" fill="#2a1f18"/>
+    <!-- 敏捷身段 -->
+    <path d="M80 148 C76 116 112 104 152 108 C184 112 196 134 188 166 C180 196 142 204 104 200 C84 196 80 174 80 148 Z" fill="#d45e28"/>
+    <!-- 前肢与黑袜 -->
+    <path d="M152 166 C148 184 144 206 150 222 H172 C174 204 178 182 172 166 Z" fill="#d45e28"/>
+    <path d="M150 206 H172 V222 H150 Z" fill="#2a1f18"/>
+    <!-- 头部轮廓 -->
+    <path d="M148 98 C144 68 174 52 202 62 C226 70 240 98 226 122 C208 144 154 134 148 98 Z" fill="#d45e28"/>
+    <!-- 尖尖的双耳（带黑外廓和白内毛） -->
+    <path d="M156 64 L164 24 L188 54 Z" fill="#2a1f18"/>
+    <path d="M166 54 L170 34 L182 50 Z" fill="#fffaf0" stroke="none"/>
+    <path d="M200 62 L224 28 L228 68 Z" fill="#2a1f18"/>
+    <path d="M208 58 L220 38 L222 62 Z" fill="#fffaf0" stroke="none"/>
+    <!-- 白脸颊与尖吻 -->
+    <path d="M182 96 C198 86 234 94 242 108 C232 122 198 132 178 122 C172 112 174 102 182 96 Z" fill="#fffaf0"/>
+    <circle cx="242" cy="108" r="4" fill="#2a1f18"/>
+    <!-- 狡黠金眸 -->
+    <ellipse cx="188" cy="86" rx="8" ry="10" transform="rotate(15 188 86)" fill="#f0a24a"/>
+    <ellipse cx="189" cy="86" rx="3" ry="8" transform="rotate(15 188 86)" fill="#2a1f18"/>
+    <circle cx="187" cy="82" r="2" fill="#fff" stroke="none"/>
+  </g>
+</svg>

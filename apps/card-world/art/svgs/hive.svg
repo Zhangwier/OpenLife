@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+      <defs>
+        <radialGradient id="hv_body" cx="45%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#ffd55c"/>
+          <stop offset="60%" stop-color="#e09e24"/>
+          <stop offset="100%" stop-color="#945f0d"/>
+        </radialGradient>
+      </defs>
+      <!-- 顶部支撑的苍老树枝 -->
+      <path d="M 18,35 C 65,42 195,35 240,48 L 238,70 C 190,56 65,65 18,52 Z" fill="#59391e" stroke="#3a2c20" stroke-width="6" stroke-linejoin="round"/>
+      <!-- 蜂巢吊挂系带 -->
+      <line x1="128" y1="58" x2="128" y2="78" stroke="#3a2c20" stroke-width="7" stroke-linecap="round"/>
+      <!-- 蜂巢多层同心环状结构 (从上到下逐层递增后收束) -->
+      <!-- 层 1 -->
+      <ellipse cx="128" cy="88" rx="36" ry="16" fill="url(#hv_body)" stroke="#3a2c20" stroke-width="5"/>
+      <!-- 层 2 -->
+      <ellipse cx="128" cy="110" rx="55" ry="20" fill="url(#hv_body)" stroke="#3a2c20" stroke-width="5.5"/>
+      <!-- 层 3 (最宽处) -->
+      <ellipse cx="128" cy="136" rx="66" ry="22" fill="url(#hv_body)" stroke="#3a2c20" stroke-width="6"/>
+      <!-- 层 4 -->
+      <ellipse cx="128" cy="162" rx="58" ry="20" fill="url(#hv_body)" stroke="#3a2c20" stroke-width="5.5"/>
+      <!-- 层 5 -->
+      <ellipse cx="128" cy="186" rx="44" ry="17" fill="url(#hv_body)" stroke="#3a2c20" stroke-width="5"/>
+      <!-- 层 6 (底收尾) -->
+      <ellipse cx="128" cy="204" rx="26" ry="12" fill="url(#hv_body)" stroke="#3a2c20" stroke-width="4.5"/>
+      <!-- 蜂巢出入口黑洞 (带有暖色光晕) -->
+      <ellipse cx="128" cy="148" rx="14" ry="18" fill="#2b1504" stroke="#3a2c20" stroke-width="4"/>
+      <ellipse cx="128" cy="154" rx="8" ry="10" fill="#140801"/>
+      <!-- 垂滴的浓稠金黄蜂蜜 -->
+      <path d="M 124,208 C 124,228 132,228 132,208 Z" fill="#ffd700" stroke="#3a2c20" stroke-width="2.5"/>
+      <!-- 飞舞的小野蜂 1 (右上) -->
+      <ellipse cx="195" cy="88" rx="7" ry="5" fill="#ffd55c" stroke="#3a2c20" stroke-width="2.5"/>
+      <path d="M 193,84 L 193,92 M 197,84 L 197,92" stroke="#3a2c20" stroke-width="2"/>
+      <ellipse cx="192" cy="80" rx="4" ry="6" fill="#e0f7fa" opacity="0.8" stroke="#3a2c20" stroke-width="1.5"/>
+      <!-- 飞舞的小野蜂 2 (左中) -->
+      <ellipse cx="58" cy="125" rx="6" ry="4.5" fill="#ffd55c" stroke="#3a2c20" stroke-width="2.5"/>
+      <path d="M 56,121 L 56,129 M 60,121 L 60,129" stroke="#3a2c20" stroke-width="2"/>
+      <ellipse cx="56" cy="118" rx="4" ry="5" fill="#e0f7fa" opacity="0.8" stroke="#3a2c20" stroke-width="1.5"/>
+    </svg>
